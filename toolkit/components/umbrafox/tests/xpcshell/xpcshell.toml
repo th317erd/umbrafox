@@ -2,3 +2,5 @@
 firefox-appdir = "browser"
 
 ["test_userland_script_store.js"]
+
+["test_userland_script_scope.js"]

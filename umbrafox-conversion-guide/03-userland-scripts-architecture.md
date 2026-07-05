@@ -1,6 +1,6 @@
 # Userland scripts architecture
 
-Status: architecture note. The profile-local storage slice exists; DevTools UI, isolated-world execution, worker support, and network APIs are not implemented yet.
+Status: architecture note. The profile-local storage slice and Debugger source-tree creation plumbing exist; script editing UI, isolated-world execution, worker support, and network APIs are not implemented yet.
 
 This feature lets users create named scripts from DevTools, persist them in the active profile, and run them in isolated userland worlds for a matching site/thread before normal page JavaScript executes.
 
@@ -176,18 +176,19 @@ The Debugger currently uses `debugger.properties` for nearby strings. New UI sho
 
 The UI should add:
 
-- context-menu item for thread/group/directory/source scopes;
-- footer `New Script` action;
-- a userland script source/editor model;
-- enable checkboxes;
-- script name editing;
-- dirty-state handling;
-- reload-needed indicator when a matching document has already run page scripts.
+- context-menu item for thread/group/directory/source scopes; implemented as a disabled-script creation path;
+- footer `New Script` action; planned;
+- a userland script source/editor model; planned;
+- enable checkboxes; planned;
+- script name editing; planned beyond the initial name prompt;
+- dirty-state handling; planned;
+- reload-needed indicator when a matching document has already run page scripts; planned.
 
 ## Runtime modules
 
 Current and recommended modules:
 
+- `toolkit/components/umbrafox/UmbrafoxUserlandScriptScope.sys.mjs` exists.
 - `toolkit/components/umbrafox/UmbrafoxUserlandScriptStore.sys.mjs` exists.
 - `toolkit/components/umbrafox/UmbrafoxUserlandScriptsParent.sys.mjs` is planned.
 - `toolkit/components/umbrafox/UmbrafoxUserlandScriptsChild.sys.mjs` is planned.
@@ -238,9 +239,9 @@ Do not implement network APIs by monkeypatching page `fetch`, `XMLHttpRequest`, 
 
 ## First implementation slice
 
-The first code patch should be deliberately narrow. The store portion is implemented; the rest of this slice remains:
+The first code patch should be deliberately narrow. The store, scope, and source-tree creation portions are implemented; the rest of this slice remains:
 
-1. DevTools context-menu and footer entry points that create a disabled placeholder script.
+1. Footer `New Script` entry point that creates a disabled placeholder script.
 2. Script editor surface for name, enabled state, and code.
 3. Document-only isolated-world execution at document_start for future navigations.
 4. Tests proving an enabled script runs before the first inline page script.

@@ -27,6 +27,11 @@ import {
 import { shouldBlackbox } from "../../utils/source";
 import { copyToTheClipboard } from "../../utils/clipboard";
 import { saveAsLocalFile } from "../../utils/utils";
+import {
+  createDisabledUserlandScriptForTreeItem,
+  getDefaultUserlandScriptName,
+  getUserlandScriptScopeForTreeItem,
+} from "../../utils/umbrafox-userland-scripts";
 
 /**
  * Show the context menu of SourceTreeItem.
@@ -50,6 +55,8 @@ export function showSourceTreeItemContextMenu(
     const setDirectoryRootLabel = L10N.getStr("setDirectoryRoot.label");
     const setDirectoryRootKey = L10N.getStr("setDirectoryRoot.accesskey");
     const removeDirectoryRootLabel = L10N.getStr("removeDirectoryRoot.label");
+    const canCreateUserlandScript =
+      panel.toolbox.commands.descriptorFront.isLocalTab;
 
     const menuOptions = [];
 
@@ -137,8 +144,47 @@ export function showSourceTreeItemContextMenu(
       addBlackboxAllOption(dispatch, state, menuOptions, item, depth);
     }
 
+    addNewUserlandScriptOption(menuOptions, item, canCreateUserlandScript);
+
     showMenu(event, menuOptions);
   };
+}
+
+function addNewUserlandScriptOption(menuOptions, item, isLocalTab) {
+  if (!isLocalTab) {
+    return;
+  }
+
+  const scope = getUserlandScriptScopeForTreeItem(item);
+  menuOptions.push(
+    { type: "separator" },
+    {
+      id: "node-menu-new-userland-script",
+      label: L10N.getStr("userlandScripts.newScript.label"),
+      accesskey: L10N.getStr("userlandScripts.newScript.accesskey"),
+      disabled: !scope,
+      click: () => promptAndCreateUserlandScript(item),
+    }
+  );
+}
+
+async function promptAndCreateUserlandScript(item) {
+  const input = {
+    value: getDefaultUserlandScriptName(item),
+  };
+  const accepted = Services.prompt.prompt(
+    window,
+    L10N.getStr("userlandScripts.newScriptDialog.title"),
+    L10N.getStr("userlandScripts.newScriptDialog.message"),
+    input,
+    null,
+    {}
+  );
+  if (!accepted) {
+    return;
+  }
+
+  await createDisabledUserlandScriptForTreeItem(item, input.value.trim());
 }
 
 /**

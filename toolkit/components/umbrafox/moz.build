@@ -6,6 +6,7 @@ with Files("**"):
     BUG_COMPONENT = ("Toolkit", "General")
 
 EXTRA_JS_MODULES += [
+    "UmbrafoxUserlandScriptScope.sys.mjs",
     "UmbrafoxUserlandScriptStore.sys.mjs",
 ]
 

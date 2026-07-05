@@ -1,6 +1,6 @@
 # Userland scripts recipe
 
-Status: incremental feature recipe. The profile-local storage slice exists; see `../03-userland-scripts-architecture.md` before implementing additional slices.
+Status: incremental feature recipe. The profile-local storage and Debugger source-tree creation slices exist; see `../03-userland-scripts-architecture.md` before implementing additional slices.
 
 ## Goal
 
@@ -19,6 +19,7 @@ Add browser-owned userland scripts that users create from DevTools, save in the 
 Expected implementation areas:
 
 - `devtools/client/debugger/src/actions/context-menus/source-tree-item.js`
+- `devtools/client/debugger/src/utils/umbrafox-userland-scripts.js`
 - `devtools/client/debugger/src/components/PrimaryPanes/SourcesTreeItem.js`
 - `devtools/client/debugger/src/components/PrimaryPanes/SourcesTree.js`
 - `devtools/client/debugger/src/reducers/sources-tree.js`
@@ -36,7 +37,7 @@ Expected implementation areas:
 ## Implementation order
 
 1. Keep the profile-local store and schema migration tests passing.
-2. Add DevTools create/list/update/delete actions without executing scripts.
+2. Keep source-tree scope derivation and disabled-script creation working.
 3. Add editor UI for name, enabled state, scope, and code.
 4. Add document-only isolated-world execution for future navigations.
 5. Add tests that enabled scripts run before the first inline page script.
