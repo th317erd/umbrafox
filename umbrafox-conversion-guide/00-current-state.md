@@ -19,11 +19,20 @@ Umbrafox currently changes Firefox in these broad ways:
 11. en-US visible copy and comments were swept from Firefox to Umbrafox where appropriate.
 12. Focused regression tests were added or adjusted so the Umbrafox defaults remain intentional.
 
+## Userland scripts state
+
+The userland scripts feature has an architecture note and recipe:
+
+- `03-userland-scripts-architecture.md`
+- `recipes/09-userland-scripts.md`
+
+The profile-local script store is implemented in `toolkit/components/umbrafox/UmbrafoxUserlandScriptStore.sys.mjs` with xpcshell coverage. Do not expect the current browser build to show userland script UI or execute userland scripts until the DevTools and runtime injection slices land.
+
 ## Important state note
 
-At the time this guide was created, Umbrafox changes are not represented as local commits. `origin/main` and `HEAD` point to the same upstream-derived commit, and the conversion exists as working-tree modifications.
+At the time this guide was first created, Umbrafox changes were working-tree modifications. They were later committed as `5d89f338f5e9 Convert Firefox to Umbrafox`.
 
-Before the next major upstream update, strongly consider committing the conversion in subsystem-sized commits. A practical split would be:
+Future major Umbrafox changes should preferably be committed in subsystem-sized commits. A practical split would be:
 
 1. Identity and branding.
 2. Branding assets and localization sweep.
@@ -32,7 +41,7 @@ Before the next major upstream update, strongly consider committing the conversi
 5. Preferences data-collection and suggest stripping.
 6. Tests.
 
-That split will make future rebases and conflict diagnosis much easier.
+That split will make future rebases and conflict diagnosis much easier than another large snapshot commit.
 
 ## Profile behavior note
 

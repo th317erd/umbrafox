@@ -13,16 +13,19 @@ The current conversion was documented from this working tree:
 - Fork remote: `origin git@github.com:th317erd/umbrafox.git`
 - Upstream remote: `upstream git@github.com:mozilla-firefox/firefox.git`
 - Base commit at time of documentation: `24cab6a0399d Bug 2048371 - Use browser theme for all in-app themes`
-- Current Umbrafox conversion state: uncommitted working-tree changes, not a commit series yet
-- Scope observed: 139 tracked files changed plus one new xpcshell test file at `browser/components/newtab/test/xpcshell/test_UmbrafoxHomeDefaults.js`
+- Current Umbrafox conversion state: committed as `5d89f338f5e9 Convert Firefox to Umbrafox`
+- Scope observed before the mandatory rules guide: 139 tracked files changed plus one new xpcshell test file at `browser/components/newtab/test/xpcshell/test_UmbrafoxHomeDefaults.js`
 
 ## How to use this folder
 
 When new Firefox source arrives:
 
 1. Read `00-current-state.md` to understand what the current patch does.
-2. Follow `01-rebase-workflow.md` to prepare a clean update branch.
-3. Apply recipes in order:
+2. Read `02-mandatory-modification-rules.md`; these rules govern every Umbrafox patch.
+3. Read feature architecture notes for any subsystem you are touching:
+   - `03-userland-scripts-architecture.md`
+4. Follow `01-rebase-workflow.md` to prepare a clean update branch.
+5. Apply recipes in order:
    - `recipes/01-application-identity-and-branding.md`
    - `recipes/02-brand-assets.md`
    - `recipes/03-profile-defaults-and-homepage.md`
@@ -31,8 +34,15 @@ When new Firefox source arrives:
    - `recipes/06-data-collection-and-remote-features.md`
    - `recipes/07-localization-and-copy-sweep.md`
    - `recipes/08-tests-and-verification.md`
-4. Use `reference/changed-files.md` as the file-level checklist.
-5. Use `reference/known-gotchas.md` before deciding a rebase is done.
+   - `recipes/09-userland-scripts.md`
+6. Use `reference/changed-files.md` as the file-level checklist.
+7. Use `reference/known-gotchas.md` before deciding a rebase is done.
+
+## Mandatory rules
+
+All future work must obey `02-mandatory-modification-rules.md`. The central rule is that Umbrafox may identify itself in browser chrome and internal project materials, but websites and servers must not be able to distinguish it from the corresponding Firefox build unless the user explicitly chooses detectable userland customization.
+
+The rulebook also establishes that Umbrafox is intentionally a sharp power-user tool: users may be given dangerous controls, including interception, rewriting, injection, and blocking controls, but defaults must stay unobtrusive and Firefox-equivalent. Agents and contributors must push back when a request conflicts with the rulebook.
 
 ## Maintenance rule
 

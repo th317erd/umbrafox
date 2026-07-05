@@ -87,6 +87,7 @@ DIRS += [
     "timermanager",
     "tooltiptext",
     "typeaheadfind",
+    "umbrafox",
     "utils",
     "url-classifier",
     "urlformatter",

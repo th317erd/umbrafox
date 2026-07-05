@@ -5,6 +5,19 @@ Do not remove existing comments unless they are directly related to what you are
 
 If you see a good first bug that isn't directly related to your work, don't hesitate to propose it as a good first bug (see the `file-good-first-bug` skill).
 
+## Umbrafox mandatory rulebook
+Before implementing any Umbrafox source change, read and apply `umbrafox-conversion-guide/02-mandatory-modification-rules.md`.
+
+You must confirm to yourself that the requested change does not violate the rulebook before editing code. Pay special attention to these constraints:
+
+- Websites and servers must not be able to distinguish Umbrafox from the corresponding Firefox build.
+- The user agent and all web-exposed CSS, JavaScript, DOM, WebIDL, network, storage, worker, media, performance, and timing surfaces must remain Firefox-equivalent by default.
+- Prefer client-side interception and substitution over detectable blocking.
+- Powerful and dangerous user controls are intentional, but defaults must remain undetectable unless the user explicitly chooses detectable userland customization.
+- Keep Umbrafox unobtrusive, minimized, and power-user focused, but never remove or disable a web-visible feature in a way that creates a fingerprint.
+
+If the user requests something that violates or appears to violate these rules, push back and do not implement it as requested. Explain the rule conflict and discuss alternatives. A rule exception requires explicit discussion, mutual agreement, and documentation of the exception before implementation.
+
 The Firefox repository is very big and so it isn't advised to blindly run rg or grep commands without specifying a narrow set of directories to search. When local text search via shell is necessary, prefer `rg` over `grep` as it is faster. There are tools available to help, see next section.
 
 ## Tooling for Firefox work

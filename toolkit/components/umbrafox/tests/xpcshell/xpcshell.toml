@@ -1,0 +1,4 @@
+[DEFAULT]
+firefox-appdir = "browser"
+
+["test_userland_script_store.js"]
