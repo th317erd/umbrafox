@@ -97,8 +97,8 @@ urlbar-result-menu-manage-firefox-suggest =
     .label = Manage { -firefox-suggest-brand-name }
     .accesskey = M
 # Some urlbar suggestions show the user's approximate location as automatically
-# detected by Firefox (e.g., weather suggestions), and this menu item lets the
-# user tell Firefox that the location is not accurate. Typically the location
+# detected by Umbrafox (e.g., weather suggestions), and this menu item lets the
+# user tell Umbrafox that the location is not accurate. Typically the location
 # will be a city name, or a city name combined with the name of its parent
 # administrative division (e.g., a province, prefecture, or state).
 urlbar-result-menu-report-inaccurate-location =
@@ -296,10 +296,10 @@ quickactions-cmd-downloads = downloads
 quickactions-extensions = Manage extensions
 quickactions-cmd-extensions2 = extensions, addons, add-ons
 
-# Opens Firefox View
+# Opens Umbrafox View
 quickactions-firefoxview = Open { -firefoxview-brand-name }
 # English is using "view" and "open view", since the feature name is
-# "Firefox View". If you have translated the name in your language, you
+# "Umbrafox View". If you have translated the name in your language, you
 # should use a word related to the existing translation.
 quickactions-cmd-firefoxview = open { -firefoxview-brand-name }, { -firefoxview-brand-name }, open view, view
 
@@ -315,7 +315,7 @@ quickactions-cmd-inspector2 = inspector, devtools, dev tools
 quickactions-colorpicker = Pick a color
 quickactions-cmd-colorpicker = color picker, eyedropper, pick color
 
-# Opens Firefox Library
+# Opens Umbrafox Library
 quickactions-cmd-library = library
 quickactions-library = Open Library
 
@@ -382,7 +382,7 @@ quickactions-cmd-update = update
 quickactions-viewsource2 = View page source
 quickactions-cmd-viewsource2 = view source, source, page source
 
-# Opens about:preferences:experimental (Firefox Labs)
+# Opens about:preferences:experimental (Umbrafox Labs)
 quickactions-labs = Open { -firefoxlabs-brand-name }
 quickactions-cmd-labs = labs, experiment
 
@@ -954,7 +954,7 @@ urlbar-view-context-menu-open-in-private-window =
 
 ## Labels shown above groups of urlbar results
 
-# A label shown above the "Firefox Suggest" (bookmarks/history) group in the
+# A label shown above the "Umbrafox Suggest" (bookmarks/history) group in the
 # urlbar results.
 urlbar-group-firefox-suggest =
   .label = { -firefox-suggest-brand-name }
@@ -1326,7 +1326,7 @@ restore-session-startup-suggestion-button = Show me how
 
 filepicker-blocked-infobar = Your organization has blocked access to local files on this computer
 
-## Mozilla data reporting notification (Telemetry, Firefox Health Report, etc)
+## Mozilla data reporting notification (Telemetry, Umbrafox Health Report, etc)
 
 data-reporting-notification-message = { -brand-short-name } automatically sends some data to { -vendor-short-name } so that we can improve your experience.
 data-reporting-notification-button =
@@ -1410,7 +1410,7 @@ refresh-blocked-allow =
     .label = Allow
     .accesskey = A
 
-## Firefox Relay integration
+## Umbrafox Relay integration
 
 firefox-relay-offer-why-to-use-relay = Our secure, easy-to-use masks protect your identity and prevent spam by hiding your email address.
 

@@ -83,11 +83,6 @@ const REGION_SOV_CONFIG =
 const LOCALE_SOV_CONFIG =
   "browser.newtabpage.activity-stream.sov.locale-config";
 
-const REGION_WEATHER_CONFIG =
-  "browser.newtabpage.activity-stream.discoverystream.region-weather-config";
-const LOCALE_WEATHER_CONFIG =
-  "browser.newtabpage.activity-stream.discoverystream.locale-weather-config";
-
 const REGION_TOPICS_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.topicSelection.region-topics-config";
 const LOCALE_TOPICS_CONFIG =
@@ -105,11 +100,6 @@ const REGION_CONTEXTUAL_AD_CONFIG =
 const LOCALE_CONTEXTUAL_AD_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.sections.contextualAds.locale-config";
 
-const REGION_SECTIONS_CONFIG =
-  "browser.newtabpage.activity-stream.discoverystream.sections.region-content-config";
-const LOCALE_SECTIONS_CONFIG =
-  "browser.newtabpage.activity-stream.discoverystream.sections.locale-content-config";
-
 const PREF_SHOULD_AS_INITIALIZE_FEEDS =
   "browser.newtabpage.activity-stream.testing.shouldInitializeFeeds";
 
@@ -124,8 +114,8 @@ const PREF_IMAGE_PROXY_ENABLED_STORE = "discoverystream.imageProxy.enabled";
 const PREF_NEWTAB_REMOTE_RENDERER_ENABLED =
   "browser.newtabpage.activity-stream.remote-renderer.enabled";
 
-export const PREF_DEFAULT_VALUE_TOPSITES_ENABLED = true;
-export const PREF_DEFAULT_VALUE_TOPSTORIES_ENABLED = true;
+export const PREF_DEFAULT_VALUE_TOPSITES_ENABLED = false;
+export const PREF_DEFAULT_VALUE_TOPSTORIES_ENABLED = false;
 
 export const WEATHER_OPTIN_REGIONS = [
   "AT", // Austria
@@ -218,27 +208,12 @@ export function useContextualAds({ geo, locale }) {
   return csvHasValue(regions, geo) && csvHasValue(locales, locale);
 }
 
-// Determine if spocs should be shown for a geo/locale
-function showSpocs({ geo }) {
-  const spocsGeoString =
-    lazy.NimbusFeatures.pocketNewtab.getVariable("regionSpocsConfig") || "";
-  const spocsGeo = spocsGeoString.split(",").map(s => s.trim());
-  return spocsGeo.includes(geo);
-}
-
-function showWeather({ geo, locale }) {
-  return (
-    csvPrefHasValue(REGION_WEATHER_CONFIG, geo) &&
-    csvPrefHasValue(LOCALE_WEATHER_CONFIG, locale)
-  );
-}
-
 /**
  * Returns the default size for widgets that support large/medium sizes.
  * This sets a default pref, not a user pref — if the user has explicitly
  * resized a widget via the UI, their choice takes precedence.
  *
- * In the future this will follow the same regional logic as showWeather,
+ * In the future this will follow the same regional weather logic,
  * returning different defaults based on the user's region.
  */
 function getDefaultWidgetSize() {
@@ -312,13 +287,6 @@ function showTopicLabels({ geo, locale }) {
   );
 }
 
-function showSectionLayout({ geo, locale }) {
-  return (
-    csvPrefHasValue(REGION_SECTIONS_CONFIG, geo) &&
-    csvPrefHasValue(LOCALE_SECTIONS_CONFIG, locale)
-  );
-}
-
 // Configure default Activity Stream prefs with a plain `value` or a `getValue`
 // that computes a value. A `value_local_dev` is used for development defaults.
 export const PREFS_CONFIG = new Map([
@@ -349,30 +317,29 @@ export const PREFS_CONFIG = new Map([
   [
     "hideLogo",
     {
-      title: "Hide the Firefox logo on new tab",
-      value: false,
+      title: "Hide the Umbrafox logo on new tab",
+      value: true,
     },
   ],
   [
     "showSponsored",
     {
       title: "User pref for sponsored Pocket content",
-      value: true,
+      value: false,
     },
   ],
   [
     "system.showSponsored",
     {
       title: "System pref for sponsored Pocket content",
-      // This pref is dynamic as the sponsored content depends on the region
-      getValue: showSpocs,
+      value: false,
     },
   ],
   [
     "showSponsoredTopSites",
     {
       title: "Show sponsored top sites",
-      value: true,
+      value: false,
     },
   ],
   [
@@ -463,15 +430,14 @@ export const PREFS_CONFIG = new Map([
     "system.showWeather",
     {
       title: "system.showWeather",
-      // pref is dynamic
-      getValue: showWeather,
+      value: false,
     },
   ],
   [
     "showWeather",
     {
       title: "showWeather",
-      value: true,
+      value: false,
     },
   ],
   [
@@ -622,6 +588,13 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "customizeMenu.enabled",
+    {
+      title: "Show the customize menu on new tab",
+      value: true,
+    },
+  ],
+  [
     "showSearch",
     {
       title: "Show the Search bar",
@@ -632,7 +605,7 @@ export const PREFS_CONFIG = new Map([
     "logowordmark.alwaysVisible",
     {
       title: "Show the logo and wordmark",
-      value: true,
+      value: false,
     },
   ],
   [
@@ -708,7 +681,7 @@ export const PREFS_CONFIG = new Map([
     {
       title:
         "Boolean flag that decides whether or not to show visited pages in highlights.",
-      value: true,
+      value: false,
     },
   ],
   [
@@ -716,7 +689,7 @@ export const PREFS_CONFIG = new Map([
     {
       title:
         "Boolean flag that decides whether or not to show bookmarks in highlights.",
-      value: true,
+      value: false,
     },
   ],
   [
@@ -724,14 +697,14 @@ export const PREFS_CONFIG = new Map([
     {
       title:
         "Boolean flag that decides whether or not to show saved recent Downloads in highlights.",
-      value: true,
+      value: false,
     },
   ],
   [
     "section.highlights.rows",
     {
       title: "Number of rows of Highlights to display",
-      value: 1,
+      value: 0,
     },
   ],
   [
@@ -745,7 +718,7 @@ export const PREFS_CONFIG = new Map([
     "section.topstories.rows",
     {
       title: "Number of rows of Top Stories to display",
-      value: 1,
+      value: 0,
     },
   ],
   [
@@ -876,7 +849,7 @@ export const PREFS_CONFIG = new Map([
     "discoverystream.sections.enabled",
     {
       title: "Boolean flag to enable section layout UI in recommended stories",
-      getValue: showSectionLayout,
+      value: false,
     },
   ],
   [
@@ -1195,7 +1168,7 @@ export const PREFS_CONFIG = new Map([
     "widgets.enabled",
     {
       title: "Allows users to toggle all widgets on and off at once",
-      value: true,
+      value: false,
     },
   ],
   [
@@ -1305,21 +1278,21 @@ export const PREFS_CONFIG = new Map([
     "widgets.weatherForecast.enabled",
     {
       title: "Enables the weather forecast widget",
-      value: true,
+      value: false,
     },
   ],
   [
     "widgets.weather.enabled",
     {
       title: "Enables the weather widget",
-      value: true,
+      value: false,
     },
   ],
   [
     "widgets.system.weather.enabled",
     {
       title: "Enables the weather widget experiment in Nimbus",
-      getValue: showWeather,
+      value: false,
     },
   ],
   [

@@ -129,7 +129,7 @@ ipprotection-button-connecting = Turning on…
 ## Location controls
 
 # The button displays the selected VPN location.
-# This shows the default selection, "Recommended" which is the recommended location as determined by Firefox.
+# This shows the default selection, "Recommended" which is the recommended location as determined by Umbrafox.
 ipprotection-recommended-location-button = Location: Recommended
 ipprotection-recommended-location-description = { -brand-product-name } finds the fastest location
 ipprotection-recommended-location-badge = NEW

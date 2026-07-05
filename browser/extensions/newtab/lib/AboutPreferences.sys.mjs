@@ -99,33 +99,6 @@ const PREFS_FOR_SETTINGS = () => {
       ),
       eventSource: "TOP_STORIES",
     },
-    {
-      id: "support-firefox",
-      pref: {
-        feed: "showSponsoredCheckboxes",
-        titleString: "home-prefs-support-firefox-header",
-        nestedPrefs: [
-          {
-            name: "showSponsoredTopSites",
-            titleString: "home-prefs-shortcuts-by-option-sponsored",
-            eventSource: "SPONSORED_TOP_SITES",
-          },
-          {
-            name: "showSponsored",
-            titleString: "home-prefs-recommended-by-option-sponsored-stories",
-            eventSource: "POCKET_SPOCS",
-            shouldHidePref: !Services.prefs.getBoolPref(
-              "browser.newtabpage.activity-stream.feeds.system.topstories",
-              true
-            ),
-            shouldDisablePref: !Services.prefs.getBoolPref(
-              "browser.newtabpage.activity-stream.feeds.section.topstories",
-              true
-            ),
-          },
-        ],
-      },
-    },
   ];
 };
 
@@ -331,15 +304,8 @@ export class AboutPreferences {
     // Legacy settings UI
     const { document, Preferences } = window;
 
-    // Extract just the "Recent activity" pref info from SectionsManager as we have everything else already
-    const highlights = this.store
-      .getState()
-      .Sections.find(el => el.id === "highlights");
-
-    const allSections = [...PREFS_FOR_SETTINGS(), highlights];
-
     // Render the preferences
-    allSections.forEach(pref => {
+    PREFS_FOR_SETTINGS().forEach(pref => {
       this.renderPreferenceSection(pref, document, Preferences);
     });
 
@@ -457,38 +423,6 @@ export class AboutPreferences {
       },
       {
         id: "browser.newtabpage.activity-stream.discoverystream.sections.customizeMenuPanel.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.showSponsoredCheckboxes",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.showSponsoredTopSites",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.showSponsored",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.feeds.section.highlights",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.section.highlights.rows",
-        type: "int",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.section.highlights.includeVisited",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.section.highlights.includeBookmarks",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.section.highlights.includeDownloads",
         type: "bool",
       },
     ]);
@@ -1220,7 +1154,6 @@ export class AboutPreferences {
     const firefoxHomeActive = ({ homepageNewWindows, homepageNewTabs }) =>
       homepageNewWindows.value === "home" || homepageNewTabs.value === "home";
 
-    const HOME_CUSTOMIZE_URL = "about:home#customize";
     const HOME_CUSTOMIZE_TOPICS_URL = "about:home#customize-topics";
 
     // Open in a new tab if "New tabs" is Firefox Home, else a new window.
@@ -1238,17 +1171,6 @@ export class AboutPreferences {
       "browser.newtabpage.activity-stream.nova.enabled",
       false
     );
-
-    // hideLogo only affects rendering when Nova is enabled (see Base.jsx),
-    // so the toggle is registered only in that branch.
-    if (novaEnabled) {
-      Preferences.addSetting({
-        id: "firefoxLogo",
-        pref: "browser.newtabpage.activity-stream.hideLogo",
-        deps: firefoxHomeDeps,
-        disabled: deps => !firefoxHomeActive(deps),
-      });
-    }
 
     // Search
     Preferences.addSetting({
@@ -1459,78 +1381,6 @@ export class AboutPreferences {
       },
     });
 
-    // Support Firefox: sponsored content
-    Preferences.addSetting({
-      id: "supportFirefox",
-      pref: "browser.newtabpage.activity-stream.showSponsoredCheckboxes",
-      deps: ["sponsoredShortcuts", "sponsoredStories", ...firefoxHomeDeps],
-      disabled: deps => !firefoxHomeActive(deps),
-      onUserChange(value, { sponsoredShortcuts, sponsoredStories }) {
-        // When supportFirefox changes, automatically update child preferences to match
-        sponsoredShortcuts.value = !!value;
-        sponsoredStories.value = !!value;
-      },
-    });
-    Preferences.addSetting({
-      id: "topsitesEnabled",
-      pref: "browser.newtabpage.activity-stream.feeds.topsites",
-    });
-    Preferences.addSetting({
-      id: "sponsoredShortcuts",
-      pref: "browser.newtabpage.activity-stream.showSponsoredTopSites",
-      deps: ["topsitesEnabled"],
-      disabled: ({ topsitesEnabled }) => !topsitesEnabled.value,
-    });
-    Preferences.addSetting({
-      id: "sponsoredStories",
-      pref: "browser.newtabpage.activity-stream.showSponsored",
-      deps: ["systemTopstories", "stories"],
-      visible: ({ systemTopstories }) => !!systemTopstories.value,
-      disabled: ({ stories }) => !stories.value,
-    });
-    // Not disabled when Firefox Home is off — the promo remains visible
-    // regardless of the homepage setting.
-    Preferences.addSetting({
-      id: "supportFirefoxPromo",
-      deps: ["supportFirefox"],
-    });
-
-    // Recent activity
-    Preferences.addSetting({
-      id: "recentActivity",
-      pref: "browser.newtabpage.activity-stream.feeds.section.highlights",
-      deps: firefoxHomeDeps,
-      disabled: deps => !firefoxHomeActive(deps),
-    });
-    Preferences.addSetting({
-      id: "recentActivityRows",
-      pref: "browser.newtabpage.activity-stream.section.highlights.rows",
-    });
-    Preferences.addSetting({
-      id: "recentActivityVisited",
-      pref: "browser.newtabpage.activity-stream.section.highlights.includeVisited",
-    });
-    Preferences.addSetting({
-      id: "recentActivityBookmarks",
-      pref: "browser.newtabpage.activity-stream.section.highlights.includeBookmarks",
-    });
-    Preferences.addSetting({
-      id: "recentActivityDownloads",
-      pref: "browser.newtabpage.activity-stream.section.highlights.includeDownloads",
-    });
-
-    // Hidden when Firefox Home is off — the wallpaper page only applies when
-    // Firefox Home is the active destination for new windows or new tabs.
-    Preferences.addSetting({
-      id: "chooseWallpaper",
-      deps: firefoxHomeDeps,
-      visible: deps => firefoxHomeActive(deps),
-      onUserClick: (e, deps) => {
-        e.preventDefault();
-        window.openTrustedLinkIn(HOME_CUSTOMIZE_URL, dispatchForHomeLink(deps));
-      },
-    });
-
     // Base shape used when Weather is nested inside the Widgets group, where it
     // matches its sibling widget checkboxes (no explicit control). The
     // standalone row below adds control: "moz-toggle" to render as a top-level
@@ -1656,104 +1506,6 @@ export class AboutPreferences {
             },
           ],
         },
-        {
-          id: "supportFirefox",
-          subcategory: "support-firefox",
-          l10nId: "home-prefs-support-firefox-header-srd",
-          control: "moz-toggle",
-          items: [
-            {
-              id: "sponsoredShortcuts",
-              l10nId: "home-prefs-shortcuts-by-option-sponsored-srd",
-            },
-            {
-              id: "sponsoredStories",
-              l10nId: "home-prefs-recommended-by-option-sponsored-stories-srd",
-            },
-            {
-              id: "supportFirefoxPromo",
-              l10nId: "home-prefs-mission-message2",
-              control: "moz-promo",
-              options: [
-                {
-                  control: "a",
-                  l10nId: "home-prefs-mission-message-learn-more-link-srd",
-                  slot: "support-link",
-                  controlAttrs: {
-                    is: "moz-support-link",
-                    "support-page": "sponsor-privacy",
-                    "utm-content": "inproduct",
-                  },
-                },
-              ],
-            },
-          ],
-        },
-        {
-          id: "recentActivity",
-          subcategory: "highlights",
-          l10nId: "home-prefs-recent-activity-header-srd",
-          control: "moz-toggle",
-          items: [
-            {
-              id: "recentActivityRows",
-              l10nId: "home-prefs-recent-activity-select",
-              control: "moz-select",
-              options: [
-                {
-                  value: 1,
-                  l10nId: "home-prefs-sections-rows-option-srd",
-                  l10nArgs: { num: 1 },
-                },
-                {
-                  value: 2,
-                  l10nId: "home-prefs-sections-rows-option-srd",
-                  l10nArgs: { num: 2 },
-                },
-                {
-                  value: 3,
-                  l10nId: "home-prefs-sections-rows-option-srd",
-                  l10nArgs: { num: 3 },
-                },
-                {
-                  value: 4,
-                  l10nId: "home-prefs-sections-rows-option-srd",
-                  l10nArgs: { num: 4 },
-                },
-              ],
-            },
-            {
-              id: "recentActivityVisited",
-              l10nId: "home-prefs-highlights-option-visited-pages-srd",
-            },
-            {
-              id: "recentActivityBookmarks",
-              l10nId: "home-prefs-highlights-options-bookmarks-srd",
-            },
-            {
-              id: "recentActivityDownloads",
-              l10nId: "home-prefs-highlights-option-most-recent-download-srd",
-            },
-          ],
-        },
-        {
-          id: "chooseWallpaper",
-          l10nId: "home-prefs-choose-wallpaper-link2",
-          control: "moz-box-link",
-          controlAttrs: {
-            href: HOME_CUSTOMIZE_URL,
-          },
-          iconSrc: "chrome://browser/skin/customize.svg",
-        },
-        ...(novaEnabled
-          ? [
-              {
-                id: "firefoxLogo",
-                l10nId: "home-prefs-firefox-logo-header",
-                control: "moz-toggle",
-              },
-            ]
-          : []),
       ],
     };
   }
@@ -1770,8 +1522,8 @@ export class AboutPreferences {
   /**
    * We can remove this eslint exception once the Settings redesign is complete.
    * In fact, we can probably remove this entire method. When removing, also
-   * drop the `pref:` blocks on the `highlights` and `topstories` sections in
-   * SectionsManager.sys.mjs — they exist only to feed this renderer.
+   * drop the `pref:` block on the `topstories` section in
+   * SectionsManager.sys.mjs — it exists only to feed this renderer.
    */
   // eslint-disable-next-line max-statements
   renderPreferenceSection(sectionData, document, Preferences) {
@@ -1907,41 +1659,8 @@ export class AboutPreferences {
       }
     });
 
-    // Special cases to like the nested prefs with another pref,
-    // so we can disable it real time.
-    if (id === "support-firefox") {
-      function setupSupportFirefoxSubCheck(triggerPref, subPref) {
-        const subCheckFullName = `browser.newtabpage.activity-stream.${triggerPref}`;
-        const subCheckPref = Preferences.get(subCheckFullName);
-
-        subCheckPref?.on("change", () => {
-          const showSponsoredFullName = `browser.newtabpage.activity-stream.${subPref}`;
-          const showSponsoredSubcheck = subChecks.find(
-            subcheck =>
-              subcheck.getAttribute("preference") === showSponsoredFullName
-          );
-          if (showSponsoredSubcheck) {
-            showSponsoredSubcheck.disabled = !Services.prefs.getBoolPref(
-              subCheckFullName,
-              true
-            );
-          }
-        });
-      }
-
-      setupSupportFirefoxSubCheck("feeds.section.topstories", "showSponsored");
-      setupSupportFirefoxSubCheck("feeds.topsites", "showSponsoredTopSites");
-    }
-
     pref.on("change", () => {
       subChecks.forEach(subcheck => {
-        // Update child preferences for the "Support Firefox" checkbox group
-        // so that they're turned on and off at the same time.
-        if (id === "support-firefox") {
-          const subPref = Preferences.get(subcheck.getAttribute("preference"));
-          subPref.value = pref.value;
-        }
-
         // Disable any nested checkboxes if the parent pref is not enabled.
         subcheck.disabled = !pref._value;
       });

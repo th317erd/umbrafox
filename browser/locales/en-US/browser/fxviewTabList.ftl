@@ -81,7 +81,7 @@ fxviewtabrow-mute-tab-button-no-context =
 fxviewtabrow-unmute-tab-button-no-context =
   .title = Unmute tab
 
-## The following strings are for displaying elements in Firefox View to prompt users to sign in, enable sync, pair a device, or troubleshoot device issues.
+## The following strings are for displaying elements in Umbrafox View to prompt users to sign in, enable sync, pair a device, or troubleshoot device issues.
 
 fxviewtabrow-send-to-mobile-sign-in = Sign in to Send Tabs
 fxviewtabrow-send-to-mobile-turn-on-sync = Turn on Sync to Send Tabs

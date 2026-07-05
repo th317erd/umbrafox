@@ -28,6 +28,9 @@ support-files = [
 
 ["test_AboutNewTabResourceMapping_langpackShadow.js"]
 
+["test_UmbrafoxHomeDefaults.js"]
+head = ""
+
 ["test_disableNewTabAsAddon_pref.js"]
 prefs = ["browser.newtabpage.disableNewTabAsAddon=true"]
 

@@ -22,7 +22,7 @@ toolbox-meatball-menu-documentation-label = Documentation…
 toolbox-meatball-menu-community-label = Community…
 
 # This menu item is only available in the browser toolbox. It forces the popups/panels
-# to stay visible on blur, which is primarily useful for addon developers and Firefox
+# to stay visible on blur, which is primarily useful for addon developers and Umbrafox
 # contributors.
 toolbox-meatball-menu-noautohide-label = Disable Popup Auto-Hide
 

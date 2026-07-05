@@ -8,9 +8,9 @@ callout-primary-advance-button-label = Next
 # Callout dialog primary button to complete the feature tour
 callout-primary-complete-button-label = Got it!
 
-## Firefox View feature tour strings
+## Umbrafox View feature tour strings
 
-# "Tab pickup" refers to the section in Firefox View that displays open
+# "Tab pickup" refers to the section in Umbrafox View that displays open
 # tabs from other devices
 callout-firefox-view-tab-pickup-title = Hop between devices with tab pickup
 
@@ -20,7 +20,7 @@ callout-firefox-view-recently-closed-title = Get back your closed tabs in a snap
 
 callout-firefox-view-recently-closed-subtitle = All your closed tabs will magically show up here. Never worry about accidentally closing a site again.
 
-## Continuous Onboarding - Firefox View: Tab pick up
+## Continuous Onboarding - Umbrafox View: Tab pick up
 
 # “Boost your browsing” refers to the added benefit the user receives from having
 # access to the same browsing experience when moving from one browser to another.
@@ -45,7 +45,7 @@ callout-pdfjs-draw-body-a = Mark up PDFs, then save your changes.
 callout-pdfjs-draw-body-b = No more printing and scanning. Mark up PDFs, then save your changes.
 callout-pdfjs-draw-button = Got it!
 
-## Firefox View Discoverability Strings
+## Umbrafox View Discoverability Strings
 
 fx-view-discoverability-title = Didn’t mean to close that tab?
 fx-view-discoverability-subtitle = Find and reopen it quickly here. We keep a history of your recently closed tabs for you.

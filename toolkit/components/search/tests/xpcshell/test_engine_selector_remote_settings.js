@@ -73,6 +73,54 @@ add_task(async function test_selector_basic_get() {
   Assert.ok(listenerSpy.notCalled, "Should not have called the listener");
 });
 
+add_task(async function test_selector_filters_umbrafox_blocked_engines() {
+  const engineSelector = new SearchEngineSelector();
+  const config = SearchTestUtils.expandPartialConfig([
+    { identifier: "google" },
+    { identifier: "amazondotcom-us" },
+    { identifier: "bing" },
+    { identifier: "ddg" },
+    { identifier: "ebay-us" },
+    { identifier: "perplexity" },
+    {
+      recordType: "defaultEngines",
+      globalDefault: "google",
+      specificDefaults: [],
+    },
+    {
+      orders: [],
+      recordType: "engineOrders",
+    },
+  ]);
+
+  getStub.resetHistory();
+  getStub.onFirstCall().returns(config);
+  consoleAllowList.push(
+    "Could not find a matching default engine, using the first one in the list"
+  );
+
+  const result = await engineSelector.fetchEngineConfiguration({
+    locale: "en-US",
+    region: "US",
+  });
+
+  Assert.deepEqual(
+    result.engines.map(e => e.identifier),
+    ["ddg", "perplexity"],
+    "Umbrafox blocked engines should not be exposed from Remote Settings"
+  );
+  Assert.equal(
+    result.appDefaultEngineId,
+    "ddg",
+    "The application default should fall back to the first allowed engine"
+  );
+  Assert.equal(
+    await engineSelector.findContextualSearchEngineById("google"),
+    null,
+    "Blocked engines should not be found by identifier"
+  );
+});
+
 add_task(async function test_selector_get_reentry() {
   const listenerSpy = sinon.spy();
   const engineSelector = new SearchEngineSelector(listenerSpy);

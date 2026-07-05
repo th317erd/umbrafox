@@ -2256,8 +2256,14 @@ static void DumpHelp() {
   DumpArbitraryHelp();
 }
 
+static inline bool ShouldDumpVendor() {
+  return gAppData->vendor && *gAppData->vendor &&
+         (!gAppData->name ||
+          strcmp((const char*)gAppData->vendor, (const char*)gAppData->name));
+}
+
 static inline void DumpVersion() {
-  if (gAppData->vendor && *gAppData->vendor) {
+  if (ShouldDumpVendor()) {
     printf("%s ", (const char*)gAppData->vendor);
   }
   printf("%s ", (const char*)gAppData->name);
@@ -2273,7 +2279,7 @@ static inline void DumpVersion() {
 }
 
 static inline void DumpFullVersion() {
-  if (gAppData->vendor && *gAppData->vendor) {
+  if (ShouldDumpVendor()) {
     printf("%s ", (const char*)gAppData->vendor);
   }
   printf("%s ", (const char*)gAppData->name);
@@ -3183,9 +3189,9 @@ constinit static nsCOMPtr<nsIToolkitProfile> gResetOldProfile;
 static nsresult LockProfile(nsINativeAppSupport* aNative, nsIFile* aRootDir,
                             nsIFile* aLocalDir, nsIToolkitProfile* aProfile,
                             nsIProfileLock** aResult) {
-  // If you close Firefox and very quickly reopen it, the old Firefox may
+  // If you close Umbrafox and very quickly reopen it, the old Umbrafox may
   // still be closing down. Rather than immediately showing the
-  // "Firefox is running but is not responding" message, we spend a few
+  // "Umbrafox is running but is not responding" message, we spend a few
   // seconds retrying first.
 
   static const int kLockRetrySeconds = 5;
@@ -4018,7 +4024,7 @@ const XREAppData* gAppData = nullptr;
  * the process and use it to determine whether the application defines its own
  * memory allocator or not.
  *
- * Since most applications (e.g. Firefox and Thunderbird) don't use any special
+ * Since most applications (e.g. Umbrafox and Thunderbird) don't use any special
  * allocators and therefore don't define this symbol, NSPR must search the
  * entire process, which reduces startup performance.
  *
@@ -4410,7 +4416,7 @@ int XREMain::XRE_mainInit(bool* aExitFlag,
 
 #ifdef XP_MACOSX
     // To avoid taking focus when running in headless mode immediately
-    // transition Firefox to a background application.
+    // transition Umbrafox to a background application.
     ProcessSerialNumber psn = {0, kCurrentProcess};
     OSStatus transformStatus =
         TransformProcessType(&psn, kProcessTransformToBackgroundApplication);
@@ -4942,9 +4948,9 @@ Maybe<ShouldNotProcessUpdatesReason> ShouldNotProcessUpdates(
     // Only process updates for specific tasks: at this time, the
     // `backgroundupdate` task and the test-only `shouldprocessupdates` task.
     //
-    // Background tasks can be sparked by Firefox instances that are shutting
+    // Background tasks can be sparked by Umbrafox instances that are shutting
     // down, which can cause races between the task startup trying to update and
-    // Firefox trying to invoke the updater.  This happened when converting
+    // Umbrafox trying to invoke the updater.  This happened when converting
     // `pingsender` to a background task, since it is launched to send pings at
     // shutdown: Bug 1736373.
     //
@@ -5554,7 +5560,7 @@ int XREMain::XRE_mainStartup(bool* aExitFlag,
       if (ARG_FOUND == CheckArgExists("first-startup")) {
         // If the profile reset was initiated by the stub installer, we want to
         // set MOZ_RESET_PROFILE_SESSION so we can check for it later when the
-        // Firefox Profile Migrator runs. At that point we set overrides to
+        // Umbrafox Profile Migrator runs. At that point we set overrides to
         // ensure users see the right homepage.
         SaveToEnv("MOZ_RESET_PROFILE_SESSION=0");
       } else if (gDoMigration) {
@@ -5963,7 +5969,7 @@ nsresult XREMain::XRE_mainRun() {
             gResetOldProfile->GetStoreID(storeID);
             if (!storeID.IsVoid()) {
               aKey = "firefox-selectable-profile";
-              // In the case that Firefox is launched with --reset-profile,
+              // In the case that Umbrafox is launched with --reset-profile,
               // the storeID and path env variables won't be set, so we set
               // them here if we are in a profile with a storeID.
               nsAutoCString envStoreID("SELECTABLE_PROFILE_RESET_STORE_ID=");
@@ -6024,8 +6030,8 @@ nsresult XREMain::XRE_mainRun() {
     // write profiles when user stops the profiler using POSIX signal handling.
     //
     // It's possible to start and stop the profiler by sending POSIX signals to
-    // the profiler binary when Firefox is frozen. At the time when stop signal
-    // is handled, Firefox stops the profiler and dumps the profile to disk. But
+    // the profiler binary when Umbrafox is frozen. At the time when stop signal
+    // is handled, Umbrafox stops the profiler and dumps the profile to disk. But
     // getting the download directory is not really possible at that time
     // because main thread will be unresponsive. That's why we are getting this
     // information right now.
@@ -6492,7 +6498,7 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
 #  endif  // _M_IX86 || _M_X64
 
   // Bug 1924623: Detouring VariantClear resulted in a huge crash spike for
-  //              Thunderbird, so let's only do that for Firefox.
+  //              Thunderbird, so let's only do that for Umbrafox.
 #  ifdef MOZ_BUILD_APP_IS_BROWSER
   {
     DebugOnly<bool> result = WindowsOleAut32Initialization();

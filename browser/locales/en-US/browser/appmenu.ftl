@@ -19,7 +19,7 @@ appmenuitem-banner-update-unsupported =
 appmenuitem-banner-update-restart =
     .label = Update available — restart now
 
-# Fresh Firefox refers to the new updated UI
+# Fresh Umbrafox refers to the new updated UI
 appmenu-nova-update-promo =
     .message = Get a fresh { -brand-short-name }. Keep all your tabs.
 
@@ -89,7 +89,7 @@ appmenuitem-zoom-reduce =
 appmenuitem-fullscreen =
   .label = Full screen
 
-## Firefox Account toolbar button and Sync panel in App menu.
+## Umbrafox Account toolbar button and Sync panel in App menu.
 
 appmenu-remote-tabs-sign-into-sync =
   .label = Sign in to sync…
@@ -116,7 +116,7 @@ appmenu-remote-tabs-opensettings =
   .label = Settings
 
 # This is shown when Sync is configured but this appears to be the only device attached to
-# the account. We also show links to download Firefox for android/ios.
+# the account. We also show links to download Umbrafox for android/ios.
 appmenu-remote-tabs-noclients = Want to see your tabs from other devices here?
 
 appmenu-remote-tabs-connectdevice =
@@ -144,7 +144,7 @@ appmenuitem-save-page =
 appmenuitem-fxa-sync-off-title = Sync is off
 appmenuitem-fxa-sync-off-description = Protect and access your bookmarks, passwords, and more anywhere.
 
-## The Firefox Profiler – The popup is the UI to turn on the profiler, and record
+## The Umbrafox Profiler – The popup is the UI to turn on the profiler, and record
 ## performance profiles. To enable it go to profiler.firefox.com and click
 ## "Enable Profiler Menu Button".
 

@@ -137,11 +137,11 @@ login-item-timeline-action-used = Used
 
 about-logins-os-auth-dialog-caption = { -brand-full-name }
 
-## The macOS strings are preceded by the operating system with "Firefox is trying to "
+## The macOS strings are preceded by the operating system with "Umbrafox is trying to "
 ## and includes subtitle of "Enter password for the user "xxx" to allow this." These
 ## notes are only valid for English. Please test in your respected locale.
 
-# The macOS strings are preceded by the operating system with "Firefox is trying to ".
+# The macOS strings are preceded by the operating system with "Umbrafox is trying to ".
 # This message can be seen when attempting to disable osauth in about:preferences.
 about-logins-os-auth-dialog-message=
   { PLATFORM() ->

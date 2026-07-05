@@ -2,9 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-## Firefox and Mozilla Brand
+## Umbrafox Brand
 ##
-## Firefox and Mozilla must be treated as a brand.
+## Umbrafox must be treated as a brand.
 ##
 ## They cannot be:
 ## - Transliterated.
@@ -16,12 +16,12 @@
 ## For further details, consult:
 ## https://mozilla-l10n.github.io/styleguides/mozilla_general/#brands-copyright-and-trademark
 
--brand-shorter-name = Firefox
--brand-short-name = Firefox Developer Edition
--brand-shortcut-name = Firefox Developer Edition
--brand-full-name = Firefox Developer Edition
+-brand-shorter-name = Umbrafox
+-brand-short-name = Umbrafox Developer Edition
+-brand-shortcut-name = Umbrafox Developer Edition
+-brand-full-name = Umbrafox Developer Edition
 # This brand name can be used in messages where the product name needs to
 # remain unchanged across different versions (Nightly, Beta, etc.).
--brand-product-name = Firefox
--vendor-short-name = Mozilla
+-brand-product-name = Umbrafox
+-vendor-short-name = Umbrafox
 trademarkInfo = { " " }

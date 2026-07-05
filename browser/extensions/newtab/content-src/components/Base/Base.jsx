@@ -290,7 +290,10 @@ export class BaseContent extends React.PureComponent {
 
     this._onHashChange = () => {
       const hash = globalThis.location?.hash || "";
-      if (hash === "#customize" || hash === "#customize-topics") {
+      if (
+        this.isCustomizeMenuEnabled() &&
+        (hash === "#customize" || hash === "#customize-topics")
+      ) {
         this.openCustomizationMenu();
 
         if (hash === "#customize-topics") {
@@ -551,6 +554,10 @@ export class BaseContent extends React.PureComponent {
   }
 
   openCustomizationMenu() {
+    if (!this.isCustomizeMenuEnabled()) {
+      return;
+    }
+
     this.props.dispatch({ type: at.SHOW_PERSONALIZE });
     this.props.dispatch(ac.UserEvent({ event: "SHOW_PERSONALIZE" }));
   }
@@ -564,6 +571,10 @@ export class BaseContent extends React.PureComponent {
 
   setPref(pref, value) {
     this.props.dispatch(ac.SetPref(pref, value));
+  }
+
+  isCustomizeMenuEnabled() {
+    return this.props.Prefs.values["customizeMenu.enabled"] !== false;
   }
 
   applyBodyClasses() {
@@ -824,6 +835,7 @@ export class BaseContent extends React.PureComponent {
     const { App, DiscoveryStream } = props;
     const { initialized, customizeMenuVisible } = App;
     const prefs = props.Prefs.values;
+    const customizeMenuEnabled = prefs["customizeMenu.enabled"] !== false;
 
     // @nova-cleanup(remove-conditional):
     const novaEnabled = prefs[PREF_NOVA_ENABLED];
@@ -1170,63 +1182,69 @@ export class BaseContent extends React.PureComponent {
               </main>
             </div>
             <ConfirmDialog />
-            <menu className="personalizeButtonWrapper nova-enabled">
-              <CustomizeMenu
-                onClose={this.closeCustomizationMenu}
-                onOpen={this.openCustomizationMenu}
-                openPreferences={this.openPreferences}
-                setPref={this.setPref}
-                enabledSections={enabledSections}
-                enabledWidgets={enabledWidgets}
-                wallpapersEnabled={wallpapersEnabled}
-                wallpapersUserEnabled={wallpapersUserEnabled}
-                activeWallpaper={activeWallpaper}
-                pocketRegion={pocketRegion}
-                mayHaveTopicSections={mayHavePersonalizedTopicSections}
-                mayHaveInferredPersonalization={mayHaveInferredPersonalization}
-                mayHaveWeather={mayHaveWeather}
-                mayHaveWidgets={mayHaveWidgets}
-                mayHaveTimerWidget={mayHaveTimerWidget}
-                mayHaveListsWidget={mayHaveListsWidget}
-                mayHaveSportsWidget={mayHaveSportsWidget}
-                mayHaveClocksWidget={mayHaveClocksWidget}
-                mayHavePrivacyWidget={mayHavePrivacyWidget}
-                mayHaveCrosswordWidget={mayHaveCrosswordWidget}
-                mayHaveStocksWidget={mayHaveStocksWidget}
-                mayHaveWeatherForecast={
-                  prefs["widgets.system.weatherForecast.enabled"]
-                }
-                weatherDisplay={prefs["weather.display"]}
-                showing={customizeMenuVisible}
-                toggleSectionsMgmtPanel={this.toggleSectionsMgmtPanel}
-                showSectionsMgmtPanel={this.state.showSectionsMgmtPanel}
-                showWidgetsManagementPanel={
-                  this.state.showWidgetsManagementPanel
-                }
-                toggleWidgetsManagementPanel={this.toggleWidgetsManagementPanel}
-                widgetsEnabled={prefs["widgets.enabled"]}
-                dispatch={this.props.dispatch}
-              />
-              {(shouldShowOMCHighlight(
-                this.props.Messages,
-                "CustomWallpaperHighlight"
-              ) ||
-                shouldShowOMCHighlight(
+            {customizeMenuEnabled && (
+              <menu className="personalizeButtonWrapper nova-enabled">
+                <CustomizeMenu
+                  onClose={this.closeCustomizationMenu}
+                  onOpen={this.openCustomizationMenu}
+                  openPreferences={this.openPreferences}
+                  setPref={this.setPref}
+                  enabledSections={enabledSections}
+                  enabledWidgets={enabledWidgets}
+                  wallpapersEnabled={wallpapersEnabled}
+                  wallpapersUserEnabled={wallpapersUserEnabled}
+                  activeWallpaper={activeWallpaper}
+                  pocketRegion={pocketRegion}
+                  mayHaveTopicSections={mayHavePersonalizedTopicSections}
+                  mayHaveInferredPersonalization={
+                    mayHaveInferredPersonalization
+                  }
+                  mayHaveWeather={mayHaveWeather}
+                  mayHaveWidgets={mayHaveWidgets}
+                  mayHaveTimerWidget={mayHaveTimerWidget}
+                  mayHaveListsWidget={mayHaveListsWidget}
+                  mayHaveSportsWidget={mayHaveSportsWidget}
+                  mayHaveClocksWidget={mayHaveClocksWidget}
+                  mayHavePrivacyWidget={mayHavePrivacyWidget}
+                  mayHaveCrosswordWidget={mayHaveCrosswordWidget}
+                  mayHaveStocksWidget={mayHaveStocksWidget}
+                  mayHaveWeatherForecast={
+                    prefs["widgets.system.weatherForecast.enabled"]
+                  }
+                  weatherDisplay={prefs["weather.display"]}
+                  showing={customizeMenuVisible}
+                  toggleSectionsMgmtPanel={this.toggleSectionsMgmtPanel}
+                  showSectionsMgmtPanel={this.state.showSectionsMgmtPanel}
+                  showWidgetsManagementPanel={
+                    this.state.showWidgetsManagementPanel
+                  }
+                  toggleWidgetsManagementPanel={
+                    this.toggleWidgetsManagementPanel
+                  }
+                  widgetsEnabled={prefs["widgets.enabled"]}
+                  dispatch={this.props.dispatch}
+                />
+                {(shouldShowOMCHighlight(
                   this.props.Messages,
-                  "WorldCupWallpaperHighlight"
+                  "CustomWallpaperHighlight"
                 ) ||
-                shouldShowOMCHighlight(
-                  this.props.Messages,
-                  "WorldCupSemiFinalWallpaperHighlight"
-                )) && (
-                <MessageWrapper dispatch={this.props.dispatch}>
-                  <WallpaperFeatureHighlight
-                    position="inset-block-start inset-inline-start"
-                    dispatch={this.props.dispatch}
-                  />
-                </MessageWrapper>
-              )}
-            </menu>
+                  shouldShowOMCHighlight(
+                    this.props.Messages,
+                    "WorldCupWallpaperHighlight"
+                  ) ||
+                  shouldShowOMCHighlight(
+                    this.props.Messages,
+                    "WorldCupSemiFinalWallpaperHighlight"
+                  )) && (
+                  <MessageWrapper dispatch={this.props.dispatch}>
+                    <WallpaperFeatureHighlight
+                      position="inset-block-start inset-inline-start"
+                      dispatch={this.props.dispatch}
+                    />
+                  </MessageWrapper>
+                )}
+              </menu>
+            )}
             {this.props.Notifications?.showNotifications && (
               <ErrorBoundary>
                 <Notifications dispatch={this.props.dispatch} />
@@ -1345,49 +1363,51 @@ export class BaseContent extends React.PureComponent {
             )}
           </div>
           {/* Floating menu for customize menu toggle */}
-          <menu className="personalizeButtonWrapper">
-            <CustomizeMenu
-              onClose={this.closeCustomizationMenu}
-              onOpen={this.openCustomizationMenu}
-              openPreferences={this.openPreferences}
-              setPref={this.setPref}
-              enabledSections={enabledSections}
-              enabledWidgets={enabledWidgets}
-              wallpapersEnabled={wallpapersEnabled}
-              wallpapersUserEnabled={wallpapersUserEnabled}
-              activeWallpaper={activeWallpaper}
-              pocketRegion={pocketRegion}
-              mayHaveTopicSections={mayHavePersonalizedTopicSections}
-              mayHaveInferredPersonalization={mayHaveInferredPersonalization}
-              mayHaveWeather={mayHaveWeather}
-              mayHaveWidgets={mayHaveWidgets}
-              mayHaveTimerWidget={mayHaveTimerWidget}
-              mayHaveListsWidget={mayHaveListsWidget}
-              mayHaveSportsWidget={mayHaveSportsWidget}
-              mayHaveClocksWidget={mayHaveClocksWidget}
-              mayHavePrivacyWidget={mayHavePrivacyWidget}
-              mayHaveCrosswordWidget={mayHaveCrosswordWidget}
-              mayHaveStocksWidget={mayHaveStocksWidget}
-              mayHaveWeatherForecast={
-                prefs["widgets.system.weatherForecast.enabled"]
-              }
-              weatherDisplay={prefs["weather.display"]}
-              showing={customizeMenuVisible}
-              toggleSectionsMgmtPanel={this.toggleSectionsMgmtPanel}
-              showSectionsMgmtPanel={this.state.showSectionsMgmtPanel}
-            />
-            {shouldShowOMCHighlight(
-              this.props.Messages,
-              "CustomWallpaperHighlight"
-            ) && (
-              <MessageWrapper dispatch={this.props.dispatch}>
-                <WallpaperFeatureHighlight
-                  position="inset-block-start inset-inline-start"
-                  dispatch={this.props.dispatch}
-                />
-              </MessageWrapper>
-            )}
-          </menu>
+          {customizeMenuEnabled && (
+            <menu className="personalizeButtonWrapper">
+              <CustomizeMenu
+                onClose={this.closeCustomizationMenu}
+                onOpen={this.openCustomizationMenu}
+                openPreferences={this.openPreferences}
+                setPref={this.setPref}
+                enabledSections={enabledSections}
+                enabledWidgets={enabledWidgets}
+                wallpapersEnabled={wallpapersEnabled}
+                wallpapersUserEnabled={wallpapersUserEnabled}
+                activeWallpaper={activeWallpaper}
+                pocketRegion={pocketRegion}
+                mayHaveTopicSections={mayHavePersonalizedTopicSections}
+                mayHaveInferredPersonalization={mayHaveInferredPersonalization}
+                mayHaveWeather={mayHaveWeather}
+                mayHaveWidgets={mayHaveWidgets}
+                mayHaveTimerWidget={mayHaveTimerWidget}
+                mayHaveListsWidget={mayHaveListsWidget}
+                mayHaveSportsWidget={mayHaveSportsWidget}
+                mayHaveClocksWidget={mayHaveClocksWidget}
+                mayHavePrivacyWidget={mayHavePrivacyWidget}
+                mayHaveCrosswordWidget={mayHaveCrosswordWidget}
+                mayHaveStocksWidget={mayHaveStocksWidget}
+                mayHaveWeatherForecast={
+                  prefs["widgets.system.weatherForecast.enabled"]
+                }
+                weatherDisplay={prefs["weather.display"]}
+                showing={customizeMenuVisible}
+                toggleSectionsMgmtPanel={this.toggleSectionsMgmtPanel}
+                showSectionsMgmtPanel={this.state.showSectionsMgmtPanel}
+              />
+              {shouldShowOMCHighlight(
+                this.props.Messages,
+                "CustomWallpaperHighlight"
+              ) && (
+                <MessageWrapper dispatch={this.props.dispatch}>
+                  <WallpaperFeatureHighlight
+                    position="inset-block-start inset-inline-start"
+                    dispatch={this.props.dispatch}
+                  />
+                </MessageWrapper>
+              )}
+            </menu>
+          )}
         </div>
       </BaseContext.Provider>
     );

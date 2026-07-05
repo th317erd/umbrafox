@@ -31,7 +31,7 @@ profile-card =
 #   $number (number) - The number of the profile
 default-profile-name = Profile { $number }
 
-# The word 'original' is used in the sense that it is the initial or starting profile when you install Firefox.
+# The word 'original' is used in the sense that it is the initial or starting profile when you install Umbrafox.
 original-profile-name = Original profile
 
 default-desktop-shortcut-name = { -brand-short-name }

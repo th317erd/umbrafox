@@ -66,7 +66,7 @@ webext-perms-sideload-menu-item = { $addonName } added to { -brand-short-name }
 webext-perms-update-menu-item = { $addonName } requires new permissions
 
 # This message is shown when one or more extensions have been imported from a
-# different browser into Firefox, and the user needs to complete the import to
+# different browser into Umbrafox, and the user needs to complete the import to
 # start these extensions. This message is shown in the appmenu.
 webext-imported-addons = Finalize installing extensions imported to { -brand-short-name }
 
@@ -138,5 +138,5 @@ addon-local-install-no-addon-name-error-file-access = The add-on could not be in
 addon-install-error-incompatible = { $addonName } could not be installed because it is not compatible with { -brand-short-name } { $appVersion }.
 addon-install-error-hard-blocked = { $addonName } violates Mozilla’s policies and can’t be installed on { -brand-short-name }.
 addon-install-error-soft-blocked2 = { $addonName } is restricted and can’t be installed on { -brand-short-name }.
-# Enterprise policies is a feature aimed at system administrators who want to deploy custom settings for Firefox.
+# Enterprise policies is a feature aimed at system administrators who want to deploy custom settings for Umbrafox.
 addon-install-error-admin-install-only = You cannot install { $addonName } as an end user, it can only be installed by an organization using enterprise policies.

@@ -6,6 +6,12 @@
 
 // Test that the customization menu is rendered.
 test_newtab({
+  async before({ pushPrefs }) {
+    await pushPrefs([
+      "browser.newtabpage.activity-stream.customizeMenu.enabled",
+      true,
+    ]);
+  },
   test: async function test_render_customizeMenu() {
     await ContentTaskUtils.waitForCondition(
       () =>

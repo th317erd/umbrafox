@@ -46,11 +46,11 @@ pdfjs-save-button =
     .title = Save
 pdfjs-save-button-label = Save
 
-# Used in Firefox for Android as a tooltip for the download button (“download” is a verb).
+# Used in Umbrafox for Android as a tooltip for the download button (“download” is a verb).
 pdfjs-download-button =
     .title = Download
 
-# Used in Firefox for Android as a label for the download button (“download” is a verb).
+# Used in Umbrafox for Android as a label for the download button (“download” is a verb).
 # Length of the translation matters since we are in a mobile context, with limited screen estate.
 pdfjs-download-button-label = Download
 

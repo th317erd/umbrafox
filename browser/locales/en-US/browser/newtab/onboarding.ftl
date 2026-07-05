@@ -46,10 +46,10 @@ onboarding-welcome-steps-indicator-label =
 # This button will open system settings to turn on prefers-reduced-motion
 mr1-onboarding-reduce-motion-button-label = Turn off animations
 
-# String for the Firefox Accounts button
+# String for the Umbrafox Accounts button
 mr1-onboarding-sign-in-button-label = Sign in
 
-# The primary import button label will depend on whether we can detect which browser was used to download Firefox.
+# The primary import button label will depend on whether we can detect which browser was used to download Umbrafox.
 # Variables:
 #   $previous (Str) - Previous browser name, such as Edge, Chrome
 mr1-onboarding-import-primary-button-label-attribution = Import from { $previous }
@@ -164,7 +164,7 @@ mr2022-onboarding-live-language-continue-in = Continue in { $appLanguage }
 onboarding-live-language-secondary-cancel-download = Cancel
 onboarding-live-language-skip-button-label = Skip
 
-## Firefox 100 Thank You screens
+## Umbrafox 100 Thank You screens
 
 # "Hero Text" displayed on left side of welcome screen. This text can be
 # formatted to span multiple lines as needed. The <span data-l10n-name="zap">
@@ -201,32 +201,32 @@ mr2022-onboarding-easy-setup-set-default-checkbox-label = Set { -brand-short-nam
 # Import action checkbox label used on new user onboarding first screen
 mr2022-onboarding-easy-setup-import-checkbox-label = Import from previous browser
 
-## MR2022 New User Pin Firefox screen strings
+## MR2022 New User Pin Umbrafox screen strings
 
-# Title used on about:welcome for new users when Firefox is not pinned.
+# Title used on about:welcome for new users when Umbrafox is not pinned.
 # In this context, open up is synonymous with "Discover".
-# The metaphor is that when they open their Firefox browser, it helps them discover an amazing internet.
+# The metaphor is that when they open their Umbrafox browser, it helps them discover an amazing internet.
 # If this translation does not make sense in your language, feel free to use the word "discover."
 mr2022-onboarding-welcome-pin-header = Open up an amazing internet
-# Subtitle is used on onboarding page for new users page when Firefox is not pinned
+# Subtitle is used on onboarding page for new users page when Umbrafox is not pinned
 mr2022-onboarding-welcome-pin-subtitle = Launch { -brand-short-name } from anywhere with a single click. Every time you do, you’re choosing a more open and independent web.
-# Primary button string used on welcome page for when Firefox is not pinned.
+# Primary button string used on welcome page for when Umbrafox is not pinned.
 mr2022-onboarding-pin-primary-button-label = { PLATFORM() ->
     [macos] Keep { -brand-short-name } in Dock
    *[other] Pin { -brand-short-name } to taskbar
 }
 
-# Primary button string used on welcome page for when Firefox is not pinned on MSIX
+# Primary button string used on welcome page for when Umbrafox is not pinned on MSIX
 mr2022-onboarding-pin-primary-button-label-msix = Pin { -brand-short-name } to taskbar and start menu
 
-## MR2022 Existing User Pin Firefox Screen Strings
+## MR2022 Existing User Pin Umbrafox Screen Strings
 
-# Title used on multistage onboarding page for existing users when Firefox is not pinned
+# Title used on multistage onboarding page for existing users when Umbrafox is not pinned
 mr2022-onboarding-existing-pin-header = Thank you for loving { -brand-product-name }
-# Subtitle is used on onboarding page for existing users when Firefox is not pinned
+# Subtitle is used on onboarding page for existing users when Umbrafox is not pinned
 mr2022-onboarding-existing-pin-subtitle = Launch a healthier internet from anywhere with a single click. Our latest update is packed with new things we think you’ll adore.
 # Subtitle will be used on the welcome screen for existing users
-# when they already have Firefox pinned but not set as default
+# when they already have Umbrafox pinned but not set as default
 mr2022-onboarding-existing-set-default-only-subtitle = Use a browser that defends your privacy while you zip around the web. Our latest update is packed with things that you adore.
 mr2022-onboarding-existing-pin-checkbox-label = Also add { -brand-short-name } private browsing
 
@@ -241,7 +241,7 @@ mr2022-onboarding-set-default-subtitle = Use a browser backed by a non-profit. W
 
 ## MR2022 Get Started screen strings.
 ## These strings will be used on the welcome page
-## when Firefox is already set to default and pinned.
+## when Umbrafox is already set to default and pinned.
 
 # When translating "zip", please feel free to pick a verb that signifies movement and/or exploration
 # and makes sense in the context of navigating the web.
@@ -256,7 +256,7 @@ mr2022-onboarding-mobile-download-cta-text = Scan the QR code to get { -brand-pr
 mr2022-onboarding-no-mobile-download-cta-text = Scan the QR code to get { -brand-product-name } for mobile.
 
 ## MR2022 Upgrade Dialog screens
-## Pin private window screen shown only for users who don't have Firefox private pinned
+## Pin private window screen shown only for users who don't have Umbrafox private pinned
 
 mr2022-upgrade-onboarding-pin-private-window-header = Get private browsing freedom in one click
 mr2022-upgrade-onboarding-pin-private-window-subtitle = No saved cookies or history, right from your desktop. Browse like no one’s watching.
@@ -479,7 +479,7 @@ multi-profile-callout-cta = Create a profile
 
 ## Desktop to Mobile Adoption feature callout strings
 
-# If translating the headline is challenging, consider using a simplified alternative as a reference: 'Sync your browsing with Firefox for mobile.'
+# If translating the headline is challenging, consider using a simplified alternative as a reference: 'Sync your browsing with Umbrafox for mobile.'
 desktop-to-mobile-headline = Download, sync, and go!
 
 # The phrase, 'on the go', is used to describe when people are very busy and are traveling from place to place.
@@ -594,7 +594,7 @@ onboarding-personalization-motivation-other-option = Other
 
 onboarding-refresh-pin-set-default-subtitle = We protect your data and block companies from spying on your clicks — automatically.
 # "safe paws" is a play on "safe hands", meaning you're being well taken care of or protected
-# If it doesn’t translate well, you can use the alternative: “You’re safe with Firefox.”
+# If it doesn’t translate well, you can use the alternative: “You’re safe with Umbrafox.”
 onboarding-refresh-pin-set-default-title = You’re in safe paws
 onboarding-refresh-import-subtitle = Bring over your passwords, bookmarks, history and more.
 onboarding-refresh-import-title = Make { -brand-short-name } feel more like home

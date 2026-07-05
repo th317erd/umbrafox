@@ -6,7 +6,11 @@
 
 // Test that the customization menu is rendered.
 test_newtab({
-  async before() {
+  async before({ pushPrefs }) {
+    await pushPrefs([
+      "browser.newtabpage.activity-stream.customizeMenu.enabled",
+      true,
+    ]);
     gBrowser.selectedBrowser.focus();
   },
   test: async function test_open_customizeMenu() {

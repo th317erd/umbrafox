@@ -107,19 +107,19 @@ export const AppConstants: Readonly<{
   DLL_PREFIX: string;
   DLL_SUFFIX: ".dll" | ".so";
 
-  MOZ_APP_NAME: "firefox" | "thunderbird";
-  MOZ_APP_BASENAME: "Firefox";
+  MOZ_APP_NAME: "umbrafox" | "thunderbird";
+  MOZ_APP_BASENAME: "Umbrafox";
 
   // N.b.: you almost certainly want brandShortName/brand-short-name:
   // MOZ_APP_DISPLAYNAME should only be used for static user-visible
   // fields (e.g., DLL properties, Mac Bundle name, or similar).
-  MOZ_APP_DISPLAYNAME_DO_NOT_USE: "Firefox";
+  MOZ_APP_DISPLAYNAME_DO_NOT_USE: "Umbrafox";
   MOZ_APP_VERSION: string;
   MOZ_APP_VERSION_DISPLAY: string;
   MOZ_BUILDID: string;
   MOZ_BUILD_APP: "browser";
-  MOZ_MACBUNDLE_ID: "org.mozilla.firefox";
-  MOZ_MACBUNDLE_NAME: "Firefox.app";
+  MOZ_MACBUNDLE_ID: "org.umbrafox.umbrafox";
+  MOZ_MACBUNDLE_NAME: "Umbrafox.app";
   MOZ_UPDATE_CHANNEL: "nightly" | "beta" | "aurora" | "release" | "esr" | "default" | "unofficial";
   MOZ_WIDGET_TOOLKIT: "android" | "cocoa" | "gtk" | "windows" | "uikit";
 

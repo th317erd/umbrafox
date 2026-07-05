@@ -38,10 +38,6 @@ Preferences.addAll([
   { id: "browser.urlbar.showSearchTerms.featureGate", type: "bool" },
   { id: "browser.search.separatePrivateDefault", type: "bool" },
   { id: "browser.search.separatePrivateDefault.ui.enabled", type: "bool" },
-  { id: "browser.urlbar.suggest.trending", type: "bool" },
-  { id: "browser.urlbar.trending.featureGate", type: "bool" },
-  { id: "browser.urlbar.recentsearches.featureGate", type: "bool" },
-  { id: "browser.urlbar.suggest.recentsearches", type: "bool" },
   { id: "browser.urlbar.scotchBonnet.enableOverride", type: "bool" },
 
   // Suggest Section.
@@ -51,14 +47,10 @@ Preferences.addAll([
   { id: "browser.urlbar.suggest.history", type: "bool" },
   { id: "browser.urlbar.suggest.openpage", type: "bool" },
   { id: "browser.urlbar.suggest.topsites", type: "bool" },
-  { id: "browser.urlbar.suggest.engines", type: "bool" },
   { id: "browser.urlbar.quickactions.showPrefs", type: "bool" },
   { id: "browser.urlbar.suggest.quickactions", type: "bool" },
   { id: "browser.urlbar.quicksuggest.settingsUi", type: "int" },
   { id: "browser.urlbar.quicksuggest.enabled", type: "bool" },
-  { id: "browser.urlbar.suggest.quicksuggest.all", type: "bool" },
-  { id: "browser.urlbar.suggest.quicksuggest.sponsored", type: "bool" },
-  { id: "browser.urlbar.quicksuggest.online.enabled", type: "bool" },
 ]);
 
 /**
@@ -267,11 +259,6 @@ Preferences.addSetting({
   pref: "browser.urlbar.suggest.searches",
 });
 
-Preferences.addSetting({
-  id: "trendingFeaturegatePref",
-  pref: "browser.urlbar.trending.featureGate",
-});
-
 // The show search suggestion box behaves differently depending on whether the
 // separate search bar is shown. When the separate search bar is shown, it
 // controls just the search suggestion preference, and the
@@ -395,30 +382,6 @@ Preferences.addSetting({
 });
 
 Preferences.addSetting({
-  id: "showTrendingSuggestionsCheckbox",
-  pref: "browser.urlbar.suggest.trending",
-  deps: [
-    "searchSuggestionsEnabledPref",
-    "permanentPBEnabledPref",
-    // Required to dynamically update the disabled state when the default engine is changed.
-    "defaultEngineNormal",
-    "trendingFeaturegatePref",
-  ],
-  visible: deps => deps.trendingFeaturegatePref.value,
-  disabled: deps => {
-    let trendingSupported =
-      lazy.SearchService.defaultEngine?.supportsResponseType(
-        lazy.SearchUtils.URL_TYPE.TRENDING_JSON
-      );
-    return (
-      !deps.searchSuggestionsEnabledPref.value ||
-      deps.permanentPBEnabledPref.value ||
-      !trendingSupported
-    );
-  },
-});
-
-Preferences.addSetting({
   id: "urlBarSuggestionPermanentPBMessage",
   deps: ["urlBarSuggestionCheckbox", "permanentPBEnabledPref"],
   visible: deps => {
@@ -501,25 +464,6 @@ Preferences.addSetting({
 });
 
 Preferences.addSetting({
-  id: "enableRecentSearchesFeatureGate",
-  pref: "browser.urlbar.recentsearches.featureGate",
-});
-
-Preferences.addSetting({
-  id: "enableRecentSearches",
-  pref: "browser.urlbar.suggest.recentsearches",
-  deps: ["enableRecentSearchesFeatureGate"],
-  visible: deps => {
-    return deps.enableRecentSearchesFeatureGate.value;
-  },
-});
-
-Preferences.addSetting({
-  id: "enginesSuggestion",
-  pref: "browser.urlbar.suggest.engines",
-});
-
-Preferences.addSetting({
   id: "quickActionsShowPrefs",
   pref: "browser.urlbar.quickactions.showPrefs",
 });
@@ -531,107 +475,6 @@ Preferences.addSetting({
   visible: deps => {
     return deps.quickActionsShowPrefs.value || deps.scotchBonnetEnabled.value;
   },
-});
-
-function determineSuggestionSettingsVisibility() {
-  if (!lazy.UrlbarPrefs.get("quickSuggestEnabled")) {
-    return false;
-  } else if (
-    lazy.UrlbarPrefs.get("quickSuggestSettingsUi") ==
-    lazy.QuickSuggest.SETTINGS_UI.NONE
-  ) {
-    return false;
-  }
-  return true;
-}
-
-Preferences.addSetting({
-  id: "firefoxSuggestAll",
-  pref: "browser.urlbar.suggest.quicksuggest.all",
-  deps: [
-    "quickSuggestEnabledPref",
-    "quickSuggestSettingsUiPref",
-    "nimbusListener",
-  ],
-  visible: determineSuggestionSettingsVisibility,
-});
-
-Preferences.addSetting({
-  id: "firefoxSuggestSponsored",
-  pref: "browser.urlbar.suggest.quicksuggest.sponsored",
-  deps: [
-    "firefoxSuggestAll",
-    "quickSuggestEnabledPref",
-    "quickSuggestSettingsUiPref",
-    "nimbusListener",
-  ],
-  visible: determineSuggestionSettingsVisibility,
-  disabled: deps => {
-    return !deps.firefoxSuggestAll.value;
-  },
-});
-
-Preferences.addSetting({
-  id: "firefoxSuggestOnlineEnabledToggle",
-  pref: "browser.urlbar.quicksuggest.online.enabled",
-  deps: [
-    "firefoxSuggestAll",
-    "quickSuggestEnabledPref",
-    "quickSuggestSettingsUiPref",
-    "nimbusListener",
-  ],
-  visible: () => {
-    if (!lazy.UrlbarPrefs.get("quickSuggestEnabled")) {
-      return false;
-    } else if (
-      lazy.UrlbarPrefs.get("quickSuggestSettingsUi") ==
-      lazy.QuickSuggest.SETTINGS_UI.NONE
-    ) {
-      return false;
-    }
-    return (
-      lazy.UrlbarPrefs.get("quickSuggestSettingsUi") ==
-      lazy.QuickSuggest.SETTINGS_UI.FULL
-    );
-  },
-  disabled: deps => {
-    return !deps.firefoxSuggestAll.value;
-  },
-});
-
-Preferences.addSetting(
-  class extends Preferences.AsyncSetting {
-    static id = "restoreDismissedSuggestions";
-    setup() {
-      Services.obs.addObserver(
-        this.emitChange,
-        "quicksuggest-dismissals-changed"
-      );
-      return () => {
-        Services.obs.removeObserver(
-          this.emitChange,
-          "quicksuggest-dismissals-changed"
-        );
-      };
-    }
-    async disabled() {
-      return !(await lazy.QuickSuggest.canClearDismissedSuggestions());
-    }
-    onUserClick() {
-      lazy.QuickSuggest.clearDismissedSuggestions();
-    }
-  }
-);
-
-Preferences.addSetting({
-  id: "dismissedSuggestionsDescription",
-  deps: [
-    "firefoxSuggestAll",
-    "quickSuggestEnabledPref",
-    "quickSuggestSettingsUiPref",
-    "nimbusListener",
-  ],
-  visible: determineSuggestionSettingsVisibility,
 });
 
 /**
@@ -1139,11 +982,6 @@ SettingGroupManager.registerGroups({
             l10nId: "search-show-suggestions-private-windows-2",
           },
           {
-            id: "showTrendingSuggestionsCheckbox",
-            l10nId: "addressbar-locbar-showtrendingsuggestions-option-2",
-            supportPage: "google-trending-searches-on-awesomebar",
-          },
-          {
             id: "urlBarSuggestionPermanentPBMessage",
             l10nId: "search-suggestions-cant-show-2",
             control: "moz-message-bar",
@@ -1189,50 +1027,9 @@ SettingGroupManager.registerGroups({
             l10nId: "addressbar-locbar-shortcuts-option",
           },
           {
-            id: "enableRecentSearches",
-            l10nId: "addressbar-locbar-showrecentsearches-option-2",
-          },
-          {
-            id: "enginesSuggestion",
-            l10nId: "addressbar-locbar-engines-option-1",
-          },
-          {
             id: "enableQuickActions",
             l10nId: "addressbar-locbar-quickactions-option",
             supportPage: "quick-actions-firefox-search-bar",
-          },
-          {
-            id: "firefoxSuggestAll",
-            l10nId: "addressbar-locbar-suggest-all-option-2",
-            items: [
-              {
-                id: "firefoxSuggestSponsored",
-                l10nId: "addressbar-locbar-suggest-sponsored-option-2",
-              },
-              {
-                id: "firefoxSuggestOnlineEnabledToggle",
-                l10nId: "addressbar-firefox-suggest-online",
-                supportPage: "firefox-suggest",
-                subcategory: "w_what-is-firefox-suggest",
-              },
-            ],
-          },
-          {
-            id: "dismissedSuggestionsDescription",
-            l10nId: "addressbar-dismissed-suggestions-label-2",
-            control: "moz-fieldset",
-            controlAttrs: {
-              headinglevel: 3,
-            },
-            items: [
-              {
-                id: "restoreDismissedSuggestions",
-                l10nId: "addressbar-restore-dismissed-suggestions-button-2",
-                control: "moz-button",
-                iconSrc:
-                  "chrome://global/skin/icons/arrow-counterclockwise-16.svg",
-              },
-            ],
           },
         ],
       },

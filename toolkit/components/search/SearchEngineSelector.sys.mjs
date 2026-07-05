@@ -31,6 +31,19 @@ const lazy = XPCOMUtils.declareLazy({
     }),
 });
 
+const UMBRAFOX_BLOCKED_SEARCH_ENGINE_IDS = new Set(["bing", "google"]);
+const UMBRAFOX_BLOCKED_SEARCH_ENGINE_PREFIXES = ["amazon", "ebay"];
+
+function isUmbrafoxBlockedSearchEngineId(identifier) {
+  identifier ??= "";
+  return (
+    UMBRAFOX_BLOCKED_SEARCH_ENGINE_IDS.has(identifier) ||
+    UMBRAFOX_BLOCKED_SEARCH_ENGINE_PREFIXES.some(prefix =>
+      identifier.startsWith(prefix)
+    )
+  );
+}
+
 /**
  * SearchEngineSelector parses the JSON configuration for
  * search engines and returns the applicable engines depending
@@ -142,6 +155,9 @@ export class SearchEngineSelector {
       if (config.recordType !== "engine") {
         continue;
       }
+      if (isUmbrafoxBlockedSearchEngineId(config.identifier)) {
+        continue;
+      }
       let searchHost = new URL(config.base.urls.search.base).hostname;
       if (searchHost.startsWith("www.")) {
         searchHost = searchHost.slice(4);
@@ -165,6 +181,10 @@ export class SearchEngineSelector {
    *   The configuration data for an engine.
    */
   async findContextualSearchEngineById(id) {
+    if (isUmbrafoxBlockedSearchEngineId(id)) {
+      return null;
+    }
+
     for (let config of this.#configuration) {
       if (config.recordType !== "engine") {
         continue;
@@ -230,7 +250,7 @@ export class SearchEngineSelector {
     );
 
     refinedSearchConfig.engines = refinedSearchConfig.engines.filter(
-      e => !e.optional
+      e => !e.optional && !isUmbrafoxBlockedSearchEngineId(e.identifier)
     );
 
     if (

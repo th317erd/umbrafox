@@ -147,6 +147,7 @@ add_setup(async () => {
 
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["browser.newtabpage.activity-stream.customizeMenu.enabled", true],
       [
         "browser.newtabpage.activity-stream.discoverystream.config",
         PREFS_CONFIG.get("discoverystream.config").getValue({

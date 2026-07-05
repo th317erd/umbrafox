@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-### Firefox Home / New Tab strings for about:home / about:newtab.
+### Umbrafox Home / New Tab strings for about:home / about:newtab.
 
 newtab-page-title = New Tab
 #  (developer note): @nova-cleanup(remove-string): Remove newtab-customize-panel-icon-button once Nova lands, will be using newtab-customize-panel-label instead
@@ -383,7 +383,7 @@ newtab-wallpaper-celestial-eclipse-time-lapse = Lunar eclipse time lapse
 newtab-wallpaper-celestial-black-hole = Black hole galaxy illustration
 newtab-wallpaper-celestial-river = Satellite image of river
 
-## Firefox
+## Umbrafox
 
 newtab-wallpaper-category-title-firefox = { -brand-product-name }
 
@@ -583,7 +583,7 @@ newtab-wallpaper-feature-highlight-cta = Choose wallpaper
 ## Strings for download mobile highlight
 
 newtab-download-mobile-highlight-title = Download { -brand-product-name } for mobile
-# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Umbrafox for mobile download.
 newtab-download-mobile-highlight-body-variant-a = Scan the code to securely browse on the go.
 newtab-download-mobile-highlight-body-variant-b = Pick up where you left off when you sync your tabs, passwords, and more.
 newtab-download-mobile-highlight-body-variant-c = Did you know you can take { -brand-product-name } on the go? Same browser. In your pocket.
@@ -1107,7 +1107,7 @@ newtab-promo-card-title = Support { -brand-product-name }
 newtab-promo-card-body = Our sponsors support our mission to build a better web
 newtab-promo-card-cta = Learn more
 
-# "Make Firefox yours" refers to about:newtab. The call to action here ("Try it now")
+# "Make Umbrafox yours" refers to about:newtab. The call to action here ("Try it now")
 # is to customize the new tab page with a background image or color from
 # the built-in wallpaper collection or uploading your own image.
 newtab-promo-card-title-addons = Make { -brand-product-name } yours
@@ -1220,7 +1220,7 @@ newtab-card-dismiss-button =
     .title = Dismiss
     .aria-label = Dismiss
 
-## Strings for "Homepage" and "Firefox Home" sections of about:settings#home.
+## Strings for "Homepage" and "Umbrafox Home" sections of about:settings#home.
 ## Homepage panel
 
 home-homepage-title =
@@ -1268,7 +1268,7 @@ home-custom-homepage-current-pages-button =
 home-custom-homepage-bookmarks-button =
     .label = Bookmarks…
 
-## Firefox Home content
+## Umbrafox Home content
 
 home-prefs-content-header =
     .label = { -firefox-home-brand-name }
@@ -1323,8 +1323,8 @@ home-prefs-choose-wallpaper-link2 =
 home-prefs-firefox-logo-header =
     .label = { -brand-short-name } logo
 
-# Informational message bar that appears in the Firefox Home section when the options are disabled.
-# The user must select Firefox Home as their homepage for either new tabs or new windows to enable
+# Informational message bar that appears in the Umbrafox Home section when the options are disabled.
+# The user must select Umbrafox Home as their homepage for either new tabs or new windows to enable
 # the features in settings.
 home-prefs-firefox-home-disabled-notice =
     .message = To use these features, set new tabs or new windows to { -firefox-home-brand-name }.

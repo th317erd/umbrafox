@@ -13,11 +13,11 @@ account-disconnected2 = Account disconnected
 # Menu item that sends a tab to all synced devices.
 account-send-to-all-devices = Send to all devices
 
-# Menu item that links to the Firefox Accounts settings for connected devices.
+# Menu item that links to the Umbrafox Accounts settings for connected devices.
 account-manage-devices = Manage devices…
 
 ## Variables:
-##   $email (String): = Email address of user's Firefox Account.
+##   $email (String): = Email address of user's Umbrafox Account.
 
 account-reconnect = Reconnect { $email }
 account-verify = Verify { $email }
@@ -33,10 +33,10 @@ account-manage-devices-titlecase = Manage Devices…
 account-send-tab-to-device-verify-status = Account Not Verified
 account-send-tab-to-device-verify2 = Verify Your Account
 
-## These strings are used in a notification shown when a new device joins the Firefox account.
+## These strings are used in a notification shown when a new device joins the Umbrafox account.
 
 # The title shown in a notification when either this device or another device
-# has connected to, or disconnected from, a Firefox account.
+# has connected to, or disconnected from, a Umbrafox account.
 account-connection-title-2 = Account
 
 # Variables:
@@ -46,10 +46,10 @@ account-connection-connected-with = This computer is now connected with { $devic
 # Used when the name of the new device is not known.
 account-connection-connected-with-noname = This computer is now connected with a new device.
 
-# Used in a notification shown after a Firefox account is connected to the current device.
+# Used in a notification shown after a Umbrafox account is connected to the current device.
 account-connection-connected = You have signed in successfully
 
-# Used in a notification shown after the Firefox account was disconnected remotely.
+# Used in a notification shown after the Umbrafox account was disconnected remotely.
 account-connection-disconnected = This computer has been disconnected.
 
 ## These strings are used in a notification shown when we're opening

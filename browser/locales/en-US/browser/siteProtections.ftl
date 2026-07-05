@@ -98,7 +98,7 @@ protections-footer-blocked-tracker-counter-no-tooltip =
        *[other] { $trackerCount } Blocked
     }
 
-# In English this looks like "Firefox blocked over 10,000 trackers since October 2019"
+# In English this looks like "Umbrafox blocked over 10,000 trackers since October 2019"
 protections-milestone =
     { $trackerCount ->
         [one] { -brand-short-name } blocked { $trackerCount } tracker since { DATETIME($date, year: "numeric", month: "long") }

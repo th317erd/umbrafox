@@ -1272,7 +1272,7 @@ option(
     env="MOZ_APP_BASENAME",
     nargs=1,
     help="Typically stays consistent for multiple branded versions of a "
-    'given application (e.g. Aurora and Firefox both use "Firefox"), but '
+    'given application (e.g. Aurora and Umbrafox both use "Umbrafox"), but '
     "may vary for full rebrandings (e.g. Iceweasel). Used for "
     'application.ini\'s "Name" field, which controls profile location in '
     'the absence of a "Profile" field (see below), and various system '
@@ -1286,7 +1286,7 @@ def moz_app_basename(value, target_is_android):
         return value[0]
     if target_is_android:
         return "Fennec"
-    return "Firefox"
+    return "Umbrafox"
 
 
 set_config(

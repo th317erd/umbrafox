@@ -32,7 +32,7 @@ more-from-moz-button-mozilla-vpn-2 = Get VPN
 
 more-from-moz-learn-more-link = Learn more
 
-## These strings are for the Firefox Relay card in about:preferences moreFromMozilla page
+## These strings are for the Umbrafox Relay card in about:preferences moreFromMozilla page
 
 more-from-moz-firefox-relay-title = { -relay-brand-name }
 more-from-moz-firefox-relay-description = Protect your inbox and your identity with free email masking.

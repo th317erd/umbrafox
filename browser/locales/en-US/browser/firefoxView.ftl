@@ -113,7 +113,7 @@ firefoxview-synced-tabs-header = Tabs from other devices
 
 ##
 
-# Used for a link in collapsible cards, in the ’Recent browsing’ page of Firefox View
+# Used for a link in collapsible cards, in the ’Recent browsing’ page of Umbrafox View
 firefoxview-view-all-link = View all
 
 # Variables:
@@ -196,7 +196,7 @@ firefoxview-history-site-localhost = (local files)
 
 firefoxview-show-all-history = Show all history
 
-## Message displayed in Firefox View when the user has no history data
+## Message displayed in Umbrafox View when the user has no history data
 
 firefoxview-history-empty-header = Get back to where you’ve been
 firefoxview-history-empty-description = As you browse, the pages you visit will be listed here.
@@ -208,14 +208,14 @@ firefoxview-history-empty-description-two = Protecting your privacy is at the he
 firefoxview-choose-browser-button = Choose browser
   .title = Choose browser
 
-## Message displayed in Firefox View when the user has chosen to never remember History
+## Message displayed in Umbrafox View when the user has chosen to never remember History
 
 firefoxview-dont-remember-history-empty-header-2 = You’re in control of what { -brand-short-name } remembers
 firefoxview-dont-remember-history-empty-description-one = Right now, { -brand-short-name } does not remember your browsing activity. To change that, <a data-l10n-name="history-settings-url-two">update your history settings</a>.
 
 ##
 
-# This label is read by screen readers when focusing the close button for the "Import history from another browser" banner in Firefox View
+# This label is read by screen readers when focusing the close button for the "Import history from another browser" banner in Umbrafox View
 firefoxview-import-history-close-button =
   .aria-label = Close
   .title = Close
@@ -225,7 +225,7 @@ firefoxview-import-history-close-button =
 firefoxview-import-history-header = Import history from another browser
 firefoxview-import-history-description = Make { -brand-short-name } your go-to browser. Import browsing history, bookmarks, and more.
 
-## Message displayed in Firefox View when the user has no recently closed tabs data
+## Message displayed in Umbrafox View when the user has no recently closed tabs data
 
 firefoxview-recentlyclosed-empty-header = Closed a tab too soon?
 firefoxview-recentlyclosed-empty-description = Here you’ll find the tabs you recently closed, so you can reopen any of them quickly.

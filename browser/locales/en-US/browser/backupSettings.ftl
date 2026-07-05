@@ -18,7 +18,7 @@ backup-folder-name = Restore { -brand-product-name }
 # This is an example of what the final filename might look like after the
 # profile name and backup date are appended to it:
 #
-# FirefoxBackup_default_20240606-1830.html
+# UmbrafoxBackup_default_20240606-1830.html
 backup-file-name = { -brand-product-name }Backup
 
 settings-data-backup-header2 =
@@ -164,7 +164,7 @@ backup-service-error-unsupported-version =
     .message = The file you chose isn’t compatible with this version of { -brand-short-name }. Choose a different file and try again.
 
 # The backup file cannot be restored. The currently running application is not
-# the same application that created the backup file (e.g. Firefox cannot
+# the same application that created the backup file (e.g. Umbrafox cannot
 # restore a Thunderbird profile backup).
 backup-service-error-unsupported-application =
     .heading = This file isn’t working
@@ -256,7 +256,7 @@ backup-file-creation-date-value = { DATETIME($date, timeStyle: "short") }, { DAT
 
 backup-file-how-to-restore-header = How to restore:
 
-# The ☰ character is intended as a visual icon representing the Firefox
+# The ☰ character is intended as a visual icon representing the Umbrafox
 # application menu.
 backup-file-moz-browser-restore-step-1 = Open the application menu ☰ and go to Settings > Sync
 backup-file-moz-browser-restore-step-2-1 = Click “Restore your data” and select this file
@@ -264,7 +264,7 @@ backup-file-moz-browser-restore-step-3 = Restart { -brand-short-name } when aske
 
 backup-file-other-browser-restore-step-1 = Download and install { -brand-short-name }
 backup-file-download-moz-browser-button = Download
-# The ☰ character is intended as a visual icon representing the Firefox
+# The ☰ character is intended as a visual icon representing the Umbrafox
 # application menu.
 backup-file-other-browser-restore-step-2 = Start { -brand-short-name }, open the application menu ☰ and go to Settings > Sync
 backup-file-other-browser-restore-step-3-1 = Click “Restore your data” and select this file

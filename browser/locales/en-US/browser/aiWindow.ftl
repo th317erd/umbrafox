@@ -226,7 +226,7 @@ smartwindow-footer-history =
 
 smartwindow-disclaimer = AI can make mistakes.
 
-## FirefoxView Chats
+## UmbrafoxView Chats
 ## Chats in this context refers to chats saved from the Smart Window Assistant
 
 firefoxview-chats-nav = Chats
@@ -248,7 +248,7 @@ firefoxview-chat-date-yesterday = Yesterday - { DATETIME($date, dateStyle: "full
 firefoxview-chat-date-this-month = { DATETIME($date, dateStyle: "full") }
 firefoxview-chat-date-prev-month = { DATETIME($date, month: "long", year: "numeric") }
 
-## Message displayed in Firefox View when the user has no chat data
+## Message displayed in Umbrafox View when the user has no chat data
 
 firefoxview-chats-empty-header = Get back to your chats
 firefoxview-chats-empty-description = As you use { -smart-window-brand-name }, your chats will be saved here.

@@ -187,7 +187,7 @@ main-context-menu-preview-link =
     .label = Preview Link
     .accesskey = J
 
-# "Copy Clean Link" means that Firefox will remove things from the link you
+# "Copy Clean Link" means that Umbrafox will remove things from the link you
 # copied, like items that identify you for advertising purposes, and other items
 # sites add into URLs to help them deliver a certain browsing experience.
 main-context-menu-copy-clean-link =

@@ -745,12 +745,12 @@ play-drm-content =
 
 play-drm-content-learn-more = Learn more
 
-## About Firefox
+## About Umbrafox
 
 about-firefox-header =
     .heading = About { -brand-short-name }
 
-## Firefox updates
+## Umbrafox updates
 
 update-application-heading =
     .label = { -brand-short-name } updates
@@ -763,7 +763,7 @@ update-application-updates-managed-by-os =
     .message = Updates are managed by your operating system
 
 # Variables:
-# $version (string) - Firefox version
+# $version (string) - Umbrafox version
 update-application-version = Version { $version } <a data-l10n-name="learn-more">What’s new</a>
 
 update-history-2 =
@@ -812,7 +812,7 @@ update-in-progress-ok-button = &Discard
 # method of closing the UI will not discard the update.
 update-in-progress-cancel-button = &Continue
 
-## Firefox support
+## Umbrafox support
 
 support-application-heading =
     .label = { -brand-short-name } support
@@ -999,7 +999,7 @@ choose-bookmark =
     .label = Use Bookmark…
     .accesskey = B
 
-## Home Section - Firefox Home Content Customization
+## Home Section - Umbrafox Home Content Customization
 
 home-prefs-content-header2 = { -firefox-home-brand-name } Content
 home-prefs-content-description2 = Choose what content you want on your { -firefox-home-brand-name } screen.
@@ -1113,7 +1113,7 @@ addressbar-header-1 =
     .label = Address Bar
     .description = Choose which suggestions display in your address bar
 
-# When Firefox Suggest is enabled, this replaces `addressbar-header-1`.
+# When Umbrafox Suggest is enabled, this replaces `addressbar-header-1`.
 addressbar-header-firefox-suggest-2 =
     .label = { -firefox-suggest-brand-name }
     .description = Suggestions from { -brand-short-name } and our partners in your address bar.
@@ -1150,7 +1150,7 @@ addressbar-locbar-showtrendingsuggestions-option-2 =
     .label = Trending search suggestions
     .accesskey = t
 
-# Toggles whether suggestions are obtained from Firefox Suggest or not (local or online).
+# Toggles whether suggestions are obtained from Umbrafox Suggest or not (local or online).
 addressbar-locbar-suggest-all-option-2 =
     .label = Suggestions from { -brand-short-name }
     .description = Get suggestions from the web related to your search.
@@ -1160,7 +1160,7 @@ addressbar-locbar-suggest-sponsored-option-2 =
     .description = Support { -brand-short-name } with occasional sponsored suggestions.
 
 # This string is used for a checkbox in the settings UI that opts the
-# user into "online" Firefox Suggest, allowing them to receive suggestions from
+# user into "online" Umbrafox Suggest, allowing them to receive suggestions from
 # Mozilla's Merino server.
 # "Mozilla" is intentionally hardcoded to prevent forks from replacing it
 # with their own vendor name, since the online suggest is created and maintained
@@ -1277,7 +1277,7 @@ account-placeholder2 =
     .label = You’re not signed in
     .description = Sign in and keep your data private, encrypted, and instantly accessible everywhere you use { -brand-short-name }.
 
-## Firefox account - Signed out. Note that "Sync" and "Firefox account" are now
+## Umbrafox account - Signed out. Note that "Sync" and "Umbrafox account" are now
 ## more discrete ("signed in" no longer means "and sync is connected").
 
 sync-signedout-caption = Take Your Web With You
@@ -1303,9 +1303,9 @@ sync-signedout-account-short =
 #
 # They can be moved within the sentence as needed to adapt
 # to your language, but should not be changed or translated.
-sync-mobile-promo = Download Firefox for <img data-l10n-name="android-icon"/> <a data-l10n-name="android-link">Android</a> or <img data-l10n-name="ios-icon"/> <a data-l10n-name="ios-link">iOS</a> to sync with your mobile device.
+sync-mobile-promo = Download Umbrafox for <img data-l10n-name="android-icon"/> <a data-l10n-name="android-link">Android</a> or <img data-l10n-name="ios-icon"/> <a data-l10n-name="ios-link">iOS</a> to sync with your mobile device.
 
-## Firefox account - Signed in
+## Umbrafox account - Signed in
 
 sync-profile-picture-with-alt =
     .tooltiptext = Change profile picture
@@ -1333,8 +1333,8 @@ sync-manage-account2 =
     .accesskey = o
 
 ## Variables
-## $email (string) - Email used for Firefox account
-## $name (string) - Name used for Firefox account
+## $email (string) - Email used for Umbrafox account
+## $name (string) - Name used for Umbrafox account
 
 sync-account-signed-in =
     .label = { $email }
@@ -1477,7 +1477,7 @@ sync-engine-payment-methods2 =
 
 sync-engine-addons =
     .label = Add-ons
-    .tooltiptext = Extensions and themes for Firefox desktop
+    .tooltiptext = Extensions and themes for Umbrafox desktop
     .accesskey = A
 
 sync-engine-settings =
@@ -1557,7 +1557,7 @@ forms-breach-alerts-learn-more-link = Learn more
 privacy-panel-settings-header =
     .label = Privacy panel settings
     .description = Get help protecting your info online in { -brand-short-name }.
-# By “breach message” we mean the UI messaging shown when Firefox detects that a
+# By “breach message” we mean the UI messaging shown when Umbrafox detects that a
 # site the user has interacted with has been involved in a known data breach
 privacy-panel-breach-alerts =
     .label = Show breach messages
@@ -1635,13 +1635,13 @@ windows-passkey-settings-label = Manage passkeys in system settings
 primary-password-os-auth-dialog-message-win = To create a Primary Password, enter your Windows login credentials. This helps protect the security of your accounts.
 
 # This message can be seen by trying to add a Primary Password.
-# The macOS strings are preceded by the operating system with "Firefox is trying to "
+# The macOS strings are preceded by the operating system with "Umbrafox is trying to "
 # and includes subtitle of "Enter password for the user "xxx" to allow this." These
 # notes are only valid for English. Please test in your locale.
 primary-password-os-auth-dialog-message-macosx = create a Primary Password
 master-password-os-auth-dialog-caption = { -brand-full-name }
 
-# The macOS string is preceded by the operating system with "Firefox is trying to ".
+# The macOS string is preceded by the operating system with "Umbrafox is trying to ".
 autofill-creditcard-os-dialog-message = { PLATFORM () ->
     [macos] change the settings for payment methods
     *[other] { -brand-short-name } is trying to change the settings for payment methods. Use your device sign in to allow this.
@@ -1679,7 +1679,7 @@ payments-delete-payment-button-label =
 payments-edit-payment-button-label =
     .aria-label = Edit
 
-# This message is displayed when no payment methods such as credit card are stored in Firefox
+# This message is displayed when no payment methods such as credit card are stored in Umbrafox
 payments-no-payments-stored-message =
     .label = No payment methods added
 
@@ -1713,7 +1713,7 @@ autofill-addresses-add-button = Add new address
 autofill-addresses-manage-addresses-title =
     .heading = Manage addresses and more
 
-# This message is displayed when no addresses are stored in Firefox
+# This message is displayed when no addresses are stored in Umbrafox
 addresses-no-addresses-stored-message =
     .label = No addresses added
 

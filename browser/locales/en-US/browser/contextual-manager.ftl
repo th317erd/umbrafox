@@ -29,28 +29,28 @@ contextual-manager-passwords-os-auth-dialog-caption = { -brand-full-name }
 # This message can be seen when attempting to export a password in about:logins on Windows.
 contextual-manager-passwords-export-os-auth-dialog-message-win = To export your passwords, enter your Windows login credentials. This helps protect the security of your accounts.
 # This message can be seen when attempting to export a password in about:logins
-# The macOS strings are preceded by the operating system with "Firefox is trying to "
+# The macOS strings are preceded by the operating system with "Umbrafox is trying to "
 # and includes subtitle of "Enter password for the user "xxx" to allow this." These
 # notes are only valid for English. only provide the reason that account verification is needed. Do not put a complete sentence here.
 contextual-manager-passwords-export-os-auth-dialog-message-macosx = export saved passwords
 
 # This message can be seen when attempting to reveal a password in contextual password manager on Windows
 contextual-manager-passwords-reveal-password-os-auth-dialog-message-win = To view your password, enter your Windows login credentials. This helps protect the security of your accounts.
-# The MacOS string is preceded by the operating system with "Firefox is trying to ".
+# The MacOS string is preceded by the operating system with "Umbrafox is trying to ".
 # Only provide the reason that account verification is needed. Do not put a complete sentence here.
 contextual-manager-passwords-reveal-password-os-auth-dialog-message-macosx = reveal the saved password
 
 
 # This message can be seen when attempting to edit a login in contextual password manager on Windows.
 contextual-manager-passwords-edit-password-os-auth-dialog-message-win = To edit your password, enter your Windows login credentials. This helps protect the security of your accounts.
-# The MacOS string is preceded by the operating system with "Firefox is trying to ".
+# The MacOS string is preceded by the operating system with "Umbrafox is trying to ".
 # On MacOS, only provide the reason that account verification is needed. Do not put a complete sentence here.
 contextual-manager-passwords-edit-password-os-auth-dialog-message-macosx = edit the saved password
 
 
 # This message can be seen when attempting to copy a password in contextual password manager on Windows.
 contextual-manager-passwords-copy-password-os-auth-dialog-message-win = To copy your password, enter your Windows login credentials. This helps protect the security of your accounts.
-# The MacOS string is preceded by the operating system with "Firefox is trying to ".
+# The MacOS string is preceded by the operating system with "Umbrafox is trying to ".
 # Only provide the reason that account verification is needed. Do not put a complete sentence here.
 contextual-manager-passwords-copy-password-os-auth-dialog-message-macosx = copy the saved password
 
@@ -328,14 +328,14 @@ contextual-manager-passwords-no-passwords-found-header =
 contextual-manager-passwords-no-passwords-found-message-2 = Try a different term and search again.
 
 ## When the user has no saved passwords, we display the following messages to inform the user they can save
-## their passwords safely and securely in Firefox:
+## their passwords safely and securely in Umbrafox:
 
-# This string encourages the user to save their passwords in Firefox (the "safe spot").
+# This string encourages the user to save their passwords in Umbrafox (the "safe spot").
 contextual-manager-passwords-no-passwords-header-2 = Save your passwords to a safe spot
-# This string informs that we (Firefox) store all passwords securely and will notify them of any breaches and alerts their
+# This string informs that we (Umbrafox) store all passwords securely and will notify them of any breaches and alerts their
 # passwords may be involved in.
 contextual-manager-passwords-no-passwords-message = All passwords are encrypted and we’ll watch out for breaches and alerts if you’re affected.
-# This string encourages the user to save their passwords to Firefox again.
+# This string encourages the user to save their passwords to Umbrafox again.
 contextual-manager-passwords-no-passwords-get-started-message = Add them here to get started.
 # This string is displayed in a button. If the user clicks it, they will be taken to a form to create a new password.
 contextual-manager-passwords-add-manually = Add manually
@@ -356,7 +356,7 @@ contextual-manager-passwords-remove-all-passwords-checkbox =
     *[other] Yes, remove passwords
   }
 
-# This string informs the user they need to provide their primary password for FireFox to access their saved passwords in Firefox.
+# This string informs the user they need to provide their primary password for Umbrafox to access their saved passwords in Umbrafox.
 contextual-manager-primary-password-reauth-header = To see your saved passwords, enter your primary password.
 # This string informs the user their primary password is used to authenticate and access their passwords
 contextual-manager-primary-password-reauth-button = Enter primary password

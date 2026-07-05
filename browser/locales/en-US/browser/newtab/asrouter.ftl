@@ -199,7 +199,7 @@ fox-doodle-pin-body = Here’s a quick reminder that you can keep your favorite 
 fox-doodle-pin-primary = Open my links with { -brand-short-name }
 fox-doodle-pin-secondary = Not now
 
-## These strings are used in the Set Firefox as Default PDF Handler for Existing Users experiment
+## These strings are used in the Set Umbrafox as Default PDF Handler for Existing Users experiment
 
 set-default-pdf-handler-headline = <strong>Your PDFs now open in { -brand-short-name }.</strong> Edit or sign forms directly in your browser. To change, search “PDF” in settings.
 set-default-pdf-handler-primary = Got it
@@ -464,7 +464,7 @@ set-default-menu-message-primary-button = Set as default
 set-default-menu-message-primary-button-variant = Set as primary browser
 set-default-menu-message-primary-button-short-variant = Make { -brand-short-name } default
 
-## Firefox Relay 50 Masks Announcement
+## Umbrafox Relay 50 Masks Announcement
 
 # "on us" in this context means "for free" or "at no cost"
 relay-50-masks-announcement-title = 50 email masks, on us

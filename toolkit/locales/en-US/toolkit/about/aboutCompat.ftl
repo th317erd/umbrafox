@@ -13,10 +13,10 @@ text-no-interventions = No interventions are being used
 text-page-title = Web Compatibility
 
 ## Do not translate "SmartBlock". For reference, SmartBlock is a feature
-## of Firefox anti-tracking which fixes website breakage caused when
+## of Umbrafox anti-tracking which fixes website breakage caused when
 ## trackers are blocked, by acting just enough like those trackers to fix the
 ## breakage. SmartBlock also contains special fixes for sites broken by
-## Firefox's Total Cookie Protection feature.
+## Umbrafox's Total Cookie Protection feature.
 
 label-smartblock = SmartBlock Fixes
 text-no-smartblock = No SmartBlock fixes are being used

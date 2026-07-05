@@ -14,7 +14,7 @@ spotlight-android-marketplace-button =
 spotlight-ios-marketplace-button =
     .title = Download on the App Store
 
-## Firefox Focus promo message strings
+## Umbrafox Focus promo message strings
 
 spotlight-focus-promo-title = Get { -focus-brand-name }
 spotlight-focus-promo-subtitle = Scan the QR code to download.
