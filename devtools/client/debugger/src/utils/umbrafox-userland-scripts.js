@@ -18,6 +18,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 let storePromise;
 const storeListeners = new Set();
+const selectedScriptListeners = new Set();
+let selectedUserlandScript = null;
 
 async function getStore() {
   if (!storePromise) {
@@ -33,14 +35,34 @@ function notifyStoreListeners(script) {
   }
 }
 
+function notifySelectedScriptListeners() {
+  for (const listener of selectedScriptListeners) {
+    listener(selectedUserlandScript);
+  }
+}
+
 export function addUserlandScriptStoreListener(listener) {
   storeListeners.add(listener);
   return () => storeListeners.delete(listener);
 }
 
+export function addSelectedUserlandScriptListener(listener) {
+  selectedScriptListeners.add(listener);
+  return () => selectedScriptListeners.delete(listener);
+}
+
 export async function listUserlandScripts() {
   const store = await getStore();
   return store.listScripts();
+}
+
+export function getSelectedUserlandScript() {
+  return selectedUserlandScript;
+}
+
+export function selectUserlandScript(script) {
+  selectedUserlandScript = script;
+  notifySelectedScriptListeners();
 }
 
 export async function createDisabledUserlandScriptForTreeItem(item, name) {
@@ -65,6 +87,19 @@ export async function setUserlandScriptEnabled(id, enabled) {
   const store = await getStore();
   const script = store.setScriptEnabled(id, enabled);
   notifyStoreListeners(script);
+  if (selectedUserlandScript?.id == script.id) {
+    selectUserlandScript(script);
+  }
+  return script;
+}
+
+export async function updateUserlandScriptCode(id, code) {
+  const store = await getStore();
+  const script = store.updateScript(id, { code });
+  notifyStoreListeners(script);
+  if (selectedUserlandScript?.id == script.id) {
+    selectedUserlandScript = script;
+  }
   return script;
 }
 

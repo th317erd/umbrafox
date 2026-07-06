@@ -1,6 +1,6 @@
 # Userland scripts architecture
 
-Status: architecture note. The profile-local storage slice, source-tree scope derivation, Debugger context-menu creation path, Debugger footer creation path, source-list visibility, and source-list enable checkbox exist. Script editing UI, isolated-world execution, worker support, and network APIs are not implemented yet.
+Status: architecture note. The profile-local storage slice, source-tree scope derivation, Debugger context-menu creation path, Debugger footer creation path, domain-scoped `Userland` source-tree folders, source-tree enable checkbox, and editable Debugger editor code surface exist. Isolated-world execution, worker support, and network APIs are not implemented yet.
 
 This feature lets users create named scripts from DevTools, persist them in the active profile, and run them in isolated userland worlds for a matching site/thread before normal page JavaScript executes.
 
@@ -24,7 +24,7 @@ Users can create scripts from the Debugger source tree:
 - Right-click a thread, origin group, folder, or source and choose `New Userland Script`.
 - Click a persistent `New Script` button in the Debugger footer/status area.
 - Name the script.
-- Enable or disable the script with a checkbox in the editor footer and, where practical, in the source tree.
+- Enable or disable the script with a checkbox in the source tree and eventually in the editor footer.
 - Store the script for the selected scope so it is remembered for future loads.
 
 Initial scopes should be:
@@ -178,8 +178,8 @@ The UI should add:
 
 - context-menu item for thread/group/directory/source scopes; implemented as a disabled-script creation path;
 - footer `New Script` action; implemented as a disabled-script creation path for local tabs;
-- a userland script source/editor model; planned;
-- source-list visibility and enable checkboxes; implemented for scripts matching the current target origin;
+- a userland script source/editor model; implemented as virtual source-tree items that open editable profile-stored code;
+- source-tree visibility and enable checkboxes; implemented for scripts matching the current target origin under a `Userland` folder;
 - editor-footer enable checkbox; planned;
 - script name editing; planned beyond the initial name prompt;
 - dirty-state handling; planned;
@@ -217,7 +217,7 @@ Userland scripts should be visible in DevTools as internal userland sources, but
 Expected UI shape:
 
 - top-level source tree keeps `Main Thread`;
-- userland scripts appear under a dedicated internal group such as `Userland Scripts`;
+- userland scripts appear under a dedicated `Userland` folder below their matching source-tree domain group;
 - script names are user-provided;
 - disabled scripts remain visible in the userland group, but do not create runtime worlds;
 - userland script runtime targets should not be reported as WebExtension content scripts unless reusing that target type is unavoidable.
@@ -240,9 +240,9 @@ Do not implement network APIs by monkeypatching page `fetch`, `XMLHttpRequest`, 
 
 ## First implementation slice
 
-The first code patch should be deliberately narrow. The store, scope, source-tree context-menu creation, footer creation, source-list visibility, and source-list enable checkbox portions are implemented; the rest of this slice remains:
+The first code patch should be deliberately narrow. The store, scope, source-tree context-menu creation, footer creation, source-tree visibility, source-tree enable checkbox, and editable code surface portions are implemented; the rest of this slice remains:
 
-1. Script editor surface for name, enabled state, and code.
+1. Editor affordances for script name and enabled state.
 2. Document-only isolated-world execution at document_start for future navigations.
 3. Tests proving an enabled script runs before the first inline page script.
 4. Tests proving no Umbrafox globals are added to `window`, `navigator`, or `document`.

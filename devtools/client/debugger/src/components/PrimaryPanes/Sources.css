@@ -231,39 +231,10 @@ html[dir="rtl"] .sources-list .tree .node > div {
   min-height: 20px;
 }
 
-.source-list-userland-scripts {
-  flex-shrink: 0;
-  border-block-start: 1px solid var(--theme-splitter-color);
-  background-color: var(--theme-sidebar-background);
-  color: var(--theme-body-color);
-}
-
-.source-list-userland-scripts-header {
-  padding: 4px 8px;
-  font-weight: 600;
-}
-
-.source-list-userland-script {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding-block: 2px;
-  padding-inline: 8px;
-  min-height: 20px;
-}
-
-.source-list-userland-script:hover {
-  background-color: var(--theme-toolbar-hover);
-}
-
 .source-list-userland-script-checkbox {
+  flex-shrink: 0;
   margin: 0;
-}
-
-.source-list-userland-script-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  margin-inline-end: 4px;
 }
 
 .source-list-footer .devtools-togglebutton {

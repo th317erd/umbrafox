@@ -52,6 +52,13 @@ import InlinePreviews from "./InlinePreviews";
 import Exceptions from "./Exceptions";
 
 import {
+  addSelectedUserlandScriptListener,
+  getSelectedUserlandScript,
+  selectUserlandScript,
+  updateUserlandScriptCode,
+} from "../../utils/umbrafox-userland-scripts";
+
+import {
   fromEditorLine,
   getEditor,
   removeEditor,
@@ -135,6 +142,7 @@ class Editor extends PureComponent {
 
     this.state = {
       editor: null,
+      selectedUserlandScript: getSelectedUserlandScript(),
     };
   }
 
@@ -145,7 +153,7 @@ class Editor extends PureComponent {
 
     if (!editor) {
       // See Bug 1913061
-      if (!nextProps.selectedSource) {
+      if (!nextProps.selectedSource && !this.state.selectedUserlandScript) {
         return;
       }
       editor = this.setupEditor();
@@ -187,6 +195,21 @@ class Editor extends PureComponent {
   }
 
   onEditorUpdated = viewUpdate => {
+    const { selectedUserlandScript } = this.state;
+    if (selectedUserlandScript) {
+      if (viewUpdate.docChanged && !this.isSettingUserlandScriptText) {
+        this.updateUserlandScriptText(
+          selectedUserlandScript,
+          viewUpdate.view.state.doc.toString()
+        );
+      }
+      if (viewUpdate.docChanged || viewUpdate.geometryChanged) {
+        updateEditorSizeCssVariables(viewUpdate.view.dom);
+        this.props.updateViewport();
+      }
+      return;
+    }
+
     if (viewUpdate.docChanged || viewUpdate.geometryChanged) {
       updateEditorSizeCssVariables(viewUpdate.view.dom);
       const { selectedLocation } = this.props;
@@ -274,7 +297,21 @@ class Editor extends PureComponent {
       this.onCloseShortcutPress
     );
     shortcuts.on("Esc", this.onEscape);
+    this.removeSelectedUserlandScriptListener =
+      addSelectedUserlandScriptListener(this.onSelectedUserlandScriptChanged);
   }
+
+  onSelectedUserlandScriptChanged = script => {
+    const previousScript = this.state.selectedUserlandScript;
+    this.setState({ selectedUserlandScript: script }, () => {
+      if (
+        script &&
+        (previousScript?.id != script.id || previousScript?.code != script.code)
+      ) {
+        this.showSelectedUserlandScript();
+      }
+    });
+  };
 
   onCloseShortcutPress = e => {
     const { selectedSource } = this.props;
@@ -286,6 +323,10 @@ class Editor extends PureComponent {
   };
 
   componentDidUpdate(prevProps, prevState) {
+    if (this.updateUserlandScriptEditor(prevProps, prevState)) {
+      return;
+    }
+
     const {
       selectedSource,
       blackboxedRanges,
@@ -360,6 +401,31 @@ class Editor extends PureComponent {
     }
   }
 
+  updateUserlandScriptEditor(prevProps, prevState) {
+    const { selectedUserlandScript } = this.state;
+    if (!selectedUserlandScript) {
+      return false;
+    }
+
+    if (
+      this.props.selectedSource &&
+      prevProps.selectedSource !== this.props.selectedSource
+    ) {
+      selectUserlandScript(null);
+      return true;
+    }
+
+    if (
+      prevState.selectedUserlandScript?.id != selectedUserlandScript.id ||
+      prevState.selectedUserlandScript?.code != selectedUserlandScript.code
+    ) {
+      this.showSelectedUserlandScript();
+      return true;
+    }
+
+    return false;
+  }
+
   componentWillUnmount() {
     const { editor } = this.state;
     const { shortcuts } = this.context;
@@ -367,6 +433,7 @@ class Editor extends PureComponent {
     shortcuts.off(L10N.getStr("toggleBreakpoint.key"));
     shortcuts.off(L10N.getStr("toggleCondPanel.breakpoint.key"));
     shortcuts.off(L10N.getStr("toggleCondPanel.logPoint.key"));
+    this.removeSelectedUserlandScriptListener?.();
 
     if (this.abortController) {
       this.abortController.abort();
@@ -451,6 +518,33 @@ class Editor extends PureComponent {
   onEditorScroll = debounce(this.props.updateViewport, 75);
 
   updateStyleSheetText = throttle(this.props.updateStyleSheetContent, 500);
+
+  updateUserlandScriptText = throttle((script, code) => {
+    updateUserlandScriptCode(script.id, code).catch(error => {
+      console.error("Failed to update Umbrafox userland script", error);
+    });
+  }, 500);
+
+  async showSelectedUserlandScript() {
+    const { selectedUserlandScript, editor } = this.state;
+    if (!selectedUserlandScript) {
+      return;
+    }
+
+    const activeEditor = editor || this.setupEditor();
+    await activeEditor.setMode(SourceEditor.modes.javascript);
+    this.isSettingUserlandScriptText = true;
+    try {
+      await activeEditor.setText(selectedUserlandScript.code, {
+        documentId: `umbrafox-userland:${selectedUserlandScript.id}`,
+        saveTransactionToHistory: false,
+      });
+      await activeEditor.setReadOnly(false);
+      activeEditor.setLineGutterMarkers([]);
+    } finally {
+      this.isSettingUserlandScriptText = false;
+    }
+  }
 
   /*
    * The default Esc command is overridden in the CodeMirror keymap to allow

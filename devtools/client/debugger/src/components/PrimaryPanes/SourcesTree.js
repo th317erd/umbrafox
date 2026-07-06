@@ -10,8 +10,6 @@ import React, {
 import {
   div,
   button,
-  input,
-  label,
   span,
   footer,
 } from "devtools/client/shared/vendor/react-dom-factories";
@@ -26,6 +24,7 @@ import {
   getUserlandScriptScopeForTreeItem,
   listUserlandScripts,
   promptAndCreateUserlandScriptForTreeItem,
+  selectUserlandScript,
   setUserlandScriptEnabled,
 } from "../../utils/umbrafox-userland-scripts";
 
@@ -52,6 +51,9 @@ const classnames = require("resource://devtools/client/shared/classnames.js");
 const Tree = require("resource://devtools/client/shared/components/Tree.js");
 
 function shouldAutoExpand(item, mainThreadHost) {
+  if (item.type == "userland-folder") {
+    return true;
+  }
   // There is only one case where we want to force auto expand,
   // when we are on the group of the page's domain.
   return item.type == "group" && item.groupName === mainThreadHost;
@@ -146,10 +148,16 @@ class SourcesTree extends Component {
   }
 
   selectSourceItem = item => {
+    selectUserlandScript(null);
     // Note that when the source is pretty printed, `item.source` still refers to the minified source.
     // `mayBeSelectMappedSource` function within selectSource/selectLocation action will handle this edgecase
     // and ensure selecting the pretty printed source, if relevant.
     this.props.selectSource(item.source, item.sourceActor);
+  };
+
+  selectUserlandScriptItem = async item => {
+    await this.props.selectSource(null);
+    selectUserlandScript(item.script);
   };
 
   onFocus = item => {
@@ -159,6 +167,8 @@ class SourcesTree extends Component {
   onActivate = item => {
     if (item.type == "source") {
       this.selectSourceItem(item);
+    } else if (item.type == "userland-script") {
+      this.selectUserlandScriptItem(item);
     }
   };
 
@@ -250,15 +260,25 @@ class SourcesTree extends Component {
       }
       return directory;
     }
-    if (item.type == "thread") {
+    if (item.type == "thread" || item.type == "userland-folder") {
       return item.children;
     } else if (item.type == "group" || item.type == "directory") {
-      return item.children.map(skipEmptyDirectories);
+      const children = item.children.map(skipEmptyDirectories);
+      if (item.type == "group") {
+        const userlandFolder = this.getUserlandFolderForGroup(item);
+        if (userlandFolder) {
+          children.push(userlandFolder);
+        }
+      }
+      return children;
     }
     return [];
   };
 
   getParent = item => {
+    if (item.type == "userland-folder" || item.type == "userland-script") {
+      return item.parent;
+    }
     if (item.type == "thread") {
       return null;
     }
@@ -330,6 +350,8 @@ class SourcesTree extends Component {
       expanded,
       focusItem: this.onFocus,
       selectSourceItem: this.selectSourceItem,
+      selectUserlandScriptItem: this.selectUserlandScriptItem,
+      setUserlandScriptEnabled: this.setUserlandScriptEnabled,
       setExpanded: this.setExpanded,
       getParent: this.getParent,
     });
@@ -393,37 +415,14 @@ class SourcesTree extends Component {
         const script = await promptAndCreateUserlandScriptForTreeItem(item);
         if (script) {
           this.addOrUpdateUserlandScript(script);
+          await this.props.selectSource(null);
+          selectUserlandScript(script);
         }
       } catch (error) {
         console.error("Failed to create Umbrafox userland script", error);
       }
     }
   };
-
-  getVisibleUserlandScripts() {
-    const visibleScopes = this.getVisibleUserlandScriptScopes(
-      this.props.rootItems
-    );
-    return this.state.userlandScripts.filter(script =>
-      visibleScopes.some(scope =>
-        this.matchesUserlandScriptScope(script, scope)
-      )
-    );
-  }
-
-  getVisibleUserlandScriptScopes(items) {
-    const scopes = [];
-    for (const item of items) {
-      const scope = getUserlandScriptScopeForTreeItem(item);
-      if (scope) {
-        scopes.push(scope);
-      }
-      scopes.push(
-        ...this.getVisibleUserlandScriptScopes(this.getChildren(item))
-      );
-    }
-    return scopes;
-  }
 
   matchesUserlandScriptScope(script, scope) {
     return (
@@ -434,66 +433,49 @@ class SourcesTree extends Component {
     );
   }
 
-  onToggleUserlandScriptEnabled = async (script, event) => {
+  getUserlandFolderForGroup(groupItem) {
+    if (!this.context.isLocalTab) {
+      return null;
+    }
+
+    const scope = getUserlandScriptScopeForTreeItem(groupItem);
+    if (!scope) {
+      return null;
+    }
+
+    const scripts = this.state.userlandScripts.filter(script =>
+      this.matchesUserlandScriptScope(script, scope)
+    );
+    if (!scripts.length) {
+      return null;
+    }
+
+    const uniquePath = `${groupItem.uniquePath}/__umbrafox_userland__`;
+    const folder = {
+      type: "userland-folder",
+      uniquePath,
+      path: `${groupItem.path || groupItem.uniquePath}/Userland`,
+      parent: groupItem,
+      children: [],
+    };
+    folder.children = scripts.map(script => ({
+      type: "userland-script",
+      uniquePath: `${uniquePath}/${script.id}`,
+      path: `${uniquePath}/${script.id}`,
+      parent: folder,
+      script,
+    }));
+    return folder;
+  }
+
+  setUserlandScriptEnabled = async (script, enabled) => {
     try {
-      const updatedScript = await setUserlandScriptEnabled(
-        script.id,
-        event.target.checked
-      );
+      const updatedScript = await setUserlandScriptEnabled(script.id, enabled);
       this.addOrUpdateUserlandScript(updatedScript);
     } catch (error) {
       console.error("Failed to update Umbrafox userland script", error);
     }
   };
-
-  renderUserlandScripts() {
-    const { isLocalTab } = this.context;
-    if (!isLocalTab) {
-      return null;
-    }
-
-    const scripts = this.getVisibleUserlandScripts();
-    if (!scripts.length) {
-      return null;
-    }
-
-    return div(
-      {
-        className: "source-list-userland-scripts",
-      },
-      div(
-        {
-          className: "source-list-userland-scripts-header",
-        },
-        L10N.getStr("userlandScripts.sourceTreeHeader")
-      ),
-      scripts.map(script =>
-        label(
-          {
-            className: "source-list-userland-script",
-            key: script.id,
-            title: L10N.getFormatStr(
-              "userlandScripts.sourceTreeItem.tooltip",
-              script.scope.origin
-            ),
-          },
-          input({
-            checked: script.enabled,
-            className: "source-list-userland-script-checkbox",
-            onChange: event =>
-              this.onToggleUserlandScriptEnabled(script, event),
-            type: "checkbox",
-          }),
-          span(
-            {
-              className: "source-list-userland-script-name",
-            },
-            script.name
-          )
-        )
-      )
-    );
-  }
 
   renderPane(child) {
     const { projectRoot } = this.props;
@@ -634,7 +616,6 @@ class SourcesTree extends Component {
             Fragment,
             null,
             this.renderTree(),
-            this.renderUserlandScripts(),
             this.renderFooter()
           )
     );

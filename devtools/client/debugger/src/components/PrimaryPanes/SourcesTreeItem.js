@@ -3,7 +3,11 @@
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
 import React, { Component } from "devtools/client/shared/vendor/react";
-import { div, span } from "devtools/client/shared/vendor/react-dom-factories";
+import {
+  div,
+  input,
+  span,
+} from "devtools/client/shared/vendor/react-dom-factories";
 import PropTypes from "devtools/client/shared/vendor/react-prop-types";
 import { connect } from "devtools/client/shared/vendor/react-redux";
 
@@ -33,6 +37,8 @@ class SourceTreeItemContents extends Component {
       hasMatchingGeneratedSource: PropTypes.bool,
       item: PropTypes.object.isRequired,
       selectSourceItem: PropTypes.func.isRequired,
+      selectUserlandScriptItem: PropTypes.func.isRequired,
+      setUserlandScriptEnabled: PropTypes.func.isRequired,
       setExpanded: PropTypes.func.isRequired,
       getParent: PropTypes.func.isRequired,
       hideIgnoredSources: PropTypes.bool,
@@ -48,17 +54,34 @@ class SourceTreeItemContents extends Component {
   }
 
   onClick = () => {
-    const { item, focusItem, selectSourceItem } = this.props;
+    const { item, focusItem, selectSourceItem, selectUserlandScriptItem } =
+      this.props;
 
     focusItem(item);
     if (item.type == "source") {
       selectSourceItem(item);
+    } else if (item.type == "userland-script") {
+      selectUserlandScriptItem(item);
     }
+  };
+
+  onUserlandScriptCheckboxChange = event => {
+    event.stopPropagation();
+    this.props.setUserlandScriptEnabled(
+      this.props.item.script,
+      event.target.checked
+    );
   };
 
   onContextMenu = event => {
     event.stopPropagation();
     event.preventDefault();
+    if (
+      this.props.item.type == "userland-folder" ||
+      this.props.item.type == "userland-script"
+    ) {
+      return;
+    }
     this.props.showSourceTreeItemContextMenu(
       event,
       this.props.item,
@@ -99,10 +122,13 @@ class SourceTreeItemContents extends Component {
         name: "globe-small",
       });
     }
-    if (item.type == "directory") {
+    if (item.type == "directory" || item.type == "userland-folder") {
       return React.createElement(DebuggerImage, {
         name: "folder",
       });
+    }
+    if (item.type == "userland-script") {
+      return null;
     }
     if (item.type == "source") {
       const { source, sourceActor } = item;
@@ -141,6 +167,12 @@ class SourceTreeItemContents extends Component {
       const parentItem = this.props.getParent(item);
       return item.path.replace(parentItem.path, "").replace(/^\//, "");
     }
+    if (item.type == "userland-folder") {
+      return L10N.getStr("userlandScripts.sourceTreeHeader");
+    }
+    if (item.type == "userland-script") {
+      return item.script.name;
+    }
     if (item.type == "source") {
       return item.source.longName;
     }
@@ -159,6 +191,15 @@ class SourceTreeItemContents extends Component {
     }
     if (item.type == "directory") {
       return item.path;
+    }
+    if (item.type == "userland-folder") {
+      return L10N.getStr("userlandScripts.sourceTreeHeader");
+    }
+    if (item.type == "userland-script") {
+      return L10N.getFormatStr(
+        "userlandScripts.sourceTreeItem.tooltip",
+        item.script.scope.origin
+      );
     }
     if (item.type == "source") {
       return item.source.url;
@@ -187,6 +228,7 @@ class SourceTreeItemContents extends Component {
         className: classnames("node", {
           focused,
           blackboxed: item.type == "source" && item.isBlackBoxed,
+          "userland-script": item.type == "userland-script",
         }),
         key: item.path,
         onClick: this.onClick,
@@ -195,6 +237,15 @@ class SourceTreeItemContents extends Component {
       },
       this.props.arrow,
       this.renderIcon(item),
+      item.type == "userland-script"
+        ? input({
+            checked: item.script.enabled,
+            className: "source-list-userland-script-checkbox",
+            onChange: this.onUserlandScriptCheckboxChange,
+            onClick: event => event.stopPropagation(),
+            type: "checkbox",
+          })
+        : null,
       span(
         {
           className: "label",
@@ -236,6 +287,8 @@ class SourcesTreeItem extends Component {
       hasMatchingGeneratedSource: PropTypes.bool.isRequired,
       item: PropTypes.object.isRequired,
       selectSourceItem: PropTypes.func.isRequired,
+      selectUserlandScriptItem: PropTypes.func.isRequired,
+      setUserlandScriptEnabled: PropTypes.func.isRequired,
       setExpanded: PropTypes.func.isRequired,
       showSourceTreeItemContextMenu: PropTypes.func.isRequired,
       getParent: PropTypes.func.isRequired,
@@ -254,6 +307,8 @@ class SourcesTreeItem extends Component {
       hasMatchingGeneratedSource: this.props.hasMatchingGeneratedSource,
       item: this.props.item,
       selectSourceItem: this.props.selectSourceItem,
+      selectUserlandScriptItem: this.props.selectUserlandScriptItem,
+      setUserlandScriptEnabled: this.props.setUserlandScriptEnabled,
       setExpanded: this.props.setExpanded,
       showSourceTreeItemContextMenu: this.props.showSourceTreeItemContextMenu,
       getParent: this.props.getParent,
