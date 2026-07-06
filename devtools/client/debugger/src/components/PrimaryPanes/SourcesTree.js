@@ -19,6 +19,10 @@ const MenuButton = require("resource://devtools/client/shared/components/menu/Me
 const MenuItem = require("resource://devtools/client/shared/components/menu/MenuItem.js");
 const MenuList = require("resource://devtools/client/shared/components/menu/MenuList.js");
 import { prefs } from "../../utils/prefs";
+import {
+  getUserlandScriptScopeForTreeItem,
+  promptAndCreateUserlandScriptForTreeItem,
+} from "../../utils/umbrafox-userland-scripts";
 
 // Selectors
 import {
@@ -321,6 +325,38 @@ class SourcesTree extends Component {
     return React.createElement(Tree, treeProps);
   }
 
+  getUserlandScriptCreationItem() {
+    const { focused, rootItems } = this.props;
+    if (getUserlandScriptScopeForTreeItem(focused)) {
+      return focused;
+    }
+
+    return this.findFirstUserlandScriptCreationItem(rootItems);
+  }
+
+  findFirstUserlandScriptCreationItem(items) {
+    for (const item of items) {
+      if (getUserlandScriptScopeForTreeItem(item)) {
+        return item;
+      }
+
+      const childItem = this.findFirstUserlandScriptCreationItem(
+        this.getChildren(item)
+      );
+      if (childItem) {
+        return childItem;
+      }
+    }
+    return null;
+  }
+
+  onCreateUserlandScript = () => {
+    const item = this.getUserlandScriptCreationItem();
+    if (item) {
+      promptAndCreateUserlandScriptForTreeItem(item);
+    }
+  };
+
   renderPane(child) {
     const { projectRoot } = this.props;
     return div(
@@ -335,15 +371,29 @@ class SourcesTree extends Component {
   }
 
   renderFooter() {
+    const { isLocalTab } = this.context;
+    const userlandScriptItem = isLocalTab
+      ? this.getUserlandScriptCreationItem()
+      : null;
+
+    if (!this.props.hideIgnoredSources && !isLocalTab) {
+      return null;
+    }
+
+    const children = [];
     if (this.props.hideIgnoredSources) {
-      return footer(
-        {
-          className: "source-list-footer",
-        },
-        L10N.getStr("ignoredSourcesHidden"),
+      children.push(
+        span(
+          {
+            className: "source-list-footer-message",
+            key: "ignored-sources-hidden-message",
+          },
+          L10N.getStr("ignoredSourcesHidden")
+        ),
         button(
           {
             className: "devtools-togglebutton",
+            key: "show-ignored-sources",
             onClick: () => this.props.setHideOrShowIgnoredSources(false),
             title: L10N.getStr("showIgnoredSources.tooltip.label"),
           },
@@ -351,7 +401,33 @@ class SourcesTree extends Component {
         )
       );
     }
-    return null;
+
+    if (isLocalTab) {
+      children.push(
+        button(
+          {
+            className:
+              "devtools-button devtools-button-standalone source-list-footer-userland-button",
+            disabled: !userlandScriptItem,
+            key: "new-userland-script",
+            onClick: this.onCreateUserlandScript,
+            title: userlandScriptItem
+              ? L10N.getStr("userlandScripts.newScriptFooter.tooltip")
+              : L10N.getStr("userlandScripts.newScriptUnavailable.tooltip"),
+          },
+          L10N.getStr("userlandScripts.newScriptFooter.label")
+        )
+      );
+    }
+
+    return footer(
+      {
+        className: classnames("source-list-footer", {
+          "source-list-footer-warning": this.props.hideIgnoredSources,
+        }),
+      },
+      children
+    );
   }
 
   renderSettingsButton() {
@@ -427,6 +503,7 @@ class SourcesTree extends Component {
 }
 
 SourcesTree.contextTypes = {
+  isLocalTab: PropTypes.bool,
   toolboxDoc: PropTypes.object,
 };
 

@@ -26,7 +26,7 @@ The userland scripts feature has an architecture note and recipe:
 - `03-userland-scripts-architecture.md`
 - `recipes/09-userland-scripts.md`
 
-The profile-local script store is implemented in `toolkit/components/umbrafox/UmbrafoxUserlandScriptStore.sys.mjs` with xpcshell coverage. Scope derivation is implemented in `toolkit/components/umbrafox/UmbrafoxUserlandScriptScope.sys.mjs`, and the Debugger source tree can create disabled userland script records from its context menu. Do not expect the current browser build to edit, enable, display, or execute userland scripts until later DevTools and runtime injection slices land.
+The profile-local script store is implemented in `toolkit/components/umbrafox/UmbrafoxUserlandScriptStore.sys.mjs` with xpcshell coverage. Scope derivation is implemented in `toolkit/components/umbrafox/UmbrafoxUserlandScriptScope.sys.mjs`, and the Debugger source tree can create disabled userland script records from its context menu and footer `New Script` button. Do not expect the current browser build to edit, enable, display, or execute userland scripts until later DevTools and runtime injection slices land.
 
 ## Important state note
 

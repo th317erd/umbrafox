@@ -206,15 +206,29 @@ html[dir="rtl"] .sources-list .tree .node > div {
   flex-wrap: wrap;
   align-items: center;
   gap: 5px;
-  justify-content: center;
-  text-align: center;
+  justify-content: start;
   min-height: var(--editor-footer-height);
   flex-shrink: 0;
-  border-block-start: 1px solid var(--theme-warning-border);
+  border-block-start: 1px solid var(--theme-splitter-color);
   user-select: none;
-  padding: 3px 10px;
+  padding: 3px 4px;
+  color: var(--theme-body-color);
+  background-color: var(--theme-toolbar-background);
+}
+
+.source-list-footer-warning {
+  text-align: center;
+  border-block-start-color: var(--theme-warning-border);
   color: var(--theme-warning-color);
   background-color: var(--theme-warning-background);
+}
+
+.source-list-footer-warning .source-list-footer-userland-button {
+  margin-inline-start: auto;
+}
+
+.source-list-footer-userland-button {
+  min-height: 20px;
 }
 
 .source-list-footer .devtools-togglebutton {

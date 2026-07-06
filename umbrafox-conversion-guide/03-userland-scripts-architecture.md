@@ -1,6 +1,6 @@
 # Userland scripts architecture
 
-Status: architecture note. The profile-local storage slice and Debugger source-tree creation plumbing exist; script editing UI, isolated-world execution, worker support, and network APIs are not implemented yet.
+Status: architecture note. The profile-local storage slice, source-tree scope derivation, Debugger context-menu creation path, and Debugger footer creation path exist. Script editing UI, isolated-world execution, worker support, and network APIs are not implemented yet.
 
 This feature lets users create named scripts from DevTools, persist them in the active profile, and run them in isolated userland worlds for a matching site/thread before normal page JavaScript executes.
 
@@ -177,7 +177,7 @@ The Debugger currently uses `debugger.properties` for nearby strings. New UI sho
 The UI should add:
 
 - context-menu item for thread/group/directory/source scopes; implemented as a disabled-script creation path;
-- footer `New Script` action; planned;
+- footer `New Script` action; implemented as a disabled-script creation path for local tabs;
 - a userland script source/editor model; planned;
 - enable checkboxes; planned;
 - script name editing; planned beyond the initial name prompt;
@@ -239,13 +239,12 @@ Do not implement network APIs by monkeypatching page `fetch`, `XMLHttpRequest`, 
 
 ## First implementation slice
 
-The first code patch should be deliberately narrow. The store, scope, and source-tree creation portions are implemented; the rest of this slice remains:
+The first code patch should be deliberately narrow. The store, scope, source-tree context-menu creation, and footer creation portions are implemented; the rest of this slice remains:
 
-1. Footer `New Script` entry point that creates a disabled placeholder script.
-2. Script editor surface for name, enabled state, and code.
-3. Document-only isolated-world execution at document_start for future navigations.
-4. Tests proving an enabled script runs before the first inline page script.
-5. Tests proving no Umbrafox globals are added to `window`, `navigator`, or `document`.
+1. Script editor surface for name, enabled state, and code.
+2. Document-only isolated-world execution at document_start for future navigations.
+3. Tests proving an enabled script runs before the first inline page script.
+4. Tests proving no Umbrafox globals are added to `window`, `navigator`, or `document`.
 
 Do not include network interception in the first slice. Add it after the userland world and timing guarantees are proven.
 

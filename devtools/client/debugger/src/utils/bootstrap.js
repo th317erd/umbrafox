@@ -85,6 +85,7 @@ export function teardownWorkers() {
  * @param {ReduxStore} toolboxStore
  * @param {object} appComponentAttributes
  * @param {Array} appComponentAttributes.fluentBundles
+ * @param {boolean} appComponentAttributes.isLocalTab
  * @param {Document} appComponentAttributes.toolboxDoc
  */
 export function bootstrapApp(store, toolboxStore, appComponentAttributes = {}) {

@@ -41,3 +41,22 @@ export async function createDisabledUserlandScriptForTreeItem(item, name) {
     scope,
   });
 }
+
+export async function promptAndCreateUserlandScriptForTreeItem(item) {
+  const input = {
+    value: getDefaultUserlandScriptName(item),
+  };
+  const accepted = Services.prompt.prompt(
+    window,
+    L10N.getStr("userlandScripts.newScriptDialog.title"),
+    L10N.getStr("userlandScripts.newScriptDialog.message"),
+    input,
+    null,
+    {}
+  );
+  if (!accepted) {
+    return null;
+  }
+
+  return createDisabledUserlandScriptForTreeItem(item, input.value.trim());
+}

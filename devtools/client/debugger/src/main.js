@@ -158,6 +158,7 @@ export async function bootstrap({
 
   bootstrapApp(store, panel.getToolboxStore(), {
     fluentBundles,
+    isLocalTab: commands.descriptorFront.isLocalTab,
     toolboxDoc: panel.panelWin.parent.document,
   });
   await connected;

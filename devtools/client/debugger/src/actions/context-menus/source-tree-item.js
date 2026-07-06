@@ -28,9 +28,8 @@ import { shouldBlackbox } from "../../utils/source";
 import { copyToTheClipboard } from "../../utils/clipboard";
 import { saveAsLocalFile } from "../../utils/utils";
 import {
-  createDisabledUserlandScriptForTreeItem,
-  getDefaultUserlandScriptName,
   getUserlandScriptScopeForTreeItem,
+  promptAndCreateUserlandScriptForTreeItem,
 } from "../../utils/umbrafox-userland-scripts";
 
 /**
@@ -163,28 +162,9 @@ function addNewUserlandScriptOption(menuOptions, item, isLocalTab) {
       label: L10N.getStr("userlandScripts.newScript.label"),
       accesskey: L10N.getStr("userlandScripts.newScript.accesskey"),
       disabled: !scope,
-      click: () => promptAndCreateUserlandScript(item),
+      click: () => promptAndCreateUserlandScriptForTreeItem(item),
     }
   );
-}
-
-async function promptAndCreateUserlandScript(item) {
-  const input = {
-    value: getDefaultUserlandScriptName(item),
-  };
-  const accepted = Services.prompt.prompt(
-    window,
-    L10N.getStr("userlandScripts.newScriptDialog.title"),
-    L10N.getStr("userlandScripts.newScriptDialog.message"),
-    input,
-    null,
-    {}
-  );
-  if (!accepted) {
-    return;
-  }
-
-  await createDisabledUserlandScriptForTreeItem(item, input.value.trim());
 }
 
 /**

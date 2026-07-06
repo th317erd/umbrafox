@@ -77,6 +77,7 @@ class App extends Component {
       setOrientation: PropTypes.func.isRequired,
       setPrimaryPaneTab: PropTypes.func.isRequired,
       startPanelCollapsed: PropTypes.bool.isRequired,
+      isLocalTab: PropTypes.bool,
       toolboxDoc: PropTypes.object.isRequired,
       showOriginalVariableMappingWarning: PropTypes.bool,
     };
@@ -85,6 +86,7 @@ class App extends Component {
   getChildContext() {
     return {
       fluentBundles: this.props.fluentBundles,
+      isLocalTab: !!this.props.isLocalTab,
       toolboxDoc: this.props.toolboxDoc,
       shortcuts: this.#shortcuts,
       l10n: L10N,
@@ -358,6 +360,7 @@ class App extends Component {
 }
 
 App.childContextTypes = {
+  isLocalTab: PropTypes.bool,
   toolboxDoc: PropTypes.object,
   shortcuts: PropTypes.object,
   l10n: PropTypes.object,
