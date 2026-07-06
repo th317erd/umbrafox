@@ -18,6 +18,7 @@ Umbrafox currently changes Firefox in these broad ways:
 10. Normandy, Nimbus rollouts, feature studies, technical/interaction data upload, usage ping, extension recommendations, and crash submission prompt defaults are disabled.
 11. en-US visible copy and comments were swept from Firefox to Umbrafox where appropriate.
 12. Focused regression tests were added or adjusted so the Umbrafox defaults remain intentional.
+13. The built browser executable name is explicitly `umbrafox` via `MOZ_APP_NAME`.
 
 ## Userland scripts state
 

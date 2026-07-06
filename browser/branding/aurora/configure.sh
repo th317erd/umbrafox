@@ -3,5 +3,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 MOZ_APP_DISPLAYNAME="Umbrafox Developer Edition"
+MOZ_APP_NAME=umbrafox
 MOZ_APP_REMOTINGNAME=umbrafox-dev
 MOZ_DEV_EDITION=1

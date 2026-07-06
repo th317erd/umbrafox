@@ -48,7 +48,7 @@ imply_option("MOZ_APP_ID", "{68018e80-d4dd-4f8d-baf1-a314380e40c2}")
 
 The ID must stay stable once users have profiles and integrations depending on it.
 
-### 2. Change the default app basename
+### 2. Change the default app basename and executable name
 
 In `build/moz.configure/init.configure`, change the default browser basename from `Firefox` to `Umbrafox`.
 
@@ -59,6 +59,21 @@ return "Umbrafox"
 ```
 
 This feeds application metadata such as `application.ini` `Name`.
+
+In each browser branding `configure.sh`, explicitly set:
+
+```sh
+MOZ_APP_NAME=umbrafox
+```
+
+`MOZ_APP_NAME` is the build-system source for the executable and package app name. The expected Linux build outputs are:
+
+```text
+dist/bin/umbrafox
+dist/bin/umbrafox-bin
+```
+
+Do not confuse this with `MOZ_APP_DISPLAYNAME`, which controls visible product text, or with user-agent/app-version web surfaces, which must remain Firefox-equivalent under the mandatory rulebook.
 
 ### 3. Rename the branding mozbuild template
 
@@ -84,6 +99,7 @@ Set:
 - Unofficial display name: `Umbrafox`
 - Nightly display name: `Umbrafox Nightly`
 - Aurora display name: `Umbrafox Developer Edition`
+- Executable name for every channel: `umbrafox`
 - Aurora remoting name: `umbrafox-dev`
 - Nightly bundle ID suffix: `umbrafoxnightly`
 - Unofficial bundle ID suffix: `umbrafox`
@@ -156,6 +172,8 @@ After building:
 
 ```bash
 grep -n "^Vendor=\\|^Name=" obj-*/dist/bin/application.ini
+grep -n "MOZ_APP_NAME" obj-*/config.status
+ls obj-*/dist/bin/umbrafox obj-*/dist/bin/umbrafox-bin
 ./mach run --temp-profile --version
 ```
 
@@ -167,3 +185,5 @@ Name=Umbrafox
 ```
 
 Version output should not duplicate `Umbrafox`.
+
+If stale `dist/bin/firefox` files remain after changing branding, they are old object-directory build artifacts. A clobber or manual removal of those generated files clears them; source builds should use `umbrafox` once `MOZ_APP_NAME=umbrafox` is configured.
