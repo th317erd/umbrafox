@@ -10,6 +10,8 @@ import React, {
 import {
   div,
   button,
+  input,
+  label,
   span,
   footer,
 } from "devtools/client/shared/vendor/react-dom-factories";
@@ -20,8 +22,11 @@ const MenuItem = require("resource://devtools/client/shared/components/menu/Menu
 const MenuList = require("resource://devtools/client/shared/components/menu/MenuList.js");
 import { prefs } from "../../utils/prefs";
 import {
+  addUserlandScriptStoreListener,
   getUserlandScriptScopeForTreeItem,
+  listUserlandScripts,
   promptAndCreateUserlandScriptForTreeItem,
+  setUserlandScriptEnabled,
 } from "../../utils/umbrafox-userland-scripts";
 
 // Selectors
@@ -58,6 +63,7 @@ class SourcesTree extends Component {
 
     this.state = {
       hasOverflow: undefined,
+      userlandScripts: [],
     };
 
     // Monitor resize to check if the source tree shows a scrollbar.
@@ -102,11 +108,41 @@ class SourcesTree extends Component {
 
   componentDidMount() {
     this.resizeObserver.observe(this.refs.pane);
+    this.removeUserlandScriptStoreListener = addUserlandScriptStoreListener(
+      this.onUserlandScriptStoreChanged
+    );
+    this.loadUserlandScripts();
     this.onResize();
   }
 
   componentWillUnmount() {
+    this.removeUserlandScriptStoreListener?.();
     this.resizeObserver.disconnect();
+  }
+
+  async loadUserlandScripts() {
+    try {
+      this.setState({ userlandScripts: await listUserlandScripts() });
+    } catch (error) {
+      console.error("Failed to load Umbrafox userland scripts", error);
+    }
+  }
+
+  onUserlandScriptStoreChanged = script => {
+    this.addOrUpdateUserlandScript(script);
+  };
+
+  addOrUpdateUserlandScript(script) {
+    this.setState(({ userlandScripts }) => {
+      const index = userlandScripts.findIndex(({ id }) => id == script.id);
+      if (index == -1) {
+        return { userlandScripts: [...userlandScripts, script] };
+      }
+
+      const nextScripts = [...userlandScripts];
+      nextScripts[index] = script;
+      return { userlandScripts: nextScripts };
+    });
   }
 
   selectSourceItem = item => {
@@ -350,12 +386,114 @@ class SourcesTree extends Component {
     return null;
   }
 
-  onCreateUserlandScript = () => {
+  onCreateUserlandScript = async () => {
     const item = this.getUserlandScriptCreationItem();
     if (item) {
-      promptAndCreateUserlandScriptForTreeItem(item);
+      try {
+        const script = await promptAndCreateUserlandScriptForTreeItem(item);
+        if (script) {
+          this.addOrUpdateUserlandScript(script);
+        }
+      } catch (error) {
+        console.error("Failed to create Umbrafox userland script", error);
+      }
     }
   };
+
+  getVisibleUserlandScripts() {
+    const visibleScopes = this.getVisibleUserlandScriptScopes(
+      this.props.rootItems
+    );
+    return this.state.userlandScripts.filter(script =>
+      visibleScopes.some(scope =>
+        this.matchesUserlandScriptScope(script, scope)
+      )
+    );
+  }
+
+  getVisibleUserlandScriptScopes(items) {
+    const scopes = [];
+    for (const item of items) {
+      const scope = getUserlandScriptScopeForTreeItem(item);
+      if (scope) {
+        scopes.push(scope);
+      }
+      scopes.push(
+        ...this.getVisibleUserlandScriptScopes(this.getChildren(item))
+      );
+    }
+    return scopes;
+  }
+
+  matchesUserlandScriptScope(script, scope) {
+    return (
+      script.scope.origin == scope.origin &&
+      script.scope.targetKinds.some(targetKind =>
+        scope.targetKinds.includes(targetKind)
+      )
+    );
+  }
+
+  onToggleUserlandScriptEnabled = async (script, event) => {
+    try {
+      const updatedScript = await setUserlandScriptEnabled(
+        script.id,
+        event.target.checked
+      );
+      this.addOrUpdateUserlandScript(updatedScript);
+    } catch (error) {
+      console.error("Failed to update Umbrafox userland script", error);
+    }
+  };
+
+  renderUserlandScripts() {
+    const { isLocalTab } = this.context;
+    if (!isLocalTab) {
+      return null;
+    }
+
+    const scripts = this.getVisibleUserlandScripts();
+    if (!scripts.length) {
+      return null;
+    }
+
+    return div(
+      {
+        className: "source-list-userland-scripts",
+      },
+      div(
+        {
+          className: "source-list-userland-scripts-header",
+        },
+        L10N.getStr("userlandScripts.sourceTreeHeader")
+      ),
+      scripts.map(script =>
+        label(
+          {
+            className: "source-list-userland-script",
+            key: script.id,
+            title: L10N.getFormatStr(
+              "userlandScripts.sourceTreeItem.tooltip",
+              script.scope.origin
+            ),
+          },
+          input({
+            checked: script.enabled,
+            className: "source-list-userland-script-checkbox",
+            onChange: event =>
+              this.onToggleUserlandScriptEnabled(script, event),
+            type: "checkbox",
+          }),
+          span(
+            {
+              className: "source-list-userland-script-name",
+            },
+            script.name
+          )
+        )
+      )
+    );
+  }
 
   renderPane(child) {
     const { projectRoot } = this.props;
@@ -496,6 +634,7 @@ class SourcesTree extends Component {
             Fragment,
             null,
             this.renderTree(),
+            this.renderUserlandScripts(),
             this.renderFooter()
           )
     );

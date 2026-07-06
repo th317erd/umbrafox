@@ -17,6 +17,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 let storePromise;
+const storeListeners = new Set();
 
 async function getStore() {
   if (!storePromise) {
@@ -24,6 +25,22 @@ async function getStore() {
     storePromise = store.load().then(() => store);
   }
   return storePromise;
+}
+
+function notifyStoreListeners(script) {
+  for (const listener of storeListeners) {
+    listener(script);
+  }
+}
+
+export function addUserlandScriptStoreListener(listener) {
+  storeListeners.add(listener);
+  return () => storeListeners.delete(listener);
+}
+
+export async function listUserlandScripts() {
+  const store = await getStore();
+  return store.listScripts();
 }
 
 export async function createDisabledUserlandScriptForTreeItem(item, name) {
@@ -35,11 +52,20 @@ export async function createDisabledUserlandScriptForTreeItem(item, name) {
   }
 
   const store = await getStore();
-  return store.createScript({
+  const script = store.createScript({
     name: name || getDefaultUserlandScriptName(item),
     enabled: false,
     scope,
   });
+  notifyStoreListeners(script);
+  return script;
+}
+
+export async function setUserlandScriptEnabled(id, enabled) {
+  const store = await getStore();
+  const script = store.setScriptEnabled(id, enabled);
+  notifyStoreListeners(script);
+  return script;
 }
 
 export async function promptAndCreateUserlandScriptForTreeItem(item) {

@@ -1,6 +1,6 @@
 # Userland scripts recipe
 
-Status: incremental feature recipe. The profile-local storage, scope derivation, Debugger context-menu creation, and Debugger footer creation slices exist; see `../03-userland-scripts-architecture.md` before implementing additional slices.
+Status: incremental feature recipe. The profile-local storage, scope derivation, Debugger context-menu creation, Debugger footer creation, source-list visibility, and source-list enable checkbox slices exist; see `../03-userland-scripts-architecture.md` before implementing additional slices.
 
 ## Goal
 
@@ -39,13 +39,15 @@ Expected implementation areas:
 1. Keep the profile-local store and schema migration tests passing.
 2. Keep source-tree scope derivation and disabled-script creation working.
 3. Keep the footer `New Script` path local-tab-only and disabled when no HTTP(S) scope can be derived.
-4. Add editor UI for name, enabled state, scope, and code.
-5. Add document-only isolated-world execution for future navigations.
-6. Add tests that enabled scripts run before the first inline page script.
-7. Add tests that disabled scripts do not create runtime worlds.
-8. Add tests that no Umbrafox globals or source markers appear in page-visible state.
-9. Add worker support only after document support is stable.
-10. Add network interception APIs only after isolated script timing is proven.
+4. Keep created scripts visible in the source-list `Userland Scripts` section for matching target origins.
+5. Keep the source-list enable checkbox updating profile storage only; it must not execute scripts until runtime injection is implemented.
+6. Add editor UI for name, enabled state, scope, and code.
+7. Add document-only isolated-world execution for future navigations.
+8. Add tests that enabled scripts run before the first inline page script.
+9. Add tests that disabled scripts do not create runtime worlds.
+10. Add tests that no Umbrafox globals or source markers appear in page-visible state.
+11. Add worker support only after document support is stable.
+12. Add network interception APIs only after isolated script timing is proven.
 
 ## Verification commands
 

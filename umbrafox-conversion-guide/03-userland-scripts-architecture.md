@@ -1,6 +1,6 @@
 # Userland scripts architecture
 
-Status: architecture note. The profile-local storage slice, source-tree scope derivation, Debugger context-menu creation path, and Debugger footer creation path exist. Script editing UI, isolated-world execution, worker support, and network APIs are not implemented yet.
+Status: architecture note. The profile-local storage slice, source-tree scope derivation, Debugger context-menu creation path, Debugger footer creation path, source-list visibility, and source-list enable checkbox exist. Script editing UI, isolated-world execution, worker support, and network APIs are not implemented yet.
 
 This feature lets users create named scripts from DevTools, persist them in the active profile, and run them in isolated userland worlds for a matching site/thread before normal page JavaScript executes.
 
@@ -179,7 +179,8 @@ The UI should add:
 - context-menu item for thread/group/directory/source scopes; implemented as a disabled-script creation path;
 - footer `New Script` action; implemented as a disabled-script creation path for local tabs;
 - a userland script source/editor model; planned;
-- enable checkboxes; planned;
+- source-list visibility and enable checkboxes; implemented for scripts matching the current target origin;
+- editor-footer enable checkbox; planned;
 - script name editing; planned beyond the initial name prompt;
 - dirty-state handling; planned;
 - reload-needed indicator when a matching document has already run page scripts; planned.
@@ -239,7 +240,7 @@ Do not implement network APIs by monkeypatching page `fetch`, `XMLHttpRequest`, 
 
 ## First implementation slice
 
-The first code patch should be deliberately narrow. The store, scope, source-tree context-menu creation, and footer creation portions are implemented; the rest of this slice remains:
+The first code patch should be deliberately narrow. The store, scope, source-tree context-menu creation, footer creation, source-list visibility, and source-list enable checkbox portions are implemented; the rest of this slice remains:
 
 1. Script editor surface for name, enabled state, and code.
 2. Document-only isolated-world execution at document_start for future navigations.
