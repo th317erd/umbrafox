@@ -1013,6 +1013,10 @@ class nsDocShell final : public nsDocLoader,
   // moving the load to the browsing context the target name resolves to.
   nsresult PerformRetargeting(nsDocShellLoadState* aLoadState);
 
+  nsresult MaybeHandleUmbrafoxUserlandNavigation(
+      nsDocShellLoadState* aLoadState, const nsACString& aSource,
+      bool* aShouldContinue);
+
   // Returns one of nsIContentPolicy::TYPE_DOCUMENT,
   // nsIContentPolicy::TYPE_INTERNAL_IFRAME, or
   // nsIContentPolicy::TYPE_INTERNAL_FRAME depending on who is responsible for

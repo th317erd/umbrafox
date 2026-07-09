@@ -130,7 +130,11 @@ class SourcesTree extends Component {
     }
   }
 
-  onUserlandScriptStoreChanged = script => {
+  onUserlandScriptStoreChanged = (script, change) => {
+    if (change?.deleted) {
+      this.removeUserlandScript(change.id);
+      return;
+    }
     this.addOrUpdateUserlandScript(script);
   };
 
@@ -147,6 +151,12 @@ class SourcesTree extends Component {
     });
   }
 
+  removeUserlandScript(id) {
+    this.setState(({ userlandScripts }) => ({
+      userlandScripts: userlandScripts.filter(script => script.id != id),
+    }));
+  }
+
   selectSourceItem = item => {
     selectUserlandScript(null);
     // Note that when the source is pretty printed, `item.source` still refers to the minified source.
@@ -156,8 +166,8 @@ class SourcesTree extends Component {
   };
 
   selectUserlandScriptItem = async item => {
-    await this.props.selectSource(null);
     selectUserlandScript(item.script);
+    await this.props.selectSource(null);
   };
 
   onFocus = item => {
@@ -384,26 +394,12 @@ class SourcesTree extends Component {
   }
 
   getUserlandScriptCreationItem() {
-    const { focused, rootItems } = this.props;
-    if (getUserlandScriptScopeForTreeItem(focused)) {
+    const { focused } = this.props;
+    if (
+      focused?.type == "group" &&
+      getUserlandScriptScopeForTreeItem(focused)
+    ) {
       return focused;
-    }
-
-    return this.findFirstUserlandScriptCreationItem(rootItems);
-  }
-
-  findFirstUserlandScriptCreationItem(items) {
-    for (const item of items) {
-      if (getUserlandScriptScopeForTreeItem(item)) {
-        return item;
-      }
-
-      const childItem = this.findFirstUserlandScriptCreationItem(
-        this.getChildren(item)
-      );
-      if (childItem) {
-        return childItem;
-      }
     }
     return null;
   }
@@ -415,8 +411,8 @@ class SourcesTree extends Component {
         const script = await promptAndCreateUserlandScriptForTreeItem(item);
         if (script) {
           this.addOrUpdateUserlandScript(script);
-          await this.props.selectSource(null);
           selectUserlandScript(script);
+          await this.props.selectSource(null);
         }
       } catch (error) {
         console.error("Failed to create Umbrafox userland script", error);

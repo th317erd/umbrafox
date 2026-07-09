@@ -72,6 +72,8 @@ nsDocShellLoadState::nsDocShellLoadState(
   mShouldCheckForRecursion = aLoadState.ShouldCheckForRecursion();
   mIsFormSubmission = aLoadState.IsFormSubmission();
   mNeedsCompletelyLoadedDocument = aLoadState.NeedsCompletelyLoadedDocument();
+  mUmbrafoxUserlandNavigationHandled =
+      aLoadState.UmbrafoxUserlandNavigationHandled();
   mHistoryBehavior = aLoadState.HistoryBehavior();
   mLoadType = aLoadState.LoadType();
   mTarget = aLoadState.Target();
@@ -220,6 +222,8 @@ nsDocShellLoadState::nsDocShellLoadState(const nsDocShellLoadState& aOther)
       mShouldCheckForRecursion(aOther.mShouldCheckForRecursion),
       mIsFormSubmission(aOther.mIsFormSubmission),
       mNeedsCompletelyLoadedDocument(aOther.mNeedsCompletelyLoadedDocument),
+      mUmbrafoxUserlandNavigationHandled(
+          aOther.mUmbrafoxUserlandNavigationHandled),
       mHistoryBehavior(aOther.mHistoryBehavior),
       mLoadType(aOther.mLoadType),
       mSHEntry(aOther.mSHEntry),
@@ -1478,6 +1482,8 @@ DocShellLoadStateInit nsDocShellLoadState::Serialize(
   loadState.ShouldCheckForRecursion() = mShouldCheckForRecursion;
   loadState.IsFormSubmission() = mIsFormSubmission;
   loadState.NeedsCompletelyLoadedDocument() = mNeedsCompletelyLoadedDocument;
+  loadState.UmbrafoxUserlandNavigationHandled() =
+      mUmbrafoxUserlandNavigationHandled;
   loadState.HistoryBehavior() = mHistoryBehavior;
   loadState.LoadType() = mLoadType;
   loadState.userNavigationInvolvement() = mUserNavigationInvolvement;

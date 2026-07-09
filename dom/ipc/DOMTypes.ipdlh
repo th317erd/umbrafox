@@ -197,6 +197,7 @@ struct DocShellLoadStateInit
   bool IsFromProcessingFrameAttributes;
   bool NeedsCompletelyLoadedDocument;
   bool ShouldNotForceReplaceInOnLoad;
+  bool UmbrafoxUserlandNavigationHandled;
   NavigationHistoryBehavior? HistoryBehavior;
 
   SchemelessInputType SchemelessInput;

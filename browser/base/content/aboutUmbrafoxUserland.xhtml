@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src chrome:; object-src 'none'"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title data-l10n-id="about-umbrafox-userland-page-title"></title>
+    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css" />
+    <link
+      rel="stylesheet"
+      href="chrome://browser/content/aboutUmbrafoxUserland.css"
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="chrome://global/skin/icons/info.svg"
+    />
+    <link rel="localization" href="branding/brand.ftl" />
+    <link rel="localization" href="browser/aboutUmbrafoxUserland.ftl" />
+  </head>
+  <body>
+    <main class="about-userland">
+      <header class="about-userland-header">
+        <p
+          class="about-userland-kicker"
+          data-l10n-id="about-umbrafox-userland-kicker"
+        ></p>
+        <h1 data-l10n-id="about-umbrafox-userland-heading"></h1>
+        <p
+          class="about-userland-lede"
+          data-l10n-id="about-umbrafox-userland-lede"
+        ></p>
+      </header>
+
+      <section class="about-userland-section">
+        <h2 data-l10n-id="about-umbrafox-userland-create-heading"></h2>
+        <ol>
+          <li data-l10n-id="about-umbrafox-userland-create-step-debugger"></li>
+          <li data-l10n-id="about-umbrafox-userland-create-step-domain"></li>
+          <li data-l10n-id="about-umbrafox-userland-create-step-new"></li>
+          <li data-l10n-id="about-umbrafox-userland-create-step-edit"></li>
+          <li data-l10n-id="about-umbrafox-userland-create-step-enable"></li>
+        </ol>
+        <p data-l10n-id="about-umbrafox-userland-create-note"></p>
+        <pre><code>/* Feel free to visit the help at `about:umbrafox-userland` */</code></pre>
+      </section>
+
+      <section class="about-userland-section">
+        <h2 data-l10n-id="about-umbrafox-userland-timing-heading"></h2>
+        <p data-l10n-id="about-umbrafox-userland-timing-body"></p>
+        <pre><code>await new Promise(resolve =&gt; setTimeout(resolve, 100));
+console.log("This runs before page scripts resume.");</code></pre>
+      </section>
+
+      <section class="about-userland-section">
+        <h2 data-l10n-id="about-umbrafox-userland-wrapper-heading"></h2>
+        <p data-l10n-id="about-umbrafox-userland-wrapper-body"></p>
+        <pre><code>(async function (context) {
+  "use strict";
+  const {
+    window,
+    document,
+    globalThis,
+    location,
+    navigator,
+    console,
+    alert,
+    userland,
+  } = context;
+
+  // User script source is inserted here.
+});</code></pre>
+      </section>
+
+      <section class="about-userland-section">
+        <h2 data-l10n-id="about-umbrafox-userland-api-heading"></h2>
+        <p data-l10n-id="about-umbrafox-userland-api-body"></p>
+        <pre><code>userland.info;
+userland.on(type, handler);
+userland.off(type, handler);
+userland.addEventListener(type, handler);
+userland.removeEventListener(type, handler);</code></pre>
+      </section>
+
+      <section class="about-userland-section">
+        <h2 data-l10n-id="about-umbrafox-userland-events-heading"></h2>
+        <p data-l10n-id="about-umbrafox-userland-events-body"></p>
+        <pre><code>userland.on("alert", event =&gt; event.preventDefault());
+userland.on("prompt", event =&gt; event.respondWith("replacement"));
+userland.on("confirm", event =&gt; event.respondWith(false));
+userland.on("navigation", event =&gt; {
+  if (event.href.startsWith("zoom://")) {
+    event.preventDefault();
+  }
+});</code></pre>
+      </section>
+
+      <section class="about-userland-section">
+        <h2 data-l10n-id="about-umbrafox-userland-navigation-heading"></h2>
+        <p data-l10n-id="about-umbrafox-userland-navigation-body"></p>
+        <ul>
+          <li
+            data-l10n-id="about-umbrafox-userland-navigation-window-open"
+          ></li>
+          <li data-l10n-id="about-umbrafox-userland-navigation-links"></li>
+          <li data-l10n-id="about-umbrafox-userland-navigation-location"></li>
+          <li data-l10n-id="about-umbrafox-userland-navigation-external"></li>
+        </ul>
+        <p data-l10n-id="about-umbrafox-userland-navigation-limits"></p>
+      </section>
+
+      <section class="about-userland-section">
+        <h2 data-l10n-id="about-umbrafox-userland-storage-heading"></h2>
+        <p>
+          <span data-l10n-id="about-umbrafox-userland-storage-body"></span>
+          <code>&lt;profile&gt;/umbrafox/userland-scripts.json</code>
+        </p>
+        <p>
+          <a
+            href="about:profiles"
+            data-l10n-id="about-umbrafox-userland-profiles-link"
+          ></a>
+        </p>
+      </section>
+
+      <section class="about-userland-section">
+        <h2 data-l10n-id="about-umbrafox-userland-detectability-heading"></h2>
+        <p data-l10n-id="about-umbrafox-userland-detectability-body"></p>
+      </section>
+    </main>
+  </body>
+</html>

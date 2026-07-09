@@ -9,6 +9,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 export const USERLAND_SCRIPT_STORE_VERSION = 1;
+export const USERLAND_SCRIPT_DEFAULT_CODE =
+  "/* Feel free to visit the help at `about:umbrafox-userland` */";
 
 const DEFAULT_TARGET_KINDS = Object.freeze(["document"]);
 const VALID_TARGET_KINDS = Object.freeze([
@@ -236,7 +238,7 @@ export class UmbrafoxUserlandScriptStore {
     enabled = false,
     scope,
     world = "default",
-    code = "",
+    code = USERLAND_SCRIPT_DEFAULT_CODE,
   } = {}) {
     this._ensureReady();
 

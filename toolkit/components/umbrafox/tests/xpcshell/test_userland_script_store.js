@@ -3,9 +3,10 @@
 
 "use strict";
 
-const { UmbrafoxUserlandScriptStore } = ChromeUtils.importESModule(
-  "resource://gre/modules/UmbrafoxUserlandScriptStore.sys.mjs"
-);
+const { USERLAND_SCRIPT_DEFAULT_CODE, UmbrafoxUserlandScriptStore } =
+  ChromeUtils.importESModule(
+    "resource://gre/modules/UmbrafoxUserlandScriptStore.sys.mjs"
+  );
 
 add_setup(() => {
   do_get_profile();
@@ -141,6 +142,24 @@ add_task(async function test_validation() {
     () => store.updateScript("missing", {}),
     /Unknown userland script/,
     "Updating a missing script throws"
+  );
+
+  await store.finalize();
+});
+
+add_task(async function test_blank_scripts_start_with_help_comment() {
+  const store = await makeStore("default-code.json");
+  const created = store.createScript({
+    name: "Blank",
+    scope: {
+      origin: "https://example.com",
+    },
+  });
+
+  Assert.equal(
+    created.code,
+    USERLAND_SCRIPT_DEFAULT_CODE,
+    "Blank scripts start with the removable help comment"
   );
 
   await store.finalize();

@@ -1,6 +1,6 @@
 # Userland scripts architecture
 
-Status: architecture note. The profile-local storage slice, source-tree scope derivation, Debugger context-menu creation path, Debugger footer creation path, domain-scoped `Userland` source-tree folders, source-tree enable checkbox, and editable Debugger editor code surface exist. Isolated-world execution, worker support, and network APIs are not implemented yet.
+Status: architecture note. The profile-local storage slice, source-tree scope derivation, Debugger context-menu creation path, Debugger footer creation path, domain-scoped `Userland` source-tree folders, source-tree enable checkbox, CodeMirror-backed editable Debugger code surface, async userland wrapper runner, first document-start parser-blocking runtime hook, first document-level userland dialog events, and first docshell-backed navigation events exist. Worker support, network APIs, history API interception, and stronger isolated-world hardening are not implemented yet. HTTP/server redirects are intentionally reserved for future network interception/substitution APIs rather than the `navigation` event.
 
 This feature lets users create named scripts from DevTools, persist them in the active profile, and run them in isolated userland worlds for a matching site/thread before normal page JavaScript executes.
 
@@ -68,13 +68,19 @@ The requirement is stronger than ordinary DevTools eval:
 - userland worker scripts must run before worker script code for matching future workers;
 - reload is required after creating or changing a script if the current document or worker already executed page JavaScript.
 
-For documents, the likely path is:
+For documents, the current first path is:
 
-1. On document request open, preload and compile matching enabled userland scripts.
-2. On document element insertion, create userland worlds for the inner window.
-3. Block parser progress while compiled scripts are resolved.
-4. Execute userland scripts before page script execution is allowed to continue.
-5. Release parser blocking and preserve Firefox page timing when no script is enabled.
+1. Parent startup and DevTools mutations publish the profile-local script list into process `sharedData`, update `Services.ppmm.initialProcessData.umbrafoxUserlandScriptsActive`, and mirror whether any script is enabled into the internal `umbrafox.userlandScripts.active` pref.
+2. `ActorManagerParent.sys.mjs` registers the `UmbrafoxUserland` JSWindowActor for browser documents.
+3. `toolkit/actors/UmbrafoxUserlandChild.sys.mjs` listens for `DOMDocElementInserted`.
+4. If child-local shared data, the active pref, and startup initial process data all say no enabled userland scripts exist, the actor returns without querying the parent or blocking the document. The pref fallback is important for already-running content processes that were created before a user enabled a script.
+5. If enabled scripts exist, the child asks `toolkit/actors/UmbrafoxUserlandParent.sys.mjs` for enabled `document` scripts matching the exact HTTP(S) origin.
+6. `UmbrafoxUserlandScriptRuntime.sys.mjs` calls `document.blockParsing(promise, { blockScriptCreated: false })` on the unwaived document while the promised script list is fetched and matching wrappers run.
+7. The runtime evaluates wrappers with waived page references for `window`, `document`, `globalThis`, `location`, and `navigator`, passes the page `console`, binds bare `alert` to the page window, and uses the page window as the sandbox prototype so ordinary page global lookup works for explicit user scripts. The `userland` binding remains lexical and off page globals.
+8. Page parser/script progress is released only after all matching enabled userland scripts resolve.
+9. If a script registers dialog or navigation listeners through `userland.on(...)`, `UmbrafoxUserlandEventController.sys.mjs` installs per-document hooks for explicit userland control. Dialogs are handled by page-global replacements. Navigation combines a `window.open(...)` wrapper with a native docshell observer bridge keyed by browsing-context id.
+
+The next hardening step is replacing the current system-principal wrapper sandbox with a browser-owned isolated world closer to Firefox WebExtension user-script sandboxes while preserving page-like global lookup. The current path is intentionally limited to explicit enabled user scripts and must not install any Umbrafox or userland marker on page globals.
 
 For workers, the equivalent hook must be earlier than worker script evaluation. Do not ship worker support until we can prove the script runs before worker-global script code and without adding web-visible worker globals.
 
@@ -86,15 +92,47 @@ All JavaScript execution should be modeled as named contexts:
 - Userland context: browser-owned isolated globals for user scripts.
 - Browser secret context: non-enumerable privileged implementation state that user scripts can call into but page scripts cannot access.
 
-A userland script should receive a function-scope private API, not a page-visible global:
+A userland script must receive a function-scope private API, not a page-visible global. The conceptual wrapper ABI is:
 
 ```js
-function runUserlandScript({ window, document, privateApi }) {
+(async function ({
+  window,
+  document,
+  globalThis,
+  location,
+  navigator,
+  console,
+  userland,
+}) {
+  "use strict";
+
   // User code is wrapped here.
-}
+});
 ```
 
-The wrapper is conceptual. The actual implementation can compile a generated wrapper or install bindings in the sandbox global, but the private API must not be reachable through the page global.
+JavaScript does not allow a `"use strict"` directive inside a function with a destructuring parameter. The generated implementation therefore uses a strict async function with one `context` parameter and destructures the same bindings inside the wrapper body:
+
+```js
+(async function (context) {
+  "use strict";
+  const {
+    window,
+    document,
+    globalThis,
+    location,
+    navigator,
+    console,
+    alert,
+    userland,
+  } = context;
+
+  // User code is wrapped here.
+});
+```
+
+The single context-object argument is deliberate. Future context fields can be added without breaking existing scripts. The wrapper is async because page script execution must wait until every matching enabled userland wrapper resolves. The `userland` binding is lexical; it must not be installed as `window.userland`, `globalThis.userland`, `navigator.userland`, a DOM property, or any other page-visible marker.
+
+`toolkit/components/umbrafox/UmbrafoxUserlandScriptRunner.sys.mjs` currently generates this wrapper source, freezes the outer context object, and provides `runUserlandScript(...)` and `runUserlandScripts(...)`. The batch runner awaits enabled scripts sequentially. The document-start runtime calls that primitive while parser execution is blocked, then releases page script execution only after it resolves.
 
 When a userland script registers callbacks, hooks, or listeners, page scripts must not be able to enumerate the userland binding. If a listener causes a DOM event or page mutation, the visible event/mutation belongs to the user's enabled script, but the binding machinery must remain invisible.
 
@@ -102,20 +140,70 @@ When a userland script registers callbacks, hooks, or listeners, page scripts mu
 
 The first API should be small and explicit. Do not expose every planned capability in the first patch.
 
-Initial candidate:
+Current API:
 
 ```js
-privateApi.info
-privateApi.onDocumentStart(callback)
-privateApi.onBeforeRequest(filter, callback)
-privateApi.replaceResponse(filter, callback)
-privateApi.log(...args)
+userland.info
+userland.on(type, handler)
+userland.off(type, handler)
+userland.addEventListener(type, handler)
+userland.removeEventListener(type, handler)
 ```
+
+Current supported event types:
+
+- `alert`
+- `prompt`
+- `confirm`
+- `navigation`
+
+Handlers receive a synchronous cancellable event object:
+
+```js
+userland.on("alert", event => {
+  event.message = "replacement";
+  event.preventDefault();
+});
+
+userland.on("prompt", event => {
+  event.respondWith("replacement return value");
+});
+
+userland.on("confirm", event => {
+  event.respondWith(false);
+});
+
+userland.on("navigation", event => {
+  if (event.href.startsWith("zoom://")) {
+    event.preventDefault();
+    return;
+  }
+  event.href = new URL("/rewritten", location.href).href;
+});
+```
+
+Implemented navigation event sources:
+
+- `window.open(...)`, including external schemes such as `zoom://` when they pass through that API.
+- Primary-button anchor and area clicks.
+- Form submit default actions.
+- Docshell navigation attempts, including `location.assign(...)`, `location.replace(...)`, `location.href = ...`, hash navigations, meta refresh, and docshell external-protocol paths.
+
+The `navigation` event currently includes `href`, `originalHref`, `source`, `external`, `target`, and native-path fields such as `formSubmission`, `metaRefresh`, `redirect`, `loadType`, and `native`. Setting `event.href` rewrites supported navigations before they proceed; calling `preventDefault()`, `cancel()`, or `respondWith(...)` cancels where the event type supports cancellation.
+
+Native navigation implementation details:
+
+- `nsDocShell::MaybeHandleUmbrafoxUserlandNavigation(...)` emits an internal observer notification before docshell commits the load.
+- The observer subject is an internal mutable property bag with `href`, `source`, `target`, `browsingContextId`, `loadType`, `external`, `formSubmission`, `metaRefresh`, and `redirect`.
+- The content-process event controller looks up the active document controller by browsing-context id, dispatches `userland.on("navigation", ...)`, and writes back `cancelled` or rewritten `href`.
+- `nsDocShellLoadState` carries an internal `UmbrafoxUserlandNavigationHandled` marker, serialized through `DocShellLoadStateInit`, to avoid double dispatch across link/form and `InternalLoad` paths.
+
+Intentional boundary: HTTP/server redirects are network-channel behavior, not user-facing navigation-decision behavior. They should be handled by future network interception/substitution APIs instead of the `navigation` event. History API URL changes still need a separate hook because they do not create normal docshell loads. A JS `nsIContentPolicy` attempt did not catch the `location.assign(...)` path in the browser test and was not kept.
 
 Follow-up APIs can cover:
 
 - request substitution for images, scripts, stylesheets, media, fonts, fetch, XHR, WebSocket, EventSource, beacons, and documents;
-- native alert, confirm, prompt, notification, and external-link policies;
+- notification and external-link policies beyond the currently supported document-level navigation hooks;
 - DOM and style mutation helpers;
 - page-world unsafe eval with a clear detectable-risk label;
 - import and export of userland rule packs.
@@ -178,8 +266,10 @@ The UI should add:
 
 - context-menu item for thread/group/directory/source scopes; implemented as a disabled-script creation path;
 - footer `New Script` action; implemented as a disabled-script creation path for local tabs;
-- a userland script source/editor model; implemented as virtual source-tree items that open editable profile-stored code;
+- a userland script source/editor model; implemented as virtual source-tree items that open editable profile-stored code in a real `SourceEditor`/CodeMirror 6 instance;
 - source-tree visibility and enable checkboxes; implemented for scripts matching the current target origin under a `Userland` folder;
+- runtime shared-data and initial-process-data publishing; implemented through `UmbrafoxUserlandScriptRegistry.sys.mjs`;
+- document-start runtime execution; implemented through `UmbrafoxUserlandScriptRuntime.sys.mjs`, `toolkit/actors/UmbrafoxUserlandChild.sys.mjs`, `toolkit/actors/UmbrafoxUserlandParent.sys.mjs`, and the `UmbrafoxUserland` JSWindowActor registration in `ActorManagerParent.sys.mjs`;
 - editor-footer enable checkbox; planned;
 - script name editing; planned beyond the initial name prompt;
 - dirty-state handling; planned;
@@ -191,8 +281,11 @@ Current and recommended modules:
 
 - `toolkit/components/umbrafox/UmbrafoxUserlandScriptScope.sys.mjs` exists.
 - `toolkit/components/umbrafox/UmbrafoxUserlandScriptStore.sys.mjs` exists.
-- `toolkit/components/umbrafox/UmbrafoxUserlandScriptsParent.sys.mjs` is planned.
-- `toolkit/components/umbrafox/UmbrafoxUserlandScriptsChild.sys.mjs` is planned.
+- `toolkit/components/umbrafox/UmbrafoxUserlandScriptRunner.sys.mjs` exists.
+- `toolkit/components/umbrafox/UmbrafoxUserlandScriptRegistry.sys.mjs` exists.
+- `toolkit/components/umbrafox/UmbrafoxUserlandScriptRuntime.sys.mjs` exists.
+- `toolkit/actors/UmbrafoxUserlandParent.sys.mjs` exists.
+- `toolkit/actors/UmbrafoxUserlandChild.sys.mjs` exists.
 
 The parent service should:
 
@@ -240,7 +333,7 @@ Do not implement network APIs by monkeypatching page `fetch`, `XMLHttpRequest`, 
 
 ## First implementation slice
 
-The first code patch should be deliberately narrow. The store, scope, source-tree context-menu creation, footer creation, source-tree visibility, source-tree enable checkbox, and editable code surface portions are implemented; the rest of this slice remains:
+The first code patch should be deliberately narrow. The store, scope, source-tree context-menu creation, footer creation, source-tree visibility, source-tree enable checkbox, editable code surface, and async wrapper runner portions are implemented; the rest of this slice remains:
 
 1. Editor affordances for script name and enabled state.
 2. Document-only isolated-world execution at document_start for future navigations.

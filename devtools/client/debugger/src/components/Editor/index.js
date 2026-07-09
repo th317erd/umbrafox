@@ -70,6 +70,7 @@ import {
   findNext,
   findPrev,
 } from "../../utils/editor/index";
+import { createEditor } from "../../utils/editor/create-editor";
 
 import { searchKeys } from "../../constants";
 import { scrollList } from "../../utils/result-list";
@@ -137,6 +138,8 @@ class Editor extends PureComponent {
   }
 
   $editorWrapper;
+  $userlandScriptEditorMount;
+  userlandScriptEditor;
   constructor(props) {
     super(props);
 
@@ -148,6 +151,10 @@ class Editor extends PureComponent {
 
   // FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1774507
   UNSAFE_componentWillReceiveProps(nextProps) {
+    if (this.state.selectedUserlandScript) {
+      return;
+    }
+
     let { editor } = this.state;
     const prevEditor = editor;
 
@@ -195,21 +202,6 @@ class Editor extends PureComponent {
   }
 
   onEditorUpdated = viewUpdate => {
-    const { selectedUserlandScript } = this.state;
-    if (selectedUserlandScript) {
-      if (viewUpdate.docChanged && !this.isSettingUserlandScriptText) {
-        this.updateUserlandScriptText(
-          selectedUserlandScript,
-          viewUpdate.view.state.doc.toString()
-        );
-      }
-      if (viewUpdate.docChanged || viewUpdate.geometryChanged) {
-        updateEditorSizeCssVariables(viewUpdate.view.dom);
-        this.props.updateViewport();
-      }
-      return;
-    }
-
     if (viewUpdate.docChanged || viewUpdate.geometryChanged) {
       updateEditorSizeCssVariables(viewUpdate.view.dom);
       const { selectedLocation } = this.props;
@@ -299,15 +291,14 @@ class Editor extends PureComponent {
     shortcuts.on("Esc", this.onEscape);
     this.removeSelectedUserlandScriptListener =
       addSelectedUserlandScriptListener(this.onSelectedUserlandScriptChanged);
+    if (this.state.selectedUserlandScript) {
+      this.showSelectedUserlandScript();
+    }
   }
 
   onSelectedUserlandScriptChanged = script => {
-    const previousScript = this.state.selectedUserlandScript;
     this.setState({ selectedUserlandScript: script }, () => {
-      if (
-        script &&
-        (previousScript?.id != script.id || previousScript?.code != script.code)
-      ) {
+      if (script) {
         this.showSelectedUserlandScript();
       }
     });
@@ -401,7 +392,7 @@ class Editor extends PureComponent {
     }
   }
 
-  updateUserlandScriptEditor(prevProps, prevState) {
+  updateUserlandScriptEditor(prevProps) {
     const { selectedUserlandScript } = this.state;
     if (!selectedUserlandScript) {
       return false;
@@ -415,15 +406,7 @@ class Editor extends PureComponent {
       return true;
     }
 
-    if (
-      prevState.selectedUserlandScript?.id != selectedUserlandScript.id ||
-      prevState.selectedUserlandScript?.code != selectedUserlandScript.code
-    ) {
-      this.showSelectedUserlandScript();
-      return true;
-    }
-
-    return false;
+    return true;
   }
 
   componentWillUnmount() {
@@ -444,6 +427,11 @@ class Editor extends PureComponent {
       editor.destroy();
       this.setState({ editor: null });
       removeEditor();
+    }
+
+    if (this.userlandScriptEditor) {
+      this.userlandScriptEditor.destroy();
+      this.userlandScriptEditor = null;
     }
   }
 
@@ -525,26 +513,81 @@ class Editor extends PureComponent {
     });
   }, 500);
 
+  setUserlandScriptEditorMount = el => {
+    this.$userlandScriptEditorMount = el;
+    if (el && this.state.selectedUserlandScript) {
+      this.showSelectedUserlandScript();
+    }
+  };
+
+  setupUserlandScriptEditor() {
+    if (this.userlandScriptEditor || !this.$userlandScriptEditorMount) {
+      return this.userlandScriptEditor;
+    }
+
+    const editor = createEditor({
+      cm6: true,
+      readOnly: false,
+      lineNumbers: true,
+      lineWrapping: true,
+    });
+    editor.appendToLocalElement(this.$userlandScriptEditorMount);
+    editor.setUpdateListener(this.onUserlandScriptEditorUpdated);
+    this.userlandScriptEditor = editor;
+    return editor;
+  }
+
+  focusSelectedUserlandScriptEditor = () => {
+    if (!this.state.selectedUserlandScript || !this.userlandScriptEditor) {
+      return;
+    }
+    this.userlandScriptEditor.focus();
+  };
+
   async showSelectedUserlandScript() {
-    const { selectedUserlandScript, editor } = this.state;
+    const { selectedUserlandScript } = this.state;
     if (!selectedUserlandScript) {
       return;
     }
 
-    const activeEditor = editor || this.setupEditor();
-    await activeEditor.setMode(SourceEditor.modes.javascript);
+    const editor = this.setupUserlandScriptEditor();
+    if (!editor) {
+      return;
+    }
+
+    await editor.setMode(SourceEditor.modes.javascript);
     this.isSettingUserlandScriptText = true;
     try {
-      await activeEditor.setText(selectedUserlandScript.code, {
+      await editor.setText(selectedUserlandScript.code, {
         documentId: `umbrafox-userland:${selectedUserlandScript.id}`,
         saveTransactionToHistory: false,
       });
-      await activeEditor.setReadOnly(false);
-      activeEditor.setLineGutterMarkers([]);
+      await editor.setReadOnly(false);
+      editor.focus();
+      requestAnimationFrame(() => this.focusSelectedUserlandScriptEditor());
     } finally {
       this.isSettingUserlandScriptText = false;
     }
   }
+
+  onUserlandScriptEditorUpdated = viewUpdate => {
+    const { selectedUserlandScript } = this.state;
+    if (!selectedUserlandScript) {
+      return;
+    }
+
+    if (viewUpdate.docChanged && !this.isSettingUserlandScriptText) {
+      this.updateUserlandScriptText(
+        selectedUserlandScript,
+        viewUpdate.view.state.doc.toString()
+      );
+    }
+
+    if (viewUpdate.docChanged || viewUpdate.geometryChanged) {
+      updateEditorSizeCssVariables(viewUpdate.view.dom);
+      this.props.updateViewport();
+    }
+  };
 
   /*
    * The default Esc command is overridden in the CodeMirror keymap to allow
@@ -967,22 +1010,49 @@ class Editor extends PureComponent {
     });
   }
 
+  renderUserlandScriptEditor() {
+    const { selectedUserlandScript } = this.state;
+    const editorStyles = this.getInlineEditorStyles();
+    return div({
+      className: "userland-script-editor-mount devtools-monospace",
+      ref: this.setUserlandScriptEditorMount,
+      style: selectedUserlandScript
+        ? editorStyles
+        : { ...editorStyles, display: "none" },
+    });
+  }
+
   render() {
     const { selectedSourceIsBlackBoxed, skipPausing } = this.props;
+    const { selectedUserlandScript } = this.state;
+    const editorStyles = this.getInlineEditorStyles();
     return div(
       {
         className: classnames("editor-wrapper", {
           blackboxed: selectedSourceIsBlackBoxed,
           "skip-pausing": skipPausing,
+          "userland-script-selected": selectedUserlandScript,
         }),
+        onMouseDown: selectedUserlandScript
+          ? this.focusSelectedUserlandScriptEditor
+          : null,
         ref: c => (this.$editorWrapper = c),
       },
       div({
         className: "editor-mount devtools-monospace",
-        style: this.getInlineEditorStyles(),
+        style: selectedUserlandScript
+          ? { ...editorStyles, display: "none" }
+          : editorStyles,
       }),
-      this.renderFileSearch(),
-      this.renderItems()
+      this.renderUserlandScriptEditor(),
+      selectedUserlandScript
+        ? null
+        : React.createElement(
+            React.Fragment,
+            null,
+            this.renderFileSearch(),
+            this.renderItems()
+          )
     );
   }
 }

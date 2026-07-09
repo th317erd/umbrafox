@@ -1,0 +1,73 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+body {
+  margin: 0;
+  background: var(--background-color-canvas);
+  color: var(--text-color);
+}
+
+.about-userland {
+  box-sizing: border-box;
+  max-width: var(--size-layout-xlarge);
+  margin-inline: auto;
+  padding: var(--space-xxlarge);
+}
+
+.about-userland-header {
+  margin-block-end: var(--space-xxlarge);
+}
+
+.about-userland-kicker {
+  margin-block: 0 var(--space-small);
+  color: var(--color-accent-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.about-userland h1 {
+  margin-block: 0 var(--space-large);
+  font-size: var(--font-size-xxxlarge);
+}
+
+.about-userland-lede {
+  max-width: var(--size-layout-large);
+  margin-block: 0;
+  font-size: var(--font-size-large);
+  line-height: 1.55;
+}
+
+.about-userland-section {
+  border-block-start: var(--border-width) solid var(--border-color);
+  padding-block: var(--space-xlarge);
+}
+
+.about-userland-section h2 {
+  margin-block: 0 var(--space-medium);
+  font-size: var(--font-size-heading-medium);
+}
+
+.about-userland-section p,
+.about-userland-section li {
+  line-height: 1.55;
+}
+
+.about-userland-section ol,
+.about-userland-section ul {
+  padding-inline-start: var(--space-xlarge);
+}
+
+.about-userland code {
+  font-family: monospace;
+}
+
+.about-userland pre {
+  overflow: auto;
+  margin-block: var(--space-large) 0;
+  padding: var(--space-large);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  background: var(--background-color-box);
+  color: var(--text-color);
+  line-height: 1.45;
+}

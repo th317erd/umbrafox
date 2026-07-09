@@ -289,7 +289,7 @@ class TelemetryHandler {
   _originalProviderInfo = null;
 
   // The current search provider info.
-  _searchProviderInfo = null;
+  _searchProviderInfo = [];
 
   // An instance of remote settings that is used to access the provider info.
   _telemetrySettings;
@@ -1510,7 +1510,7 @@ class TelemetryHandler {
  */
 class ContentHandler {
   /** @type {ProviderInfo[]} */
-  _searchProviderInfo = null;
+  _searchProviderInfo = [];
 
   /**
    * Constructor.

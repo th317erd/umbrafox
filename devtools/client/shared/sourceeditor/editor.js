@@ -836,9 +836,10 @@ class Editor extends EventEmitter {
       this.#compartments.lineWrapCompartment.of(
         this.config.lineWrapping ? EditorView.lineWrapping : []
       ),
-      this.#compartments.readOnlyCompartment.of(
-        EditorState.readOnly.of(this.config.readOnly)
-      ),
+      this.#compartments.readOnlyCompartment.of([
+        EditorState.readOnly.of(this.config.readOnly),
+        EditorView.editable.of(!this.config.readOnly),
+      ]),
       this.#compartments.lineNumberCompartment.of(
         this.config.lineNumbers ? lineNumbers() : []
       ),
@@ -3607,14 +3608,17 @@ class Editor extends EventEmitter {
     if (!this.config.cm6) {
       return null;
     }
+    this.config.readOnly = readOnly;
     const {
+      codemirrorView: { EditorView },
       codemirrorState: { EditorState },
     } = this.#CodeMirror6;
 
     return cm.dispatch({
-      effects: this.#compartments.readOnlyCompartment.reconfigure(
-        EditorState.readOnly.of(readOnly)
-      ),
+      effects: this.#compartments.readOnlyCompartment.reconfigure([
+        EditorState.readOnly.of(readOnly),
+        EditorView.editable.of(!readOnly),
+      ]),
     });
   }
 

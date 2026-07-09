@@ -72,6 +72,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   TelemetryReportingPolicy:
     "resource://gre/modules/TelemetryReportingPolicy.sys.mjs",
   TRRRacer: "resource:///modules/TRRPerformance.sys.mjs",
+  UmbrafoxUserlandScriptRegistry:
+    "resource://gre/modules/UmbrafoxUserlandScriptRegistry.sys.mjs",
   WebChannel: "resource://gre/modules/WebChannel.sys.mjs",
   WebProtocolHandlerRegistrar:
     "resource:///modules/WebProtocolHandlerRegistrar.sys.mjs",
@@ -386,6 +388,10 @@ BrowserGlue.prototype = {
   // (i.e. before the first window is opened)
   _beforeUIStartup: function BG__beforeUIStartup() {
     lazy.SessionStartup.init();
+    lazy.UmbrafoxUserlandScriptRegistry.loadAndPublishUserlandScripts().catch(
+      error =>
+        console.error("Failed to publish Umbrafox userland scripts", error)
+    );
 
     // check if we're in safe mode
     if (Services.appinfo.inSafeMode) {

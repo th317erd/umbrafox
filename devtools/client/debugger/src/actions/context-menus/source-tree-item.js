@@ -28,6 +28,7 @@ import { shouldBlackbox } from "../../utils/source";
 import { copyToTheClipboard } from "../../utils/clipboard";
 import { saveAsLocalFile } from "../../utils/utils";
 import {
+  deleteUserlandScript,
   getUserlandScriptScopeForTreeItem,
   promptAndCreateUserlandScriptForTreeItem,
 } from "../../utils/umbrafox-userland-scripts";
@@ -58,6 +59,18 @@ export function showSourceTreeItemContextMenu(
       panel.toolbox.commands.descriptorFront.isLocalTab;
 
     const menuOptions = [];
+
+    if (item.type == "userland-script") {
+      menuOptions.push({
+        id: "node-menu-delete-userland-script",
+        label: L10N.getStr("userlandScripts.deleteScript.label"),
+        accesskey: L10N.getStr("userlandScripts.deleteScript.accesskey"),
+        disabled: false,
+        click: () => deleteUserlandScript(item.script.id),
+      });
+      showMenu(event, menuOptions);
+      return;
+    }
 
     const state = getState();
     const isSourceOnIgnoreList =

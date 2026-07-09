@@ -44,6 +44,10 @@ import WelcomeBox from "./WelcomeBox";
 import EditorTabs from "./Editor/Tabs";
 import EditorFooter from "./Editor/Footer";
 import QuickOpenModal from "./QuickOpenModal";
+import {
+  addSelectedUserlandScriptListener,
+  getSelectedUserlandScript,
+} from "../utils/umbrafox-userland-scripts";
 
 class App extends Component {
   #shortcuts;
@@ -59,6 +63,7 @@ class App extends Component {
       shortcutsModalEnabled: false,
       startPanelSize: 0,
       endPanelSize: 0,
+      selectedUserlandScript: getSelectedUserlandScript(),
     };
   }
 
@@ -121,13 +126,20 @@ class App extends Component {
 
     this.#shortcuts.on("Escape", this.onEscape);
     this.#shortcuts.on("CmdOrCtrl+/", this.onCommandSlash);
+    this.removeSelectedUserlandScriptListener =
+      addSelectedUserlandScriptListener(this.onSelectedUserlandScriptChanged);
   }
 
   componentWillUnmount() {
     horizontalLayoutBreakpoint.removeListener(this.onLayoutChange);
     verticalLayoutBreakpoint.removeListener(this.onLayoutChange);
+    this.removeSelectedUserlandScriptListener?.();
     this.#shortcuts.destroy();
   }
+
+  onSelectedUserlandScriptChanged = selectedUserlandScript => {
+    this.setState({ selectedUserlandScript });
+  };
 
   jumpToProjectSearch = e => {
     e.preventDefault();
@@ -261,7 +273,7 @@ class App extends Component {
           startPanelSize,
           endPanelSize,
         }),
-        this.props.showWelcomeBox
+        this.props.showWelcomeBox && !this.state.selectedUserlandScript
           ? React.createElement(WelcomeBox, {
               horizontal,
               toggleShortcutsModal: () => this.toggleShortcutsModal(),

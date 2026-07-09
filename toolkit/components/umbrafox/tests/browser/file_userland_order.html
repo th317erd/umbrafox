@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<script>
+"use strict";
+const order = document.documentElement.getAttribute("data-userland-order") || "";
+document.documentElement.setAttribute(
+  "data-userland-order-at-inline-script",
+  order
+);
+document.documentElement.setAttribute(
+  "data-userland-order",
+  order ? `${order},page-script` : "page-script"
+);
+</script>

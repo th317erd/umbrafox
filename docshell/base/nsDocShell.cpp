@@ -293,6 +293,9 @@ extern mozilla::LazyLogModule gSHIPBFCacheLog;
 const char kAppstringsBundleURL[] =
     "chrome://global/locale/appstrings.properties";
 
+static constexpr char kUmbrafoxUserlandNavigationAttemptTopic[] =
+    "umbrafox-userland-navigation-attempt";
+
 static bool IsTopLevelDoc(BrowsingContext* aBrowsingContext,
                           nsILoadInfo* aLoadInfo) {
   MOZ_ASSERT(aBrowsingContext);
@@ -7707,6 +7710,111 @@ nsresult nsDocShell::PerformRetargeting(nsDocShellLoadState* aLoadState) {
   return targetContext->InternalLoad(aLoadState);
 }
 
+nsresult nsDocShell::MaybeHandleUmbrafoxUserlandNavigation(
+    nsDocShellLoadState* aLoadState, const nsACString& aSource,
+    bool* aShouldContinue) {
+  MOZ_ASSERT(aShouldContinue);
+  *aShouldContinue = true;
+
+  if (!aLoadState || !aLoadState->URI() || !mBrowsingContext ||
+      aLoadState->UmbrafoxUserlandNavigationHandled()) {
+    return NS_OK;
+  }
+
+  aLoadState->SetUmbrafoxUserlandNavigationHandled(true);
+
+  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
+  if (!obs) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIWritablePropertyBag2> bag =
+      do_CreateInstance("@mozilla.org/hash-property-bag;1");
+  if (!bag) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  nsAutoCString href;
+  MOZ_TRY(aLoadState->URI()->GetSpec(href));
+
+  MOZ_TRY(bag->SetPropertyAsAUTF8String(u"href"_ns, href));
+  MOZ_TRY(bag->SetPropertyAsAUTF8String(u"source"_ns, aSource));
+  MOZ_TRY(bag->SetPropertyAsAString(u"target"_ns, aLoadState->Target()));
+  MOZ_TRY(bag->SetPropertyAsUint64(u"browsingContextId"_ns,
+                                   mBrowsingContext->Id()));
+  MOZ_TRY(bag->SetPropertyAsUint32(u"loadType"_ns, aLoadState->LoadType()));
+  MOZ_TRY(bag->SetPropertyAsBool(u"cancelled"_ns, false));
+  MOZ_TRY(bag->SetPropertyAsBool(
+      u"external"_ns, nsContentUtils::IsExternalProtocol(aLoadState->URI())));
+  MOZ_TRY(bag->SetPropertyAsBool(u"formSubmission"_ns,
+                                 aLoadState->IsFormSubmission()));
+  MOZ_TRY(
+      bag->SetPropertyAsBool(u"metaRefresh"_ns, aLoadState->IsMetaRefresh()));
+  MOZ_TRY(bag->SetPropertyAsBool(u"redirect"_ns,
+                                 !!aLoadState->GetPendingRedirectedChannel()));
+
+  (void)obs->NotifyObservers(bag, kUmbrafoxUserlandNavigationAttemptTopic,
+                             nullptr);
+
+  bool cancelled = false;
+  if (NS_SUCCEEDED(bag->GetPropertyAsBool(u"cancelled"_ns, &cancelled)) &&
+      cancelled) {
+    if (nsCOMPtr<nsIChannel> channel =
+            aLoadState->GetPendingRedirectedChannel()) {
+      channel->CancelWithReason(
+          NS_BINDING_ABORTED,
+          "Umbrafox userland navigation handler cancelled the load"_ns);
+    }
+    *aShouldContinue = false;
+    return NS_OK;
+  }
+
+  nsAutoCString updatedHref;
+  if (NS_FAILED(bag->GetPropertyAsAUTF8String(u"href"_ns, updatedHref)) ||
+      updatedHref.Equals(href)) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIURI> newURI;
+  if (NS_FAILED(NS_NewURI(getter_AddRefs(newURI), updatedHref)) || !newURI) {
+    return NS_OK;
+  }
+
+  if (nsCOMPtr<nsIChannel> channel =
+          aLoadState->GetPendingRedirectedChannel()) {
+    channel->CancelWithReason(
+        NS_BINDING_ABORTED,
+        "Umbrafox userland navigation handler rewrote the load"_ns);
+    RefPtr replacementLoadState = MakeRefPtr<nsDocShellLoadState>(newURI);
+    replacementLoadState->SetTriggeringPrincipal(
+        aLoadState->TriggeringPrincipal());
+    replacementLoadState->SetPrincipalToInherit(
+        aLoadState->PrincipalToInherit());
+    replacementLoadState->SetPartitionedPrincipalToInherit(
+        aLoadState->PartitionedPrincipalToInherit());
+    replacementLoadState->SetPolicyContainer(aLoadState->PolicyContainer());
+    replacementLoadState->SetReferrerInfo(aLoadState->GetReferrerInfo());
+    replacementLoadState->SetLoadType(aLoadState->LoadType());
+    replacementLoadState->SetLoadFlags(aLoadState->LoadFlags());
+    replacementLoadState->SetInternalLoadFlags(aLoadState->InternalLoadFlags());
+    replacementLoadState->SetFirstParty(aLoadState->FirstParty());
+    replacementLoadState->SetHasValidUserGestureActivation(
+        aLoadState->HasValidUserGestureActivation());
+    replacementLoadState->SetTextDirectiveUserActivation(
+        aLoadState->GetTextDirectiveUserActivation());
+    replacementLoadState->SetUserNavigationInvolvement(
+        aLoadState->UserNavigationInvolvement());
+    replacementLoadState->SetSourceBrowsingContext(
+        aLoadState->SourceBrowsingContext().GetMaybeDiscarded());
+    replacementLoadState->SetUmbrafoxUserlandNavigationHandled(true);
+    *aShouldContinue = false;
+    return LoadURI(replacementLoadState, true);
+  }
+
+  aLoadState->SetURI(newURI);
+  return NS_OK;
+}
+
 static nsAutoCString RefMaybeNull(nsIURI* aURI) {
   nsAutoCString result;
   if (NS_FAILED(aURI->GetRef(result))) {
@@ -8494,6 +8602,13 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
   nsresult rv = EnsureScriptEnvironment();
   if (NS_FAILED(rv)) {
     return rv;
+  }
+
+  bool shouldContinue = true;
+  MOZ_TRY(MaybeHandleUmbrafoxUserlandNavigation(aLoadState, "docshell"_ns,
+                                                &shouldContinue));
+  if (!shouldContinue) {
+    return NS_OK;
   }
 
   // If we have a target to move to, do that now.
@@ -12326,6 +12441,18 @@ nsresult nsDocShell::OnLinkClickSync(nsIContent* aContent,
   // fall back to using doc->NodePrincipal() as the triggeringPrincipal.
   nsCOMPtr<nsIPrincipal> triggeringPrincipal =
       aTriggeringPrincipal ? aTriggeringPrincipal : aContent->NodePrincipal();
+
+  {
+    bool shouldContinue = true;
+    const nsLiteralCString source =
+        aLoadState->IsFormSubmission() ? "form-submit"_ns : "anchor-click"_ns;
+    nsresult rv = MaybeHandleUmbrafoxUserlandNavigation(aLoadState, source,
+                                                        &shouldContinue);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (!shouldContinue || !IsOKToLoadURI(aLoadState->URI())) {
+      return NS_OK;
+    }
+  }
 
   {
     // defer to an external protocol handler if necessary...

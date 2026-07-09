@@ -27,7 +27,61 @@ The userland scripts feature has an architecture note and recipe:
 - `03-userland-scripts-architecture.md`
 - `recipes/09-userland-scripts.md`
 
-The profile-local script store is implemented in `toolkit/components/umbrafox/UmbrafoxUserlandScriptStore.sys.mjs` with xpcshell coverage. Scope derivation is implemented in `toolkit/components/umbrafox/UmbrafoxUserlandScriptScope.sys.mjs`, and the Debugger source tree can create disabled userland script records from its context menu and footer `New Script` button. Created scripts now appear under matching domain groups in a `Userland` folder, can be enabled or disabled from that tree row, and open editable stored code in the Debugger editor. Do not expect the current browser build to execute userland scripts until a later runtime injection slice lands.
+The canonical user-facing userland documentation now lives in
+`toolkit/components/umbrafox/docs/userland.md` and is registered with Firefox
+Source Docs through `toolkit/components/umbrafox/moz.build`. A browser-visible
+internal help page is registered as `about:umbrafox-userland` and maps to
+`browser/base/content/aboutUmbrafoxUserland.xhtml`.
+
+The profile-local script store is implemented in `toolkit/components/umbrafox/UmbrafoxUserlandScriptStore.sys.mjs` with xpcshell coverage. Scope derivation is implemented in `toolkit/components/umbrafox/UmbrafoxUserlandScriptScope.sys.mjs`, and the Debugger source tree can create disabled userland script records from its context menu and footer `New Script` button. Created scripts now appear under matching domain groups in a `Userland` folder, can be enabled or disabled from that tree row, and open editable stored code in the Debugger editor.
+
+The async wrapper ABI and runner primitive are implemented in `toolkit/components/umbrafox/UmbrafoxUserlandScriptRunner.sys.mjs` with xpcshell coverage. The conceptual wrapper requested for userland scripts was:
+
+```js
+(async function ({
+  window,
+  document,
+  globalThis,
+  location,
+  navigator,
+  console,
+  userland,
+}) {
+  "use strict";
+
+  // User script source is inserted here.
+});
+```
+
+JavaScript does not allow a `"use strict"` directive inside a function with a destructuring parameter, so the generated implementation uses the equivalent strict form:
+
+```js
+(async function (context) {
+  "use strict";
+  const {
+    window,
+    document,
+    globalThis,
+    location,
+    navigator,
+    console,
+    alert,
+    userland,
+  } = context;
+
+  // User script source is inserted here.
+});
+```
+
+The runner freezes the outer context object, passes the page console, provides a page-window-bound lexical `alert`, keeps `userland` lexical instead of installing it on page globals, and awaits enabled scripts sequentially.
+
+The first document-start runtime slice is implemented. Browser startup and DevTools script mutations publish the profile-local script list through process shared data, update `initialProcessData`, and mirror active state to the internal `umbrafox.userlandScripts.active` pref so already-running content processes know when scripts become enabled. `ActorManagerParent.sys.mjs` registers the `UmbrafoxUserland` JSWindowActor for browser documents. Its child actor listens for `DOMDocElementInserted`, avoids parent queries when no enabled userland scripts exist, asks the parent actor for exact-origin matching document scripts when active, and calls `UmbrafoxUserlandScriptRuntime.sys.mjs`. Matching scripts are run through the async wrapper runner with waived page references and page-window sandbox prototype lookup, while parser blocking uses the unwaived document. The runtime calls `document.blockParsing(...)` on the returned promise so parser/page script progress waits until userland scripts resolve.
+
+The first userland event slice is implemented in `toolkit/components/umbrafox/UmbrafoxUserlandEventController.sys.mjs`. Enabled document scripts can call `userland.on(...)` for `alert`, `prompt`, `confirm`, and `navigation` events. Dialog events are cancellable and can provide prompt/confirm return values. Navigation events can be cancelled or rewritten by changing `event.href`.
+
+Navigation coverage now combines the `window.open(...)` wrapper with a native docshell bridge in `docshell/base/nsDocShell.cpp`. The bridge uses an internal observer topic and mutable property bag keyed by browsing-context id, with an internal `nsDocShellLoadState` marker serialized through `dom/ipc/DOMTypes.ipdlh` to avoid duplicate dispatch. Covered paths include primary anchor/area clicks, form submits, `location.assign(...)`, `location.replace(...)`, `location.href = ...`, hash navigations, meta refresh, and docshell external-protocol paths such as `zoom://` before external protocol dispatch. HTTP/server redirects are intentionally outside the `navigation` event and should be handled by future network interception/substitution APIs. History API URL changes still need a separate hook.
+
+This first runtime slice is intentionally document-only. Worker support, network APIs, and a hardened isolated-world implementation still need to land. The current runtime must remain limited to explicit enabled user scripts and must not install Umbrafox or userland markers on page-visible globals.
 
 ## Important state note
 
@@ -64,6 +118,15 @@ On Linux, Firefox-family profiles are normally under `~/.mozilla/...`, not `~/.c
 
 When testing default prefs, use a new or temporary profile. Existing `prefs.js` values can override changed defaults.
 
+When testing changed chrome JS from a direct `dist/bin/umbrafox` launch, purge the profile startup cache after `./mach build faster` if the application `BuildID` did not change. Otherwise the profile can reuse stale bytecode for `resource://` modules even though files under `dist/bin/modules/` were updated. Use one of:
+
+```bash
+MOZ_PURGE_CACHES=1 obj-x86_64-pc-linux-gnu/dist/bin/umbrafox -no-remote -profile /absolute/path/to/profile
+rm -rf ~/.cache/umbrafox/umbrafox/<profile>/startupCache
+```
+
+This matters for userland runtime work because stale cached `UmbrafoxUserland*.sys.mjs` modules can make DevTools show an enabled script while the content actor still runs the previous implementation.
+
 ## Last verified commands
 
 The current conversion state was verified with:
@@ -73,6 +136,17 @@ The current conversion state was verified with:
 ./mach xpcshell-test browser/components/newtab/test/xpcshell/test_UmbrafoxHomeDefaults.js
 ./mach build faster
 git diff --check
+```
+
+The userland document-start/dialog/native-navigation slice was later verified with:
+
+```bash
+./mach build export
+./mach build binaries
+./mach build faster
+./mach lint toolkit/components/umbrafox docshell/base/nsDocShell.cpp docshell/base/nsDocShell.h docshell/base/nsDocShellLoadState.cpp docshell/base/nsDocShellLoadState.h dom/ipc/DOMTypes.ipdlh
+./mach test --headless toolkit/components/umbrafox/tests/browser/browser_userland_document_start.js toolkit/components/umbrafox/tests/browser/browser_userland_events.js
+./mach xpcshell-test --force toolkit/components/umbrafox/tests/xpcshell
 ```
 
 The search-engine selector test was previously verified with:

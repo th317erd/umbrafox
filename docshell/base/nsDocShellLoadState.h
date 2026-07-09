@@ -363,6 +363,14 @@ class nsDocShellLoadState final {
 
   bool IsMetaRefresh() const { return mIsMetaRefresh; }
 
+  void SetUmbrafoxUserlandNavigationHandled(bool aHandled) {
+    mUmbrafoxUserlandNavigationHandled = aHandled;
+  }
+
+  bool UmbrafoxUserlandNavigationHandled() const {
+    return mUmbrafoxUserlandNavigationHandled;
+  }
+
   const mozilla::Maybe<nsCString>& GetRemoteTypeOverride() const {
     return mRemoteTypeOverride;
   }
@@ -634,6 +642,8 @@ class nsDocShellLoadState final {
   // If this attribute is true, we need to check if the current document is
   // completely loaded to determine if we should perform a push or replace load.
   bool mNeedsCompletelyLoadedDocument;
+
+  bool mUmbrafoxUserlandNavigationHandled = false;
 
   // If this attribute is `Auto`, we should determine if this should be a push
   // or replace load when actually loading.

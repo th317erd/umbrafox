@@ -12,6 +12,8 @@ export { getDefaultUserlandScriptName, getUserlandScriptScopeForTreeItem };
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  publishUserlandScripts:
+    "resource://gre/modules/UmbrafoxUserlandScriptRegistry.sys.mjs",
   UmbrafoxUserlandScriptStore:
     "resource://gre/modules/UmbrafoxUserlandScriptStore.sys.mjs",
 });
@@ -29,9 +31,9 @@ async function getStore() {
   return storePromise;
 }
 
-function notifyStoreListeners(script) {
+function notifyStoreListeners(script, change = {}) {
   for (const listener of storeListeners) {
-    listener(script);
+    listener(script, change);
   }
 }
 
@@ -39,6 +41,10 @@ function notifySelectedScriptListeners() {
   for (const listener of selectedScriptListeners) {
     listener(selectedUserlandScript);
   }
+}
+
+function publishStore(store) {
+  lazy.publishUserlandScripts(store.listScripts());
 }
 
 export function addUserlandScriptStoreListener(listener) {
@@ -79,6 +85,7 @@ export async function createDisabledUserlandScriptForTreeItem(item, name) {
     enabled: false,
     scope,
   });
+  publishStore(store);
   notifyStoreListeners(script);
   return script;
 }
@@ -86,6 +93,7 @@ export async function createDisabledUserlandScriptForTreeItem(item, name) {
 export async function setUserlandScriptEnabled(id, enabled) {
   const store = await getStore();
   const script = store.setScriptEnabled(id, enabled);
+  publishStore(store);
   notifyStoreListeners(script);
   if (selectedUserlandScript?.id == script.id) {
     selectUserlandScript(script);
@@ -96,11 +104,27 @@ export async function setUserlandScriptEnabled(id, enabled) {
 export async function updateUserlandScriptCode(id, code) {
   const store = await getStore();
   const script = store.updateScript(id, { code });
+  publishStore(store);
   notifyStoreListeners(script);
   if (selectedUserlandScript?.id == script.id) {
     selectedUserlandScript = script;
   }
   return script;
+}
+
+export async function deleteUserlandScript(id) {
+  const store = await getStore();
+  const script = store.getScript(id);
+  if (!store.deleteScript(id)) {
+    return false;
+  }
+
+  publishStore(store);
+  notifyStoreListeners(script, { deleted: true, id });
+  if (selectedUserlandScript?.id == id) {
+    selectUserlandScript(null);
+  }
+  return true;
 }
 
 export async function promptAndCreateUserlandScriptForTreeItem(item) {

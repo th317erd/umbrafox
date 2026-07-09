@@ -77,6 +77,22 @@ html[dir="rtl"] .editor-mount {
   line-height: var(--theme-code-line-height);
 }
 
+.editor-wrapper.userland-script-selected {
+  overflow: hidden;
+}
+
+.editor-wrapper .userland-script-editor-mount {
+  width: 100%;
+  height: 100%;
+  background-color: var(--theme-body-background);
+  font-size: var(--theme-code-font-size);
+  line-height: var(--theme-code-line-height);
+}
+
+.userland-script-editor-mount .cm-editor {
+  height: 100%;
+}
+
 .theme-dark .editor-wrapper .CodeMirror-line .cm-comment {
   color: var(--theme-comment);
 }

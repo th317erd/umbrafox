@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<a id="anchor" href="/browser/toolkit/components/umbrafox/tests/browser/file_userland_order.html">go</a>
+<script>
+"use strict";
+
+window.addEventListener("DOMContentLoaded", () => {
+  document.documentElement.setAttribute("data-before-page-events", "ready");
+
+  alert("alert message");
+  document.documentElement.setAttribute(
+    "data-prompt-result",
+    prompt("prompt message", "prompt default")
+  );
+  document.documentElement.setAttribute(
+    "data-confirm-result",
+    String(confirm("confirm message"))
+  );
+
+  const popup = window.open("zoom://meeting/123");
+  document.documentElement.setAttribute(
+    "data-window-open-result",
+    popup === null ? "null" : typeof popup
+  );
+
+  document.getElementById("anchor").click();
+});
+
+window.runLocationAssignProbe = () => {
+  location.assign("#assign");
+};
+
+window.runLocationHrefProbe = () => {
+  location.href = "#href";
+};
+
+window.runLocationExternalProbe = () => {
+  location.href = "zoom://location/456";
+};
+</script>

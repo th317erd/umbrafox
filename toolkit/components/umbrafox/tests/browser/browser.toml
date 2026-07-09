@@ -1,0 +1,11 @@
+[DEFAULT]
+
+["browser_userland_document_start.js"]
+support-files = ["file_userland_order.html"]
+
+["browser_userland_events.js"]
+support-files = [
+  "file_userland_events.html",
+  "file_userland_meta_refresh.html",
+  "file_userland_order.html",
+]

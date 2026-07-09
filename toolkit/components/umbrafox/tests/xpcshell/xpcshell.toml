@@ -1,6 +1,10 @@
 [DEFAULT]
 firefox-appdir = "browser"
 
-["test_userland_script_store.js"]
+["test_userland_script_runner.js"]
+
+["test_userland_script_runtime.js"]
 
 ["test_userland_script_scope.js"]
+
+["test_userland_script_store.js"]

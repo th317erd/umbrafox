@@ -76,10 +76,7 @@ class SourceTreeItemContents extends Component {
   onContextMenu = event => {
     event.stopPropagation();
     event.preventDefault();
-    if (
-      this.props.item.type == "userland-folder" ||
-      this.props.item.type == "userland-script"
-    ) {
+    if (this.props.item.type == "userland-folder") {
       return;
     }
     this.props.showSourceTreeItemContextMenu(

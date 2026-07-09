@@ -5,9 +5,20 @@
 with Files("**"):
     BUG_COMPONENT = ("Toolkit", "General")
 
+SPHINX_TREES["/toolkit/components/umbrafox"] = "docs"
+
+with Files("docs/**"):
+    SCHEDULES.exclusive = ["docs"]
+
 EXTRA_JS_MODULES += [
+    "UmbrafoxUserlandEventController.sys.mjs",
+    "UmbrafoxUserlandScriptRegistry.sys.mjs",
+    "UmbrafoxUserlandScriptRunner.sys.mjs",
+    "UmbrafoxUserlandScriptRuntime.sys.mjs",
     "UmbrafoxUserlandScriptScope.sys.mjs",
     "UmbrafoxUserlandScriptStore.sys.mjs",
 ]
+
+BROWSER_CHROME_MANIFESTS += ["tests/browser/browser.toml"]
 
 XPCSHELL_TESTS_MANIFESTS += ["tests/xpcshell/xpcshell.toml"]

@@ -30,7 +30,7 @@ Branding channels:
 
 ## Steps
 
-### 1. Change app vendor and application ID
+### 1. Change app vendor, but keep the Firefox application ID
 
 In `browser/moz.configure`, change:
 
@@ -43,10 +43,10 @@ to:
 
 ```python
 imply_option("MOZ_APP_VENDOR", "Umbrafox")
-imply_option("MOZ_APP_ID", "{68018e80-d4dd-4f8d-baf1-a314380e40c2}")
+imply_option("MOZ_APP_ID", "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}")
 ```
 
-The ID must stay stable once users have profiles and integrations depending on it.
+The application ID must remain Firefox's canonical desktop ID. Browser startup categories, some privileged components, add-on compatibility, and other internal Firefox plumbing use this ID as a product selector. Changing it can prevent `BrowserGlue` from starting, which breaks JSWindowActor registration and leaves the address bar/search UI unusable.
 
 ### 2. Change the default app basename and executable name
 
