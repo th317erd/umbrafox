@@ -4,14 +4,19 @@
 
 const DIALOG_EVENT_TYPES = new Set(["alert", "prompt", "confirm"]);
 const NAVIGATION_EVENT_TYPE = "navigation";
+const SCRIPT_EVENT_TYPE = "script";
 const NATIVE_NAVIGATION_TOPIC = "umbrafox-userland-navigation-attempt";
+const NATIVE_SCRIPT_TOPIC = "umbrafox-userland-script-source";
 const SUPPORTED_EVENT_TYPES = new Set([
   ...DIALOG_EVENT_TYPES,
   NAVIGATION_EVENT_TYPE,
+  SCRIPT_EVENT_TYPE,
 ]);
 
 const nativeNavigationControllers = new Map();
+const nativeScriptControllers = new Map();
 let nativeNavigationObserverRegistered = false;
+let nativeScriptObserverRegistered = false;
 
 const nativeNavigationObserver = {
   observe(subject, topic) {
@@ -54,12 +59,66 @@ const nativeNavigationObserver = {
   },
 };
 
+const nativeScriptObserver = {
+  observe(subject, topic) {
+    if (topic != NATIVE_SCRIPT_TOPIC) {
+      return;
+    }
+
+    const bag = subject.QueryInterface(Ci.nsIWritablePropertyBag2);
+    const browsingContextId = bag.getPropertyAsUint64("browsingContextId");
+    const controller =
+      nativeScriptControllers.get(browsingContextId)?.deref() ?? null;
+    if (!controller) {
+      nativeScriptControllers.delete(browsingContextId);
+      return;
+    }
+    if (!controller?.hasHandlers(SCRIPT_EVENT_TYPE)) {
+      return;
+    }
+
+    const event = controller.dispatchScript({
+      source: bag.getPropertyAsAString("source"),
+      uri: bag.getPropertyAsAUTF8String("uri"),
+      kind: bag.getPropertyAsAUTF8String("kind"),
+      sourceLength: bag.getPropertyAsUint64("sourceLength"),
+      receivedLength: bag.getPropertyAsUint64("receivedLength"),
+      lineNumber: bag.getPropertyAsUint32("lineNumber"),
+      columnNumber: bag.getPropertyAsUint32("columnNumber"),
+      inline: bag.getPropertyAsBool("inline"),
+      external: bag.getPropertyAsBool("external"),
+      module: bag.getPropertyAsBool("module"),
+      parserInserted: bag.getPropertyAsBool("parserInserted"),
+      preload: bag.getPropertyAsBool("preload"),
+      native: true,
+    });
+
+    if (event.responded) {
+      event.source = getString(event.returnValue);
+    } else if (event.defaultPrevented && event.source == event.originalSource) {
+      event.source = "";
+    }
+
+    if (event.source != event.originalSource) {
+      bag.setPropertyAsAString("source", getString(event.source));
+    }
+  },
+};
+
 function ensureNativeNavigationObserver() {
   if (nativeNavigationObserverRegistered) {
     return;
   }
   nativeNavigationObserverRegistered = true;
   Services.obs.addObserver(nativeNavigationObserver, NATIVE_NAVIGATION_TOPIC);
+}
+
+function ensureNativeScriptObserver() {
+  if (nativeScriptObserverRegistered) {
+    return;
+  }
+  nativeScriptObserverRegistered = true;
+  Services.obs.addObserver(nativeScriptObserver, NATIVE_SCRIPT_TOPIC);
 }
 
 function makeInfo(script) {
@@ -135,6 +194,10 @@ class UserlandCancellableEvent {
     this._responded = true;
     this.preventDefault();
   }
+
+  get responded() {
+    return this._responded;
+  }
 }
 
 /**
@@ -203,6 +266,10 @@ export class UmbrafoxUserlandEventController {
     }
     if (type == NAVIGATION_EVENT_TYPE) {
       this.installNavigationHooks();
+      return;
+    }
+    if (type == SCRIPT_EVENT_TYPE) {
+      this.installScriptHook();
     }
   }
 
@@ -296,6 +363,27 @@ export class UmbrafoxUserlandEventController {
       ...fields,
       href,
       originalHref: href,
+    });
+  }
+
+  installScriptHook() {
+    const browsingContextId = this.browsingContextId;
+    if (!browsingContextId) {
+      return;
+    }
+
+    ensureNativeScriptObserver();
+    nativeScriptControllers.set(browsingContextId, new WeakRef(this));
+  }
+
+  dispatchScript(fields) {
+    const source = getString(fields.source);
+    return this.dispatch(SCRIPT_EVENT_TYPE, {
+      ...fields,
+      source,
+      originalSource: source,
+      url: fields.uri,
+      size: fields.sourceLength,
     });
   }
 

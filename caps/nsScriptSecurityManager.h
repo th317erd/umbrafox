@@ -93,6 +93,11 @@ class nsScriptSecurityManager final : public nsIScriptSecurityManager {
       JS::Handle<JS::StackGCVector<JS::Value>> aParameterArgs,
       JS::Handle<JS::Value> aBodyArg, bool* aOutCanCompileStrings);
 
+  MOZ_CAN_RUN_SCRIPT static bool ApplyUmbrafoxUserlandRuntimeScriptSourceEvent(
+      JSContext* aCx, JS::RuntimeCode aKind,
+      JS::MutableHandle<JSString*> aCodeString,
+      JS::CompilationType aCompilationType);
+
   static bool JSPrincipalsSubsume(JSPrincipals* first, JSPrincipals* second);
 
   nsresult Init();

@@ -1,6 +1,6 @@
 # Userland scripts architecture
 
-Status: architecture note. The profile-local storage slice, source-tree scope derivation, Debugger context-menu creation path, Debugger footer creation path, domain-scoped `Userland` source-tree folders, source-tree enable checkbox, CodeMirror-backed editable Debugger code surface, async userland wrapper runner, first document-start parser-blocking runtime hook, first document-level userland dialog events, and first docshell-backed navigation events exist. Worker support, network APIs, history API interception, and stronger isolated-world hardening are not implemented yet. HTTP/server redirects are intentionally reserved for future network interception/substitution APIs rather than the `navigation` event.
+Status: architecture note. The profile-local storage slice, source-tree scope derivation, Debugger context-menu creation path, Debugger footer creation path, domain-scoped `Userland` source-tree folders, source-tree enable checkbox, CodeMirror-backed editable Debugger code surface, async userland wrapper runner, first document-start parser-blocking runtime hook, first document-level userland dialog events, first docshell-backed navigation events, and first script-source mutation events exist. Worker support, network APIs, history API interception, and stronger isolated-world hardening are not implemented yet. HTTP/server redirects are intentionally reserved for future network interception/substitution APIs rather than the `navigation` event.
 
 This feature lets users create named scripts from DevTools, persist them in the active profile, and run them in isolated userland worlds for a matching site/thread before normal page JavaScript executes.
 
@@ -78,7 +78,7 @@ For documents, the current first path is:
 6. `UmbrafoxUserlandScriptRuntime.sys.mjs` calls `document.blockParsing(promise, { blockScriptCreated: false })` on the unwaived document while the promised script list is fetched and matching wrappers run.
 7. The runtime evaluates wrappers with waived page references for `window`, `document`, `globalThis`, `location`, and `navigator`, passes the page `console`, binds bare `alert` to the page window, and uses the page window as the sandbox prototype so ordinary page global lookup works for explicit user scripts. The `userland` binding remains lexical and off page globals.
 8. Page parser/script progress is released only after all matching enabled userland scripts resolve.
-9. If a script registers dialog or navigation listeners through `userland.on(...)`, `UmbrafoxUserlandEventController.sys.mjs` installs per-document hooks for explicit userland control. Dialogs are handled by page-global replacements. Navigation combines a `window.open(...)` wrapper with a native docshell observer bridge keyed by browsing-context id.
+9. If a script registers dialog, navigation, or script-source listeners through `userland.on(...)`, `UmbrafoxUserlandEventController.sys.mjs` installs per-document hooks for explicit userland control. Dialogs are handled by page-global replacements. Navigation combines a `window.open(...)` wrapper with a native docshell observer bridge keyed by browsing-context id. Script source mutation combines a native DOM script-loader observer bridge with pre-compile source replacement.
 
 The next hardening step is replacing the current system-principal wrapper sandbox with a browser-owned isolated world closer to Firefox WebExtension user-script sandboxes while preserving page-like global lookup. The current path is intentionally limited to explicit enabled user scripts and must not install any Umbrafox or userland marker on page globals.
 
@@ -156,6 +156,7 @@ Current supported event types:
 - `prompt`
 - `confirm`
 - `navigation`
+- `script`
 
 Handlers receive a synchronous cancellable event object:
 
@@ -180,6 +181,12 @@ userland.on("navigation", event => {
   }
   event.href = new URL("/rewritten", location.href).href;
 });
+
+userland.on("script", event => {
+  if (event.uri.endsWith("/app.js")) {
+    event.source = event.source.replace("debug = false", "debug = true");
+  }
+});
 ```
 
 Implemented navigation event sources:
@@ -199,6 +206,28 @@ Native navigation implementation details:
 - `nsDocShellLoadState` carries an internal `UmbrafoxUserlandNavigationHandled` marker, serialized through `DocShellLoadStateInit`, to avoid double dispatch across link/form and `InternalLoad` paths.
 
 Intentional boundary: HTTP/server redirects are network-channel behavior, not user-facing navigation-decision behavior. They should be handled by future network interception/substitution APIs instead of the `navigation` event. History API URL changes still need a separate hook because they do not create normal docshell loads. A JS `nsIContentPolicy` attempt did not catch the `location.assign(...)` path in the browser test and was not kept.
+
+Implemented script-source event sources:
+
+- DOM document classic scripts.
+- DOM document JavaScript modules.
+- Inline and external DOM script source that reaches Gecko's DOM script compile paths.
+- Direct eval source.
+- Indirect eval source.
+- Function constructor body source.
+
+The `script` event currently includes `source`, `originalSource`, `uri`, `url`, `kind`, `size`, `sourceLength`, `receivedLength`, `lineNumber`, `columnNumber`, `inline`, `external`, `module`, `parserInserted`, `preload`, and `native`. Setting `event.source` rewrites the source before Gecko compiles it. `respondWith(source)` also replaces the source. Calling `preventDefault()` without a replacement substitutes an empty script.
+
+Native script-source implementation details:
+
+- `ScriptLoader::MaybeApplyUmbrafoxUserlandScriptSourceEvent(...)` emits an internal observer notification after source is available and before `CompileGlobalScriptToStencil(...)` or `CompileModuleScriptToStencil(...)`.
+- `JSRuntimeCodeSourceTransform` is an Umbrafox-added SpiderMonkey host callback invoked from direct eval, indirect eval, and Function-constructor body compilation before source is compiled.
+- `nsScriptSecurityManager::ApplyUmbrafoxUserlandRuntimeScriptSourceEvent(...)` bridges that callback into the same internal observer topic used by DOM script loads.
+- The observer subject is an internal mutable property bag with source text, URI, script kind, browsing-context id, length fields, line/column metadata, and inline/module/parser/preload booleans.
+- The content-process event controller looks up the active document controller by browsing-context id, dispatches `userland.on("script", ...)`, and writes back rewritten `source`.
+- `ScriptLoader::TryUseCache(...)`, `StartLoadInternal(...)`, and `CalculateCacheFlag(...)` avoid compiled stencil cache bypasses while userland scripts are active, so source events are not skipped and mutated compiled stencils are not reused without userland.
+
+Intentional boundary: worker scripts, worklets, import maps, JSON modules, CSS modules, and WebAssembly modules are not covered by the current script-source event slice. The existing CSP/runtime-codegen callback remains boolean-only and is still used only for CSP/codegen policy decisions; source rewriting uses a separate mutable host callback.
 
 Follow-up APIs can cover:
 

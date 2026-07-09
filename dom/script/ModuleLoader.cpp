@@ -315,6 +315,9 @@ nsresult ModuleLoader::CompileJavaScriptOrWasmModule(
     nsresult rv = aRequest->GetScriptSource(aCx, &maybeSource,
                                             aRequest->mLoadContext.get());
     NS_ENSURE_SUCCESS(rv, rv);
+    rv = GetScriptLoader()->MaybeApplyUmbrafoxUserlandScriptSourceEvent(
+        aCx, aRequest, &maybeSource);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     auto compile = [&](auto& source) {
       return JS::CompileModuleScriptToStencil(aCx, aOptions, source);

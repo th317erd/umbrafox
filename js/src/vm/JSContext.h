@@ -883,6 +883,10 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
       JS::Handle<JS::StackGCVector<JS::Value>> parameterArgs,
       JS::Handle<JS::Value> bodyArg, bool* outCanCompileStrings);
 
+  bool transformRuntimeCodeSource(JS::RuntimeCode kind,
+                                  JS::MutableHandle<JSString*> codeString,
+                                  JS::CompilationType compilationType);
+
   // Get code to be used by eval for Object argument.
   bool getCodeForEval(JS::HandleObject code,
                       JS::MutableHandle<JSString*> outCode);

@@ -1,0 +1,1 @@
+window.externalScriptValue = "original-external";

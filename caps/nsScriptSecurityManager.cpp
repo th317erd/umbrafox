@@ -46,13 +46,17 @@
 #include "nsDOMJSUtils.h"
 #include "nsAboutProtocolUtils.h"
 #include "nsIClassInfo.h"
+#include "nsComponentManagerUtils.h"
 #include "nsIURIFixup.h"
 #include "nsIURIMutator.h"
 #include "nsIChromeRegistry.h"
 #include "nsIResProtocolHandler.h"
 #include "nsIContentSecurityPolicy.h"
+#include "nsIObserverService.h"
+#include "nsIWritablePropertyBag2.h"
 #include "mozilla/Components.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/Services.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/NullPrincipal.h"
 #include <stdint.h>
@@ -73,6 +77,7 @@
 #include "nsILoadInfo.h"
 #include "js/ColumnNumber.h"  // JS::ColumnNumberOneOrigin
 #include "js/GCVector.h"
+#include "js/String.h"
 #include "js/Value.h"
 
 // This should be probably defined on some other place... but I couldn't find it
@@ -85,6 +90,31 @@ StaticRefPtr<nsIIOService> nsScriptSecurityManager::sIOService;
 std::atomic<bool> nsScriptSecurityManager::sStrictFileOriginPolicy = true;
 
 namespace {
+
+static constexpr char kUmbrafoxUserlandScriptsActivePref[] =
+    "umbrafox.userlandScripts.active";
+static constexpr char kUmbrafoxUserlandScriptSourceTopic[] =
+    "umbrafox-userland-script-source";
+
+static bool UmbrafoxUserlandScriptsActive() {
+  return Preferences::GetBool(kUmbrafoxUserlandScriptsActivePref, false);
+}
+
+static const char* UmbrafoxRuntimeScriptKindName(
+    JS::CompilationType aCompilationType) {
+  switch (aCompilationType) {
+    case JS::CompilationType::DirectEval:
+      return "direct-eval";
+    case JS::CompilationType::IndirectEval:
+      return "indirect-eval";
+    case JS::CompilationType::Function:
+      return "function";
+    case JS::CompilationType::Undefined:
+      return "runtime";
+  }
+  MOZ_ASSERT_UNREACHABLE("Unhandled runtime script compilation type");
+  return "runtime";
+}
 
 class BundleHelper {
  public:
@@ -572,6 +602,94 @@ bool nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
   }
 
   *aOutCanCompileStrings = evalOK;
+  return true;
+}
+
+bool nsScriptSecurityManager::ApplyUmbrafoxUserlandRuntimeScriptSourceEvent(
+    JSContext* aCx, JS::RuntimeCode aKind,
+    JS::MutableHandle<JSString*> aCodeString,
+    JS::CompilationType aCompilationType) {
+  MOZ_ASSERT(aCx == nsContentUtils::GetCurrentJSContext());
+
+  if (aKind != JS::RuntimeCode::JS || !aCodeString.get() ||
+      !UmbrafoxUserlandScriptsActive()) {
+    return true;
+  }
+
+  nsGlobalWindowInner* win = xpc::CurrentWindowOrNull(aCx);
+  if (!win) {
+    return true;
+  }
+
+  BrowsingContext* browsingContext = win->GetBrowsingContext();
+  if (!browsingContext) {
+    return true;
+  }
+
+  nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
+  if (!obsService ||
+      !obsService->HasObservers(kUmbrafoxUserlandScriptSourceTopic)) {
+    return true;
+  }
+
+  nsAutoJSString source;
+  if (!source.init(aCx, aCodeString)) {
+    return false;
+  }
+  nsAutoString updatedSource(source);
+
+  nsCOMPtr<nsIWritablePropertyBag2> bag =
+      do_CreateInstance("@mozilla.org/hash-property-bag;1");
+  if (!bag) {
+    JS_ReportOutOfMemory(aCx);
+    return false;
+  }
+
+  JSCallingLocation caller = JSCallingLocation::Get(aCx);
+  nsresult rv = bag->SetPropertyAsAString(u"source"_ns, source);
+  NS_ENSURE_SUCCESS(rv, false);
+  rv = bag->SetPropertyAsAUTF8String(u"uri"_ns, caller.FileName());
+  NS_ENSURE_SUCCESS(rv, false);
+  rv = bag->SetPropertyAsAUTF8String(
+      u"kind"_ns,
+      nsDependentCString(UmbrafoxRuntimeScriptKindName(aCompilationType)));
+  NS_ENSURE_SUCCESS(rv, false);
+  rv = bag->SetPropertyAsUint64(u"browsingContextId"_ns, browsingContext->Id());
+  NS_ENSURE_SUCCESS(rv, false);
+  rv = bag->SetPropertyAsUint64(u"sourceLength"_ns, source.Length());
+  NS_ENSURE_SUCCESS(rv, false);
+  rv = bag->SetPropertyAsUint64(u"receivedLength"_ns, source.Length());
+  NS_ENSURE_SUCCESS(rv, false);
+  rv = bag->SetPropertyAsUint32(u"lineNumber"_ns, caller.mLine);
+  NS_ENSURE_SUCCESS(rv, false);
+  rv = bag->SetPropertyAsUint32(u"columnNumber"_ns, caller.mColumn);
+  NS_ENSURE_SUCCESS(rv, false);
+  rv = bag->SetPropertyAsBool(u"inline"_ns, false);
+  NS_ENSURE_SUCCESS(rv, false);
+  rv = bag->SetPropertyAsBool(u"external"_ns, false);
+  NS_ENSURE_SUCCESS(rv, false);
+  rv = bag->SetPropertyAsBool(u"module"_ns, false);
+  NS_ENSURE_SUCCESS(rv, false);
+  rv = bag->SetPropertyAsBool(u"parserInserted"_ns, false);
+  NS_ENSURE_SUCCESS(rv, false);
+  rv = bag->SetPropertyAsBool(u"preload"_ns, false);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  obsService->NotifyObservers(bag, kUmbrafoxUserlandScriptSourceTopic, nullptr);
+
+  rv = bag->GetPropertyAsAString(u"source"_ns, updatedSource);
+  NS_ENSURE_SUCCESS(rv, false);
+  if (updatedSource.Equals(source)) {
+    return true;
+  }
+
+  JSString* updated = JS_NewUCStringCopyN(aCx, updatedSource.BeginReading(),
+                                          updatedSource.Length());
+  if (!updated) {
+    return false;
+  }
+
+  aCodeString.set(updated);
   return true;
 }
 
@@ -1571,6 +1689,7 @@ void nsScriptSecurityManager::InitJSCallbacks(JSContext* aCx) {
       ContentSecurityPolicyPermitsJSAction,
       TrustedTypeUtils::HostGetCodeForEval,
       JSPrincipalsSubsume,
+      ApplyUmbrafoxUserlandRuntimeScriptSourceEvent,
   };
 
   MOZ_ASSERT(!JS_GetSecurityCallbacks(aCx));

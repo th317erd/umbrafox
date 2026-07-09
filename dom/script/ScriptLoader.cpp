@@ -36,6 +36,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Mutex.h"  // mozilla::Mutex
+#include "mozilla/Preferences.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_browser.h"
@@ -70,6 +71,7 @@
 #include "mozilla/net/HttpBaseChannel.h"
 #include "nsAboutProtocolUtils.h"
 #include "nsCRT.h"
+#include "nsComponentManagerUtils.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsContentPolicyUtils.h"
 #include "nsContentSecurityManager.h"
@@ -96,6 +98,7 @@
 #include "nsISupportsPriority.h"
 #include "nsITimedChannel.h"
 #include "nsITimer.h"
+#include "nsIWritablePropertyBag2.h"
 #include "nsJSPrincipals.h"
 #include "nsJSUtils.h"
 #include "nsNetUtil.h"
@@ -124,6 +127,67 @@ LazyLogModule ScriptLoader::gScriptLoaderLog("ScriptLoader");
 // Alternate Data MIME type used by the ScriptLoader to register that we want to
 // store the disk cache without reading it.
 static constexpr auto kNullMimeType = "javascript/null"_ns;
+static constexpr char kUmbrafoxUserlandScriptsActivePref[] =
+    "umbrafox.userlandScripts.active";
+static constexpr char kUmbrafoxUserlandScriptSourceTopic[] =
+    "umbrafox-userland-script-source";
+
+static bool UmbrafoxUserlandScriptsActive() {
+  return mozilla::Preferences::GetBool(kUmbrafoxUserlandScriptsActivePref,
+                                       false);
+}
+
+static void CopySourceTextToString(
+    const ScriptLoader::MaybeSourceText& aMaybeSource, nsAString& aSource) {
+  if (aMaybeSource.constructed<JS::SourceText<char16_t>>()) {
+    const JS::SourceText<char16_t>& source =
+        aMaybeSource.ref<JS::SourceText<char16_t>>();
+    aSource.Assign(source.get(), source.length());
+    return;
+  }
+
+  const JS::SourceText<Utf8Unit>& source =
+      aMaybeSource.ref<JS::SourceText<Utf8Unit>>();
+  CopyUTF8toUTF16(nsDependentCSubstring(source.get(), source.length()),
+                  aSource);
+}
+
+static nsresult ReplaceSourceTextFromString(
+    JSContext* aCx, const nsAString& aSource,
+    ScriptLoader::MaybeSourceText* aMaybeSource) {
+  JS::UniqueTwoByteChars chars;
+  if (!aSource.IsEmpty()) {
+    size_t nbytes = aSource.Length() * sizeof(char16_t);
+    chars.reset(static_cast<char16_t*>(JS_malloc(aCx, nbytes)));
+    if (!chars) {
+      JS_ReportOutOfMemory(aCx);
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    memcpy(chars.get(), aSource.BeginReading(), nbytes);
+  }
+
+  JS::SourceText<char16_t> source;
+  if (!source.init(aCx, std::move(chars), aSource.Length())) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  aMaybeSource->destroyIfConstructed();
+  aMaybeSource->construct<JS::SourceText<char16_t>>(std::move(source));
+  return NS_OK;
+}
+
+static const char* UmbrafoxScriptKindName(ScriptLoadRequest* aRequest) {
+  if (aRequest->IsModuleRequest()) {
+    return "module";
+  }
+  if (aRequest->IsImportMapRequest()) {
+    return "importmap";
+  }
+  if (aRequest->IsSpeculationRulesRequest()) {
+    return "speculationrules";
+  }
+  return "classic";
+}
 
 /////////////////////////////////////////////////////////////
 // ShutdownAndMemoryPressureObserver
@@ -386,6 +450,74 @@ bool ScriptLoader::WAICTHandlesScripts() const {
          policy->ShouldHandle(IntegrityPolicy::DestinationType::Script);
 }
 #endif
+
+nsresult ScriptLoader::MaybeApplyUmbrafoxUserlandScriptSourceEvent(
+    JSContext* aCx, ScriptLoadRequest* aRequest,
+    MaybeSourceText* aMaybeSource) {
+  if (!UmbrafoxUserlandScriptsActive() || !mDocument || !aRequest ||
+      !aMaybeSource || aMaybeSource->empty()) {
+    return NS_OK;
+  }
+
+  BrowsingContext* browsingContext = mDocument->GetBrowsingContext();
+  if (!browsingContext) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
+  if (!obsService ||
+      !obsService->HasObservers(kUmbrafoxUserlandScriptSourceTopic)) {
+    return NS_OK;
+  }
+
+  nsAutoString source;
+  CopySourceTextToString(*aMaybeSource, source);
+  nsAutoString updatedSource(source);
+
+  nsCOMPtr<nsIWritablePropertyBag2> bag =
+      do_CreateInstance("@mozilla.org/hash-property-bag;1");
+  if (!bag) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  nsAutoCString uri;
+  if (nsIURI* requestURI = aRequest->URI()) {
+    MOZ_TRY(requestURI->GetSpec(uri));
+  }
+
+  ScriptLoadContext* context = aRequest->GetScriptLoadContext();
+  MOZ_TRY(bag->SetPropertyAsAString(u"source"_ns, source));
+  MOZ_TRY(bag->SetPropertyAsAUTF8String(u"uri"_ns, uri));
+  MOZ_TRY(bag->SetPropertyAsAUTF8String(
+      u"kind"_ns, nsDependentCString(UmbrafoxScriptKindName(aRequest))));
+  MOZ_TRY(
+      bag->SetPropertyAsUint64(u"browsingContextId"_ns, browsingContext->Id()));
+  MOZ_TRY(bag->SetPropertyAsUint64(u"sourceLength"_ns, source.Length()));
+  MOZ_TRY(bag->SetPropertyAsUint64(u"receivedLength"_ns,
+                                   aRequest->IsFetchedAsTextSource()
+                                       ? aRequest->ReceivedScriptTextLength()
+                                       : source.Length()));
+  MOZ_TRY(bag->SetPropertyAsUint32(u"lineNumber"_ns, context->mLineNo));
+  MOZ_TRY(bag->SetPropertyAsUint32(u"columnNumber"_ns,
+                                   context->mColumnNo.oneOriginValue()));
+  MOZ_TRY(bag->SetPropertyAsBool(u"inline"_ns, context->mIsInline));
+  MOZ_TRY(bag->SetPropertyAsBool(u"external"_ns, !context->mIsInline));
+  MOZ_TRY(bag->SetPropertyAsBool(u"module"_ns, aRequest->IsModuleRequest()));
+  MOZ_TRY(bag->SetPropertyAsBool(
+      u"parserInserted"_ns,
+      aRequest->ParserMetadata() == ParserMetadata::ParserInserted));
+  MOZ_TRY(bag->SetPropertyAsBool(u"preload"_ns, context->IsPreload()));
+
+  (void)obsService->NotifyObservers(bag, kUmbrafoxUserlandScriptSourceTopic,
+                                    nullptr);
+
+  MOZ_TRY(bag->GetPropertyAsAString(u"source"_ns, updatedSource));
+  if (updatedSource.Equals(source)) {
+    return NS_OK;
+  }
+
+  return ReplaceSourceTextFromString(aCx, updatedSource, aMaybeSource);
+}
 
 void ScriptLoader::RegisterContentScriptModuleLoader(ModuleLoader* aLoader) {
   MOZ_ASSERT(aLoader);
@@ -1085,6 +1217,9 @@ nsresult ScriptLoader::StartLoadInternal(
     aRequest->mFetchSourceOnly = true;
   }
 #endif
+  if (UmbrafoxUserlandScriptsActive()) {
+    aRequest->mFetchSourceOnly = true;
+  }
 
   ScriptLoader::PrepareCacheInfoChannel(channel, aRequest);
 
@@ -1285,6 +1420,17 @@ void ScriptLoader::TryUseCache(ReferrerPolicy aReferrerPolicy,
     LOG(
         ("ScriptLoader (%p): Created LoadedScript (%p) for "
          "ScriptLoadRequest(%p) because inline %s.",
+         this, aRequest->getLoadedScript(), aRequest,
+         aRequest->URI()->GetSpecOrDefault().get()));
+    return;
+  }
+
+  if (UmbrafoxUserlandScriptsActive()) {
+    aRequest->NoCacheEntryFound(aReferrerPolicy, aFetchOptions, aURI);
+    LOG(
+        ("ScriptLoader (%p): Created LoadedScript (%p) for "
+         "ScriptLoadRequest(%p) because Umbrafox userland scripts are active "
+         "%s.",
          this, aRequest->getLoadedScript(), aRequest,
          aRequest->URI()->GetSpecOrDefault().get()));
     return;
@@ -2572,6 +2718,8 @@ nsresult ScriptLoader::CreateOffThreadTask(
   nsresult rv = aRequest->GetScriptSource(aCx, &maybeSource,
                                           aRequest->mLoadContext.get());
   NS_ENSURE_SUCCESS(rv, rv);
+  rv = MaybeApplyUmbrafoxUserlandScriptSourceEvent(aCx, aRequest, &maybeSource);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   if (ShouldApplyDelazifyStrategy(aRequest)) {
     ApplyDelazifyStrategy(&aOptions);
@@ -3000,6 +3148,15 @@ void ScriptLoader::CalculateCacheFlag(ScriptLoadRequest* aRequest) {
     return;
   }
 #endif
+  if (UmbrafoxUserlandScriptsActive()) {
+    LOG(
+        ("ScriptLoadRequest (%p): Bytecode-cache: Skip all: Umbrafox "
+         "userland scripts are active",
+         aRequest));
+    aRequest->MarkNotCacheable();
+    aRequest->getLoadedScript()->DropDiskCacheReference();
+    return;
+  }
 
   if (aRequest->GetScriptLoadContext()->mIsInline) {
     LOG(("ScriptLoadRequest (%p): Bytecode-cache: Skip all: Inline script",
@@ -3590,6 +3747,10 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
     MaybeSourceText maybeSource;
     aRv = aRequest->GetScriptSource(aCx, &maybeSource,
                                     aRequest->mLoadContext.get());
+    if (!aRv.Failed()) {
+      aRv = MaybeApplyUmbrafoxUserlandScriptSourceEvent(aCx, aRequest,
+                                                        &maybeSource);
+    }
     if (!aRv.Failed()) {
       RefPtr<JS::Stencil> stencil;
       ErrorResult erv;

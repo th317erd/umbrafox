@@ -8,4 +8,7 @@ support-files = [
   "file_userland_events.html",
   "file_userland_meta_refresh.html",
   "file_userland_order.html",
+  "file_userland_runtime_script_event.html",
+  "file_userland_script_event.html",
+  "file_userland_script_event.js",
 ]

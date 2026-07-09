@@ -156,7 +156,8 @@ const stop = userland.on("alert", event => {
 stop();
 ```
 
-Supported event types are `alert`, `prompt`, `confirm`, and `navigation`.
+Supported event types are `alert`, `prompt`, `confirm`, `navigation`, and
+`script`.
 
 ## Cancellable events
 
@@ -283,6 +284,55 @@ Current navigation coverage includes:
 HTTP/server redirects are intentionally outside the `navigation` event. They
 are network-channel behavior and should be handled by future network
 interception and substitution APIs. History API URL changes are not covered yet.
+
+### Script source events
+
+Script events fire for DOM document classic scripts, JavaScript modules, direct
+eval, indirect eval, and Function constructor bodies after the source is
+available and before Gecko compiles it. Handlers can mutate `event.source` to
+replace the source that the engine compiles:
+
+```js
+userland.on("script", event => {
+  if (event.uri.endsWith("/app.js")) {
+    event.source = event.source.replace("debug = false", "debug = true");
+  }
+});
+```
+
+Calling `event.respondWith(source)` replaces the source. Calling
+`event.preventDefault()` without a replacement substitutes an empty script,
+which preserves script load completion while removing script behavior.
+
+Script events expose:
+
+```js
+{
+  source,
+  originalSource,
+  uri,
+  url,
+  kind,
+  size,
+  sourceLength,
+  receivedLength,
+  lineNumber,
+  columnNumber,
+  inline,
+  external,
+  module,
+  parserInserted,
+  preload,
+  native,
+}
+```
+
+`size` is an alias for `sourceLength`. `kind` is `classic`, `module`,
+`direct-eval`, `indirect-eval`, or `function` for currently covered sources.
+Function constructor events expose and mutate the body source argument, not the
+synthesized wrapper that Gecko builds around it. Worker scripts, worklets,
+import maps, JSON modules, CSS modules, and WebAssembly modules need separate
+hooks.
 
 ## Detectability model
 

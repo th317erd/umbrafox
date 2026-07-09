@@ -132,10 +132,23 @@ typedef bool (*JSCSPEvalChecker)(
 typedef bool (*JSCodeForEvalOp)(JSContext* cx, JS::HandleObject code,
                                 JS::MutableHandle<JSString*> outCode);
 
+/*
+ * Give the browser a chance to replace runtime-generated JavaScript source
+ * before it is compiled.
+ *
+ * Return false on failure, true on success. The |codeString| parameter should
+ * not be modified in case of failure.
+ */
+typedef bool (*JSRuntimeCodeSourceTransform)(
+    JSContext* cx, JS::RuntimeCode kind,
+    JS::MutableHandle<JSString*> codeString,
+    JS::CompilationType compilationType);
+
 struct JSSecurityCallbacks {
   JSCSPEvalChecker contentSecurityPolicyAllows;
   JSCodeForEvalOp codeForEvalGets;
   JSSubsumesOp subsumes;
+  JSRuntimeCodeSourceTransform runtimeCodeSourceTransform;
 };
 
 extern JS_PUBLIC_API void JS_SetSecurityCallbacks(

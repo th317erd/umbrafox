@@ -1,6 +1,6 @@
 # Userland scripts recipe
 
-Status: incremental feature recipe. The profile-local storage, scope derivation, Debugger context-menu creation, Debugger footer creation, domain-scoped source-tree visibility, source-tree enable checkbox, CodeMirror-backed editable code surface, async wrapper runner, first document-start parser-blocking runtime slice, dialog events, and first docshell-backed navigation events exist; see `../03-userland-scripts-architecture.md` before implementing additional slices.
+Status: incremental feature recipe. The profile-local storage, scope derivation, Debugger context-menu creation, Debugger footer creation, domain-scoped source-tree visibility, source-tree enable checkbox, CodeMirror-backed editable code surface, async wrapper runner, first document-start parser-blocking runtime slice, dialog events, first docshell-backed navigation events, and first script-source mutation events exist; see `../03-userland-scripts-architecture.md` before implementing additional slices.
 
 ## Goal
 
@@ -45,6 +45,9 @@ Expected implementation areas:
 - `docshell/base/nsDocShellLoadState.cpp`
 - `docshell/base/nsDocShellLoadState.h`
 - `dom/ipc/DOMTypes.ipdlh`
+- `dom/script/ScriptLoader.cpp`
+- `dom/script/ScriptLoader.h`
+- `dom/script/ModuleLoader.cpp`
 - `toolkit/components/umbrafox/docs/`
 - `browser/base/content/aboutUmbrafoxUserland.xhtml`
 - `browser/base/content/aboutUmbrafoxUserland.css`
@@ -77,6 +80,8 @@ Expected implementation areas:
 19. Add network interception APIs only after isolated script timing is proven.
 20. Keep the user-facing documentation in `toolkit/components/umbrafox/docs/userland.md` aligned with the actual runtime API and known limitations.
 21. Keep `about:umbrafox-userland` aligned with the canonical docs when the user-facing API changes.
+22. Keep `userland.on("script", ...)` source mutation gated behind active userland scripts and native observers so Firefox-equivalent behavior remains the default.
+23. Keep compiled script caches disabled while userland scripts are active, otherwise a rewritten stencil can be reused without the userland handler or a cached stencil can bypass the source event.
 
 ## Wrapper ABI
 
@@ -131,6 +136,9 @@ userland.on("confirm", event => event.respondWith(false));
 userland.on("navigation", event => {
   event.href = new URL("/replacement", location.href).href;
 });
+userland.on("script", event => {
+  event.source = event.source.replace("original", "replacement");
+});
 ```
 
 Implemented navigation sources are:
@@ -143,6 +151,14 @@ Implemented navigation sources are:
 The docshell hook is internal and synchronous. It uses an observer topic named `umbrafox-userland-navigation-attempt` with an internal mutable property bag keyed by browsing-context id. `UmbrafoxUserlandEventController.sys.mjs` registers active per-document controllers in the content process using weak references, dispatches the userland `navigation` event, and writes `cancelled` or rewritten `href` back into the property bag before docshell continues. `nsDocShellLoadState` carries an internal `UmbrafoxUserlandNavigationHandled` marker, serialized through `DocShellLoadStateInit`, to avoid duplicate events when a link/form path later re-enters `InternalLoad`.
 
 Do not document this as total navigation coverage yet. HTTP/server redirects are intentionally outside the `navigation` event because they are network-channel behavior; handle them later through network interception/substitution APIs. History API URL changes also still need a separate hook because they do not create normal docshell loads. A JS content-policy attempt did not catch `location.assign(...)` in browser coverage and was not kept.
+
+Implemented script-source event sources are DOM document classic scripts and DOM document JavaScript modules, both inline and external, that reach the DOM script loader compile paths, plus direct eval, indirect eval, and Function constructor body source. The DOM hook is `ScriptLoader::MaybeApplyUmbrafoxUserlandScriptSourceEvent(...)`, called from off-thread compile setup, main-thread classic compile, and main-thread module compile. Runtime-generated source uses the Umbrafox-added `JSRuntimeCodeSourceTransform` host callback, invoked by eval and Function-constructor compile paths and bridged by `nsScriptSecurityManager::ApplyUmbrafoxUserlandRuntimeScriptSourceEvent(...)`. Both paths use an internal observer topic named `umbrafox-userland-script-source` with a mutable property bag keyed by browsing-context id. `UmbrafoxUserlandEventController.sys.mjs` dispatches `userland.on("script", ...)` and writes rewritten `source` back before Gecko compiles it.
+
+The script event exposes source text plus metadata: `uri`, `kind`, `size`, `sourceLength`, `receivedLength`, `lineNumber`, `columnNumber`, `inline`, `external`, `module`, `parserInserted`, `preload`, and `native`. Setting `event.source` or calling `respondWith(source)` replaces the compiled source. Calling `preventDefault()` without a replacement substitutes an empty script.
+
+While userland scripts are active, `TryUseCache(...)`, `StartLoadInternal(...)`, and `CalculateCacheFlag(...)` avoid compiled-cache bypasses and mutated-stencil reuse. This is required so source events are not skipped and rewritten compiled scripts do not leak into later Firefox-equivalent browsing.
+
+Do not document this as total script coverage yet. Worker scripts, worklets, import maps, JSON modules, CSS modules, and WebAssembly modules need separate hooks. Keep the existing runtime-codegen host callback boolean-only for CSP/codegen policy decisions; source rewriting belongs in the separate mutable SpiderMonkey host callback.
 
 ## Verification commands
 
@@ -176,6 +192,15 @@ For the docshell navigation slice, the focused verification used:
 ./mach xpcshell-test --force toolkit/components/umbrafox/tests/xpcshell
 ```
 
+For the script-source event slice, include:
+
+```bash
+./mach build binaries
+./mach build faster
+./mach lint toolkit/components/umbrafox dom/script/ScriptLoader.cpp dom/script/ScriptLoader.h dom/script/ModuleLoader.cpp caps/nsScriptSecurityManager.cpp caps/nsScriptSecurityManager.h js/public/Principals.h js/src/vm/JSContext.cpp js/src/vm/JSContext.h js/src/builtin/Eval.cpp js/src/vm/JSFunction.cpp browser/base/content/aboutUmbrafoxUserland.xhtml browser/locales/en-US/browser/aboutUmbrafoxUserland.ftl
+./mach test --headless toolkit/components/umbrafox/tests/browser/browser_userland_events.js
+```
+
 ## Rebase notes
 
 During upstream updates, inspect conflicts in:
@@ -188,6 +213,8 @@ During upstream updates, inspect conflicts in:
 - `ExtensionContent.sys.mjs` document_start and sandbox creation logic.
 - `docshell/base/nsDocShell.cpp` and `nsDocShellLoadState` when upstream changes navigation or external protocol plumbing.
 - `dom/ipc/DOMTypes.ipdlh` if upstream changes `DocShellLoadStateInit`.
+- `dom/script/ScriptLoader.cpp`, `dom/script/ScriptLoader.h`, and `dom/script/ModuleLoader.cpp` when upstream changes script source retrieval, bytecode cache policy, off-thread compile setup, or module compile paths.
+- `js/public/Principals.h`, `js/src/vm/JSContext.cpp`, `js/src/vm/JSContext.h`, `js/src/builtin/Eval.cpp`, `js/src/vm/JSFunction.cpp`, `caps/nsScriptSecurityManager.cpp`, and `caps/nsScriptSecurityManager.h` when upstream changes JS security callbacks, eval, Function constructors, or runtime-codegen policy.
 - any new tests that assert user-script ordering.
 
 If upstream changes document_start semantics, stop and redo the timing proof before carrying the patch forward.

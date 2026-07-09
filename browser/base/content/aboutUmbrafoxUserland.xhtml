@@ -103,6 +103,17 @@ userland.on("navigation", event =&gt; {
       </section>
 
       <section class="about-userland-section">
+        <h2 data-l10n-id="about-umbrafox-userland-script-heading"></h2>
+        <p data-l10n-id="about-umbrafox-userland-script-body"></p>
+        <pre><code>userland.on("script", event =&gt; {
+  if (event.uri.endsWith("/app.js")) {
+    event.source = event.source.replace("debug = false", "debug = true");
+  }
+});</code></pre>
+        <p data-l10n-id="about-umbrafox-userland-script-limits"></p>
+      </section>
+
+      <section class="about-userland-section">
         <h2 data-l10n-id="about-umbrafox-userland-navigation-heading"></h2>
         <p data-l10n-id="about-umbrafox-userland-navigation-body"></p>
         <ul>

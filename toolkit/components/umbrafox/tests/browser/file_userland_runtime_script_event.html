@@ -1,0 +1,8 @@
+<!doctype html>
+<meta charset="utf-8" />
+<script>
+/* eslint-disable no-eval */
+window.directEvalScriptValue = eval("'original-direct-eval'");
+window.indirectEvalScriptValue = (0, eval)("'original-indirect-eval'");
+window.functionScriptValue = new Function("return 'original-function-body';")();
+</script>

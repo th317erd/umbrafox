@@ -1457,6 +1457,16 @@ bool JSContext::isRuntimeCodeGenEnabled(
   return true;
 }
 
+bool JSContext::transformRuntimeCodeSource(
+    JS::RuntimeCode kind, JS::MutableHandle<JSString*> codeString,
+    JS::CompilationType compilationType) {
+  if (JSRuntimeCodeSourceTransform transform =
+          runtime()->securityCallbacks->runtimeCodeSourceTransform) {
+    return transform(this, kind, codeString, compilationType);
+  }
+  return true;
+}
+
 bool JSContext::getCodeForEval(HandleObject code,
                                JS::MutableHandle<JSString*> outCode) {
   if (JSCodeForEvalOp gets = runtime()->securityCallbacks->codeForEvalGets) {

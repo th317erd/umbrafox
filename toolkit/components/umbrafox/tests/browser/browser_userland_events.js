@@ -14,6 +14,15 @@ const ORDER_URL =
 const META_REFRESH_URL =
   `${TEST_ORIGIN}/browser/toolkit/components/umbrafox/tests/browser/` +
   "file_userland_meta_refresh.html";
+const SCRIPT_EVENT_URL =
+  `${TEST_ORIGIN}/browser/toolkit/components/umbrafox/tests/browser/` +
+  "file_userland_script_event.html";
+const SCRIPT_EVENT_EXTERNAL_URL =
+  `${TEST_ORIGIN}/browser/toolkit/components/umbrafox/tests/browser/` +
+  "file_userland_script_event.js";
+const RUNTIME_SCRIPT_EVENT_URL =
+  `${TEST_ORIGIN}/browser/toolkit/components/umbrafox/tests/browser/` +
+  "file_userland_runtime_script_event.html";
 
 registerCleanupFunction(() => {
   publishUserlandScripts([]);
@@ -238,3 +247,240 @@ add_task(async function test_native_meta_refresh_navigation_event() {
     );
   });
 });
+
+add_task(async function test_script_source_event_mutates_dom_script_source() {
+  publishUserlandScripts([
+    {
+      id: "userland-script-source-event",
+      name: "Userland script source event",
+      enabled: true,
+      scope: {
+        origin: TEST_ORIGIN,
+        targetKinds: ["document"],
+        sourceUrlPattern: null,
+      },
+      world: "default",
+      code: `
+        window.scriptSourceEvents = [];
+        userland.on("script", event => {
+          window.scriptSourceEvents.push({
+            uri: event.uri,
+            kind: event.kind,
+            inline: event.inline,
+            external: event.external,
+            module: event.module,
+            parserInserted: event.parserInserted,
+            sourceLength: event.sourceLength,
+            receivedLength: event.receivedLength,
+            size: event.size,
+          });
+          event.source = event.source
+            .replace("original-inline", "mutated-inline")
+            .replace("original-external", "mutated-external");
+        });
+      `,
+      createdAt: 0,
+      updatedAt: 0,
+    },
+  ]);
+
+  await BrowserTestUtils.withNewTab(SCRIPT_EVENT_URL, async browser => {
+    const result = await SpecialPowers.spawn(browser, [], () => {
+      const window = content.wrappedJSObject;
+      return {
+        inlineValue: window.inlineScriptValue,
+        externalValue: window.externalScriptValue,
+        events: window.scriptSourceEvents.map(event => ({ ...event })),
+      };
+    });
+
+    Assert.equal(
+      result.inlineValue,
+      "mutated-inline",
+      "The script event mutates inline script source before it runs"
+    );
+    Assert.equal(
+      result.externalValue,
+      "mutated-external",
+      "The script event mutates external script source before it runs"
+    );
+    Assert.equal(
+      result.events.length,
+      2,
+      "A script event is dispatched for each DOM script source"
+    );
+    Assert.deepEqual(
+      result.events.map(event => ({
+        kind: event.kind,
+        inline: event.inline,
+        external: event.external,
+        module: event.module,
+        parserInserted: event.parserInserted,
+      })),
+      [
+        {
+          kind: "classic",
+          inline: true,
+          external: false,
+          module: false,
+          parserInserted: true,
+        },
+        {
+          kind: "classic",
+          inline: false,
+          external: true,
+          module: false,
+          parserInserted: true,
+        },
+      ],
+      "Script event metadata identifies inline and external classic scripts"
+    );
+    Assert.equal(
+      result.events[0].uri,
+      SCRIPT_EVENT_URL,
+      "The inline script reports the document URI"
+    );
+    Assert.equal(
+      result.events[1].uri,
+      SCRIPT_EVENT_EXTERNAL_URL,
+      "The external script reports the external source URI"
+    );
+    Assert.greater(
+      result.events[0].sourceLength,
+      0,
+      "The inline event exposes the original source length"
+    );
+    Assert.equal(
+      result.events[0].size,
+      result.events[0].sourceLength,
+      "The size alias matches the source length"
+    );
+    Assert.greater(
+      result.events[1].receivedLength,
+      0,
+      "The external event exposes a received source length"
+    );
+  });
+});
+
+add_task(
+  async function test_script_source_event_mutates_runtime_script_source() {
+    publishUserlandScripts([
+      {
+        id: "userland-runtime-script-source-event",
+        name: "Userland runtime script source event",
+        enabled: true,
+        scope: {
+          origin: TEST_ORIGIN,
+          targetKinds: ["document"],
+          sourceUrlPattern: null,
+        },
+        world: "default",
+        code: `
+        const runtimeKinds = new Set([
+          "direct-eval",
+          "indirect-eval",
+          "function",
+        ]);
+        window.runtimeScriptSourceEvents = [];
+        userland.on("script", event => {
+          if (!runtimeKinds.has(event.kind)) {
+            return;
+          }
+          window.runtimeScriptSourceEvents.push({
+            uri: event.uri,
+            kind: event.kind,
+            inline: event.inline,
+            external: event.external,
+            module: event.module,
+            parserInserted: event.parserInserted,
+            sourceLength: event.sourceLength,
+            size: event.size,
+          });
+          event.source = event.source
+            .replace("original-direct-eval", "mutated-direct-eval")
+            .replace("original-indirect-eval", "mutated-indirect-eval")
+            .replace("original-function-body", "mutated-function-body");
+        });
+      `,
+        createdAt: 0,
+        updatedAt: 0,
+      },
+    ]);
+
+    await BrowserTestUtils.withNewTab(
+      RUNTIME_SCRIPT_EVENT_URL,
+      async browser => {
+        const result = await SpecialPowers.spawn(browser, [], () => {
+          const window = content.wrappedJSObject;
+          return {
+            directEvalValue: window.directEvalScriptValue,
+            indirectEvalValue: window.indirectEvalScriptValue,
+            functionValue: window.functionScriptValue,
+            events: window.runtimeScriptSourceEvents.map(event => ({
+              ...event,
+            })),
+          };
+        });
+
+        Assert.equal(
+          result.directEvalValue,
+          "mutated-direct-eval",
+          "The script event mutates direct eval source before it compiles"
+        );
+        Assert.equal(
+          result.indirectEvalValue,
+          "mutated-indirect-eval",
+          "The script event mutates indirect eval source before it compiles"
+        );
+        Assert.equal(
+          result.functionValue,
+          "mutated-function-body",
+          "The script event mutates Function constructor body source before it compiles"
+        );
+        Assert.deepEqual(
+          result.events.map(event => event.kind),
+          ["direct-eval", "indirect-eval", "function"],
+          "Runtime script event metadata identifies each runtime source kind"
+        );
+        for (const event of result.events) {
+          Assert.equal(
+            event.uri,
+            RUNTIME_SCRIPT_EVENT_URL,
+            "Runtime script events report the caller URI"
+          );
+          Assert.equal(
+            event.inline,
+            false,
+            "Runtime script events are not inline"
+          );
+          Assert.equal(
+            event.external,
+            false,
+            "Runtime script events are not external loads"
+          );
+          Assert.equal(
+            event.module,
+            false,
+            "Runtime script events are not modules"
+          );
+          Assert.equal(
+            event.parserInserted,
+            false,
+            "Runtime script events are not parser-inserted"
+          );
+          Assert.greater(
+            event.sourceLength,
+            0,
+            "Runtime script events expose the original source length"
+          );
+          Assert.equal(
+            event.size,
+            event.sourceLength,
+            "The size alias matches the runtime source length"
+          );
+        }
+      }
+    );
+  }
+);

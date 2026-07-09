@@ -171,3 +171,45 @@ This inventory was generated from the current working tree when the guide was wr
 - `toolkit/locales/en-US/toolkit/global/textActions.ftl`
 - `toolkit/locales/en-US/toolkit/pdfviewer/viewer.ftl`
 - `tools/lint/fluent-lint/exclusions.yml`
+
+## Userland scripts
+
+- `browser/base/content/aboutUmbrafoxUserland.xhtml`
+- `browser/base/content/aboutUmbrafoxUserland.css`
+- `browser/base/jar.mn`
+- `browser/components/about/AboutRedirector.cpp`
+- `browser/components/about/components.conf`
+- `browser/locales/en-US/browser/aboutUmbrafoxUserland.ftl`
+- `devtools/client/debugger/src/actions/context-menus/source-tree-item.js`
+- `devtools/client/debugger/src/client/firefox.js`
+- `devtools/client/debugger/src/client/firefox/create.js`
+- `devtools/client/debugger/src/components/App.js`
+- `devtools/client/debugger/src/components/Editor/index.js`
+- `devtools/client/debugger/src/components/PrimaryPanes/SourcesTree.js`
+- `devtools/client/debugger/src/components/PrimaryPanes/SourcesTreeItem.js`
+- `devtools/client/debugger/src/reducers/sources-tree.js`
+- `devtools/client/debugger/src/selectors/sources-tree.js`
+- `devtools/client/debugger/src/utils/moz.build`
+- `devtools/client/debugger/src/utils/umbrafox-userland-scripts.js`
+- `docs/config.yml`
+- `docshell/base/nsDocShell.cpp`
+- `docshell/base/nsDocShell.h`
+- `docshell/base/nsDocShellLoadState.cpp`
+- `docshell/base/nsDocShellLoadState.h`
+- `dom/ipc/DOMTypes.ipdlh`
+- `dom/script/ModuleLoader.cpp`
+- `dom/script/ScriptLoader.cpp`
+- `dom/script/ScriptLoader.h`
+- `caps/nsScriptSecurityManager.cpp`
+- `caps/nsScriptSecurityManager.h`
+- `js/public/Principals.h`
+- `js/src/builtin/Eval.cpp`
+- `js/src/vm/JSContext.cpp`
+- `js/src/vm/JSContext.h`
+- `js/src/vm/JSFunction.cpp`
+- `toolkit/actors/UmbrafoxUserlandChild.sys.mjs`
+- `toolkit/actors/UmbrafoxUserlandParent.sys.mjs`
+- `toolkit/actors/moz.build`
+- `toolkit/components/moz.build`
+- `toolkit/components/umbrafox/`
+- `toolkit/modules/ActorManagerParent.sys.mjs`

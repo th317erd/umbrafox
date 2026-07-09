@@ -680,6 +680,10 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   nsresult AttemptOffThreadScriptCompile(ScriptLoadRequest* aRequest,
                                          bool* aCouldCompileOut);
 
+  nsresult MaybeApplyUmbrafoxUserlandScriptSourceEvent(
+      JSContext* aCx, ScriptLoadRequest* aRequest,
+      MaybeSourceText* aMaybeSource);
+
   nsresult CreateOffThreadTask(JSContext* aCx, ScriptLoadRequest* aRequest,
                                JS::CompileOptions& aOptions,
                                CompileOrDecodeTask** aCompileOrDecodeTask);

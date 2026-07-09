@@ -1435,7 +1435,14 @@ static bool CreateDynamicFunction(JSContext* cx, const CallArgs& args,
     // Steps 13, 14.e, 15.
     bodyArg = args[args.length() - 1];
     bodyString = ToString<CanGC>(cx, bodyArg);
-    if (!bodyString || !sb.append(bodyString)) {
+    if (!bodyString) {
+      return false;
+    }
+    if (!cx->transformRuntimeCodeSource(JS::RuntimeCode::JS, &bodyString,
+                                        JS::CompilationType::Function)) {
+      return false;
+    }
+    if (!sb.append(bodyString)) {
       return false;
     }
   }

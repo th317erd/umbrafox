@@ -25,7 +25,11 @@ about-umbrafox-userland-api-heading = Userland API
 about-umbrafox-userland-api-body = The private userland object is available only as a lexical binding inside the userland wrapper. It is not installed on page globals.
 
 about-umbrafox-userland-events-heading = Cancellable events
-about-umbrafox-userland-events-body = The current event API supports alert, prompt, confirm, and navigation. Event handlers are synchronous; use preventDefault, cancel, or respondWith to replace native behavior.
+about-umbrafox-userland-events-body = The current event API supports alert, prompt, confirm, navigation, and script. Event handlers are synchronous; use preventDefault, cancel, respondWith, or direct field mutation to replace native behavior.
+
+about-umbrafox-userland-script-heading = Script source rewriting
+about-umbrafox-userland-script-body = Script events fire for DOM document classic scripts, JavaScript modules, direct eval, indirect eval, and Function constructor bodies after source is available and before Gecko compiles it. Handlers can mutate event.source to replace the source that the engine compiles.
+about-umbrafox-userland-script-limits = Worker scripts, worklets, import maps, JSON modules, CSS modules, and WebAssembly modules need separate hooks.
 
 about-umbrafox-userland-navigation-heading = Navigation coverage
 about-umbrafox-userland-navigation-body = Navigation events expose href, originalHref, source, target, and related metadata where available. Handlers can cancel an attempt or rewrite event.href before the browser continues.
