@@ -13,7 +13,10 @@ must remain Firefox-equivalent by default when no matching script is enabled.
 ## Availability
 
 The current implementation supports document userland scripts for exact HTTP(S)
-origins. Worker support and network interception are not implemented yet.
+origins. Document-associated HTTP(S) request interception has an initial
+pre-send implementation. Worker support, startup/global network interception,
+full response stream replacement, sockets, and non-HTTP protocols are not
+implemented yet.
 
 The in-browser help page is available at `about:umbrafox-userland`.
 
@@ -156,8 +159,8 @@ const stop = userland.on("alert", event => {
 stop();
 ```
 
-Supported event types are `alert`, `prompt`, `confirm`, `navigation`, and
-`script`.
+Supported event types are `alert`, `prompt`, `confirm`, `navigation`,
+`script`, and `request`.
 
 ## Cancellable events
 
@@ -170,12 +173,13 @@ Userland event handlers receive a cancellable event object:
   defaultPrevented,
   preventDefault(),
   cancel(),
+  block(),
   respondWith(value),
 }
 ```
 
-`preventDefault()` and `cancel()` cancel the native action. `respondWith(value)`
-sets `event.returnValue` and cancels the native action.
+`preventDefault()`, `cancel()`, and `block()` cancel the native action.
+`respondWith(value)` sets `event.returnValue` and cancels the native action.
 
 Handlers run synchronously. Do not `await` inside a handler when the browser is
 waiting for an immediate answer, such as a dialog return value or a docshell
@@ -334,6 +338,103 @@ synthesized wrapper that Gecko builds around it. Worker scripts, worklets,
 import maps, JSON modules, CSS modules, and WebAssembly modules need separate
 hooks.
 
+### Request events
+
+Request events fire for document-associated HTTP(S) channels after a matching
+document userland script has run and before the request is sent. The parent
+process suspends the channel, asks the document's hidden userland controller for
+a decision, then resumes the channel with any requested mutation.
+
+Rewrite a URL:
+
+```js
+userland.on("request", event => {
+  if (event.url.endsWith("/old.json")) {
+    event.url = event.url.replace("/old.json", "/new.json");
+  }
+});
+```
+
+Change request headers:
+
+```js
+userland.on("request", event => {
+  event.headers.set("X-Debug-Mode", "1");
+  event.headers.delete("DNT");
+});
+```
+
+Cancel a request with a network error:
+
+```js
+userland.on("request", event => {
+  if (event.url.includes("/break-this-request")) {
+    event.block();
+  }
+});
+```
+
+Provide a synthetic successful response:
+
+```js
+userland.on("request", event => {
+  if (event.url.endsWith("/settings.json")) {
+    event.respondWith({
+      contentType: "application/json",
+      body: JSON.stringify({ enabled: true }),
+    });
+  }
+});
+```
+
+Request events expose:
+
+```js
+{
+  url,
+  uri,
+  originalUrl,
+  originalUri,
+  method,
+  originalMethod,
+  headers,
+  originalHeaders,
+  browsingContextId,
+  targetBrowsingContextId,
+  frameBrowsingContextId,
+  associatedBrowsingContextId,
+  innerWindowId,
+  contentPolicyType,
+  privateBrowsing,
+  native,
+}
+```
+
+`headers` is a mutable collection with `get`, `has`, `set`, `delete`,
+`entries`, `keys`, `values`, `forEach`, and iteration support.
+
+`preventDefault()`, `cancel()`, and `block()` hard-cancel the channel. That is
+detectable to page code and servers in the same ways any failed request can be
+detectable. Prefer `respondWith(...)` when the goal is to hide or neutralize a
+resource while giving the initiator a successful response.
+
+`respondWith(...)` currently synthesizes a response by redirecting the channel
+to a generated `data:` response. It supports string bodies and object responses
+with `body`, `text`, `contentType`, or `type`. Full HTTP status, arbitrary
+response headers, byte streams, and media stream replacement still need the
+future response/stream interception slice.
+
+Current request limitations:
+
+- The initial top-level document request is not covered by document userland,
+  because no document userland context exists before that request starts.
+- Request body mutation is not implemented yet.
+- Full response header, status, and stream interception is not implemented yet.
+- Worker, worklet, WebSocket, EventSource, WebTransport, and browser-startup
+  global interception need separate hooks.
+- Redirect targets are separate requests, so a rewritten request can produce a
+  second request event for the replacement URL.
+
 ## Detectability model
 
 Umbrafox defaults must remain indistinguishable from the corresponding Firefox
@@ -352,6 +453,8 @@ Safer patterns:
   globals, request markers, or console messages to pages.
 - Avoid changing behavior on every site unless the user intentionally wants a
   global detectable change.
+- Prefer request substitution over hard cancellation when preserving successful
+  load semantics matters.
 
 ## Troubleshooting
 
@@ -372,3 +475,7 @@ block page script execution.
 If a navigation handler seems incomplete, check whether the action is a
 server-side redirect or History API URL change. Those are current limitations of
 the navigation event surface.
+
+If a request handler does not fire for the first page load, remember that
+document userland cannot intercept the request that creates the document itself.
+That requires the future profile-level/global network userland runtime.

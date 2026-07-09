@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { UmbrafoxUserlandScriptRuntime } from "resource://gre/modules/UmbrafoxUserlandScriptRuntime.sys.mjs";
+import { dispatchUmbrafoxUserlandRequest } from "resource://gre/modules/UmbrafoxUserlandEventController.sys.mjs";
 import {
   UMBRAFOX_USERLAND_SCRIPT_SHARED_DATA_KEY,
   UMBRAFOX_USERLAND_SCRIPTS_ACTIVE_PREF,
@@ -25,6 +26,13 @@ function hasUserlandScriptsActive() {
 }
 
 export class UmbrafoxUserlandChild extends JSWindowActorChild {
+  receiveMessage(message) {
+    if (message.name == "DispatchUserlandRequest") {
+      return dispatchUmbrafoxUserlandRequest(this.contentWindow, message.data);
+    }
+    return null;
+  }
+
   handleEvent(event) {
     if (event.type != "DOMDocElementInserted") {
       return;

@@ -5,18 +5,23 @@
 const DIALOG_EVENT_TYPES = new Set(["alert", "prompt", "confirm"]);
 const NAVIGATION_EVENT_TYPE = "navigation";
 const SCRIPT_EVENT_TYPE = "script";
+const REQUEST_EVENT_TYPE = "request";
 const NATIVE_NAVIGATION_TOPIC = "umbrafox-userland-navigation-attempt";
 const NATIVE_SCRIPT_TOPIC = "umbrafox-userland-script-source";
+const HTTP_ON_MODIFY_REQUEST_TOPIC = "http-on-modify-request";
 const SUPPORTED_EVENT_TYPES = new Set([
   ...DIALOG_EVENT_TYPES,
   NAVIGATION_EVENT_TYPE,
   SCRIPT_EVENT_TYPE,
+  REQUEST_EVENT_TYPE,
 ]);
 
 const nativeNavigationControllers = new Map();
 const nativeScriptControllers = new Map();
+const nativeRequestControllers = new Map();
 let nativeNavigationObserverRegistered = false;
 let nativeScriptObserverRegistered = false;
+let nativeRequestObserverRegistered = false;
 
 const nativeNavigationObserver = {
   observe(subject, topic) {
@@ -105,6 +110,27 @@ const nativeScriptObserver = {
   },
 };
 
+const nativeRequestObserver = {
+  observe(subject, topic) {
+    if (topic != HTTP_ON_MODIFY_REQUEST_TOPIC) {
+      return;
+    }
+
+    const channel = subject.QueryInterface(Ci.nsIHttpChannel);
+    const browsingContextId = getChannelBrowsingContextId(channel);
+    if (!browsingContextId) {
+      return;
+    }
+
+    const actor = getRequestActor(browsingContextId);
+    if (!actor) {
+      return;
+    }
+
+    dispatchParentRequestEvent(channel, actor, browsingContextId);
+  },
+};
+
 function ensureNativeNavigationObserver() {
   if (nativeNavigationObserverRegistered) {
     return;
@@ -119,6 +145,21 @@ function ensureNativeScriptObserver() {
   }
   nativeScriptObserverRegistered = true;
   Services.obs.addObserver(nativeScriptObserver, NATIVE_SCRIPT_TOPIC);
+}
+
+function ensureNativeRequestObserver() {
+  if (nativeRequestObserverRegistered) {
+    return;
+  }
+  if (Services.appinfo.processType != Services.appinfo.PROCESS_TYPE_DEFAULT) {
+    return;
+  }
+  nativeRequestObserverRegistered = true;
+  Services.obs.addObserver(nativeRequestObserver, HTTP_ON_MODIFY_REQUEST_TOPIC);
+}
+
+export function ensureUmbrafoxUserlandRequestObserver() {
+  ensureNativeRequestObserver();
 }
 
 function makeInfo(script) {
@@ -169,6 +210,407 @@ function getBrowsingContextId(window) {
   return window?.docShell?.browsingContext?.id ?? window?.browsingContext?.id;
 }
 
+function getChannelBrowsingContextId(channel) {
+  const loadInfo = channel.loadInfo;
+  return (
+    loadInfo?.browsingContextID ||
+    loadInfo?.targetBrowsingContextID ||
+    loadInfo?.frameBrowsingContextID ||
+    loadInfo?.associatedBrowsingContextID ||
+    0
+  );
+}
+
+function getRequestActor(browsingContextId) {
+  const browsingContext = BrowsingContext.get(browsingContextId);
+  return browsingContext?.currentWindowGlobal?.getActor("UmbrafoxUserland");
+}
+
+function readRequestHeaders(channel) {
+  const headers = [];
+  channel.visitRequestHeaders({
+    QueryInterface: ChromeUtils.generateQI(["nsIHttpHeaderVisitor"]),
+    visitHeader(name, value) {
+      headers.push([name, value]);
+    },
+  });
+  return headers;
+}
+
+function getRequestEventFields(channel, browsingContextId) {
+  const loadInfo = channel.loadInfo;
+  const url = channel.URI.spec;
+  const method = channel.requestMethod;
+  const headers = readRequestHeaders(channel);
+
+  return {
+    url,
+    uri: url,
+    originalUrl: url,
+    originalUri: url,
+    method,
+    originalMethod: method,
+    headers,
+    originalHeaders: Object.freeze(Object.fromEntries(headers)),
+    browsingContextId,
+    targetBrowsingContextId: loadInfo?.targetBrowsingContextID ?? 0,
+    frameBrowsingContextId: loadInfo?.frameBrowsingContextID ?? 0,
+    associatedBrowsingContextId: loadInfo?.associatedBrowsingContextID ?? 0,
+    innerWindowId: loadInfo?.innerWindowID ?? 0,
+    contentPolicyType: loadInfo?.externalContentPolicyType ?? 0,
+    privateBrowsing: (loadInfo?.originAttributes?.privateBrowsingId ?? 0) > 0,
+    native: true,
+  };
+}
+
+async function dispatchParentRequestEvent(channel, actor, browsingContextId) {
+  let shouldResume = true;
+  try {
+    channel.suspend();
+  } catch (error) {
+    console.error(error);
+    return;
+  }
+
+  try {
+    const decision = await actor.sendQuery(
+      "DispatchUserlandRequest",
+      getRequestEventFields(channel, browsingContextId)
+    );
+    shouldResume = applyRequestDecision(channel, decision);
+  } catch (error) {
+    console.error(error);
+  }
+
+  if (shouldResume) {
+    channel.resume();
+  }
+}
+
+function getSyntheticResponseBody(response) {
+  if (response === undefined || response === null) {
+    return "";
+  }
+  if (typeof response == "string") {
+    return response;
+  }
+  if (typeof response == "object") {
+    if ("body" in response) {
+      return getString(response.body);
+    }
+    if ("text" in response) {
+      return getString(response.text);
+    }
+  }
+  return String(response);
+}
+
+function getHeaderValue(headers, name) {
+  if (!headers) {
+    return null;
+  }
+  if (headers instanceof UserlandHeaders) {
+    return headers.get(name);
+  }
+  const lowerName = name.toLowerCase();
+  if (headers instanceof Map) {
+    for (const [headerName, value] of headers) {
+      if (String(headerName).toLowerCase() == lowerName) {
+        return value;
+      }
+    }
+    return null;
+  }
+  if (typeof headers == "object") {
+    for (const headerName of Object.keys(headers)) {
+      if (headerName.toLowerCase() == lowerName) {
+        return headers[headerName];
+      }
+    }
+  }
+  return null;
+}
+
+function getSyntheticResponseContentType(response) {
+  if (response && typeof response == "object") {
+    const headerContentType = getHeaderValue(response.headers, "content-type");
+    return getString(
+      response.contentType ?? response.type ?? headerContentType,
+      "text/plain;charset=utf-8"
+    );
+  }
+  return "text/plain;charset=utf-8";
+}
+
+function makeSyntheticResponseURI(response) {
+  const contentType = getSyntheticResponseContentType(response)
+    .replace(/[\r\n,]/g, "")
+    .trim();
+  const body = encodeURIComponent(getSyntheticResponseBody(response));
+  return Services.io.newURI(`data:${contentType || "text/plain"},${body}`);
+}
+
+function allowRedirectToDataURI(channel) {
+  try {
+    channel.loadInfo.allowInsecureRedirectToDataURI = true;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function applySyntheticCORSResponseHeaders(channel) {
+  let origin = "";
+  try {
+    origin = channel.getRequestHeader("Origin");
+  } catch {
+    return;
+  }
+  if (!origin) {
+    return;
+  }
+
+  try {
+    channel.setResponseHeader("Access-Control-Allow-Origin", origin, false);
+    channel.setResponseHeader(
+      "Access-Control-Allow-Credentials",
+      "true",
+      false
+    );
+    channel.setResponseHeader(
+      "Access-Control-Allow-Methods",
+      channel.requestMethod,
+      false
+    );
+    channel.setResponseHeader(
+      "Access-Control-Allow-Headers",
+      readRequestHeaders(channel)
+        .map(([name]) => name)
+        .join(","),
+      false
+    );
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function serializeSyntheticResponse(response) {
+  return {
+    body: getSyntheticResponseBody(response),
+    contentType: getSyntheticResponseContentType(response),
+  };
+}
+
+function applyRequestDecision(channel, decision) {
+  if (!decision) {
+    return true;
+  }
+
+  if (decision.syntheticResponse) {
+    channel.resume();
+    try {
+      channel.redirectTo(makeSyntheticResponseURI(decision.syntheticResponse));
+      allowRedirectToDataURI(channel);
+      applySyntheticCORSResponseHeaders(channel);
+    } catch (error) {
+      console.error(error);
+    }
+    return false;
+  }
+
+  if (decision.cancel) {
+    channel.resume();
+    try {
+      channel.cancel(Cr.NS_ERROR_ABORT);
+    } catch (error) {
+      console.error(error);
+    }
+    return false;
+  }
+
+  if (decision.method) {
+    channel.requestMethod = decision.method;
+  }
+
+  applyRequestHeaderChanges(channel, decision.headers);
+
+  if (decision.url) {
+    channel.redirectTo(Services.io.newURI(decision.url));
+  }
+
+  return true;
+}
+
+function applyRequestHeaderChanges(channel, changes = []) {
+  for (const change of changes) {
+    try {
+      if (change.deleted) {
+        channel.setRequestHeader(change.name, "", false);
+      } else if (change.value === "") {
+        channel.setEmptyRequestHeader(change.name);
+      } else {
+        channel.setRequestHeader(change.name, change.value, false);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+}
+
+function serializeRequestDecision(event) {
+  if (event.responded) {
+    return {
+      syntheticResponse: serializeSyntheticResponse(event.returnValue),
+    };
+  }
+
+  if (event.defaultPrevented) {
+    return { cancel: true };
+  }
+
+  const url = getString(event.url ?? event.uri, event.originalUrl);
+  const method = getString(event.method, event.originalMethod).toUpperCase();
+
+  const decision = {};
+  if (url && url != event.originalUrl) {
+    decision.url = url;
+  }
+  if (method && method != event.originalMethod) {
+    decision.method = method;
+  }
+
+  const headers = event.headers?.changesArray?.() ?? [];
+  if (headers.length) {
+    decision.headers = headers;
+  }
+
+  return Object.keys(decision).length ? decision : null;
+}
+
+export function dispatchUmbrafoxUserlandRequest(window, fields = {}) {
+  const browsingContextId =
+    fields.browsingContextId || getBrowsingContextId(window);
+  const controller =
+    nativeRequestControllers.get(browsingContextId)?.deref() ?? null;
+  if (!controller) {
+    nativeRequestControllers.delete(browsingContextId);
+    return null;
+  }
+  if (!controller.hasHandlers(REQUEST_EVENT_TYPE)) {
+    return null;
+  }
+  return controller.dispatchRequest(fields);
+}
+
+/**
+ * Mutable request header collection exposed to userland request handlers.
+ */
+class UserlandHeaders {
+  #headers = new Map();
+
+  constructor(entries = []) {
+    for (const [name, value] of entries) {
+      this.#headers.set(String(name).toLowerCase(), {
+        name: String(name),
+        value: String(value),
+        modified: false,
+        deleted: false,
+      });
+    }
+  }
+
+  get(name) {
+    const header = this.#headers.get(String(name).toLowerCase());
+    return !header || header.deleted ? null : header.value;
+  }
+
+  has(name) {
+    return this.get(name) !== null;
+  }
+
+  set(name, value) {
+    const headerName = String(name);
+    this.#headers.set(headerName.toLowerCase(), {
+      name: headerName,
+      value: String(value),
+      modified: true,
+      deleted: false,
+    });
+    return this;
+  }
+
+  delete(name) {
+    const lowerName = String(name).toLowerCase();
+    const header = this.#headers.get(lowerName);
+    if (header) {
+      header.modified = true;
+      header.deleted = true;
+      return true;
+    }
+    this.#headers.set(lowerName, {
+      name: String(name),
+      value: "",
+      modified: true,
+      deleted: true,
+    });
+    return false;
+  }
+
+  entries() {
+    const entries = [];
+    for (const header of this.#headers.values()) {
+      if (!header.deleted) {
+        entries.push([header.name, header.value]);
+      }
+    }
+    return entries[Symbol.iterator]();
+  }
+
+  keys() {
+    return this.entriesArray()
+      .map(([name]) => name)
+      [Symbol.iterator]();
+  }
+
+  values() {
+    return this.entriesArray()
+      .map(([, value]) => value)
+      [Symbol.iterator]();
+  }
+
+  forEach(callback, thisArg = undefined) {
+    for (const [name, value] of this.entries()) {
+      callback.call(thisArg, value, name, this);
+    }
+  }
+
+  toJSON() {
+    return Object.fromEntries(this.entries());
+  }
+
+  [Symbol.iterator]() {
+    return this.entries();
+  }
+
+  entriesArray() {
+    return Array.from(this.entries());
+  }
+
+  changesArray() {
+    const changes = [];
+    for (const header of this.#headers.values()) {
+      if (!header.modified) {
+        continue;
+      }
+      changes.push({
+        name: header.name,
+        value: header.value,
+        deleted: header.deleted,
+      });
+    }
+    return changes;
+  }
+}
+
 /**
  * Synchronous cancellable event object passed to userland handlers.
  */
@@ -186,6 +628,10 @@ class UserlandCancellableEvent {
   }
 
   cancel() {
+    this.preventDefault();
+  }
+
+  block() {
     this.preventDefault();
   }
 
@@ -270,6 +716,10 @@ export class UmbrafoxUserlandEventController {
     }
     if (type == SCRIPT_EVENT_TYPE) {
       this.installScriptHook();
+      return;
+    }
+    if (type == REQUEST_EVENT_TYPE) {
+      this.installRequestHook();
     }
   }
 
@@ -385,6 +835,26 @@ export class UmbrafoxUserlandEventController {
       url: fields.uri,
       size: fields.sourceLength,
     });
+  }
+
+  installRequestHook() {
+    const browsingContextId = this.browsingContextId;
+    if (!browsingContextId) {
+      return;
+    }
+
+    ensureNativeRequestObserver();
+    nativeRequestControllers.set(browsingContextId, new WeakRef(this));
+  }
+
+  dispatchRequest(fields) {
+    const headers = Array.isArray(fields.headers) ? fields.headers : [];
+    const event = this.dispatch(REQUEST_EVENT_TYPE, {
+      ...fields,
+      headers: new UserlandHeaders(headers),
+      originalHeaders: Object.freeze(Object.fromEntries(headers)),
+    });
+    return serializeRequestDecision(event);
   }
 
   handleWindowOpen(url, target = "", features = "") {

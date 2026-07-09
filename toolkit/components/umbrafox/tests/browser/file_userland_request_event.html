@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+window.requestEventResultsPromise = (async () => {
+  const results = {};
+
+  try {
+    const rewritten = await fetch("file_userland_request_original.txt");
+    results.rewrittenText = await rewritten.text();
+  } catch (error) {
+    results.rewrittenError = error.name;
+  }
+
+  try {
+    await fetch("file_userland_request_blocked.txt");
+    results.blocked = false;
+  } catch (error) {
+    results.blocked = true;
+    results.blockedError = error.name;
+  }
+
+  try {
+    const synthetic = await fetch("file_userland_request_synthetic.txt");
+    results.syntheticText = await synthetic.text();
+    results.syntheticType = synthetic.headers.get("content-type");
+  } catch (error) {
+    results.syntheticError = error.name;
+  }
+
+  return results;
+})();
+</script>

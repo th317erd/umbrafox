@@ -1,6 +1,6 @@
 # Userland scripts recipe
 
-Status: incremental feature recipe. The profile-local storage, scope derivation, Debugger context-menu creation, Debugger footer creation, domain-scoped source-tree visibility, source-tree enable checkbox, CodeMirror-backed editable code surface, async wrapper runner, first document-start parser-blocking runtime slice, dialog events, first docshell-backed navigation events, and first script-source mutation events exist; see `../03-userland-scripts-architecture.md` before implementing additional slices.
+Status: incremental feature recipe. The profile-local storage, scope derivation, Debugger context-menu creation, Debugger footer creation, domain-scoped source-tree visibility, source-tree enable checkbox, CodeMirror-backed editable code surface, async wrapper runner, first document-start parser-blocking runtime slice, dialog events, first docshell-backed navigation events, first script-source mutation events, and first document-associated HTTP(S) request interception events exist; see `../03-userland-scripts-architecture.md` before implementing additional slices.
 
 ## Goal
 
@@ -82,6 +82,8 @@ Expected implementation areas:
 21. Keep `about:umbrafox-userland` aligned with the canonical docs when the user-facing API changes.
 22. Keep `userland.on("script", ...)` source mutation gated behind active userland scripts and native observers so Firefox-equivalent behavior remains the default.
 23. Keep compiled script caches disabled while userland scripts are active, otherwise a rewritten stencil can be reused without the userland handler or a cached stencil can bypass the source event.
+24. Keep `userland.on("request", ...)` implemented through a parent-process `http-on-modify-request` observer plus `UmbrafoxUserland` JSWindowActor query bridge. Content processes cannot register `http-on-*` observers directly.
+25. Keep request interception gated behind enabled userland scripts. No enabled userland script should mean no parent request observer work for normal browsing.
 
 ## Wrapper ABI
 
@@ -139,6 +141,14 @@ userland.on("navigation", event => {
 userland.on("script", event => {
   event.source = event.source.replace("original", "replacement");
 });
+userland.on("request", event => {
+  if (event.url.endsWith("/settings.json")) {
+    event.respondWith({
+      contentType: "application/json",
+      body: JSON.stringify({ enabled: true }),
+    });
+  }
+});
 ```
 
 Implemented navigation sources are:
@@ -159,6 +169,32 @@ The script event exposes source text plus metadata: `uri`, `kind`, `size`, `sour
 While userland scripts are active, `TryUseCache(...)`, `StartLoadInternal(...)`, and `CalculateCacheFlag(...)` avoid compiled-cache bypasses and mutated-stencil reuse. This is required so source events are not skipped and rewritten compiled scripts do not leak into later Firefox-equivalent browsing.
 
 Do not document this as total script coverage yet. Worker scripts, worklets, import maps, JSON modules, CSS modules, and WebAssembly modules need separate hooks. Keep the existing runtime-codegen host callback boolean-only for CSP/codegen policy decisions; source rewriting belongs in the separate mutable SpiderMonkey host callback.
+
+Implemented request event coverage is the first document-associated HTTP(S)
+slice. The parent actor imports `ensureUmbrafoxUserlandRequestObserver()` when
+document scripts are queried. The observer listens for `http-on-modify-request`
+in the parent process, derives the channel browsing-context id from
+`nsILoadInfo`, suspends the channel, sends `DispatchUserlandRequest` through the
+matching `UmbrafoxUserland` actor, applies the returned decision, and resumes the
+channel. The child actor dispatches into the content-process
+`UmbrafoxUserlandEventController` that user scripts registered handlers with.
+
+The request event exposes URL, method, mutable headers, original headers,
+browsing-context ids, content policy type, private-browsing state, and `native`.
+Handlers can mutate `event.url`, mutate `event.method`, use
+`event.headers.set(...)` or `event.headers.delete(...)`, hard-cancel with
+`preventDefault()`, `cancel()`, or `block()`, or synthesize a successful response
+with `respondWith(...)`. The current synthetic response implementation redirects
+to a generated `data:` URI and sets the internal data-redirect allowance. It is
+useful for string/object body substitution but is not full response control.
+
+Do not document this as total network coverage yet. The initial top-level
+document request starts before document userland exists. Request body mutation,
+full response headers/status, response stream swapping, media stream
+replacement, workers, worklets, WebSocket, EventSource, WebTransport, and
+profile-level startup/global network rules need separate future hooks. Hard
+blocking is explicitly userland-owned and detectable; substitution remains the
+preferred model when stealth matters.
 
 ## Verification commands
 
@@ -201,6 +237,13 @@ For the script-source event slice, include:
 ./mach test --headless toolkit/components/umbrafox/tests/browser/browser_userland_events.js
 ```
 
+For the first request-event slice, include:
+
+```bash
+./mach lint toolkit/components/umbrafox toolkit/actors/UmbrafoxUserlandChild.sys.mjs toolkit/actors/UmbrafoxUserlandParent.sys.mjs browser/base/content/aboutUmbrafoxUserland.xhtml browser/locales/en-US/browser/aboutUmbrafoxUserland.ftl
+./mach test --headless toolkit/components/umbrafox/tests/browser/browser_userland_events.js
+```
+
 ## Rebase notes
 
 During upstream updates, inspect conflicts in:
@@ -216,5 +259,11 @@ During upstream updates, inspect conflicts in:
 - `dom/script/ScriptLoader.cpp`, `dom/script/ScriptLoader.h`, and `dom/script/ModuleLoader.cpp` when upstream changes script source retrieval, bytecode cache policy, off-thread compile setup, or module compile paths.
 - `js/public/Principals.h`, `js/src/vm/JSContext.cpp`, `js/src/vm/JSContext.h`, `js/src/builtin/Eval.cpp`, `js/src/vm/JSFunction.cpp`, `caps/nsScriptSecurityManager.cpp`, and `caps/nsScriptSecurityManager.h` when upstream changes JS security callbacks, eval, Function constructors, or runtime-codegen policy.
 - any new tests that assert user-script ordering.
+- `toolkit/actors/UmbrafoxUserlandParent.sys.mjs` and
+  `toolkit/actors/UmbrafoxUserlandChild.sys.mjs` if upstream changes
+  `JSWindowActor` query behavior.
+- networking observer behavior around `http-on-modify-request`, especially if
+  upstream changes channel suspension, `nsILoadInfo` browsing-context ids, or
+  data-URI redirect allowances.
 
 If upstream changes document_start semantics, stop and redo the timing proof before carrying the patch forward.

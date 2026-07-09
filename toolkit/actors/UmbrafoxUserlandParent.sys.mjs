@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { UMBRAFOX_USERLAND_SCRIPT_SHARED_DATA_KEY } from "resource://gre/modules/UmbrafoxUserlandScriptRegistry.sys.mjs";
+import { ensureUmbrafoxUserlandRequestObserver } from "resource://gre/modules/UmbrafoxUserlandEventController.sys.mjs";
 
 function getOrigin(href) {
   try {
@@ -18,6 +19,8 @@ function getOrigin(href) {
 
 export class UmbrafoxUserlandParent extends JSWindowActorParent {
   receiveMessage(message) {
+    ensureUmbrafoxUserlandRequestObserver();
+
     if (message.name != "GetDocumentUserlandScripts") {
       return [];
     }

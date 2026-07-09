@@ -87,11 +87,34 @@ userland.on(type, handler);
 userland.off(type, handler);
 userland.addEventListener(type, handler);
 userland.removeEventListener(type, handler);</code></pre>
+        <p data-l10n-id="about-umbrafox-userland-api-info-body"></p>
+        <pre><code>userland.info = {
+  id,
+  name,
+  scope,
+  world,
+};</code></pre>
+        <p data-l10n-id="about-umbrafox-userland-api-listener-body"></p>
+        <pre><code>const stop = userland.on("request", event =&gt; {
+  console.log(event.url);
+});
+
+stop();</code></pre>
       </section>
 
       <section class="about-userland-section">
         <h2 data-l10n-id="about-umbrafox-userland-events-heading"></h2>
         <p data-l10n-id="about-umbrafox-userland-events-body"></p>
+        <pre><code>{
+  type,
+  cancelable,
+  defaultPrevented,
+  preventDefault(),
+  cancel(),
+  block(),
+  respondWith(value),
+}</code></pre>
+        <p data-l10n-id="about-umbrafox-userland-events-sync-body"></p>
         <pre><code>userland.on("alert", event =&gt; event.preventDefault());
 userland.on("prompt", event =&gt; event.respondWith("replacement"));
 userland.on("confirm", event =&gt; event.respondWith(false));
@@ -103,11 +126,69 @@ userland.on("navigation", event =&gt; {
       </section>
 
       <section class="about-userland-section">
+        <h2 data-l10n-id="about-umbrafox-userland-dialog-heading"></h2>
+        <p data-l10n-id="about-umbrafox-userland-dialog-body"></p>
+        <pre><code>// alert
+{
+  type: "alert",
+  message,
+}
+
+// prompt
+{
+  type: "prompt",
+  message,
+  defaultValue,
+}
+
+// confirm
+{
+  type: "confirm",
+  message,
+}</code></pre>
+        <p data-l10n-id="about-umbrafox-userland-dialog-example-body"></p>
+        <pre><code>userland.on("prompt", event =&gt; {
+  if (event.message.includes("name")) {
+    event.respondWith("Umbrafox user");
+  }
+});
+
+userland.on("confirm", event =&gt; {
+  event.respondWith(false);
+});</code></pre>
+      </section>
+
+      <section class="about-userland-section">
         <h2 data-l10n-id="about-umbrafox-userland-script-heading"></h2>
         <p data-l10n-id="about-umbrafox-userland-script-body"></p>
+        <pre><code>{
+  type: "script",
+  source,
+  originalSource,
+  uri,
+  url,
+  kind,
+  size,
+  sourceLength,
+  receivedLength,
+  lineNumber,
+  columnNumber,
+  inline,
+  external,
+  module,
+  parserInserted,
+  preload,
+  native,
+}</code></pre>
         <pre><code>userland.on("script", event =&gt; {
   if (event.uri.endsWith("/app.js")) {
     event.source = event.source.replace("debug = false", "debug = true");
+  }
+});</code></pre>
+        <p data-l10n-id="about-umbrafox-userland-script-empty-body"></p>
+        <pre><code>userland.on("script", event =&gt; {
+  if (event.uri.endsWith("/tracking.js")) {
+    event.respondWith("");
   }
 });</code></pre>
         <p data-l10n-id="about-umbrafox-userland-script-limits"></p>
@@ -116,6 +197,19 @@ userland.on("navigation", event =&gt; {
       <section class="about-userland-section">
         <h2 data-l10n-id="about-umbrafox-userland-navigation-heading"></h2>
         <p data-l10n-id="about-umbrafox-userland-navigation-body"></p>
+        <pre><code>{
+  type: "navigation",
+  href,
+  originalHref,
+  source,
+  target,
+  external,
+  formSubmission,
+  metaRefresh,
+  redirect,
+  loadType,
+  native,
+}</code></pre>
         <ul>
           <li
             data-l10n-id="about-umbrafox-userland-navigation-window-open"
@@ -124,7 +218,72 @@ userland.on("navigation", event =&gt; {
           <li data-l10n-id="about-umbrafox-userland-navigation-location"></li>
           <li data-l10n-id="about-umbrafox-userland-navigation-external"></li>
         </ul>
+        <p data-l10n-id="about-umbrafox-userland-navigation-example-body"></p>
+        <pre><code>userland.on("navigation", event =&gt; {
+  if (event.href.startsWith("zoom://")) {
+    event.preventDefault();
+    return;
+  }
+
+  const url = new URL(event.href);
+  if (url.pathname == "/old") {
+    event.href = new URL("/new", location.href).href;
+  }
+});</code></pre>
         <p data-l10n-id="about-umbrafox-userland-navigation-limits"></p>
+      </section>
+
+      <section class="about-userland-section">
+        <h2 data-l10n-id="about-umbrafox-userland-request-heading"></h2>
+        <p data-l10n-id="about-umbrafox-userland-request-body"></p>
+        <pre><code>{
+  type: "request",
+  url,
+  uri,
+  originalUrl,
+  originalUri,
+  method,
+  originalMethod,
+  headers,
+  originalHeaders,
+  browsingContextId,
+  targetBrowsingContextId,
+  frameBrowsingContextId,
+  associatedBrowsingContextId,
+  innerWindowId,
+  contentPolicyType,
+  privateBrowsing,
+  native,
+}</code></pre>
+        <pre><code>userland.on("request", event =&gt; {
+  if (event.url.endsWith("/settings.json")) {
+    event.respondWith({
+      contentType: "application/json",
+      body: JSON.stringify({ enabled: true }),
+    });
+  }
+});</code></pre>
+        <ul>
+          <li data-l10n-id="about-umbrafox-userland-request-url"></li>
+          <li data-l10n-id="about-umbrafox-userland-request-headers"></li>
+          <li data-l10n-id="about-umbrafox-userland-request-block"></li>
+          <li data-l10n-id="about-umbrafox-userland-request-respond"></li>
+        </ul>
+        <p data-l10n-id="about-umbrafox-userland-request-headers-body"></p>
+        <pre><code>userland.on("request", event =&gt; {
+  event.headers.set("Accept", "application/json");
+  event.headers.delete("DNT");
+});</code></pre>
+        <p data-l10n-id="about-umbrafox-userland-request-block-body"></p>
+        <pre><code>userland.on("request", event =&gt; {
+  if (event.url.includes("/ads/")) {
+    event.respondWith({
+      contentType: "text/plain",
+      body: "",
+    });
+  }
+});</code></pre>
+        <p data-l10n-id="about-umbrafox-userland-request-limits"></p>
       </section>
 
       <section class="about-userland-section">
@@ -144,6 +303,13 @@ userland.on("navigation", event =&gt; {
       <section class="about-userland-section">
         <h2 data-l10n-id="about-umbrafox-userland-detectability-heading"></h2>
         <p data-l10n-id="about-umbrafox-userland-detectability-body"></p>
+        <ul>
+          <li
+            data-l10n-id="about-umbrafox-userland-detectability-substitution"
+          ></li>
+          <li data-l10n-id="about-umbrafox-userland-detectability-globals"></li>
+          <li data-l10n-id="about-umbrafox-userland-detectability-errors"></li>
+        </ul>
       </section>
     </main>
   </body>

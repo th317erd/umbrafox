@@ -9,6 +9,11 @@ support-files = [
   "file_userland_meta_refresh.html",
   "file_userland_order.html",
   "file_userland_runtime_script_event.html",
+  "file_userland_request_blocked.txt",
+  "file_userland_request_event.html",
+  "file_userland_request_original.txt",
+  "file_userland_request_replacement.txt",
+  "file_userland_request_synthetic.txt",
   "file_userland_script_event.html",
   "file_userland_script_event.js",
 ]

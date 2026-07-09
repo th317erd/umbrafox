@@ -23,6 +23,9 @@ const SCRIPT_EVENT_EXTERNAL_URL =
 const RUNTIME_SCRIPT_EVENT_URL =
   `${TEST_ORIGIN}/browser/toolkit/components/umbrafox/tests/browser/` +
   "file_userland_runtime_script_event.html";
+const REQUEST_EVENT_URL =
+  `${TEST_ORIGIN}/browser/toolkit/components/umbrafox/tests/browser/` +
+  "file_userland_request_event.html";
 
 registerCleanupFunction(() => {
   publishUserlandScripts([]);
@@ -484,3 +487,106 @@ add_task(
     );
   }
 );
+
+add_task(async function test_request_event_mutates_and_replaces_requests() {
+  publishUserlandScripts([
+    {
+      id: "userland-request-event",
+      name: "Userland request event",
+      enabled: true,
+      scope: {
+        origin: TEST_ORIGIN,
+        targetKinds: ["document"],
+        sourceUrlPattern: null,
+      },
+      world: "default",
+      code: `
+        window.requestEvents = [];
+        userland.on("request", event => {
+          if (!event.url.includes("file_userland_request_")) {
+            return;
+          }
+
+          window.requestEvents.push({
+            url: event.url,
+            method: event.method,
+            accept: event.headers.get("Accept"),
+            contentPolicyType: event.contentPolicyType,
+          });
+
+          if (event.url.endsWith("file_userland_request_original.txt")) {
+            event.headers.set("X-Umbrafox-Userland-Test", "rewritten");
+            event.url = event.url.replace(
+              "file_userland_request_original.txt",
+              "file_userland_request_replacement.txt"
+            );
+            return;
+          }
+
+          if (event.url.endsWith("file_userland_request_blocked.txt")) {
+            event.block();
+            return;
+          }
+
+          if (event.url.endsWith("file_userland_request_synthetic.txt")) {
+            event.respondWith({
+              contentType: "application/json",
+              body: '{"source":"synthetic"}',
+            });
+          }
+        });
+      `,
+      createdAt: 0,
+      updatedAt: 0,
+    },
+  ]);
+
+  await BrowserTestUtils.withNewTab(REQUEST_EVENT_URL, async browser => {
+    const result = await SpecialPowers.spawn(browser, [], async () => {
+      const window = content.wrappedJSObject;
+      const results = await window.requestEventResultsPromise;
+      return {
+        results: { ...results },
+        events: window.requestEvents.map(event => ({ ...event })),
+      };
+    });
+
+    Assert.equal(
+      result.results.rewrittenText.trim(),
+      "replacement request body",
+      "The request event rewrites the request URL before send"
+    );
+    Assert.equal(
+      result.results.blocked,
+      true,
+      "The request event can hard-cancel a request"
+    );
+    Assert.equal(
+      result.results.syntheticText,
+      '{"source":"synthetic"}',
+      "The request event can provide a synthetic successful response"
+    );
+    Assert.equal(
+      result.results.syntheticType,
+      "application/json",
+      "The synthetic response uses the requested content type"
+    );
+    Assert.deepEqual(
+      result.events.map(event => event.method),
+      ["GET", "GET", "GET", "GET"],
+      "Request events expose the HTTP method"
+    );
+    Assert.deepEqual(
+      result.events.map(event =>
+        event.url.substring(event.url.lastIndexOf("/") + 1)
+      ),
+      [
+        "file_userland_request_original.txt",
+        "file_userland_request_replacement.txt",
+        "file_userland_request_blocked.txt",
+        "file_userland_request_synthetic.txt",
+      ],
+      "Request events expose each original request URL"
+    );
+  });
+});
