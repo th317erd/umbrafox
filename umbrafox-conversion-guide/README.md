@@ -26,6 +26,7 @@ When new Firefox source arrives:
    - `03-userland-scripts-architecture.md`
 4. Read design plans for future features you are about to implement:
    - `plans/01-userland-mutation-events.md`
+   - `plans/02-bot-control-channel.md`
 5. Follow `01-rebase-workflow.md` to prepare a clean update branch.
 6. Apply recipes in order:
    - `recipes/01-application-identity-and-branding.md`
@@ -38,6 +39,7 @@ When new Firefox source arrives:
    - `recipes/08-tests-and-verification.md`
    - `recipes/09-userland-scripts.md`
    - `recipes/10-userland-mutation-events.md`
+   - `recipes/11-bot-control-channel.md`
 7. Use `reference/changed-files.md` as the file-level checklist.
 8. Use `reference/known-gotchas.md` before deciding a rebase is done.
 

@@ -33,6 +33,7 @@ remote.jar:
   content/webdriver-bidi/modules/root/script.sys.mjs (modules/root/script.sys.mjs)
   content/webdriver-bidi/modules/root/session.sys.mjs (modules/root/session.sys.mjs)
   content/webdriver-bidi/modules/root/storage.sys.mjs (modules/root/storage.sys.mjs)
+  content/webdriver-bidi/modules/root/umbrafox.sys.mjs (modules/root/umbrafox.sys.mjs)
   content/webdriver-bidi/modules/root/webExtension.sys.mjs (modules/root/webExtension.sys.mjs)
 
   # WebDriver BiDi windowglobal modules

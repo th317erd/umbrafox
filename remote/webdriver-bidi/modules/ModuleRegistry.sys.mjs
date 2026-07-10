@@ -35,6 +35,8 @@ ChromeUtils.defineESModuleGetters(modules.root, {
     "chrome://remote/content/webdriver-bidi/modules/root/session.sys.mjs",
   storage:
     "chrome://remote/content/webdriver-bidi/modules/root/storage.sys.mjs",
+  umbrafox:
+    "chrome://remote/content/webdriver-bidi/modules/root/umbrafox.sys.mjs",
   webExtension:
     "chrome://remote/content/webdriver-bidi/modules/root/webExtension.sys.mjs",
 });
