@@ -19,6 +19,7 @@
 #include "ExpandedPrincipal.h"
 #include "PresShellInlines.h"
 #include "PseudoStyleType.h"
+#include "UmbrafoxUserlandMutation.h"
 #include "jsapi.h"
 #include "mozAutoDocUpdate.h"
 #include "mozilla/AnimationComparator.h"
@@ -3692,6 +3693,23 @@ nsresult Element::SetAttrInternal(int32_t aNamespaceID, nsAtom* aName,
     return NS_OK;
   }
 
+  nsAutoString newValue;
+  bool valueWasRewritten = false;
+  if (UmbrafoxUserlandMutation::ShouldDispatchMutation(this)) {
+    newValue.Assign(aValue.String());
+    nsAutoString oldValueString;
+    const nsAString* oldValueStringPtr = nullptr;
+    if (oldValueSet) {
+      oldValue.ToString(oldValueString);
+      oldValueStringPtr = &oldValueString;
+    }
+    if (!UmbrafoxUserlandMutation::MaybeDispatchAttributeMutation(
+            this, aNamespaceID, aName, oldValueStringPtr, newValue)) {
+      return NS_OK;
+    }
+    valueWasRewritten = !newValue.Equals(aValue.String());
+  }
+
   // Hold a script blocker while calling ParseAttribute since that can call
   // out to id-observers
   Document* document = GetComposedDoc();
@@ -3703,7 +3721,12 @@ nsresult Element::SetAttrInternal(int32_t aNamespaceID, nsAtom* aName,
   }
 
   nsAttrValue attrValue;
-  aParseFn(attrValue);
+  if (!valueWasRewritten) {
+    aParseFn(attrValue);
+  } else if (!ParseAttribute(aNamespaceID, aName, newValue, aSubjectPrincipal,
+                             attrValue)) {
+    attrValue.SetTo(newValue);
+  }
 
   BeforeSetAttr(aNamespaceID, aName, &attrValue, aNotify);
 
@@ -3737,6 +3760,25 @@ nsresult Element::SetParsedAttr(int32_t aNamespaceID, nsAtom* aName,
     if (OnlyNotifySameValueSet(aNamespaceID, aName, aPrefix, value, aNotify,
                                oldValue, &modType, &oldValueSet)) {
       return NS_OK;
+    }
+  }
+
+  if (UmbrafoxUserlandMutation::ShouldDispatchMutation(this)) {
+    nsAutoString newValue;
+    aParsedValue.ToString(newValue);
+    nsAutoString oldValueString;
+    const nsAString* oldValueStringPtr = nullptr;
+    if (oldValueSet) {
+      oldValue.ToString(oldValueString);
+      oldValueStringPtr = &oldValueString;
+    }
+    if (!UmbrafoxUserlandMutation::MaybeDispatchAttributeMutation(
+            this, aNamespaceID, aName, oldValueStringPtr, newValue)) {
+      return NS_OK;
+    }
+    if (!aParsedValue.Equals(newValue, eCaseMatters) &&
+        !ParseAttribute(aNamespaceID, aName, newValue, nullptr, aParsedValue)) {
+      aParsedValue.SetTo(newValue);
     }
   }
 
@@ -4273,6 +4315,15 @@ nsresult Element::UnsetAttr(int32_t aNameSpaceID, nsAtom* aName, bool aNotify) {
   int32_t index = mAttrs.IndexOfAttr(aName, aNameSpaceID);
   if (index < 0) {
     return NS_OK;
+  }
+
+  if (UmbrafoxUserlandMutation::ShouldDispatchMutation(this)) {
+    nsAutoString oldValueString;
+    mAttrs.AttrAt(index)->ToString(oldValueString);
+    if (!UmbrafoxUserlandMutation::MaybeDispatchAttributeRemoval(
+            this, aNameSpaceID, aName, oldValueString)) {
+      return NS_OK;
+    }
   }
 
   Document* document = GetComposedDoc();

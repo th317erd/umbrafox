@@ -6,22 +6,27 @@ const DIALOG_EVENT_TYPES = new Set(["alert", "prompt", "confirm"]);
 const NAVIGATION_EVENT_TYPE = "navigation";
 const SCRIPT_EVENT_TYPE = "script";
 const REQUEST_EVENT_TYPE = "request";
+const MUTATION_EVENT_TYPE = "mutation";
 const NATIVE_NAVIGATION_TOPIC = "umbrafox-userland-navigation-attempt";
 const NATIVE_SCRIPT_TOPIC = "umbrafox-userland-script-source";
+const NATIVE_MUTATION_TOPIC = "umbrafox-userland-mutation-attempt";
 const HTTP_ON_MODIFY_REQUEST_TOPIC = "http-on-modify-request";
 const SUPPORTED_EVENT_TYPES = new Set([
   ...DIALOG_EVENT_TYPES,
   NAVIGATION_EVENT_TYPE,
   SCRIPT_EVENT_TYPE,
   REQUEST_EVENT_TYPE,
+  MUTATION_EVENT_TYPE,
 ]);
 
 const nativeNavigationControllers = new Map();
 const nativeScriptControllers = new Map();
 const nativeRequestControllers = new Map();
+const nativeMutationControllers = new Map();
 let nativeNavigationObserverRegistered = false;
 let nativeScriptObserverRegistered = false;
 let nativeRequestObserverRegistered = false;
+let nativeMutationObserverRegistered = false;
 
 const nativeNavigationObserver = {
   observe(subject, topic) {
@@ -110,6 +115,50 @@ const nativeScriptObserver = {
   },
 };
 
+const nativeMutationObserver = {
+  observe(subject, topic) {
+    try {
+      if (topic != NATIVE_MUTATION_TOPIC) {
+        return;
+      }
+
+      const bag = subject.QueryInterface(Ci.nsIWritablePropertyBag2);
+      const browsingContextId = bag.getPropertyAsUint64("browsingContextId");
+      const controller =
+        nativeMutationControllers.get(browsingContextId)?.deref() ?? null;
+      if (!controller) {
+        nativeMutationControllers.delete(browsingContextId);
+        return;
+      }
+      if (!controller?.hasHandlers(MUTATION_EVENT_TYPE)) {
+        return;
+      }
+
+      const event = controller.dispatchMutation(readNativeMutationFields(bag));
+      if (event.defaultPrevented) {
+        bag.setPropertyAsBool("cancelled", true);
+        return;
+      }
+
+      if (event.kind == "attribute") {
+        if (event.newValue === null || event.newValue === undefined) {
+          bag.setPropertyAsBool("hasNewValue", false);
+        } else {
+          bag.setPropertyAsBool("hasNewValue", true);
+          bag.setPropertyAsAString("newValue", String(event.newValue));
+        }
+      } else if (event.kind == "characterData") {
+        bag.setPropertyAsAString("newData", getString(event.newData));
+      } else if (event.kind == "childList" && event.replacementNode) {
+        bag.setPropertyAsInterface("replacementNode", event.replacementNode);
+        bag.setPropertyAsBool("hasReplacementNode", true);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  },
+};
+
 const nativeRequestObserver = {
   observe(subject, topic) {
     if (topic != HTTP_ON_MODIFY_REQUEST_TOPIC) {
@@ -158,6 +207,14 @@ function ensureNativeRequestObserver() {
   Services.obs.addObserver(nativeRequestObserver, HTTP_ON_MODIFY_REQUEST_TOPIC);
 }
 
+function ensureNativeMutationObserver() {
+  if (nativeMutationObserverRegistered) {
+    return;
+  }
+  nativeMutationObserverRegistered = true;
+  Services.obs.addObserver(nativeMutationObserver, NATIVE_MUTATION_TOPIC);
+}
+
 export function ensureUmbrafoxUserlandRequestObserver() {
   ensureNativeRequestObserver();
 }
@@ -176,6 +233,70 @@ function getString(value, fallback = "") {
     return fallback;
   }
   return String(value);
+}
+
+function getBagBool(bag, name, fallback = false) {
+  try {
+    return bag.getPropertyAsBool(name);
+  } catch {
+    return fallback;
+  }
+}
+
+function getBagNode(bag, name, hasName) {
+  if (hasName && !getBagBool(bag, hasName)) {
+    return null;
+  }
+  try {
+    return Cu.waiveXrays(bag.getPropertyAsInterface(name, Ci.nsISupports));
+  } catch {
+    return null;
+  }
+}
+
+function readNativeMutationFields(bag) {
+  const kind = bag.getPropertyAsAUTF8String("kind");
+  const target = getBagNode(bag, "target");
+  const fields = {
+    kind,
+    target,
+    native: true,
+  };
+
+  if (kind == "childList") {
+    const addedNode = getBagNode(bag, "addedNode", "hasAddedNode");
+    const removedNode = getBagNode(bag, "removedNode", "hasRemovedNode");
+    return {
+      ...fields,
+      operation: bag.getPropertyAsAUTF8String("operation"),
+      addedNodes: addedNode ? [addedNode] : [],
+      removedNodes: removedNode ? [removedNode] : [],
+      previousSibling: getBagNode(bag, "previousSibling", "hasPreviousSibling"),
+      nextSibling: getBagNode(bag, "nextSibling", "hasNextSibling"),
+    };
+  }
+
+  if (kind == "attribute") {
+    const hasOldValue = getBagBool(bag, "hasOldValue");
+    const hasNewValue = getBagBool(bag, "hasNewValue");
+    return {
+      ...fields,
+      attributeName: bag.getPropertyAsAString("attributeName"),
+      attributeNamespace: bag.getPropertyAsAString("attributeNamespace"),
+      oldValue: hasOldValue ? bag.getPropertyAsAString("oldValue") : null,
+      newValue: hasNewValue ? bag.getPropertyAsAString("newValue") : null,
+    };
+  }
+
+  if (kind == "characterData") {
+    return {
+      ...fields,
+      oldData: bag.getPropertyAsAString("oldData"),
+      newData: bag.getPropertyAsAString("newData"),
+    };
+  }
+
+  return fields;
 }
 
 function resolveHref(window, href) {
@@ -645,6 +766,67 @@ class UserlandCancellableEvent {
     return this._responded;
   }
 }
+/**
+ * Cancellable event object passed to userland mutation handlers.
+ */
+class UserlandMutationEvent extends UserlandCancellableEvent {
+  constructor(fields = {}) {
+    super(MUTATION_EVENT_TYPE, fields);
+    this.addedNodes = Object.freeze([...(fields.addedNodes ?? [])]);
+    this.removedNodes = Object.freeze([...(fields.removedNodes ?? [])]);
+    this.originalNewValue = fields.newValue;
+    this.originalNewData = fields.newData;
+    this.replacementNode = null;
+  }
+
+  replaceAddedNodes(...nodes) {
+    if (this.kind != "childList") {
+      return;
+    }
+    if (!nodes.length) {
+      this.preventDefault();
+      return;
+    }
+
+    this.replacementNode =
+      nodes.length == 1 ? this.#coerceNode(nodes[0]) : this.#fragment(nodes);
+  }
+
+  replaceWith(...nodes) {
+    this.replaceAddedNodes(...nodes);
+  }
+
+  #coerceNode(node) {
+    if (node?.nodeType) {
+      return node;
+    }
+
+    const document =
+      this.target?.nodeType == this.target?.DOCUMENT_NODE
+        ? this.target
+        : this.target?.ownerDocument;
+    return document?.createTextNode(String(node)) ?? null;
+  }
+
+  #fragment(nodes) {
+    const document =
+      this.target?.nodeType == this.target?.DOCUMENT_NODE
+        ? this.target
+        : this.target?.ownerDocument;
+    const fragment = document?.createDocumentFragment();
+    if (!fragment) {
+      return null;
+    }
+
+    for (const node of nodes) {
+      const coerced = this.#coerceNode(node);
+      if (coerced) {
+        fragment.append(coerced);
+      }
+    }
+    return fragment;
+  }
+}
 
 /**
  * Per-document controller for userland dialog and navigation event hooks.
@@ -694,7 +876,10 @@ export class UmbrafoxUserlandEventController {
   }
 
   dispatch(type, fields = {}) {
-    const event = new UserlandCancellableEvent(type, fields);
+    const event =
+      type == MUTATION_EVENT_TYPE
+        ? new UserlandMutationEvent(fields)
+        : new UserlandCancellableEvent(type, fields);
     for (const handler of this.handlers.get(type) ?? []) {
       try {
         handler(event);
@@ -720,6 +905,10 @@ export class UmbrafoxUserlandEventController {
     }
     if (type == REQUEST_EVENT_TYPE) {
       this.installRequestHook();
+      return;
+    }
+    if (type == MUTATION_EVENT_TYPE) {
+      this.installMutationHook();
     }
   }
 
@@ -855,6 +1044,20 @@ export class UmbrafoxUserlandEventController {
       originalHeaders: Object.freeze(Object.fromEntries(headers)),
     });
     return serializeRequestDecision(event);
+  }
+
+  installMutationHook() {
+    const browsingContextId = this.browsingContextId;
+    if (!browsingContextId) {
+      return;
+    }
+
+    ensureNativeMutationObserver();
+    nativeMutationControllers.set(browsingContextId, new WeakRef(this));
+  }
+
+  dispatchMutation(fields) {
+    return this.dispatch(MUTATION_EVENT_TYPE, fields);
   }
 
   handleWindowOpen(url, target = "", features = "") {

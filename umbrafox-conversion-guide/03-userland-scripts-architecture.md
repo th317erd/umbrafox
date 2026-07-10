@@ -1,6 +1,6 @@
 # Userland scripts architecture
 
-Status: architecture note. The profile-local storage slice, source-tree scope derivation, Debugger context-menu creation path, Debugger footer creation path, domain-scoped `Userland` source-tree folders, source-tree enable checkbox, CodeMirror-backed editable Debugger code surface, async userland wrapper runner, first document-start parser-blocking runtime hook, first document-level userland dialog events, first docshell-backed navigation events, and first script-source mutation events exist. Worker support, network APIs, history API interception, and stronger isolated-world hardening are not implemented yet. HTTP/server redirects are intentionally reserved for future network interception/substitution APIs rather than the `navigation` event.
+Status: architecture note. The profile-local storage slice, source-tree scope derivation, Debugger context-menu creation path, Debugger footer creation path, domain-scoped `Userland` source-tree folders, source-tree enable checkbox, CodeMirror-backed editable Debugger code surface, async userland wrapper runner, first document-start parser-blocking runtime hook, first document-level userland dialog events, first docshell-backed navigation events, first script-source mutation events, first request events, and first DOM mutation events exist. Worker support, history API interception, loading-state mutation interception, parser/bulk mutation interception, and stronger isolated-world hardening are not implemented yet. HTTP/server redirects are intentionally reserved for future network interception/substitution APIs rather than the `navigation` event.
 
 This feature lets users create named scripts from DevTools, persist them in the active profile, and run them in isolated userland worlds for a matching site/thread before normal page JavaScript executes.
 
@@ -78,7 +78,7 @@ For documents, the current first path is:
 6. `UmbrafoxUserlandScriptRuntime.sys.mjs` calls `document.blockParsing(promise, { blockScriptCreated: false })` on the unwaived document while the promised script list is fetched and matching wrappers run.
 7. The runtime evaluates wrappers with waived page references for `window`, `document`, `globalThis`, `location`, and `navigator`, passes the page `console`, binds bare `alert` to the page window, and uses the page window as the sandbox prototype so ordinary page global lookup works for explicit user scripts. The `userland` binding remains lexical and off page globals.
 8. Page parser/script progress is released only after all matching enabled userland scripts resolve.
-9. If a script registers dialog, navigation, or script-source listeners through `userland.on(...)`, `UmbrafoxUserlandEventController.sys.mjs` installs per-document hooks for explicit userland control. Dialogs are handled by page-global replacements. Navigation combines a `window.open(...)` wrapper with a native docshell observer bridge keyed by browsing-context id. Script source mutation combines a native DOM script-loader observer bridge with pre-compile source replacement.
+9. If a script registers dialog, navigation, script-source, request, or mutation listeners through `userland.on(...)`, `UmbrafoxUserlandEventController.sys.mjs` installs per-document hooks for explicit userland control. Dialogs are handled by page-global replacements. Navigation combines a `window.open(...)` wrapper with a native docshell observer bridge keyed by browsing-context id. Script source mutation combines native DOM script-loader/runtime-codegen observer bridges with pre-compile source replacement. Requests use an `http-on-modify-request` observer bridge for the first request-control slice. DOM mutation events use selected native DOM pre-commit hooks for child-list, attribute, and character-data changes after the document has reached `interactive` or `complete`.
 
 The next hardening step is replacing the current system-principal wrapper sandbox with a browser-owned isolated world closer to Firefox WebExtension user-script sandboxes while preserving page-like global lookup. The current path is intentionally limited to explicit enabled user scripts and must not install any Umbrafox or userland marker on page globals.
 
@@ -157,6 +157,8 @@ Current supported event types:
 - `confirm`
 - `navigation`
 - `script`
+- `request`
+- `mutation`
 
 Handlers receive a synchronous cancellable event object:
 

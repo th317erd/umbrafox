@@ -9,6 +9,7 @@
 
 #include "mozilla/dom/CharacterData.h"
 
+#include "UmbrafoxUserlandMutation.h"
 #include "mozAutoDocUpdate.h"
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/Sprintf.h"
@@ -226,6 +227,39 @@ nsresult CharacterData::SetTextInternal(
   }
 
   uint32_t endOffset = aOffset + aCount;
+
+  nsAutoString rewrittenData;
+  if (UmbrafoxUserlandMutation::ShouldDispatchMutation(this)) {
+    nsAutoString oldData;
+    mBuffer.AppendTo(oldData);
+
+    nsAutoString newData;
+    if (aOffset) {
+      mBuffer.AppendTo(newData, 0, aOffset);
+    }
+    if (aLength) {
+      newData.Append(aBuffer, aLength);
+    }
+    if (endOffset != textLength) {
+      mBuffer.AppendTo(newData, endOffset, textLength - endOffset);
+    }
+
+    if (!UmbrafoxUserlandMutation::MaybeDispatchCharacterDataMutation(
+            this, oldData, newData)) {
+      return NS_OK;
+    }
+
+    if (newData.Equals(oldData)) {
+      return NS_OK;
+    }
+
+    rewrittenData = newData;
+    aOffset = 0;
+    aCount = textLength;
+    endOffset = textLength;
+    aBuffer = rewrittenData.BeginReading();
+    aLength = rewrittenData.Length();
+  }
 
   // Make sure the text fragment can hold the new data.
   if (aLength > aCount && !mBuffer.CanGrowBy(aLength - aCount)) {

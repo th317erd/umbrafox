@@ -590,3 +590,218 @@ add_task(async function test_request_event_mutates_and_replaces_requests() {
     );
   });
 });
+
+add_task(async function test_mutation_event_controls_dom_mutations() {
+  publishUserlandScripts([
+    {
+      id: "userland-mutation-event",
+      name: "Userland mutation event",
+      enabled: true,
+      scope: {
+        origin: TEST_ORIGIN,
+        targetKinds: ["document"],
+        sourceUrlPattern: null,
+      },
+      world: "default",
+      code: `
+        window.mutationEvents = [];
+        userland.on("mutation", event => {
+          window.mutationEvents.push({
+            kind: event.kind,
+            operation: event.operation ?? null,
+            attributeName: event.attributeName ?? null,
+            addedIds: (event.addedNodes ?? []).map(node => node.id ?? ""),
+            removedIds: (event.removedNodes ?? []).map(node => node.id ?? ""),
+            oldValue: event.oldValue ?? null,
+            newValue: event.newValue ?? null,
+            oldData: event.oldData ?? null,
+            newData: event.newData ?? null,
+          });
+
+          if (event.kind == "childList") {
+            if (event.addedNodes.some(node => node.id == "blocked-child")) {
+              event.preventDefault();
+            }
+            for (const node of event.addedNodes) {
+              if (node.id == "hidden-child") {
+                node.style.display = "none";
+              }
+            }
+            if (event.removedNodes.some(node => node.id == "kept-child")) {
+              event.preventDefault();
+            }
+            if (
+              event.addedNodes.some(
+                node => node.id == "move-blocked" && node.parentNode
+              )
+            ) {
+              event.preventDefault();
+            }
+          }
+
+          if (event.kind == "attribute") {
+            if (event.attributeName == "data-rewrite") {
+              event.newValue = "rewritten";
+            }
+            if (event.attributeName == "data-block") {
+              event.preventDefault();
+            }
+            if (
+              event.attributeName == "data-remove-block" &&
+              event.newValue === null
+            ) {
+              event.preventDefault();
+            }
+          }
+
+          if (event.kind == "characterData") {
+            event.newData = event.newData.replace("mutated", "rewritten");
+          }
+        });
+      `,
+      createdAt: 0,
+      updatedAt: 0,
+    },
+  ]);
+
+  await BrowserTestUtils.withNewTab(ORDER_URL, async browser => {
+    const result = await SpecialPowers.spawn(browser, [], async () => {
+      const window = content.wrappedJSObject;
+      const parent = content.document.createElement("div");
+      const moveSource = content.document.createElement("div");
+      content.document.body.append(parent, moveSource);
+
+      const mutationRecords = [];
+      const observer = new content.MutationObserver(records => {
+        for (const record of records) {
+          mutationRecords.push({
+            type: record.type,
+            targetId: record.target.id,
+            attributeName: record.attributeName,
+            addedIds: Array.from(record.addedNodes, node => node.id ?? ""),
+            removedIds: Array.from(record.removedNodes, node => node.id ?? ""),
+          });
+        }
+      });
+      observer.observe(parent, {
+        attributes: true,
+        characterData: true,
+        childList: true,
+        subtree: true,
+      });
+
+      const blocked = content.document.createElement("span");
+      blocked.id = "blocked-child";
+      const blockedReturn = parent.appendChild(blocked);
+
+      const hidden = content.document.createElement("span");
+      hidden.id = "hidden-child";
+      parent.appendChild(hidden);
+
+      const attr = content.document.createElement("span");
+      parent.appendChild(attr);
+      attr.setAttribute("data-rewrite", "original");
+      attr.setAttribute("data-block", "blocked");
+      attr.setAttribute("data-remove-block", "original");
+      attr.removeAttribute("data-remove-block");
+
+      const text = content.document.createTextNode("initial");
+      parent.appendChild(text);
+      text.data = "mutated";
+
+      const kept = content.document.createElement("span");
+      kept.id = "kept-child";
+      parent.appendChild(kept);
+      const removeReturn = parent.removeChild(kept);
+
+      const moveBlocked = content.document.createElement("span");
+      moveBlocked.id = "move-blocked";
+      moveSource.appendChild(moveBlocked);
+      parent.appendChild(moveBlocked);
+
+      await Promise.resolve();
+      observer.disconnect();
+
+      return {
+        blockedReturnIsNode: blockedReturn == blocked,
+        blockedParent: blocked.parentNode?.id ?? null,
+        blockedInserted: parent.contains(blocked),
+        hiddenDisplay: hidden.style.display,
+        rewriteAttr: attr.getAttribute("data-rewrite"),
+        blockAttr: attr.getAttribute("data-block"),
+        removeBlockAttr: attr.getAttribute("data-remove-block"),
+        textData: text.data,
+        removeReturnIsNode: removeReturn == kept,
+        keptParentIsParent: kept.parentNode == parent,
+        moveBlockedParentIsSource: moveBlocked.parentNode == moveSource,
+        userlandEvents: window.mutationEvents.map(event => ({ ...event })),
+        mutationRecords,
+      };
+    });
+
+    Assert.deepEqual(
+      {
+        blockedReturnIsNode: result.blockedReturnIsNode,
+        blockedParent: result.blockedParent,
+        blockedInserted: result.blockedInserted,
+        hiddenDisplay: result.hiddenDisplay,
+        rewriteAttr: result.rewriteAttr,
+        blockAttr: result.blockAttr,
+        removeBlockAttr: result.removeBlockAttr,
+        textData: result.textData,
+        removeReturnIsNode: result.removeReturnIsNode,
+        keptParentIsParent: result.keptParentIsParent,
+        moveBlockedParentIsSource: result.moveBlockedParentIsSource,
+      },
+      {
+        blockedReturnIsNode: true,
+        blockedParent: null,
+        blockedInserted: false,
+        hiddenDisplay: "none",
+        rewriteAttr: "rewritten",
+        blockAttr: null,
+        removeBlockAttr: "original",
+        textData: "rewritten",
+        removeReturnIsNode: true,
+        keptParentIsParent: true,
+        moveBlockedParentIsSource: true,
+      },
+      "Mutation handlers veto and rewrite DOM mutations while preserving return shapes"
+    );
+
+    Assert.ok(
+      result.userlandEvents.some(
+        event =>
+          event.kind == "childList" && event.addedIds.includes("blocked-child")
+      ),
+      "Userland sees blocked child-list insertions"
+    );
+    Assert.ok(
+      result.userlandEvents.some(
+        event =>
+          event.kind == "attribute" &&
+          event.attributeName == "data-rewrite" &&
+          event.newValue == "original"
+      ),
+      "Userland sees original attribute mutation values before rewrite"
+    );
+    Assert.ok(
+      result.userlandEvents.some(
+        event => event.kind == "characterData" && event.newData == "mutated"
+      ),
+      "Userland sees original character data before rewrite"
+    );
+    Assert.ok(
+      !result.mutationRecords.some(record =>
+        record.addedIds.includes("blocked-child")
+      ),
+      "Page MutationObserver does not receive records for vetoed insertions"
+    );
+    Assert.ok(
+      !result.mutationRecords.some(record =>
+        record.removedIds.includes("kept-child")
+      ),
+      "Page MutationObserver does not receive records for vetoed removals"
+    );
+  });
+});

@@ -13,6 +13,7 @@
 #include "AccessCheck.h"
 #include "GeometryUtils.h"
 #include "HTMLLegendElement.h"
+#include "UmbrafoxUserlandMutation.h"
 #include "WrapperFactory.h"
 #include "XPathGenerator.h"
 #include "js/ForOfIterator.h"  // JS::ForOfIterator
@@ -1353,6 +1354,15 @@ nsINode* nsINode::RemoveChildInternal(
     aError.ThrowNotFoundError(
         "The node to be removed is not a child of this node");
     return nullptr;
+  }
+
+  nsIContent* oldContent = aOldChild.AsContent();
+  UmbrafoxUserlandMutation::ChildListDecision decision;
+  if (!UmbrafoxUserlandMutation::MaybeDispatchChildListMutation(
+          this, "remove"_ns, nullptr, oldContent,
+          oldContent->GetPreviousSibling(), oldContent->GetNextSibling(),
+          &decision)) {
+    return &aOldChild;
   }
 
   RemoveChildNode(aOldChild.AsContent(), true, nullptr, nullptr,
@@ -3169,6 +3179,41 @@ nsINode* nsINode::ReplaceOrInsertBefore(
     // We're going to remove aNewChild from its parent, so use its next sibling
     // as the node to insert before.
     nodeToInsertBefore = nodeToInsertBefore->GetNextSibling();
+  }
+
+  nsCOMPtr<nsINode> originalNewChild = aNewChild;
+  nsIContent* addedContent = aNewChild->AsContent();
+  nsIContent* removedContent = aReplace ? aRefChild->AsContent() : nullptr;
+  nsIContent* previousSibling = aReplace ? removedContent->GetPreviousSibling()
+                                : nodeToInsertBefore
+                                    ? nodeToInsertBefore->GetPreviousSibling()
+                                    : GetLastChild();
+  nsIContent* nextSibling =
+      aReplace ? removedContent->GetNextSibling() : nodeToInsertBefore;
+  UmbrafoxUserlandMutation::ChildListDecision decision;
+  if (!UmbrafoxUserlandMutation::MaybeDispatchChildListMutation(
+          this, aReplace ? "replace"_ns : "insert"_ns, addedContent,
+          removedContent, previousSibling, nextSibling, &decision)) {
+    return aReplace ? aRefChild : originalNewChild.get();
+  }
+
+  nsCOMPtr<nsINode> replacementNode = decision.mReplacementNode;
+  if (replacementNode && replacementNode != aNewChild) {
+    aNewChild = replacementNode;
+    EnsurePreInsertionValidity2(aReplace, *aNewChild, aRefChild, aError);
+    if (aError.Failed()) {
+      return nullptr;
+    }
+
+    nodeType = aNewChild->NodeType();
+    if (aReplace) {
+      nodeToInsertBefore = aRefChild->GetNextSibling();
+    } else {
+      nodeToInsertBefore = aRefChild ? aRefChild->AsContent() : nullptr;
+    }
+    if (nodeToInsertBefore == aNewChild) {
+      nodeToInsertBefore = nodeToInsertBefore->GetNextSibling();
+    }
   }
 
   Maybe<AutoTArray<nsCOMPtr<nsIContent>, 50>> fragChildren;

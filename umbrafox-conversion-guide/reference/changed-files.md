@@ -202,6 +202,12 @@ This inventory was generated from the current working tree when the guide was wr
 - `dom/script/ScriptLoader.h`
 - `caps/nsScriptSecurityManager.cpp`
 - `caps/nsScriptSecurityManager.h`
+- `dom/base/CharacterData.cpp`
+- `dom/base/Element.cpp`
+- `dom/base/UmbrafoxUserlandMutation.cpp`
+- `dom/base/UmbrafoxUserlandMutation.h`
+- `dom/base/moz.build`
+- `dom/base/nsINode.cpp`
 - `js/public/Principals.h`
 - `js/src/builtin/Eval.cpp`
 - `js/src/vm/JSContext.cpp`

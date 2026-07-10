@@ -24,8 +24,10 @@ When new Firefox source arrives:
 2. Read `02-mandatory-modification-rules.md`; these rules govern every Umbrafox patch.
 3. Read feature architecture notes for any subsystem you are touching:
    - `03-userland-scripts-architecture.md`
-4. Follow `01-rebase-workflow.md` to prepare a clean update branch.
-5. Apply recipes in order:
+4. Read design plans for future features you are about to implement:
+   - `plans/01-userland-mutation-events.md`
+5. Follow `01-rebase-workflow.md` to prepare a clean update branch.
+6. Apply recipes in order:
    - `recipes/01-application-identity-and-branding.md`
    - `recipes/02-brand-assets.md`
    - `recipes/03-profile-defaults-and-homepage.md`
@@ -35,8 +37,9 @@ When new Firefox source arrives:
    - `recipes/07-localization-and-copy-sweep.md`
    - `recipes/08-tests-and-verification.md`
    - `recipes/09-userland-scripts.md`
-6. Use `reference/changed-files.md` as the file-level checklist.
-7. Use `reference/known-gotchas.md` before deciding a rebase is done.
+   - `recipes/10-userland-mutation-events.md`
+7. Use `reference/changed-files.md` as the file-level checklist.
+8. Use `reference/known-gotchas.md` before deciding a rebase is done.
 
 ## Mandatory rules
 

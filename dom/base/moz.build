@@ -504,6 +504,7 @@ UNIFIED_SOURCES += [
     "TimeoutManager.cpp",
     "TreeWalker.cpp",
     "UIDirectionManager.cpp",
+    "UmbrafoxUserlandMutation.cpp",
     "UserActivation.cpp",
     "ViewportMetaData.cpp",
     "VisualViewport.cpp",
