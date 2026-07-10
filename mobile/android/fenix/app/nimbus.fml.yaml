@@ -1006,17 +1006,7 @@ features:
         description: >
           Whether or not to enable onboarding for tab groups.
         type: Boolean
-        default: false
-    defaults:
-      - channel: release
-        value:
-          enabled: false
-      - channel: beta
-        value:
-          enabled: false
-      - channel: nightly
-        value:
-          enabled: false
+        default: true
   tab-groups-live-reorder:
     description: Control whether reorder happens live during a drag and drop action for Tab Groups.
     variables:
@@ -1192,13 +1182,13 @@ features:
         type: Boolean
         default: false
 
-  mozilla-ads-client:
-    description: Feature to enable the Mozilla Ads Client support for Top Sites for users on Firefox on Android.
+  ads-client-for-stories:
+    description: Feature to enable the Mozilla Ads Client support for Sponsored Stories for users on Firefox on Android.
     variables:
       enabled:
-        description: If true, Mozilla Ads Client support for Top Sites is enabled.
+        description: If true, Mozilla Ads Client support for Sponsored Stories is enabled.
         type: Boolean
-        default: true
+        default: false
 
   private-mode-and-stories-entry-point:
     description: Feature to enable the Private Mode and Stories Entry Point Experiment.

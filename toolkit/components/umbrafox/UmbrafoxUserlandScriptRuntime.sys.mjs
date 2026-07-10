@@ -95,12 +95,10 @@ function runDocumentUserlandScripts(
 function blockDocumentParser(window, promise) {
   const document = window.document;
   if (document?.readyState !== "complete") {
-    document.blockParsing(
-      Promise.resolve(promise).catch(error => {
-        window.console?.error?.(error);
-      }),
-      { blockScriptCreated: false }
-    );
+    promise.catch(error => {
+      window.console?.error?.(error);
+    });
+    document.blockParsing(promise, { blockScriptCreated: false });
   }
 }
 

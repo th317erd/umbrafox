@@ -394,6 +394,14 @@ export class AboutPreferences {
         type: "bool",
       },
       {
+        id: "browser.newtabpage.activity-stream.widgets.system.pictureOfTheDay.enabled",
+        type: "bool",
+      },
+      {
+        id: "browser.newtabpage.activity-stream.widgets.pictureOfTheDay.enabled",
+        type: "bool",
+      },
+      {
         id: "browser.newtabpage.activity-stream.feeds.topsites",
         type: "bool",
       },
@@ -1303,6 +1311,18 @@ export class AboutPreferences {
       visible: widgetToggleVisible("stocks"),
     });
 
+    Preferences.addSetting({
+      id: "pictureOfTheDayEnabled",
+      pref: "browser.newtabpage.activity-stream.widgets.system.pictureOfTheDay.enabled",
+    });
+
+    Preferences.addSetting({
+      id: "pictureOfTheDay",
+      pref: "browser.newtabpage.activity-stream.widgets.pictureOfTheDay.enabled",
+      deps: ["pictureOfTheDayEnabled"],
+      visible: widgetToggleVisible("pictureOfTheDay"),
+    });
+
     // Shortcuts
     Preferences.addSetting({
       id: "shortcuts",
@@ -1451,6 +1471,10 @@ export class AboutPreferences {
             {
               id: "stocks",
               l10nId: "home-prefs-stocks-header",
+            },
+            {
+              id: "pictureOfTheDay",
+              l10nId: "home-prefs-picture-header",
             },
             ...(novaEnabled && widgetsSystemEnabled ? [weatherItem] : []),
           ],

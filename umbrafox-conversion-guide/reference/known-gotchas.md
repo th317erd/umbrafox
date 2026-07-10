@@ -46,6 +46,15 @@ Because Umbrafox defaults the customize menu off, upstream tests that expect it 
 ["browser.newtabpage.activity-stream.customizeMenu.enabled", true]
 ```
 
+## Regenerate exports after upstream IPDL changes
+
+After a large upstream merge, generated IPDL headers under `obj-*/ipc/ipdl/_ipdlheaders/` can be stale even when the source `.ipdl` files are current. If `./mach build binaries` fails with constructor arity mismatches such as `SendPDocAccessibleConstructor` or `RecvPExternalHelperAppConstructor`, run:
+
+```bash
+./mach build export
+./mach build binaries
+```
+
 ## Documentation folder is not Sphinx-linked
 
 `umbrafox-conversion-guide/` is intentionally not under Firefox's source docs system. If it is moved under `docs/`, add proper Sphinx config and toctree entries or documentation builds may fail.

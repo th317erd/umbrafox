@@ -1713,9 +1713,28 @@ class Element : public FragmentOrElement {
 
   ShadowRoot* GetShadowRootForBindings() const;
   ShadowRoot* GetOpenOrClosedShadowRoot(nsIPrincipal& aSubject) const;
-  ShadowRoot* GetShadowRoot() const {
+  [[nodiscard]] ShadowRoot* GetShadowRoot() const {
     const nsExtendedDOMSlots* slots = GetExistingExtendedDOMSlots();
     return slots ? slots->mShadowRoot.get() : nullptr;
+  }
+
+  template <TreeKind aKind>
+  [[nodiscard]] ShadowRoot* GetShadowRoot() const {
+    if constexpr (aKind == TreeKind::DOM) {
+      return nullptr;
+    } else if constexpr (aKind == TreeKind::ShadowIncludingDOM ||
+                         aKind == TreeKind::FlatForSelection) {
+      MOZ_ASSERT(ShouldIgnoreNonContentShadow<aKind>());
+      // GetShadowRootForSelection() requires ShadowRoot type to check whether
+      // it's an UA one. Therefore, it cannot be inlined here. We could make an
+      // inlined one in ElementInlines.h, but I'm not sure whether it's worth.
+      return nsINode::GetShadowRootForSelection();
+    } else if constexpr (aKind == TreeKind::Flat) {
+      MOZ_ASSERT(!ShouldIgnoreNonContentShadow<aKind>());
+      return GetShadowRoot();
+    } else {
+      MOZ_MAKE_COMPILER_ASSUME_IS_UNREACHABLE("Handle the new TreeKind value");
+    }
   }
 
   Element* ResolveReferenceTarget() const;
@@ -2407,42 +2426,10 @@ class Element : public FragmentOrElement {
                             nsIPrincipal* aMaybeScriptedPrincipal,
                             bool aNotify);
 
-  /**
-   * This function shall be called just before the id attribute changes. It will
-   * be called after BeforeSetAttr. If the attribute being changed is not the id
-   * attribute, this function does nothing. Otherwise, it will remove the old id
-   * from the document's id cache.
-   *
-   * This must happen after BeforeSetAttr (rather than during) because the
-   * the subclasses' calls to BeforeSetAttr may notify on state changes. If they
-   * incorrectly determine whether the element had an id, the element may not be
-   * restyled properly.
-   *
-   * @param aNamespaceID the namespace of the attr being set
-   * @param aName the localname of the attribute being set
-   * @param aValue the new id value. Will be null if the id is being unset.
-   */
-  void PreIdMaybeChange(int32_t aNamespaceID, nsAtom* aName,
-                        const nsAttrValue* aValue);
-
-  /**
-   * This function shall be called just after the id attribute changes. It will
-   * be called before AfterSetAttr. If the attribute being changed is not the id
-   * attribute, this function does nothing. Otherwise, it will add the new id to
-   * the document's id cache and properly set the ElementHasID flag.
-   *
-   * This must happen before AfterSetAttr (rather than during) because the
-   * the subclasses' calls to AfterSetAttr may notify on state changes. If they
-   * incorrectly determine whether the element now has an id, the element may
-   * not be restyled properly.
-   *
-   * @param aNamespaceID the namespace of the attr being set
-   * @param aName the localname of the attribute being set
-   * @param aValue the new id value. Will be null if the id is being unset.
-   */
-  void PostIdMaybeChange(int32_t aNamespaceID, nsAtom* aName,
-                         const nsAttrValue* aValue);
-
+  // TODO(emilio): Inline these in the caller once there's less movement in
+  // this area.
+  void PreIdMaybeChange(const nsAttrValue* aValue);
+  void PostIdMaybeChange(const nsAttrValue* aValue);
   /**
    * Usually, setting an attribute to the value that it already has results in
    * no action. However, in some cases, setting an attribute to its current

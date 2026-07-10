@@ -22,7 +22,7 @@ const lazy = XPCOMUtils.declareLazy({
     "moz-src:///browser/components/aiwindow/ui/modules/AIWindow.sys.mjs",
   BrowserUIUtils: "resource:///modules/BrowserUIUtils.sys.mjs",
   ContextualIdentityService:
-    "resource://gre/modules/ContextualIdentityService.sys.mjs",
+    "moz-src:///toolkit/components/contextualidentity/ContextualIdentityService.sys.mjs",
   DEFAULT_FORM_HISTORY_PARAM:
     "moz-src:///toolkit/components/search/SearchSuggestionController.sys.mjs",
   FaviconUtils: "moz-src:///toolkit/modules/FaviconUtils.sys.mjs",
@@ -2684,6 +2684,9 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
       subtype: {
         type: "string",
       },
+      suggestionId: {
+        type: "string",
+      },
       suggestionObject: {
         type: "object",
       },
@@ -3137,6 +3140,23 @@ export class UrlbarQueryContext {
    *   Details about the search mode associated with this context.
    */
   searchMode;
+
+  /**
+   * Utility function to determine whether we should use the existence of
+   * searchMode to restrict the type of results to only search suggestions
+   * or the new behaviour behind `historyInSearchMode` pref that shows all
+   * types of results in searchMode, treating engine searchMode as
+   * "temporarily changed default search engine".
+   *
+   * @returns {boolean}
+   */
+  restrictInSearchMode() {
+    if (lazy.UrlbarPrefs.get("unifiedSearchButton.historyInSearchMode")) {
+      // We still want to restrict local searchModes even if the pref is on.
+      return !!this.searchMode && !this.searchMode.engineName;
+    }
+    return !!this.searchMode;
+  }
 
   /**
    * @type {string}

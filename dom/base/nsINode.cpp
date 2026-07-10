@@ -216,6 +216,84 @@ bool nsINode::IsShadowIncludingInclusiveDescendantOf(
   return IsShadowIncludingDescendantOf(aNode);
 }
 
+template Element* nsINode::GetClosestFlatTreeAncestorElementForNonFlatTreeNode<
+    TreeKind::Flat>() const;
+template Element* nsINode::GetClosestFlatTreeAncestorElementForNonFlatTreeNode<
+    TreeKind::FlatForSelection>() const;
+
+template <TreeKind aKind, typename Dummy>
+Element* nsINode::GetClosestFlatTreeAncestorElementForNonFlatTreeNode() const {
+  const ShadowRoot* const asShadowRoot = ShadowRoot::FromNode(this);
+  MOZ_ASSERT_IF(aKind == TreeKind::FlatForSelection && asShadowRoot,
+                !asShadowRoot->IsUAWidget());
+  const nsINode* childNode = IsShadowRoot() ? asShadowRoot->GetHost() : this;
+  if (!childNode || childNode->IsRootOfNativeAnonymousSubtree()) [[unlikely]] {
+    return nullptr;
+  }
+  for (nsIContent* parentContent = childNode->GetParent(); parentContent;
+       childNode = parentContent, parentContent = parentContent->GetParent()) {
+    if (parentContent->IsRootOfNativeAnonymousSubtree()) [[unlikely]] {
+      return nullptr;
+    }
+    if (auto* const shadowRoot = ShadowRoot::FromNode(parentContent)) {
+      Element* const host = shadowRoot->GetHost();
+      if (!host) [[unlikely]] {
+        return nullptr;  // Reached unattached UA shadow root
+      }
+      // Okay, check whether the host element is a part of the flattened tree.
+      parentContent = host;
+      continue;
+    }
+    if (!parentContent->IsElement()) {
+      return nullptr;  // Reached a document fragment
+    }
+    if (parentContent->GetShadowRoot<aKind>()) {
+      MOZ_ASSERT(childNode->IsContent());
+      if (HTMLSlotElement* slot = childNode->AsContent()->GetAssignedSlot()) {
+        // childNode is assigned to a <slot> so that this may be part of the
+        // flattened tree. However, the host may be not part of the flattened
+        // tree, keep climbing up the flattened tree.
+        parentContent = slot;
+        continue;
+      }
+      // childNode is an unassigned slottable node. So, it's a non-flattened
+      // node.
+      return parentContent->AsElement();
+    }
+    if (auto* const slot = HTMLSlotElement::FromNode(parentContent)) {
+      if (slot->GetContainingShadow<aKind>()) {
+        if (slot->AssignedNodes().IsEmpty()) {
+          // childNode is a fallback content and a part of the flattened tree.
+          continue;
+        }
+        // childNode is a fallback content but replaced with the assigned nodes.
+        // So, this is a non-flattened node.
+        return slot;
+      }
+    }
+  }
+  return nullptr;
+}
+
+template Element*
+nsINode::GetFlatTreeAncestorElementForNonFlatTreeNode<TreeKind::Flat>() const;
+template Element* nsINode::GetFlatTreeAncestorElementForNonFlatTreeNode<
+    TreeKind::FlatForSelection>() const;
+
+template <TreeKind aKind, typename Dummy>
+Element* nsINode::GetFlatTreeAncestorElementForNonFlatTreeNode() const {
+  Element* flattenedAncestorElement = nullptr;
+  for (Element* excluderShadowHostOrSlotElement =
+           GetClosestFlatTreeAncestorElementForNonFlatTreeNode<aKind>();
+       excluderShadowHostOrSlotElement;
+       excluderShadowHostOrSlotElement =
+           excluderShadowHostOrSlotElement
+               ->GetClosestFlatTreeAncestorElementForNonFlatTreeNode<aKind>()) {
+    flattenedAncestorElement = excluderShadowHostOrSlotElement;
+  }
+  return flattenedAncestorElement;
+}
+
 nsINode::nsSlots::nsSlots() : mWeakReference(nullptr) {}
 
 nsINode::nsSlots::~nsSlots() {
@@ -298,10 +376,8 @@ class ChildIndexCache {
     return entry->GetChildAt(aParent, aIndex);
   }
 
-  static uint32_t ComputeIndexOf(const nsINode* aParent,
-                                 const nsIContent* aChild) {
-    MOZ_ASSERT(aChild->GetParentNode() == aParent,
-               "Child is not actually a child of parent");
+  static Maybe<uint32_t> ComputeIndexOf(const nsINode* aParent,
+                                        const nsIContent* aChild) {
     Entry* entry = GetOrCreateEntry(aParent);
     return entry->ComputeIndexOf(aParent, aChild);
   }
@@ -377,7 +453,8 @@ class ChildIndexCache {
       return mChildren[aIndex];
     }
 
-    uint32_t ComputeIndexOf(const nsINode* aParent, const nsIContent* aChild) {
+    Maybe<uint32_t> ComputeIndexOf(const nsINode* aParent,
+                                   const nsIContent* aChild) {
       TruncateStaleElements();
 
       // Only grow the hash map if the parent has enough children to make it
@@ -386,7 +463,7 @@ class ChildIndexCache {
       const bool useHashMap = aParent->GetChildCount() >= kHashMapThreshold;
 
       if (auto result = mIndexMap.MaybeGet(aChild)) {
-        return *result;
+        return result;
       }
 
       // Scan the already-populated array portion past the map prefix, building
@@ -397,7 +474,7 @@ class ChildIndexCache {
           mIndexMap.InsertOrUpdate(mChildren[index], index);
         }
         if (mChildren[index] == aChild) {
-          return index;
+          return Some(index);
         }
       }
 
@@ -413,12 +490,11 @@ class ChildIndexCache {
           mIndexMap.InsertOrUpdate(current, index);
         }
         if (current == aChild) {
-          return index;
+          return Some(index);
         }
         current = current->GetNextSibling();
       }
-      MOZ_ASSERT_UNREACHABLE("Child is not actually a child of parent");
-      return 0;
+      return Nothing();
     }
 
    private:
@@ -632,26 +708,59 @@ class IsItemInRangeComparator {
         mEndOffset(aEndOffset),
         mCache(aCache) {
     MOZ_ASSERT(aStartOffset <= aEndOffset);
+    MOZ_ASSERT(aStartOffset <= aNode.Length());
+    MOZ_ASSERT(aEndOffset <= aNode.Length());
+  }
+
+  [[nodiscard]] bool Collapsed() const { return mStartOffset == mEndOffset; }
+
+  const ConstRawRangeBoundary& StartRef() const {
+    if (!mStartRef) {
+      const_cast<IsItemInRangeComparator*>(this)->mStartRef.emplace(
+          &mNode, mStartOffset, RangeBoundarySetBy::Offset, TreeKind::DOM);
+      MOZ_ASSERT(mStartRef->IsSetAndValid());
+    }
+    return mStartRef.ref();
+  }
+  const ConstRawRangeBoundary& EndRef() const {
+    if (!mEndRef) {
+      const_cast<IsItemInRangeComparator*>(this)->mEndRef.emplace(
+          &mNode, mEndOffset, RangeBoundarySetBy::Offset, TreeKind::DOM);
+      MOZ_ASSERT(mEndRef->IsSetAndValid());
+    }
+    return mEndRef.ref();
   }
 
   int operator()(const AbstractRange* const aRange) const {
-    auto ComparePoints = [](const nsINode* aNode1, const uint32_t aOffset1,
-                            const nsINode* aNode2, const uint32_t aOffset2,
-                            nsContentUtils::NodeIndexCache* aCache) {
-      return nsContentUtils::ComparePointsWithIndices<TreeKind::Flat>(
-          aNode1, aOffset1, aNode2, aOffset2, aCache);
-    };
+    auto ComparePoints =
+        [](const ConstRawRangeBoundary& aRef1, RangeBoundaryFor aFor1,
+           const ConstRawRangeBoundary& aRef2, RangeBoundaryFor aFor2,
+           nsContentUtils::NodeIndexCache* aCache) {
+          return nsContentUtils::ComparePoints<TreeKind::FlatForSelection>(
+              aRef1.AsRangeBoundaryInFlatTreeOrNonFlattenedNode(aFor1),
+              aRef2.AsRangeBoundaryInFlatTreeOrNonFlattenedNode(aFor2), aCache);
+        };
 
     Maybe<int32_t> cmp = ComparePoints(
-        &mNode, mEndOffset, aRange->GetMayCrossShadowBoundaryStartContainer(),
-        aRange->MayCrossShadowBoundaryStartOffset(), mCache);
+        EndRef(),
+        Collapsed() ? RangeBoundaryFor::Collapsed : RangeBoundaryFor::End,
+        aRange->MayCrossShadowBoundaryStartRef().AsConstRaw(),
+        aRange->AreNormalRangeAndCrossShadowBoundaryRangeCollapsed()
+            ? RangeBoundaryFor::Collapsed
+            : RangeBoundaryFor::Start,
+        mCache);
     // nsContentUtils::ComparePoints would return Nothing when nodes
     // are disconnected, ComparePoints_Deprecated used to return 1
     // for that case. Hence valueOr(1) to keep the legacy result.
     if (cmp.valueOr(1) == 1) {
-      cmp = ComparePoints(&mNode, mStartOffset,
-                          aRange->GetMayCrossShadowBoundaryEndContainer(),
-                          aRange->MayCrossShadowBoundaryEndOffset(), mCache);
+      cmp = ComparePoints(
+          StartRef(),
+          Collapsed() ? RangeBoundaryFor::Collapsed : RangeBoundaryFor::Start,
+          aRange->MayCrossShadowBoundaryEndRef().AsConstRaw(),
+          aRange->AreNormalRangeAndCrossShadowBoundaryRangeCollapsed()
+              ? RangeBoundaryFor::Collapsed
+              : RangeBoundaryFor::End,
+          mCache);
       // Same reason as above.
       if (cmp.valueOr(1) == -1) {
         return 0;
@@ -666,11 +775,15 @@ class IsItemInRangeComparator {
   const uint32_t mStartOffset;
   const uint32_t mEndOffset;
   nsContentUtils::NodeIndexCache* mCache;
+  Maybe<ConstRawRangeBoundary> mStartRef;
+  Maybe<ConstRawRangeBoundary> mEndRef;
 };
 
 bool nsINode::IsSelected(const uint32_t aStartOffset, const uint32_t aEndOffset,
                          SelectionNodeCache* aCache) const {
   MOZ_ASSERT(aStartOffset <= aEndOffset);
+  MOZ_ASSERT(aStartOffset <= Length());
+  MOZ_ASSERT(aEndOffset <= Length());
   const nsINode* ancestorForCache =
       GetClosestCommonInclusiveAncestorForRangeInSelection(this);
   NS_ASSERTION(ancestorForCache || !IsMaybeSelected(),
@@ -716,7 +829,14 @@ bool nsINode::IsSelected(const uint32_t aStartOffset, const uint32_t aEndOffset,
   }
 
   nsContentUtils::NodeIndexCache cache;
-  IsItemInRangeComparator comparator{*this, aStartOffset, aEndOffset, &cache};
+  const IsItemInRangeComparator comparator{*this, aStartOffset, aEndOffset,
+                                           &cache};
+  const RangeBoundaryFor comparatorStartBoundaryFor =
+      comparator.Collapsed() ? RangeBoundaryFor::Collapsed
+                             : RangeBoundaryFor::Start;
+  const RangeBoundaryFor comparatorEndBoundaryFor =
+      comparator.Collapsed() ? RangeBoundaryFor::Collapsed
+                             : RangeBoundaryFor::End;
   for (Selection* selection : ancestorSelections) {
     // Binary search the sorted ranges in this selection.
     // (Selection::GetRangeAt returns its ranges ordered).
@@ -746,10 +866,17 @@ bool nsINode::IsSelected(const uint32_t aStartOffset, const uint32_t aEndOffset,
         }
 
         auto ComparePoints = [](const ConstRawRangeBoundary& aBoundary1,
+                                RangeBoundaryFor aFor1,
                                 const RangeBoundary& aBoundary2,
+                                RangeBoundaryFor aFor2,
                                 nsContentUtils::NodeIndexCache* aCache) {
-          return nsContentUtils::ComparePoints<TreeKind::Flat>(
-              aBoundary1, aBoundary2, aCache);
+          MOZ_ASSERT(aBoundary1.GetTreeKind() == TreeKind::DOM);
+          MOZ_ASSERT(aBoundary2.GetTreeKind() == TreeKind::DOM);
+          return nsContentUtils::ComparePoints<TreeKind::FlatForSelection>(
+              aBoundary1.AsRangeBoundaryInFlatTreeOrNonFlattenedNode(aFor1),
+              aBoundary2.AsRaw().AsRangeBoundaryInFlatTreeOrNonFlattenedNode(
+                  aFor2),
+              aCache);
         };
 
         const AbstractRange* middlePlus1;
@@ -757,18 +884,22 @@ bool nsINode::IsSelected(const uint32_t aStartOffset, const uint32_t aEndOffset,
         // if node end > start of middle+1, result = 1
         if (middle + 1 < high &&
             (middlePlus1 = selection->GetAbstractRangeAt(middle + 1)) &&
-            ComparePoints(ConstRawRangeBoundary(this, aEndOffset,
-                                                RangeBoundarySetBy::Offset),
-                          middlePlus1->StartRef(), &cache)
+            ComparePoints(comparator.EndRef(), comparatorEndBoundaryFor,
+                          middlePlus1->StartRef(),
+                          middlePlus1->Collapsed() ? RangeBoundaryFor::Collapsed
+                                                   : RangeBoundaryFor::Start,
+                          &cache)
                     .valueOr(1) > 0) {
           result = 1;
           // if node start < end of middle - 1, result = -1
         } else if (middle >= 1 &&
                    (middleMinus1 = selection->GetAbstractRangeAt(middle - 1)) &&
                    ComparePoints(
-                       ConstRawRangeBoundary(this, aStartOffset,
-                                             RangeBoundarySetBy::Offset),
-                       middleMinus1->EndRef(), &cache)
+                       comparator.StartRef(), comparatorStartBoundaryFor,
+                       middleMinus1->EndRef(),
+                       middleMinus1->Collapsed() ? RangeBoundaryFor::Collapsed
+                                                 : RangeBoundaryFor::End,
+                       &cache)
                            .valueOr(1) < 0) {
           result = -1;
         } else {
@@ -984,7 +1115,6 @@ nsIContent* nsINode::GetSelectionRootContent(
   // If there is no host element, perhaps, the shadow is a UA shadow and was
   // detached since content shadow cannot be deatched.
   if (!hostElement) [[unlikely]] {
-    MOZ_ASSERT(shadowRoot->IsUAShadowRootSlow());
     return content;
   }
   return bool(aAllowCrossShadowBoundary)
@@ -1227,7 +1357,11 @@ void nsINode::GetDebugDescription(nsACString& aOutput,
           // So, we want to print this if the previous node is a non-assigned
           // slottable node.
           aOutput.AppendFmt("(has a {}shadow)",
-                            shadowRoot->IsUAShadowRootSlow() ? "UA " : "");
+                            shadowRoot->IsUAWidget() ||
+                                    !shadowRoot->GetHost() ||
+                                    !shadowRoot->GetHost()->CanAttachShadowDOM()
+                                ? "UA "
+                                : "");
         }
       }
       if (element->HasFlag(ELEMENT_HAS_EDIT_CONTEXT)) {
@@ -1237,7 +1371,10 @@ void nsINode::GetDebugDescription(nsACString& aOutput,
       aOutput.AppendLiteral("[designMode=\"on\"]");
     } else if (const ShadowRoot* shadowRoot = ShadowRoot::FromNode(curr)) {
       aOutput.AppendFmt("({}shadow root)",
-                        shadowRoot->IsUAShadowRootSlow() ? "UA " : "");
+                        shadowRoot->IsUAWidget() || !shadowRoot->GetHost() ||
+                                !shadowRoot->GetHost()->CanAttachShadowDOM()
+                            ? "UA "
+                            : "");
     } else if (const CharacterData* const charData =
                    CharacterData::FromNode(curr)) {
       // Don't export the text data in a text control because it may be a
@@ -2222,21 +2359,6 @@ nsIContent* nsINode::GetChildAt_Deprecated(uint32_t aIndex) const {
   return child;
 }
 
-nsINode* nsINode::GetChildAtInFlatTree(uint32_t aIndex) const {
-  if (const auto* slot = HTMLSlotElement::FromNode(this)) {
-    const auto& assignedNodes = slot->AssignedNodes();
-    if (!assignedNodes.IsEmpty()) {
-      if (aIndex >= assignedNodes.Length()) {
-        return nullptr;
-      }
-      return assignedNodes[aIndex];
-    }
-  } else if (auto* shadowRoot = GetShadowRoot()) {
-    return shadowRoot->GetChildAtInFlatTree(aIndex);
-  }
-  return GetChildAt_Deprecated(aIndex);
-}
-
 int32_t nsINode::ComputeIndexOf_Deprecated(
     const nsINode* aPossibleChild) const {
   Maybe<uint32_t> maybeIndex = ComputeIndexOf(aPossibleChild);
@@ -2273,7 +2395,7 @@ Maybe<uint32_t> nsINode::ComputeIndexOf(const nsINode* aPossibleChild) const {
   const bool isMainThread = NS_IsMainThread();
   if (contentChild && GetChildCount() >= ChildIndexCache::kThreshold &&
       isMainThread) {
-    return Some(ChildIndexCache::ComputeIndexOf(this, contentChild));
+    return ChildIndexCache::ComputeIndexOf(this, contentChild);
   }
 
   if (isMainThread && MaybeCachesComputedIndex()) {
@@ -2348,15 +2470,6 @@ Maybe<uint32_t> nsINode::ComputeIndexInParentContent() const {
     return Nothing();
   }
   return parent->ComputeIndexOf(this);
-}
-
-uint32_t nsINode::GetFlatTreeChildCount() const {
-  return FlattenedChildIterator::GetLength(this);
-}
-
-Maybe<uint32_t> nsINode::ComputeFlatTreeIndexOf(
-    const nsINode* aPossibleChild) const {
-  return FlattenedChildIterator::GetIndexOf(this, aPossibleChild);
 }
 
 static already_AddRefed<nsINode> GetNodeFromNodeOrString(
@@ -4493,21 +4606,33 @@ void nsINode::NotifyDevToolsOfRemovalsOfChildren() {
 
 ShadowRoot* nsINode::GetShadowRootForSelection() const {
   ShadowRoot* shadowRoot = GetShadowRoot();
-  if (!shadowRoot) {
+  return shadowRoot && !shadowRoot->IsUAWidget() ? shadowRoot : nullptr;
+}
+
+HTMLSlotElement* nsINode::GetAsHTMLSlotElementIfFilled() {
+  return const_cast<HTMLSlotElement*>(
+      static_cast<const nsINode*>(this)->GetAsHTMLSlotElementIfFilled());
+}
+
+const HTMLSlotElement* nsINode::GetAsHTMLSlotElementIfFilled() const {
+  const HTMLSlotElement* slot = HTMLSlotElement::FromNode(this);
+  return !slot || slot->AssignedNodes().IsEmpty() ? nullptr : slot;
+}
+
+HTMLSlotElement* nsINode::GetAsHTMLSlotElementIfFilledForSelection() {
+  return const_cast<HTMLSlotElement*>(
+      static_cast<const nsINode*>(this)
+          ->GetAsHTMLSlotElementIfFilledForSelection());
+}
+
+const HTMLSlotElement* nsINode::GetAsHTMLSlotElementIfFilledForSelection()
+    const {
+  const HTMLSlotElement* const slot = GetAsHTMLSlotElementIfFilled();
+  if (!slot || slot->AssignedNodes().IsEmpty()) {
     return nullptr;
   }
-
-  // ie. <details> and <video>
-  if (shadowRoot->IsUAWidget()) {
-    return nullptr;
-  }
-
-  // ie. <use> element
-  if (IsElement() && !AsElement()->CanAttachShadowDOM()) {
-    return nullptr;
-  }
-
-  return shadowRoot;
+  const ShadowRoot* const shadowRoot = slot->GetContainingShadow();
+  return shadowRoot && !shadowRoot->IsUAWidget() ? slot : nullptr;
 }
 
 void nsINode::QueueAncestorRevealingAlgorithm() {
