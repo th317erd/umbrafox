@@ -1,5 +1,9 @@
 [DEFAULT]
 
+["browser_control_input.js"]
+
+["browser_control_service.js"]
+
 ["browser_userland_document_start.js"]
 support-files = ["file_userland_order.html"]
 

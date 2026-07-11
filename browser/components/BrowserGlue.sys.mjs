@@ -72,6 +72,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   TelemetryReportingPolicy:
     "resource://gre/modules/TelemetryReportingPolicy.sys.mjs",
   TRRRacer: "resource:///modules/TRRPerformance.sys.mjs",
+  UmbrafoxControlService:
+    "resource://gre/modules/UmbrafoxControlService.sys.mjs",
   UmbrafoxUserlandScriptRegistry:
     "resource://gre/modules/UmbrafoxUserlandScriptRegistry.sys.mjs",
   WebChannel: "resource://gre/modules/WebChannel.sys.mjs",
@@ -364,6 +366,12 @@ BrowserGlue.prototype = {
 
   // cleanup (called on application shutdown)
   _dispose: function BG__dispose() {
+    if (Services.prefs.getBoolPref("umbrafox.control.enabled", false)) {
+      lazy.UmbrafoxControlService.stop().catch(error =>
+        console.error("Failed to stop Umbrafox control service", error)
+      );
+    }
+
     // AboutHomeStartupCache might write to the cache during
     // quit-application-granted, so we defer uninitialization
     // until here.
@@ -388,6 +396,11 @@ BrowserGlue.prototype = {
   // (i.e. before the first window is opened)
   _beforeUIStartup: function BG__beforeUIStartup() {
     lazy.SessionStartup.init();
+    if (Services.prefs.getBoolPref("umbrafox.control.enabled", false)) {
+      lazy.UmbrafoxControlService.maybeStart().catch(error =>
+        console.error("Failed to start Umbrafox control service", error)
+      );
+    }
     lazy.UmbrafoxUserlandScriptRegistry.loadAndPublishUserlandScripts().catch(
       error =>
         console.error("Failed to publish Umbrafox userland scripts", error)

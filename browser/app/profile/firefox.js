@@ -3670,3 +3670,8 @@ pref("distribution.mozillaonline.ignore", true);
 #ifdef XP_MACOSX
   pref("browser.macAppMenu.setAsDefaultShown", false);
 #endif
+
+// Umbrafox local control channel. Disabled by default.
+pref("umbrafox.control.enabled", false);
+// 0 requests an ephemeral loopback port.
+pref("umbrafox.control.port", 0);

@@ -1,6 +1,7 @@
 # Bot control channel plan
 
-Status: first channel slice in progress.
+Status: WebDriver BiDi prototype implemented; non-fingerprinting control moved
+to `plans/03-local-control-channel.md`.
 
 ## Goal
 
@@ -11,10 +12,15 @@ resource substitution, and other power-user workflows.
 
 ## Foundation
 
-Build on Firefox Remote Agent and WebDriver BiDi instead of Chrome DevTools
-Protocol. Current Firefox exposes Remote Agent through
+The first prototype built on Firefox Remote Agent and WebDriver BiDi instead of
+Chrome DevTools Protocol. Current Firefox exposes Remote Agent through
 `--remote-debugging-port`, supports WebDriver BiDi and Marionette, and no longer
 ships CDP support in this tree.
+
+Remote Agent is useful for development, but it is not suitable for the
+non-fingerprinting automation path because it participates in Firefox's
+WebDriver exposure state. Use `plans/03-local-control-channel.md` for the
+independent local channel.
 
 The first Umbrafox API surface should be a vendor-style WebDriver BiDi root
 module:

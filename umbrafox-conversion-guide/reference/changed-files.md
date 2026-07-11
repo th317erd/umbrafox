@@ -218,6 +218,21 @@ This inventory was generated from the current working tree when the guide was wr
 - `toolkit/actors/moz.build`
 - `toolkit/components/moz.build`
 - `toolkit/components/umbrafox/`
+
+## Bot and local control channel
+
+- `remote/webdriver-bidi/modules/root/umbrafox.sys.mjs`
+- `remote/webdriver-bidi/modules/ModuleRegistry.sys.mjs`
+- `remote/webdriver-bidi/jar.mn`
+- `remote/webdriver-bidi/test/xpcshell/test_UmbrafoxModule.js`
+- `remote/webdriver-bidi/test/xpcshell/xpcshell.toml`
+- `toolkit/components/umbrafox/UmbrafoxControlService.sys.mjs`
+- `toolkit/components/umbrafox/UmbrafoxControlInput.sys.mjs`
+- `toolkit/components/umbrafox/tests/browser/browser_control_service.js`
+- `toolkit/components/umbrafox/tests/browser/browser_control_input.js`
+- `toolkit/components/umbrafox/tests/browser/browser.toml`
+- `browser/components/BrowserGlue.sys.mjs`
+- `browser/app/profile/firefox.js`
 - `toolkit/modules/ActorManagerParent.sys.mjs`
 
 ## Bot control channel
