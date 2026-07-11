@@ -716,6 +716,19 @@ let JSWINDOWACTORS = {
     safeForUntrustedWebProcess: true,
   },
 
+  UmbrafoxControlInput: {
+    parent: {
+      esModuleURI: "resource://gre/actors/UmbrafoxControlInputParent.sys.mjs",
+    },
+    child: {
+      esModuleURI: "resource://gre/actors/UmbrafoxControlInputChild.sys.mjs",
+    },
+
+    messageManagerGroups: ["browsers"],
+    allFrames: true,
+    safeForUntrustedWebProcess: true,
+  },
+
   UnselectedTabHover: {
     parent: {
       esModuleURI: "resource://gre/actors/UnselectedTabHoverParent.sys.mjs",

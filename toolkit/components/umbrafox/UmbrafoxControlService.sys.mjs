@@ -331,8 +331,22 @@ class UmbrafoxControlServiceImpl {
     }
 
     switch (packet.method) {
+      case "umbrafox.input.click":
+        return lazy.UmbrafoxControlInput.click(packet.params);
+      case "umbrafox.input.keyDown":
+        return lazy.UmbrafoxControlInput.keyDown(packet.params);
+      case "umbrafox.input.keyUp":
+        return lazy.UmbrafoxControlInput.keyUp(packet.params);
+      case "umbrafox.input.pointerDown":
+        return lazy.UmbrafoxControlInput.pointerDown(packet.params);
       case "umbrafox.input.pointerMove":
         return lazy.UmbrafoxControlInput.pointerMove(packet.params);
+      case "umbrafox.input.pointerUp":
+        return lazy.UmbrafoxControlInput.pointerUp(packet.params);
+      case "umbrafox.input.type":
+        return lazy.UmbrafoxControlInput.type(packet.params);
+      case "umbrafox.input.wheel":
+        return lazy.UmbrafoxControlInput.wheel(packet.params);
       case "umbrafox.status":
         return this.status();
       default:

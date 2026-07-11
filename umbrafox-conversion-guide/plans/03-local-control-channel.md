@@ -1,6 +1,6 @@
 # Local control channel plan
 
-Status: first independent transport and pointer input slices implemented.
+Status: first independent transport and native input slices implemented.
 
 ## Goal
 
@@ -15,11 +15,12 @@ The first slice only proves the transport:
 - token gated;
 - profile-local discovery file;
 - one safe `umbrafox.status` command;
-- one deterministic native pointer movement command;
+- deterministic native pointer movement, button, click, wheel, and keyboard
+  commands;
 - test coverage that web content sees no change to existing WebDriver exposure.
 
-Native input, screenshots, DevTools, userland management, and network controls
-must be layered on top only after this non-WebDriver foundation exists.
+Screenshots, DevTools, userland management, and network controls must be layered
+on top only after this non-WebDriver foundation exists.
 
 ## Critical review
 
@@ -122,7 +123,7 @@ running.
 ## Future slices
 
 - Additional native trusted input commands through widget/event synthesis,
-  including click, drag, wheel, and keyboard.
+  including drag and richer keyboard composition.
 - Screenshot and screencast commands independent of Remote Agent.
 - Browser chrome and DevTools inspection commands.
 - Capability negotiation and audit logging.

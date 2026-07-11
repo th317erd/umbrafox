@@ -5,7 +5,7 @@
 Add the first native input command to the independent Umbrafox local control
 channel without starting Firefox Remote Agent, Marionette, or WebDriver BiDi.
 
-The initial command is:
+The initial pointer command is:
 
 ```json
 {
@@ -28,10 +28,26 @@ The initial command is:
 It generates deterministic intermediate pointer positions and dispatches native
 trusted `mousemove` events through Firefox's existing event synthesis helpers.
 
+This slice also adds:
+
+```json
+{ "id": 3, "method": "umbrafox.input.pointerDown", "params": { "context": 123, "x": 20, "y": 30, "button": 0 } }
+{ "id": 4, "method": "umbrafox.input.pointerUp", "params": { "context": 123, "button": 0 } }
+{ "id": 5, "method": "umbrafox.input.click", "params": { "context": 123, "x": 40, "y": 50 } }
+{ "id": 6, "method": "umbrafox.input.wheel", "params": { "context": 123, "x": 60, "y": 70, "deltaY": 25 } }
+{ "id": 7, "method": "umbrafox.input.type", "params": { "context": 123, "text": "abc" } }
+{ "id": 8, "method": "umbrafox.input.keyDown", "params": { "context": 123, "key": "\uE006" } }
+{ "id": 9, "method": "umbrafox.input.keyUp", "params": { "context": 123, "key": "\uE006" } }
+```
+
 ## Files changed
 
 - `toolkit/components/umbrafox/UmbrafoxControlInput.sys.mjs`
 - `toolkit/components/umbrafox/UmbrafoxControlService.sys.mjs`
+- `toolkit/actors/UmbrafoxControlInputChild.sys.mjs`
+- `toolkit/actors/UmbrafoxControlInputParent.sys.mjs`
+- `toolkit/actors/moz.build`
+- `toolkit/modules/ActorManagerParent.sys.mjs`
 - `toolkit/components/umbrafox/moz.build`
 - `toolkit/components/umbrafox/tests/browser/browser_control_input.js`
 - `toolkit/components/umbrafox/tests/browser/browser.toml`
@@ -52,6 +68,13 @@ The input module:
   `remote/shared/webdriver/Event.sys.mjs`'s `synthesizeMouseAtPoint`;
 - returns the generated path as an audit trace.
 
+Pointer button, click, and wheel commands reuse the last tracked pointer point
+when `x` and `y` are omitted. Keyboard commands dispatch to the active
+`WindowGlobalParent` for the target browsing context. `type` sends a string as a
+sequence of key events; `keyDown` and `keyUp` accept the same key values as
+Firefox's WebDriver key data table, including WebDriver private-use key codes
+such as `\uE006` for Enter.
+
 The first slice only supports top-level browsing contexts. Frame-relative
 coordinates should be handled in a later patch with explicit frame translation
 tests.
@@ -64,7 +87,8 @@ WebIDL, CSS behavior, storage keys, HTTP headers, or new page-visible Umbrafox
 markers.
 
 The generated events are normal synthesized browser events. Tests verify that
-page JavaScript receives trusted mouse events at the requested coordinates.
+page JavaScript receives trusted mouse, wheel, keyboard, and input events at the
+requested coordinates or focused target.
 
 Profiles must remain deterministic and auditable. Do not add adaptive behavior
 or site-specific tuning to target a particular bot classifier.

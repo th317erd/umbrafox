@@ -228,6 +228,10 @@ This inventory was generated from the current working tree when the guide was wr
 - `remote/webdriver-bidi/test/xpcshell/xpcshell.toml`
 - `toolkit/components/umbrafox/UmbrafoxControlService.sys.mjs`
 - `toolkit/components/umbrafox/UmbrafoxControlInput.sys.mjs`
+- `toolkit/actors/UmbrafoxControlInputChild.sys.mjs`
+- `toolkit/actors/UmbrafoxControlInputParent.sys.mjs`
+- `toolkit/actors/moz.build`
+- `toolkit/modules/ActorManagerParent.sys.mjs`
 - `toolkit/components/umbrafox/tests/browser/browser_control_service.js`
 - `toolkit/components/umbrafox/tests/browser/browser_control_input.js`
 - `toolkit/components/umbrafox/tests/browser/browser.toml`
