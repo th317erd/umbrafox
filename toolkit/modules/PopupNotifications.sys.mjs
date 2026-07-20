@@ -292,7 +292,7 @@ export function PopupNotifications(tabbrowser, panel, iconBox, options = {}) {
 
   // This listener will be attached to the chrome window whenever a notification
   // is showing, to allow the user to dismiss notifications using the escape key.
-  this._handleWindowKeyPress = aEvent => {
+  this._handleWindowKeyUp = aEvent => {
     if (aEvent.keyCode != aEvent.DOM_VK_ESCAPE) {
       return;
     }
@@ -322,6 +322,15 @@ export function PopupNotifications(tabbrowser, panel, iconBox, options = {}) {
       focusedElement == this.tabbrowser.selectedBrowser ||
       focusedInsideNotification
     ) {
+      if (!notification.notification.options.persistent) {
+        this._dismiss(aEvent);
+        // Without this preventDefault call, the event will be sent to the content page
+        // and our event listener might be called again after receiving a reply from
+        // the content process, which could accidentally dismiss another notification.
+        aEvent.preventDefault();
+        return;
+      }
+
       let escAction = notification.notification.options.escAction;
       this._onButtonEvent(aEvent, escAction, "esc-press", notification);
       // Without this preventDefault call, the event will be sent to the content page
@@ -1525,11 +1534,7 @@ PopupNotifications.prototype = {
 
       // Setup a capturing event listener on the whole window to catch the
       // escape key while persistent notifications are visible.
-      this.window.addEventListener(
-        "keypress",
-        this._handleWindowKeyPress,
-        true
-      );
+      this.window.addEventListener("keyup", this._handleWindowKeyUp, true);
     } else {
       // Notify observers that we're not showing the popup (useful for testing)
       this._notify("updateNotShowing");
@@ -1555,11 +1560,7 @@ PopupNotifications.prototype = {
       }
 
       // Stop listening to keyboard events for notifications.
-      this.window.removeEventListener(
-        "keypress",
-        this._handleWindowKeyPress,
-        true
-      );
+      this.window.removeEventListener("keyup", this._handleWindowKeyUp, true);
     }
   },
 

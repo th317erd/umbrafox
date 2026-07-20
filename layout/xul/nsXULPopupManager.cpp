@@ -2598,15 +2598,10 @@ bool nsXULPopupManager::HandleKeyboardEventWithKeyCode(
     KeyboardEvent* aKeyEvent, nsMenuChainItem* aTopVisibleMenuItem) {
   uint32_t keyCode = aKeyEvent->KeyCode();
 
-  // Escape should close panels, but the other keys should have no effect.
+  // Panels close from KeyUp so keydown events can reach focused panel content.
+  // Other panel keydown events should have no popup-manager effect.
   if (aTopVisibleMenuItem &&
       aTopVisibleMenuItem->GetPopupType() != PopupType::Menu) {
-    if (keyCode == KeyboardEvent_Binding::DOM_VK_ESCAPE) {
-      HidePopup(aTopVisibleMenuItem->Element(), {HidePopupOption::IsRollup});
-      aKeyEvent->StopPropagation();
-      aKeyEvent->StopCrossProcessForwarding();
-      aKeyEvent->PreventDefault();
-    }
     return true;
   }
 
@@ -2753,7 +2748,18 @@ nsresult nsXULPopupManager::KeyUp(KeyboardEvent* aKeyEvent) {
   // don't do anything if a menu isn't open or a menubar isn't active
   if (!mActiveMenuBar) {
     nsMenuChainItem* item = GetTopVisibleMenu();
-    if (!item || item->GetPopupType() != PopupType::Menu) {
+    if (!item) {
+      return NS_OK;
+    }
+
+    if (item->GetPopupType() != PopupType::Menu) {
+      if (!item->Frame()->PopupElement().IsLocked() &&
+          aKeyEvent->KeyCode() == KeyboardEvent_Binding::DOM_VK_ESCAPE) {
+        HidePopup(item->Element(), {HidePopupOption::IsRollup});
+        aKeyEvent->StopPropagation();
+        aKeyEvent->StopCrossProcessForwarding();
+        aKeyEvent->PreventDefault();
+      }
       return NS_OK;
     }
 

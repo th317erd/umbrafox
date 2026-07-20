@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://global/skin" type="text/css"?>
+<?xml-stylesheet href="chrome://mochikit/content/tests/SimpleTest/test.css" type="text/css"?>
+
+<window title="Panel Escape Key Handling"
+        onload="runTests();"
+        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        xmlns:html="http://www.w3.org/1999/xhtml">
+
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"/>
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"/>
+
+  <button id="anchor" label="Anchor"/>
+
+  <panel id="panel" type="arrow" animate="false">
+    <button id="inside" label="Inside"/>
+  </panel>
+
+  <script type="application/javascript">
+  <![CDATA[
+
+  SimpleTest.waitForExplicitFinish();
+
+  const anchor = document.getElementById("anchor");
+  const panel = document.getElementById("panel");
+  const inside = document.getElementById("inside");
+
+  function waitForEvent(target, eventName) {
+    return new Promise(resolve => {
+      target.addEventListener(eventName, resolve, { once: true });
+    });
+  }
+
+  function waitForStablePopupState() {
+    return new Promise(resolve => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+  }
+
+  async function openPanel() {
+    let popupShown = waitForEvent(panel, "popupshown");
+    panel.openPopup(anchor, "after_start");
+    await popupShown;
+    inside.focus();
+    is(panel.state, "open", "Panel is open");
+  }
+
+  async function runTests() {
+    let hiddenCount = 0;
+    panel.addEventListener("popuphidden", () => hiddenCount++);
+
+    await openPanel();
+
+    synthesizeKey("a", { type: "keydown" });
+    await waitForStablePopupState();
+    is(panel.state, "open", "Non-Escape keydown does not close the panel");
+    is(hiddenCount, 0, "Panel was not hidden after non-Escape keydown");
+
+    synthesizeKey("a", { type: "keyup" });
+    await waitForStablePopupState();
+    is(panel.state, "open", "Non-Escape keyup does not close the panel");
+    is(hiddenCount, 0, "Panel was not hidden after non-Escape keyup");
+
+    synthesizeKey("KEY_Escape", { type: "keydown" });
+    await waitForStablePopupState();
+    is(panel.state, "open", "Escape keydown does not close the panel");
+    is(hiddenCount, 0, "Panel was not hidden after Escape keydown");
+
+    let popupHidden = waitForEvent(panel, "popuphidden");
+    synthesizeKey("KEY_Escape", { type: "keyup" });
+    await popupHidden;
+    is(panel.state, "closed", "Escape keyup closes the panel");
+    is(hiddenCount, 1, "Panel was hidden exactly once");
+
+    SimpleTest.finish();
+  }
+
+  ]]>
+  </script>
+
+  <body xmlns="http://www.w3.org/1999/xhtml">
+    <p id="display"></p>
+    <div id="content" style="display: none"></div>
+    <pre id="test"></pre>
+  </body>
+</window>
