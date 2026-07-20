@@ -300,6 +300,9 @@ for (const type of [
   "WEATHER_USER_OPT_IN_LOCATION",
   "WEBEXT_CLICK",
   "WEBEXT_DISMISS",
+  "WEB_NOTIFICATIONS_ERROR",
+  "WEB_NOTIFICATIONS_REQUEST",
+  "WEB_NOTIFICATIONS_UPDATED",
   "WIDGETS_CONTAINER_ACTION",
   "WIDGETS_ENABLED",
   "WIDGETS_ERROR",
@@ -643,6 +646,505 @@ const actionUtils = {
   _RouteMessage,
 };
 
+;// CONCATENATED MODULE: ./common/WidgetsRegistry.mjs
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * WIDGET_REGISTRY — single source of truth for all New Tab widgets.
+ *
+ * WHY THIS EXISTS
+ * Previously, every widget was hardcoded in three places: the render loop in
+ * Widgets.jsx, the hideAllWidgets handler, and the toggleMaximize handler.
+ * Adding or removing a widget required edits in all three spots and was easy
+ * to get out of sync. This registry replaces those hardcoded lists so that
+ * Widgets.jsx, WidgetsSidebar.jsx, and any future consumers share one
+ * authoritative definition.
+ *
+ * HOW IT WORKS
+ * Each entry describes one widget's static metadata:
+ *
+ *   id                — unique string key used in prefs and the order pref
+ *   telemetryName     — the name sent in Glean events (snake_case; may differ from id)
+ *   order             — default render position (0-indexed); used when widgets.order is empty
+ *   enabledPref       — the user-facing pref that toggles this widget on/off
+ *   sizePref          — the pref that stores the user's chosen size (empty string = not set)
+ *   defaultSize       — size to use when sizePref is empty and no trainhop suggestion exists
+ *   validSizes        — the sizes this widget supports (drives size picker options)
+ *   hasSidebar        — when true, the widget renders in the sidebar instead of the
+ *                       widget row when its effective size equals "small". Size alone is not
+ *                       sufficient — this flag must be set explicitly so that future
+ *                       widgets that support "small" but stay in the row are not
+ *                       accidentally moved to the sidebar.
+ *   systemEnabledPref — system/operator pref that gates this widget independent of the user pref
+ *   trainhopEnabledKey — key in trainhopConfig.widgets.* for the enabled override
+ *   trainhopSizeKey    — key in trainhopConfig.widgets.* for the size default suggestion
+ *                        (only applies when the user has not explicitly set sizePref)
+ *   trainhopSidebarKey — key in trainhopConfig.widgets.* for the hasSidebar override;
+ *                        null means the sidebar placement is not overridable via trainhop
+ *
+ * SIZE PRIORITY
+ * sizePref defaults to "" (empty string) in PREFS_CONFIG. An empty value
+ * means the user has not explicitly chosen a size; resolveWidgetSize() falls
+ * through to a trainhop suggestion and then to widget.defaultSize. Once the
+ * user resizes a widget via the UI the pref is written with a real value and
+ * trainhop can no longer override it. resolveWidgetSize() applies these in order:
+ *   1. User-set pref (sizePref is non-empty) — always wins
+ *   2. trainhopConfig suggestion (trainhopSizeKey) — acts as default, not override
+ *   3. widget.defaultSize — final fallback
+ *
+ * Note: widgets.weather.size uses getValue: getWeatherWidgetSize in
+ * ActivityStream.sys.mjs rather than value: "" because it has a Nova migration
+ * path that infers the correct initial size from the user's previous weather
+ * configuration. After migration the stored value is non-empty and the sentinel
+ * logic above applies normally.
+ *
+ * ADDING A NEW WIDGET
+ * 1. Add a new entry to WIDGET_REGISTRY below with the next `order` integer.
+ *    Set telemetryName to the snake_case Glean name for this widget.
+ * 2. Export its pref key constants from this file.
+ * 3. Register both prefs (enabled + size) in lib/ActivityStream.sys.mjs.
+ * 4. Add the component to WIDGET_ROW_COMPONENTS in WidgetsComponentRegistry.jsx.
+ * 5. If it has a sidebar variant, set hasSidebar: true and add its component
+ *    to WIDGET_SIDEBAR_COMPONENTS in WidgetsComponentRegistry.jsx.
+ *
+ * ADDING A NEW PER-WIDGET DIMENSION (e.g. "scale")
+ * 1. Add scalePref and trainhopScaleKey fields to each registry entry.
+ * 2. Export a resolveWidgetScale(widget, prefs) helper following the same
+ *    user-pref-wins pattern as resolveWidgetSize().
+ * 3. Update components to call the helper instead of reading the pref directly.
+ *
+ * DEVTOOLS ADMIN INTEGRATION
+ * The New Tab admin devtools panel (DiscoveryStreamAdmin.jsx, shown when
+ * browser.newtabpage.activity-stream.asrouter.devtoolsEnabled is true) drives a
+ * "Widgets" section directly off this registry: it maps WIDGET_REGISTRY to render
+ * one system-enable toggle per widget (from systemEnabledPref), plus "Enable all"
+ * / "Disable all" and reset controls. Any widget added here appears there
+ * automatically -- no devtools edit needed.
+ *
+ * To expose an extra pref-gated widget feature in that panel (e.g. an internal
+ * feature that defaults off but QA/devs want to flip, such as
+ * widgets.pictureOfTheDay.setAsWallpaper.enabled or
+ * widgets.sportsWidget.live.enabled), add an entry to the hand-maintained
+ * WIDGET_EXTRA_FEATURES map in DiscoveryStreamAdmin.jsx keyed by widget id:
+ *   sportsWidget: [{ pref: "widgets.sportsWidget.live.enabled", label: "Live scores" }]
+ * Each entry becomes a boolean toggle nested under that widget's row. This map is
+ * intentionally kept in the devtools component, not the registry, so shipping code
+ * carries no dependency on dev-only feature lists.
+ *
+ * The widgets.order pref (CSV of widget IDs) persists user-defined order.
+ * It is only written when the user explicitly reorders widgets — never on
+ * enable/disable. Disabled widgets keep their slot so they reappear in the
+ * same position when re-enabled. See resolveWidgetOrder() below.
+ */
+
+const PREF_WIDGETS_LISTS_ENABLED = "widgets.lists.enabled";
+const PREF_WIDGETS_TIMER_ENABLED = "widgets.focusTimer.enabled";
+const PREF_WIDGETS_WEATHER_ENABLED = "widgets.weather.enabled";
+const PREF_LISTS_SIZE = "widgets.lists.size";
+const PREF_FOCUS_TIMER_SIZE = "widgets.focusTimer.size";
+const PREF_WEATHER_SIZE = "widgets.weather.size";
+const PREF_WIDGETS_ORDER = "widgets.order";
+const PREF_WIDGETS_SYSTEM_LISTS_ENABLED = "widgets.system.lists.enabled";
+const PREF_WIDGETS_SYSTEM_TIMER_ENABLED =
+  "widgets.system.focusTimer.enabled";
+const PREF_WIDGETS_SYSTEM_WEATHER_ENABLED =
+  "widgets.system.weather.enabled";
+const PREF_WIDGETS_SPORTS_WIDGET_ENABLED =
+  "widgets.sportsWidget.enabled";
+const PREF_SPORTS_WIDGET_SIZE = "widgets.sportsWidget.size";
+const PREF_WIDGETS_SYSTEM_SPORTS_WIDGET_ENABLED =
+  "widgets.system.sportsWidget.enabled";
+const PREF_WIDGETS_CLOCKS_ENABLED = "widgets.clocks.enabled";
+const PREF_CLOCKS_SIZE = "widgets.clocks.size";
+const PREF_WIDGETS_SYSTEM_CLOCKS_ENABLED =
+  "widgets.system.clocks.enabled";
+const PREF_WIDGETS_PRIVACY_ENABLED = "widgets.privacy.enabled";
+const PREF_PRIVACY_SIZE = "widgets.privacy.size";
+const PREF_WIDGETS_SYSTEM_PRIVACY_ENABLED =
+  "widgets.system.privacy.enabled";
+const PREF_WIDGETS_CROSSWORD_ENABLED = "widgets.crossword.enabled";
+const PREF_CROSSWORD_SIZE = "widgets.crossword.size";
+const PREF_WIDGETS_SYSTEM_CROSSWORD_ENABLED =
+  "widgets.system.crossword.enabled";
+const PREF_WIDGETS_STOCKS_ENABLED = "widgets.stocks.enabled";
+const PREF_STOCKS_SIZE = "widgets.stocks.size";
+const PREF_WIDGETS_SYSTEM_STOCKS_ENABLED =
+  "widgets.system.stocks.enabled";
+const PREF_CROSSWORD_ENDPOINT = "widgets.crossword.endpoint";
+const PREF_WIDGETS_PICTURE_OF_THE_DAY_ENABLED =
+  "widgets.pictureOfTheDay.enabled";
+const PREF_PICTURE_OF_THE_DAY_SIZE = "widgets.pictureOfTheDay.size";
+const PREF_WIDGETS_SYSTEM_PICTURE_OF_THE_DAY_ENABLED =
+  "widgets.system.pictureOfTheDay.enabled";
+
+/**
+ * @typedef {object} WidgetRegistryEntry
+ * @property {string} id - Unique key used in prefs and the order pref.
+ * @property {string} telemetryName - Snake_case name sent in Glean events. May differ from id (e.g. "focus_timer" for id "focusTimer").
+ * @property {number} order - Default render position (0-indexed).
+ * @property {string} enabledPref - User-facing pref that toggles this widget on/off.
+ * @property {string} sizePref - Pref that stores the user's chosen size ("" = not yet set).
+ * @property {string} defaultSize - Fallback size when sizePref is empty and no trainhop suggestion exists.
+ * @property {string[]} validSizes - Sizes this widget supports.
+ * @property {boolean} hasSidebar - When true, the widget moves to the sidebar at size "small".
+ * @property {string} systemEnabledPref - Operator pref that gates the widget independently of the user pref.
+ * @property {string} trainhopEnabledKey - Key in trainhopConfig.widgets.* for the enabled override.
+ * @property {string|null} trainhopSizeKey - Key in trainhopConfig.widgets.* for the size default suggestion.
+ * @property {string|null} trainhopSidebarKey - Key in trainhopConfig.widgets.* for the hasSidebar override.
+ * @property {string} widgetsSettingsVisibleKey - Key in trainhopConfig.widgetsSettings.* that additively reveals this widget's toggle in the settings UIs (does not enable the widget).
+ * @property {string} widgetsSettingsEnabledKey - Key in trainhopConfig.widgetsSettings.* that overrides this widget's default enabled value (written to the pref default branch; an explicit user toggle still wins).
+ * @property {string|null} [trainhopNamespace] - When set, the widget ships its whole config in one dedicated object at trainhopConfig.<namespace>. Its `enabled` overrides the default value of enabledPref on the default branch (user toggle still wins, like widgetsSettings.*Enabled); `visible` reveals the widget (isWidgetAddable) without writing a pref; `size` is read by resolveWidgetSize. Picture of the Day and Crossword use this today.
+ */
+
+/** @type {WidgetRegistryEntry[]} */
+const WIDGET_REGISTRY = [
+  {
+    id: "pictureOfTheDay",
+    telemetryName: "picture_of_the_day",
+    order: 0,
+    enabledPref: PREF_WIDGETS_PICTURE_OF_THE_DAY_ENABLED,
+    sizePref: PREF_PICTURE_OF_THE_DAY_SIZE,
+    defaultSize: "medium",
+    validSizes: ["medium", "large"],
+    hasSidebar: false,
+    systemEnabledPref: PREF_WIDGETS_SYSTEM_PICTURE_OF_THE_DAY_ENABLED,
+    trainhopEnabledKey: "pictureOfTheDayEnabled",
+    trainhopSizeKey: "pictureOfTheDaySize",
+    trainhopSidebarKey: null,
+    widgetsSettingsVisibleKey: "pictureOfTheDayVisible",
+    widgetsSettingsEnabledKey: "pictureOfTheDayEnabled",
+    trainhopNamespace: "widgetPictureOfTheDay",
+  },
+  {
+    id: "sportsWidget",
+    telemetryName: "sports",
+    order: 1,
+    enabledPref: PREF_WIDGETS_SPORTS_WIDGET_ENABLED,
+    sizePref: PREF_SPORTS_WIDGET_SIZE,
+    defaultSize: "medium",
+    validSizes: ["medium", "large"],
+    hasSidebar: false,
+    systemEnabledPref: PREF_WIDGETS_SYSTEM_SPORTS_WIDGET_ENABLED,
+    trainhopEnabledKey: "sportsWidgetEnabled",
+    trainhopSizeKey: "sportsWidgetSize",
+    trainhopSidebarKey: null,
+    widgetsSettingsVisibleKey: "sportsWidgetVisible",
+    widgetsSettingsEnabledKey: "sportsWidgetEnabled",
+  },
+  {
+    id: "clocks",
+    telemetryName: "clocks",
+    order: 2,
+    enabledPref: PREF_WIDGETS_CLOCKS_ENABLED,
+    sizePref: PREF_CLOCKS_SIZE,
+    defaultSize: "medium",
+    validSizes: ["small", "medium", "large"],
+    hasSidebar: false,
+    systemEnabledPref: PREF_WIDGETS_SYSTEM_CLOCKS_ENABLED,
+    trainhopEnabledKey: "clocksEnabled",
+    trainhopSizeKey: "clocksSize",
+    trainhopSidebarKey: null,
+    widgetsSettingsVisibleKey: "clocksVisible",
+    widgetsSettingsEnabledKey: "clocksEnabled",
+  },
+  {
+    id: "lists",
+    telemetryName: "lists",
+    order: 3,
+    enabledPref: PREF_WIDGETS_LISTS_ENABLED,
+    sizePref: PREF_LISTS_SIZE,
+    defaultSize: "medium",
+    validSizes: ["small", "medium", "large"],
+    hasSidebar: false,
+    systemEnabledPref: PREF_WIDGETS_SYSTEM_LISTS_ENABLED,
+    trainhopEnabledKey: "listsEnabled",
+    trainhopSizeKey: "listsSize",
+    trainhopSidebarKey: null,
+    widgetsSettingsVisibleKey: "listsVisible",
+    widgetsSettingsEnabledKey: "listsEnabled",
+  },
+  {
+    id: "focusTimer",
+    telemetryName: "focus_timer",
+    order: 4,
+    enabledPref: PREF_WIDGETS_TIMER_ENABLED,
+    sizePref: PREF_FOCUS_TIMER_SIZE,
+    defaultSize: "medium",
+    validSizes: ["small", "medium", "large"],
+    hasSidebar: false,
+    systemEnabledPref: PREF_WIDGETS_SYSTEM_TIMER_ENABLED,
+    trainhopEnabledKey: "timerEnabled",
+    trainhopSizeKey: "timerSize",
+    trainhopSidebarKey: null,
+    widgetsSettingsVisibleKey: "focusTimerVisible",
+    widgetsSettingsEnabledKey: "focusTimerEnabled",
+  },
+  {
+    id: "weather",
+    telemetryName: "weather",
+    order: 5,
+    enabledPref: PREF_WIDGETS_WEATHER_ENABLED,
+    sizePref: PREF_WEATHER_SIZE,
+    defaultSize: "small",
+    validSizes: ["small", "medium", "large"],
+    hasSidebar: true,
+    systemEnabledPref: PREF_WIDGETS_SYSTEM_WEATHER_ENABLED,
+    trainhopEnabledKey: "weatherEnabled",
+    trainhopSizeKey: "weatherSize",
+    trainhopSidebarKey: "weatherSidebar",
+    widgetsSettingsVisibleKey: "weatherVisible",
+    widgetsSettingsEnabledKey: "weatherEnabled",
+  },
+  {
+    id: "privacy",
+    telemetryName: "privacy",
+    order: 6,
+    enabledPref: PREF_WIDGETS_PRIVACY_ENABLED,
+    sizePref: PREF_PRIVACY_SIZE,
+    defaultSize: "medium",
+    validSizes: ["medium", "large"],
+    hasSidebar: false,
+    systemEnabledPref: PREF_WIDGETS_SYSTEM_PRIVACY_ENABLED,
+    trainhopEnabledKey: "privacyEnabled",
+    trainhopSizeKey: "privacySize",
+    trainhopSidebarKey: null,
+    widgetsSettingsVisibleKey: "privacyVisible",
+    widgetsSettingsEnabledKey: "privacyEnabled",
+  },
+  {
+    id: "crossword",
+    telemetryName: "crossword",
+    order: 7,
+    enabledPref: PREF_WIDGETS_CROSSWORD_ENABLED,
+    sizePref: PREF_CROSSWORD_SIZE,
+    defaultSize: "medium",
+    validSizes: ["medium", "large"],
+    hasSidebar: false,
+    systemEnabledPref: PREF_WIDGETS_SYSTEM_CROSSWORD_ENABLED,
+    trainhopEnabledKey: "crosswordEnabled",
+    trainhopSizeKey: "crosswordSize",
+    trainhopSidebarKey: null,
+    widgetsSettingsVisibleKey: "crosswordVisible",
+    widgetsSettingsEnabledKey: "crosswordEnabled",
+    trainhopNamespace: "widgetCrossword",
+  },
+  {
+    id: "stocks",
+    telemetryName: "stocks",
+    order: 8,
+    enabledPref: PREF_WIDGETS_STOCKS_ENABLED,
+    sizePref: PREF_STOCKS_SIZE,
+    defaultSize: "medium",
+    validSizes: ["small", "medium", "large"],
+    hasSidebar: false,
+    systemEnabledPref: PREF_WIDGETS_SYSTEM_STOCKS_ENABLED,
+    trainhopEnabledKey: "stocksEnabled",
+    trainhopSizeKey: "stocksSize",
+    trainhopSidebarKey: null,
+    widgetsSettingsVisibleKey: "stocksVisible",
+    widgetsSettingsEnabledKey: "stocksEnabled",
+  },
+];
+
+/**
+ * Returns an ordered list of all widget IDs (including disabled ones).
+ * Saved order is respected; any widget IDs not in the saved pref are appended
+ * in registry-default order. Unknown IDs in the saved pref are dropped.
+ *
+ * @param {string} orderPref - value of the widgets.order pref (CSV string)
+ */
+function getWidgetOrder(orderPref) {
+  const registryIds = WIDGET_REGISTRY.map(w => w.id);
+  if (!orderPref) {
+    return registryIds;
+  }
+  const seen = new Set();
+  const saved = orderPref
+    .split(",")
+    .filter(id => registryIds.includes(id) && !seen.has(id) && seen.add(id));
+  const appended = registryIds.filter(id => !seen.has(id));
+  return [...saved, ...appended];
+}
+
+/**
+ * Returns the effective widget render order. The user's saved order wins;
+ * a trainhop suggestion applies only when no user order is saved.
+ *
+ * @param {object} prefs - current pref values from the Redux store
+ * @returns {string[]} ordered array of widget IDs
+ */
+function resolveWidgetOrder(prefs) {
+  const userOrder = prefs[PREF_WIDGETS_ORDER];
+  if (userOrder) {
+    return getWidgetOrder(userOrder);
+  }
+  const trainhopOrder = prefs.trainhopConfig?.widgets?.order;
+  if (trainhopOrder) {
+    return getWidgetOrder(trainhopOrder);
+  }
+  return getWidgetOrder(null);
+}
+
+/**
+ * Returns true if the widget is available to the user, based on the
+ * system pref, the trainhopConfig.widgets addable key, or a
+ * widgetsSettings.*Visible override (revealing a toggle also makes the widget
+ * addable so the toggle is functional). Does not consider whether the user has
+ * turned the widget on, or whether the widgets container is enabled.
+ *
+ * @param {object} widget - a WIDGET_REGISTRY entry
+ * @param {object} prefs - current pref values from the Redux store
+ * @returns {boolean}
+ */
+function isWidgetAddable(widget, prefs) {
+  return Boolean(
+    (widget.trainhopNamespace &&
+      prefs.trainhopConfig?.[widget.trainhopNamespace]?.visible) ||
+    prefs.trainhopConfig?.widgets?.[widget.trainhopEnabledKey] ||
+    prefs.trainhopConfig?.widgetsSettings?.[widget.widgetsSettingsVisibleKey] ||
+    prefs[widget.systemEnabledPref]
+  );
+}
+
+/**
+ * Returns true if this widget's toggle should be shown in the settings UIs
+ * (about:preferences#home and the Customize menu). A widget is shown when it is
+ * addable (system pref, trainhopConfig.widgets, or widgetsSettings.*Visible) or
+ * when the legacy `widgetsConfig` Nimbus variable enables it. Showing a toggle
+ * does NOT enable the widget — enablement is the widget's own enabled pref,
+ * whose default can be overridden via widgetsSettings.*Enabled.
+ *
+ * @param {object} widget - a WIDGET_REGISTRY entry
+ * @param {object} prefs - current pref values from the Redux store
+ * @returns {boolean}
+ */
+function isWidgetToggleVisible(widget, prefs) {
+  return Boolean(
+    isWidgetAddable(widget, prefs) ||
+    prefs.widgetsConfig?.[widget.trainhopEnabledKey]
+  );
+}
+
+/**
+ * Returns true if the Widgets container/section toggle should be shown.
+ * Additive across the system pref, the legacy `widgetsConfig` variable, the
+ * `trainhopConfig.widgets.enabled` addable key, and the new
+ * `trainhopConfig.widgetsSettings.enabled` override.
+ *
+ * @param {object} prefs - current pref values from the Redux store
+ * @returns {boolean}
+ */
+function isWidgetsContainerVisible(prefs) {
+  return Boolean(
+    prefs["widgets.system.enabled"] ||
+    prefs.widgetsConfig?.enabled ||
+    prefs.trainhopConfig?.widgets?.enabled ||
+    prefs.trainhopConfig?.widgetsSettings?.enabled
+  );
+}
+
+/**
+ * Returns true if the widget is currently enabled: the widgets container is
+ * on, the widget is addable, and the user's enabled pref is set.
+ *
+ * @param {object} widget - a WIDGET_REGISTRY entry
+ * @param {object} prefs - current pref values from the Redux store
+ * @param {boolean} widgetsEnabled - value of the widgets.enabled container pref
+ * @returns {boolean}
+ */
+function isWidgetEnabled(widget, prefs, widgetsEnabled) {
+  return Boolean(
+    widgetsEnabled &&
+    isWidgetAddable(widget, prefs) &&
+    prefs[widget.enabledPref]
+  );
+}
+
+/**
+ * Returns the effective size for a widget, applying priority:
+ *   user-set pref > trainhop suggestion > registry defaultSize
+ *
+ * A sizePref value of "" means the user has not explicitly chosen a size,
+ * so trainhop and defaultSize are consulted. Any non-empty value was written
+ * by a user action (size picker, maximize/minimize button) and always wins.
+ *
+ * @param {object} widget - a WIDGET_REGISTRY entry
+ * @param {object} prefs - current pref values from the Redux store
+ * @returns {string}
+ */
+function resolveWidgetSize(widget, prefs) {
+  const userPref = prefs[widget.sizePref];
+  if (userPref) {
+    return userPref;
+  }
+  const dedicatedSize = widget.trainhopNamespace
+    ? prefs.trainhopConfig?.[widget.trainhopNamespace]?.size
+    : null;
+  const trainhopSize = widget.trainhopSizeKey
+    ? prefs.trainhopConfig?.widgets?.[widget.trainhopSizeKey]
+    : null;
+  return dedicatedSize || trainhopSize || widget.defaultSize;
+}
+
+/**
+ * Returns whether the widget should be placed in the sidebar.
+ * A trainhop override (trainhopSidebarKey) takes precedence over the
+ * static registry hasSidebar flag when present.
+ *
+ * @param {object} widget - a WIDGET_REGISTRY entry
+ * @param {object} prefs - current pref values from the Redux store
+ * @returns {boolean}
+ */
+function resolveWidgetHasSidebar(widget, prefs) {
+  if (widget.trainhopSidebarKey) {
+    const override = prefs.trainhopConfig?.widgets?.[widget.trainhopSidebarKey];
+    if (override !== undefined) {
+      return override;
+    }
+  }
+  return widget.hasSidebar;
+}
+
+/**
+ * Returns the Merino endpoint the Crossword widget iframe should load.
+ * The dedicated widgetCrossword trainhop object wins, then the legacy
+ * widgets.crosswordEndpoint key, then the raw pref, so the endpoint can be
+ * swapped (e.g. staging to production) without a release. The raw pref is never
+ * read directly by the component.
+ *
+ * @param {object} prefs - current pref values from the Redux store
+ * @returns {string}
+ */
+function resolveCrosswordEndpoint(prefs) {
+  return (
+    prefs.trainhopConfig?.widgetCrossword?.endpoint ||
+    prefs.trainhopConfig?.widgets?.crosswordEndpoint ||
+    prefs[PREF_CROSSWORD_ENDPOINT]
+  );
+}
+
+/**
+ * Returns the list of widgets to disable when "hide all" is triggered.
+ * A widget is included if it has no sidebar variant OR if it is currently
+ * in the row (not the sidebar). Each entry carries the pref to disable,
+ * the telemetry name, and whether it was active (for telemetry filtering).
+ *
+ * @param {object} prefs - current pref values from the Redux store
+ * @param {object} widgetEnabledMap - map of widget id → boolean (currently active in row)
+ * @returns {{ enabledPref: string, telemetryName: string, active: boolean }[]}
+ */
+function getHideAllTargets(prefs, widgetEnabledMap) {
+  return WIDGET_REGISTRY.filter(
+    w => !resolveWidgetHasSidebar(w, prefs) || widgetEnabledMap[w.id]
+  ).map(w => ({
+    enabledPref: w.enabledPref,
+    telemetryName: w.telemetryName,
+    active: !!widgetEnabledMap[w.id],
+  }));
+}
+
 ;// CONCATENATED MODULE: external "ReactRedux"
 const external_ReactRedux_namespaceObject = window["ReactRedux"];
 ;// CONCATENATED MODULE: external "React"
@@ -653,6 +1155,7 @@ function _extends() { return _extends = Object.assign ? Object.assign.bind() : f
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 
 
 
@@ -673,6 +1176,32 @@ const PREF_UNIFIED_ADS_ENDPOINT = "unifiedAds.endpoint";
 const PREF_ALLOWED_ENDPOINTS = "discoverystream.endpoints";
 const PREF_OHTTP_CONFIG = "discoverystream.ohttp.configURL";
 const PREF_OHTTP_RELAY = "discoverystream.ohttp.relayURL";
+const PREF_WIDGETS_SYSTEM_ENABLED = "widgets.system.enabled";
+
+// Turn a camelCase widget id into a human-readable label, e.g.
+// "pictureOfTheDay" -> "Picture Of The Day".
+function widgetLabel(id) {
+  const spaced = id.replace(/([A-Z])/g, " $1");
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+// Internal, pref-gated widget features that default off but we want to test in
+// devtools. Hand-maintained (outside the automatic registry-driven toggles).
+// Each `pref` is the full activity-stream-relative pref; toggles reuse
+// handleWidgetToggle, which sets the pref named by the toggle's id.
+const WIDGET_EXTRA_FEATURES = {
+  pictureOfTheDay: [{
+    pref: "widgets.pictureOfTheDay.setAsWallpaper.enabled",
+    label: "Set as wallpaper"
+  }],
+  sportsWidget: [{
+    pref: "widgets.sportsWidget.live.enabled",
+    label: "Live scores"
+  }, {
+    pref: "widgets.sportsWidget.celebrations.enabled",
+    label: "Celebrations"
+  }]
+};
 const Row = props => /*#__PURE__*/external_React_default().createElement("tr", _extends({
   className: "message-item"
 }, props), props.children);
@@ -702,7 +1231,7 @@ class ToggleStoryButton extends (external_React_default()).PureComponent {
     this.props.onClick(this.props.story);
   }
   render() {
-    return /*#__PURE__*/external_React_default().createElement("button", {
+    return /*#__PURE__*/external_React_default().createElement("moz-button", {
       onClick: this.handleClick
     }, "collapse/open");
   }
@@ -746,6 +1275,11 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     this.handleDebugOverrideChange = this.handleDebugOverrideChange.bind(this);
     this.handleResetAllOverrides = this.handleResetAllOverrides.bind(this);
     this.handleSectionsToggle = this.handleSectionsToggle.bind(this);
+    this.handleWidgetsSystemToggle = this.handleWidgetsSystemToggle.bind(this);
+    this.handleWidgetToggle = this.handleWidgetToggle.bind(this);
+    this.handleWidgetsToggleAll = this.handleWidgetsToggleAll.bind(this);
+    this.handleResetWidgetInteractions = this.handleResetWidgetInteractions.bind(this);
+    this.handleResetWidgetsToDefaults = this.handleResetWidgetsToDefaults.bind(this);
     this.toggleIABBanners = this.toggleIABBanners.bind(this);
     this.handleAllizomToggle = this.handleAllizomToggle.bind(this);
     this.sendConversionEvent = this.sendConversionEvent.bind(this);
@@ -991,6 +1525,45 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     this.props.dispatch(actionCreators.SetPref(PREF_SECTIONS_ENABLED, pressed));
     this.props.dispatch(actionCreators.SetPref("discoverystream.sections.cards.enabled", pressed));
   }
+  handleWidgetsSystemToggle(e) {
+    this.props.dispatch(actionCreators.SetPref(PREF_WIDGETS_SYSTEM_ENABLED, e.target.pressed));
+  }
+  handleWidgetToggle(e) {
+    // e.target.id is the widget's systemEnabledPref (widgets.system.<name>.enabled)
+    this.props.dispatch(actionCreators.SetPref(e.target.id, e.target.pressed));
+  }
+  handleWidgetsToggleAll() {
+    const value = !this.areAllWidgetsEnabled();
+    const values = {
+      [PREF_WIDGETS_SYSTEM_ENABLED]: value
+    };
+    for (const widget of WIDGET_REGISTRY) {
+      values[widget.systemEnabledPref] = value;
+    }
+    this.props.dispatch(actionCreators.SetMultiplePrefs(values));
+  }
+  areAllWidgetsEnabled() {
+    const {
+      otherPrefs
+    } = this.props;
+    return Boolean(otherPrefs[PREF_WIDGETS_SYSTEM_ENABLED] && WIDGET_REGISTRY.every(widget => otherPrefs[widget.systemEnabledPref]));
+  }
+  clearPrefs(prefNames) {
+    for (const prefName of prefNames) {
+      this.props.dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.CLEAR_PREF,
+        data: {
+          name: prefName
+        }
+      }));
+    }
+  }
+  handleResetWidgetInteractions() {
+    this.clearPrefs(Object.keys(this.props.otherPrefs).filter(prefName => /^widgets\..+\.interaction$/.test(prefName)));
+  }
+  handleResetWidgetsToDefaults() {
+    this.clearPrefs(Object.keys(this.props.otherPrefs).filter(prefName => prefName.startsWith("widgets.")));
+  }
   sendConversionEvent() {
     const detail = {
       partnerId: "295BEEF7-1E3B-4128-B8F8-858E12AA660B",
@@ -1030,8 +1603,8 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
         id: "weather-query",
         onChange: this.handleWeatherUpdate,
         value: this.weatherQuery
-      }), /*#__PURE__*/external_React_default().createElement("button", {
-        type: "submit"
+      }), /*#__PURE__*/external_React_default().createElement("moz-button", {
+        onClick: this.handleWeatherSubmit
       }, "Submit")), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, suggestions.map(suggestion => /*#__PURE__*/external_React_default().createElement("tr", {
         className: "message-item",
         key: suggestion.city_name
@@ -1090,11 +1663,9 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       className: "inferred-overrides-title"
     }, "Inferred Personalization"), /*#__PURE__*/external_React_default().createElement("div", {
       className: "inferred-overrides-actions"
-    }, /*#__PURE__*/external_React_default().createElement("button", {
-      className: "button",
+    }, /*#__PURE__*/external_React_default().createElement("moz-button", {
       onClick: this.refreshInferredPersonalizationAndDebug
-    }, "Recompute Interest Vector"), /*#__PURE__*/external_React_default().createElement("button", {
-      className: "button",
+    }, "Recompute Interest Vector"), /*#__PURE__*/external_React_default().createElement("moz-button", {
       onClick: this.refreshCache
     }, "Refresh Story Cache"))), /*#__PURE__*/external_React_default().createElement("div", {
       className: "inferred-overrides-last-refreshed"
@@ -1119,8 +1690,7 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       className: "inferred-overrides-refresh-row"
     }, /*#__PURE__*/external_React_default().createElement("td", {
       colSpan: "3"
-    }, /*#__PURE__*/external_React_default().createElement("button", {
-      className: "button",
+    }, /*#__PURE__*/external_React_default().createElement("moz-button", {
       disabled: hasAnyNonZeroOverride ? null : true,
       onClick: this.handleResetAllOverrides
     }, "Reset overrides"))), /*#__PURE__*/external_React_default().createElement(Row, {
@@ -1192,8 +1762,7 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     const {
       blocks
     } = this.props.state.DiscoveryStream;
-    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("h4", null, "Blocks"), /*#__PURE__*/external_React_default().createElement("button", {
-      className: "button",
+    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("h4", null, "Blocks"), /*#__PURE__*/external_React_default().createElement("moz-button", {
       onClick: this.resetBlocks
     }, "Reset Blocks"), " ", /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, Object.keys(blocks).map(key => {
       return /*#__PURE__*/external_React_default().createElement(Row, {
@@ -1269,7 +1838,12 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       className: "min"
     }, "spocs endpoint"), /*#__PURE__*/external_React_default().createElement("td", null, spocsEndpoint)), /*#__PURE__*/external_React_default().createElement(Row, null, /*#__PURE__*/external_React_default().createElement("td", {
       className: "min"
-    }, "Data last fetched"), /*#__PURE__*/external_React_default().createElement("td", null, relativeTime(spocs.lastUpdated))))), /*#__PURE__*/external_React_default().createElement("h4", null, "Spoc data"), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, spocsData.map(spoc => this.renderStoryData(spoc)))), /*#__PURE__*/external_React_default().createElement("h4", null, "Spoc frequency caps"), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, spocs.frequency_caps.map(spoc => this.renderStoryData(spoc)))));
+    }, "Data last fetched"), /*#__PURE__*/external_React_default().createElement("td", null, relativeTime(spocs.lastUpdated))))), /*#__PURE__*/external_React_default().createElement("moz-button", {
+      style: {
+        marginBlockStart: "var(--space-large)"
+      },
+      onClick: this.sendConversionEvent
+    }, "Send conversion event"), /*#__PURE__*/external_React_default().createElement("h4", null, "Spoc data"), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, spocsData.map(spoc => this.renderStoryData(spoc)))), /*#__PURE__*/external_React_default().createElement("h4", null, "Spoc frequency caps"), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, spocs.frequency_caps.map(spoc => this.renderStoryData(spoc)))));
   }
   onStoryToggle(story) {
     const {
@@ -1326,28 +1900,24 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     const mediumRectangleEnabledPressed = mediumRectangleEnabled && spocPlacements.includes("newtab_rectangle");
     const billboardPressed = billboardsEnabled && spocPlacements.includes("newtab_billboard");
     const leaderboardPressed = leaderboardEnabled && spocPlacements.includes("newtab_leaderboard");
-    return /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("button", {
-      className: "button",
+    const widgetsSystemEnabled = this.props.otherPrefs[PREF_WIDGETS_SYSTEM_ENABLED];
+    return /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("div", {
+      className: "admin-button-row"
+    }, /*#__PURE__*/external_React_default().createElement("moz-button", {
       onClick: this.refreshCache
-    }, "Refresh Cache"), /*#__PURE__*/external_React_default().createElement("br", null), /*#__PURE__*/external_React_default().createElement("button", {
-      className: "button",
+    }, "Refresh Cache"), /*#__PURE__*/external_React_default().createElement("moz-button", {
       onClick: this.expireCache
-    }, "Expire Cache"), " ", /*#__PURE__*/external_React_default().createElement("button", {
-      className: "button",
+    }, "Expire Cache"), /*#__PURE__*/external_React_default().createElement("moz-button", {
       onClick: this.systemTick
-    }, "Trigger System Tick"), " ", /*#__PURE__*/external_React_default().createElement("button", {
-      className: "button",
+    }, "Trigger System Tick"), /*#__PURE__*/external_React_default().createElement("moz-button", {
       onClick: this.idleDaily
-    }, "Trigger Idle Daily"), /*#__PURE__*/external_React_default().createElement("br", null), /*#__PURE__*/external_React_default().createElement("button", {
-      className: "button",
+    }, "Trigger Idle Daily"), /*#__PURE__*/external_React_default().createElement("moz-button", {
       onClick: this.syncRemoteSettings
-    }, "Sync Remote Settings"), " ", /*#__PURE__*/external_React_default().createElement("button", {
-      className: "button",
+    }, "Sync Remote Settings"), /*#__PURE__*/external_React_default().createElement("moz-button", {
       onClick: this.refreshTopicSelectionCache
-    }, "Refresh Topic selection count"), /*#__PURE__*/external_React_default().createElement("br", null), /*#__PURE__*/external_React_default().createElement("button", {
-      className: "button",
+    }, "Refresh Topic selection count"), /*#__PURE__*/external_React_default().createElement("moz-button", {
       onClick: this.showPlaceholder
-    }, "Show Placeholder Cards"), " ", /*#__PURE__*/external_React_default().createElement("div", {
+    }, "Show Placeholder Cards")), /*#__PURE__*/external_React_default().createElement("div", {
       className: "toggle-wrapper"
     }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
       id: "sections-toggle",
@@ -1377,10 +1947,47 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       pressed: mediumRectangleEnabledPressed || null,
       ontoggle: this.toggleIABBanners,
       label: "Enable IAB Medium Rectangle (MREC)"
-    }))), /*#__PURE__*/external_React_default().createElement("button", {
-      className: "button",
-      onClick: this.sendConversionEvent
-    }, "Send conversion event"), /*#__PURE__*/external_React_default().createElement("h3", null, "Layout"), layout.map((row, rowIndex) => /*#__PURE__*/external_React_default().createElement("div", {
+    }))), /*#__PURE__*/external_React_default().createElement("details", {
+      className: "details-section"
+    }, /*#__PURE__*/external_React_default().createElement("summary", null, "Widgets"), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "toggle-wrapper"
+    }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
+      id: "widgets-system-enabled",
+      pressed: widgetsSystemEnabled || null,
+      ontoggle: this.handleWidgetsSystemToggle,
+      label: "Enable widget system"
+    })), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "admin-button-row"
+    }, /*#__PURE__*/external_React_default().createElement("moz-button", {
+      onClick: this.handleWidgetsToggleAll
+    }, this.areAllWidgetsEnabled() ? "Disable all" : "Enable all"), /*#__PURE__*/external_React_default().createElement("moz-button", {
+      onClick: this.handleResetWidgetInteractions
+    }, "Reset interaction"), /*#__PURE__*/external_React_default().createElement("moz-button", {
+      type: "destructive",
+      onClick: this.handleResetWidgetsToDefaults
+    }, "Reset to defaults")), /*#__PURE__*/external_React_default().createElement("hr", null), WIDGET_REGISTRY.map(widget => /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, {
+      key: widget.id
+    }, /*#__PURE__*/external_React_default().createElement("div", {
+      className: "toggle-wrapper"
+    }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
+      id: widget.systemEnabledPref,
+      pressed: this.props.otherPrefs[widget.systemEnabledPref] || null,
+      disabled: !widgetsSystemEnabled || null,
+      ontoggle: this.handleWidgetToggle,
+      label: widgetLabel(widget.id)
+    })), (WIDGET_EXTRA_FEATURES[widget.id] || []).map(feature => /*#__PURE__*/external_React_default().createElement("div", {
+      className: "toggle-wrapper",
+      key: feature.pref,
+      style: {
+        marginInlineStart: "var(--space-large)"
+      }
+    }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
+      id: feature.pref,
+      pressed: this.props.otherPrefs[feature.pref] || null,
+      disabled: !widgetsSystemEnabled || null,
+      ontoggle: this.handleWidgetToggle,
+      label: feature.label
+    })))))), /*#__PURE__*/external_React_default().createElement("h3", null, "Layout"), layout.map((row, rowIndex) => /*#__PURE__*/external_React_default().createElement("div", {
       key: `row-${rowIndex}`
     }, row.components.map((component, componentIndex) => /*#__PURE__*/external_React_default().createElement("div", {
       key: `component-${componentIndex}`,
@@ -1398,11 +2005,40 @@ class DiscoveryStreamAdminInner extends (external_React_default()).PureComponent
   constructor(props) {
     super(props);
     this.setState = this.setState.bind(this);
+    this.dismiss = this.dismiss.bind(this);
+    this.handleKeyDown = this.handleKeyDown.bind(this);
+  }
+  componentDidMount() {
+    globalThis.addEventListener("keydown", this.handleKeyDown);
+  }
+  componentWillUnmount() {
+    globalThis.removeEventListener("keydown", this.handleKeyDown);
+  }
+  dismiss() {
+    globalThis.location.hash = "";
+  }
+  handleKeyDown(e) {
+    if (e.key !== "Escape" || e.defaultPrevented) {
+      return;
+    }
+    // Don't hijack Escape while the user is typing in a field.
+    const tag = e.target?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA") {
+      return;
+    }
+    this.dismiss();
   }
   render() {
     return /*#__PURE__*/external_React_default().createElement("div", {
       className: `discoverystream-admin ${this.props.collapsed ? "collapsed" : "expanded"}`
-    }, /*#__PURE__*/external_React_default().createElement("main", {
+    }, /*#__PURE__*/external_React_default().createElement("moz-button", {
+      className: "discoverystream-admin-close",
+      type: "icon ghost",
+      title: "Close devtools",
+      "aria-label": "Close devtools",
+      iconsrc: "chrome://global/skin/icons/close.svg",
+      onClick: this.dismiss
+    }), /*#__PURE__*/external_React_default().createElement("main", {
       className: "main-panel"
     }, /*#__PURE__*/external_React_default().createElement("h1", null, "Discovery Stream Admin"), /*#__PURE__*/external_React_default().createElement("p", {
       className: "helpLink"
@@ -1427,13 +2063,26 @@ function CollapseToggle(props) {
     devtoolsCollapsed
   } = props;
   const label = `${devtoolsCollapsed ? "Expand" : "Collapse"} devtools`;
-  return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("button", {
+  // @nova-cleanup(remove-conditional): Remove this novaEnabled read and the
+  // ternary below in the returned JSX; always render the moz-button icon button
+  // and delete the legacy classic-enabled <button> branch.
+  const novaEnabled = props.Prefs?.values?.["nova.enabled"];
+  const className = `discoverystream-admin-toggle ${devtoolsCollapsed ? "expanded" : "collapsed"}`;
+  const onToggleClick = () => {
+    globalThis.location.hash = devtoolsCollapsed ? "#devtools" : "";
+  };
+  return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, novaEnabled ? /*#__PURE__*/external_React_default().createElement("moz-button", {
+    type: "icon",
+    className: className,
     title: label,
     "aria-label": label,
-    className: `discoverystream-admin-toggle ${devtoolsCollapsed ? "expanded" : "collapsed"}`,
-    onClick: () => {
-      globalThis.location.hash = devtoolsCollapsed ? "#devtools" : "";
-    }
+    iconsrc: "chrome://global/skin/icons/developer.svg",
+    onClick: onToggleClick
+  }) : /*#__PURE__*/external_React_default().createElement("button", {
+    title: label,
+    "aria-label": label,
+    className: `${className} classic-enabled`,
+    onClick: onToggleClick
   }, /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("img", {
     role: "presentation",
     src: "chrome://global/skin/icons/developer.svg"
@@ -2279,6 +2928,16 @@ const LinkMenuOptions = {
       data: { index },
     },
   }),
+  // Opens the "New Shortcut" dialog. index -1 routes through the feed's insert
+  // path (append to the pinned group / first free slot), like the add button.
+  AddTopSite: () => ({
+    id: "newtab-menu-add-topsite",
+    ariaHasPopup: "dialog",
+    action: {
+      type: actionTypes.TOP_SITES_EDIT,
+      data: { index: -1 },
+    },
+  }),
   CheckBookmark: site =>
     site.bookmarkGuid
       ? LinkMenuOptions.RemoveBookmark(site)
@@ -2473,7 +3132,7 @@ const LinkMenuOptions = {
 
 
 
-const DEFAULT_SITE_MENU_OPTIONS = ["CheckPinTopSite", "EditTopSite", "Separator", "OpenInNewWindow", "OpenInPrivateWindow", "Separator", "BlockUrl"];
+const DEFAULT_SITE_MENU_OPTIONS = ["CheckPinTopSite", "EditTopSite", "AddTopSite", "Separator", "OpenInNewWindow", "OpenInPrivateWindow", "Separator", "BlockUrl"];
 class _LinkMenu extends (external_React_default()).PureComponent {
   getOptions() {
     const {
@@ -3067,6 +3726,7 @@ const TOP_SITES_SOURCE = "TOP_SITES";
 const TOP_SITES_CONTEXT_MENU_OPTIONS = [
   "CheckPinTopSite",
   "EditTopSite",
+  "AddTopSite",
   "Separator",
   "OpenInNewWindow",
   "OpenInPrivateWindow",
@@ -6783,6 +7443,17 @@ const INITIAL_STATE = {
     // For can be a queue in the future, but for now is one item
     toastQueue: [],
   },
+  // Snapshot of the platform NotificationDB (persisted web notifications).
+  // Distinct from `Notifications` above, which is in-newtab toast UI state.
+  // Normalized: `notifications` is the canonical id-keyed table; `byOrigin`
+  // is an id-only index. Fed by WebNotificationsFeed.
+  WebNotifications: {
+    initialized: false,
+    lastUpdated: null,
+    notifications: {},
+    byOrigin: {},
+    error: null,
+  },
   InferredPersonalization: {
     initialized: false,
     lastUpdated: null,
@@ -6830,6 +7501,7 @@ const INITIAL_STATE = {
   Stocks: {
     tickers: [],
     lastUpdated: null,
+    error: false,
   },
   PictureOfTheDay: {
     initialized: false,
@@ -7768,6 +8440,27 @@ function Notifications(prevState = INITIAL_STATE.Notifications, action) {
   }
 }
 
+function WebNotifications(prevState = INITIAL_STATE.WebNotifications, action) {
+  switch (action.type) {
+    case actionTypes.WEB_NOTIFICATIONS_UPDATED:
+      return {
+        ...prevState,
+        initialized: true,
+        lastUpdated: action.data.lastUpdated,
+        notifications: action.data.notifications,
+        byOrigin: action.data.byOrigin,
+        error: null,
+      };
+    case actionTypes.WEB_NOTIFICATIONS_ERROR:
+      return {
+        ...prevState,
+        error: action.data,
+      };
+    default:
+      return prevState;
+  }
+}
+
 function Weather(prevState = INITIAL_STATE.Weather, action) {
   switch (action.type) {
     case actionTypes.WEATHER_UPDATE:
@@ -7938,6 +8631,7 @@ function Stocks(prevState = INITIAL_STATE.Stocks, action) {
         ...prevState,
         tickers: action.data.tickers,
         lastUpdated: action.data.lastUpdated,
+        error: action.data.error ?? false,
       };
     default:
       return prevState;
@@ -8087,6 +8781,7 @@ const reducers = {
   Sections,
   Messages,
   Notifications,
+  WebNotifications,
   Pocket,
   InferredPersonalization,
   DiscoveryStream,
@@ -8134,11 +8829,6 @@ function TopSiteFormInput({
   (0,external_React_namespaceObject.useEffect)(() => {
     setValidationError(validationErrorProp);
   }, [validationErrorProp]);
-  const onClearIconPress = event => {
-    if (event.key === "Enter") {
-      onClear();
-    }
-  };
   const handleChange = ev => {
     if (validationError) {
       setValidationError(false);
@@ -8154,11 +8844,12 @@ function TopSiteFormInput({
         className: "loading-animation"
       }));
     } else if (showClearButton) {
-      return /*#__PURE__*/external_React_default().createElement("button", {
-        type: "button",
-        className: "icon icon-clear-input icon-button-style",
+      return /*#__PURE__*/external_React_default().createElement("moz-button", {
+        className: "icon-clear-input",
+        type: "icon ghost",
+        size: "small",
+        iconSrc: "chrome://global/skin/icons/close.svg",
         onClick: onClear,
-        onKeyDown: onClearIconPress,
         "data-l10n-id": "newtab-topsites-clear-input"
       });
     }
@@ -9550,13 +10241,6 @@ class TopSiteForm extends (external_React_default()).PureComponent {
     // Set focus on error if the url field is valid or when the input is first rendered and is empty
     const shouldFocus = validationError && this.validateUrl(this.state.url) || !customScreenshotUrl;
     const isLoading = this.props.previewResponse === null && customScreenshotUrl && this.props.previewUrl === this.cleanUrl(customScreenshotUrl);
-    if (!this.state.showCustomScreenshotForm) {
-      return /*#__PURE__*/external_React_default().createElement(A11yLinkButton, {
-        onClick: this.onEnableScreenshotUrlForm,
-        className: "enable-custom-image-input",
-        "data-l10n-id": "newtab-topsites-use-image-link"
-      });
-    }
     return /*#__PURE__*/external_React_default().createElement("div", {
       className: "custom-image-input-container"
     }, /*#__PURE__*/external_React_default().createElement(TopSiteFormInput, {
@@ -9622,11 +10306,17 @@ class TopSiteForm extends (external_React_default()).PureComponent {
       typeUrl: true,
       placeholderId: "newtab-topsites-url-input",
       errorMessageId: "newtab-topsites-url-validation"
-    }), this._renderCustomScreenshotInput()), /*#__PURE__*/external_React_default().createElement(TopSiteLink, {
+    }), this.state.showCustomScreenshotForm && this._renderCustomScreenshotInput()), /*#__PURE__*/external_React_default().createElement(TopSiteLink, {
       link: previewLink,
       defaultStyle: requestFailed,
       title: this.state.label
-    }))), /*#__PURE__*/external_React_default().createElement("section", {
+    }))), /*#__PURE__*/external_React_default().createElement("footer", {
+      className: "topsite-form-footer"
+    }, !this.state.showCustomScreenshotForm && /*#__PURE__*/external_React_default().createElement(A11yLinkButton, {
+      onClick: this.onEnableScreenshotUrlForm,
+      className: "enable-custom-image-input",
+      "data-l10n-id": "newtab-topsites-use-custom-image-link"
+    }), /*#__PURE__*/external_React_default().createElement("section", {
       className: "actions"
     }, /*#__PURE__*/external_React_default().createElement("moz-button-group", {
       className: "button-group"
@@ -9645,7 +10335,7 @@ class TopSiteForm extends (external_React_default()).PureComponent {
       type: "primary",
       "data-l10n-id": showAsAdd ? "newtab-topsites-add-button" : "newtab-topsites-save-button",
       onClick: this.onDoneButtonClick
-    }))));
+    })))));
   }
 }
 TopSiteForm.defaultProps = {
@@ -12356,6 +13046,61 @@ const CURATED_RECOMMENDATIONS_FEED_URL = "https://merino.services.mozilla.com/ap
 
 // Divides evenly by 2, 3, and 4 to avoid orphan cards in any column layout.
 const DEFAULT_MAX_TILES = 12;
+
+// Each card's footprint in grid units, sized so a medium reads as the square it
+// is: a small is half a medium (2x1), a large is two mediums wide (4x2). A grid
+// column is 2 units wide, so a full row spans columnCount * 2 units.
+const CARD_SIZE = {
+  small: {
+    width: 2,
+    height: 1
+  },
+  medium: {
+    width: 2,
+    height: 2
+  },
+  large: {
+    width: 4,
+    height: 2
+  }
+};
+const sizeOf = tile => CARD_SIZE[tile.size] ?? CARD_SIZE.medium;
+
+// Return the tileIndexes that fall into an incomplete final row at this
+// breakpoint. These are the orphan cards to hide.
+function getOrphanTileIndexes(tiles, columnCount) {
+  const rowWidth = columnCount * 2; // a grid column is 2 units wide
+  let currentRow = []; // tile indexes in the row we're filling
+  let filled = 0; // units used in this row, including tall cards from above
+  let carry = 0; // units this row's tall cards reserve in the next row
+
+  // Walks each tile, filling currentRow until the row is filled,
+  // then clears it and goes to the next row.
+  // At the end if currentRow is not empty, we have a remainder.
+  tiles.forEach((tile, index) => {
+    const {
+      width,
+      height
+    } = sizeOf(tile);
+    currentRow.push(index);
+    filled += width;
+    if (height > 1) {
+      carry += width;
+    }
+
+    // This row is complete, we can reset and keep looking.
+    if (filled >= rowWidth) {
+      currentRow = [];
+      filled = carry; // next row starts seeded by tall cards from above
+      carry = 0;
+      // The carry alone filled the whole next row (all-tall row), so reset it.
+      if (filled >= rowWidth) {
+        filled = 0;
+      }
+    }
+  });
+  return new Set(currentRow);
+}
 function getLayoutData(responsiveLayouts, index) {
   let layoutData = {
     classNames: [],
@@ -12364,8 +13109,12 @@ function getLayoutData(responsiveLayouts, index) {
     allowsWidget: false
   };
   responsiveLayouts.forEach(layout => {
+    const orphanTiles = getOrphanTileIndexes(layout.tiles, layout.columnCount);
     layout.tiles.forEach((tile, tileIndex) => {
       if (tile.position === index) {
+        if (orphanTiles.has(tileIndex)) {
+          layoutData.classNames.push(`col-${layout.columnCount}-hidden`);
+        }
         layoutData.classNames.push(`col-${layout.columnCount}-${tile.size}`);
         layoutData.classNames.push(`col-${layout.columnCount}-position-${tileIndex}`);
         layoutData.imageSizes[layout.columnCount] = tile.size;
@@ -12977,477 +13726,6 @@ function CardSections({
 
 
 const BaseContext = /*#__PURE__*/external_React_default().createContext({});
-;// CONCATENATED MODULE: ./common/WidgetsRegistry.mjs
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-/**
- * WIDGET_REGISTRY — single source of truth for all New Tab widgets.
- *
- * WHY THIS EXISTS
- * Previously, every widget was hardcoded in three places: the render loop in
- * Widgets.jsx, the hideAllWidgets handler, and the toggleMaximize handler.
- * Adding or removing a widget required edits in all three spots and was easy
- * to get out of sync. This registry replaces those hardcoded lists so that
- * Widgets.jsx, WidgetsSidebar.jsx, and any future consumers share one
- * authoritative definition.
- *
- * HOW IT WORKS
- * Each entry describes one widget's static metadata:
- *
- *   id                — unique string key used in prefs and the order pref
- *   telemetryName     — the name sent in Glean events (snake_case; may differ from id)
- *   order             — default render position (0-indexed); used when widgets.order is empty
- *   enabledPref       — the user-facing pref that toggles this widget on/off
- *   sizePref          — the pref that stores the user's chosen size (empty string = not set)
- *   defaultSize       — size to use when sizePref is empty and no trainhop suggestion exists
- *   validSizes        — the sizes this widget supports (drives size picker options)
- *   hasSidebar        — when true, the widget renders in the sidebar instead of the
- *                       widget row when its effective size equals "small". Size alone is not
- *                       sufficient — this flag must be set explicitly so that future
- *                       widgets that support "small" but stay in the row are not
- *                       accidentally moved to the sidebar.
- *   systemEnabledPref — system/operator pref that gates this widget independent of the user pref
- *   trainhopEnabledKey — key in trainhopConfig.widgets.* for the enabled override
- *   trainhopSizeKey    — key in trainhopConfig.widgets.* for the size default suggestion
- *                        (only applies when the user has not explicitly set sizePref)
- *   trainhopSidebarKey — key in trainhopConfig.widgets.* for the hasSidebar override;
- *                        null means the sidebar placement is not overridable via trainhop
- *
- * SIZE PRIORITY
- * sizePref defaults to "" (empty string) in PREFS_CONFIG. An empty value
- * means the user has not explicitly chosen a size; resolveWidgetSize() falls
- * through to a trainhop suggestion and then to widget.defaultSize. Once the
- * user resizes a widget via the UI the pref is written with a real value and
- * trainhop can no longer override it. resolveWidgetSize() applies these in order:
- *   1. User-set pref (sizePref is non-empty) — always wins
- *   2. trainhopConfig suggestion (trainhopSizeKey) — acts as default, not override
- *   3. widget.defaultSize — final fallback
- *
- * Note: widgets.weather.size uses getValue: getWeatherWidgetSize in
- * ActivityStream.sys.mjs rather than value: "" because it has a Nova migration
- * path that infers the correct initial size from the user's previous weather
- * configuration. After migration the stored value is non-empty and the sentinel
- * logic above applies normally.
- *
- * ADDING A NEW WIDGET
- * 1. Add a new entry to WIDGET_REGISTRY below with the next `order` integer.
- *    Set telemetryName to the snake_case Glean name for this widget.
- * 2. Export its pref key constants from this file.
- * 3. Register both prefs (enabled + size) in lib/ActivityStream.sys.mjs.
- * 4. Add the component to WIDGET_ROW_COMPONENTS in WidgetsComponentRegistry.jsx.
- * 5. If it has a sidebar variant, set hasSidebar: true and add its component
- *    to WIDGET_SIDEBAR_COMPONENTS in WidgetsComponentRegistry.jsx.
- *
- * ADDING A NEW PER-WIDGET DIMENSION (e.g. "scale")
- * 1. Add scalePref and trainhopScaleKey fields to each registry entry.
- * 2. Export a resolveWidgetScale(widget, prefs) helper following the same
- *    user-pref-wins pattern as resolveWidgetSize().
- * 3. Update components to call the helper instead of reading the pref directly.
- *
- * The widgets.order pref (CSV of widget IDs) persists user-defined order.
- * It is only written when the user explicitly reorders widgets — never on
- * enable/disable. Disabled widgets keep their slot so they reappear in the
- * same position when re-enabled. See resolveWidgetOrder() below.
- */
-
-const PREF_WIDGETS_LISTS_ENABLED = "widgets.lists.enabled";
-const PREF_WIDGETS_TIMER_ENABLED = "widgets.focusTimer.enabled";
-const PREF_WIDGETS_WEATHER_ENABLED = "widgets.weather.enabled";
-const PREF_LISTS_SIZE = "widgets.lists.size";
-const PREF_FOCUS_TIMER_SIZE = "widgets.focusTimer.size";
-const PREF_WEATHER_SIZE = "widgets.weather.size";
-const PREF_WIDGETS_ORDER = "widgets.order";
-const PREF_WIDGETS_SYSTEM_LISTS_ENABLED = "widgets.system.lists.enabled";
-const PREF_WIDGETS_SYSTEM_TIMER_ENABLED =
-  "widgets.system.focusTimer.enabled";
-const PREF_WIDGETS_SYSTEM_WEATHER_ENABLED =
-  "widgets.system.weather.enabled";
-const PREF_WIDGETS_SPORTS_WIDGET_ENABLED =
-  "widgets.sportsWidget.enabled";
-const PREF_SPORTS_WIDGET_SIZE = "widgets.sportsWidget.size";
-const PREF_WIDGETS_SYSTEM_SPORTS_WIDGET_ENABLED =
-  "widgets.system.sportsWidget.enabled";
-const PREF_WIDGETS_CLOCKS_ENABLED = "widgets.clocks.enabled";
-const PREF_CLOCKS_SIZE = "widgets.clocks.size";
-const PREF_WIDGETS_SYSTEM_CLOCKS_ENABLED =
-  "widgets.system.clocks.enabled";
-const PREF_WIDGETS_PRIVACY_ENABLED = "widgets.privacy.enabled";
-const PREF_PRIVACY_SIZE = "widgets.privacy.size";
-const PREF_WIDGETS_SYSTEM_PRIVACY_ENABLED =
-  "widgets.system.privacy.enabled";
-const PREF_WIDGETS_CROSSWORD_ENABLED = "widgets.crossword.enabled";
-const PREF_CROSSWORD_SIZE = "widgets.crossword.size";
-const PREF_WIDGETS_SYSTEM_CROSSWORD_ENABLED =
-  "widgets.system.crossword.enabled";
-const PREF_WIDGETS_STOCKS_ENABLED = "widgets.stocks.enabled";
-const PREF_STOCKS_SIZE = "widgets.stocks.size";
-const PREF_WIDGETS_SYSTEM_STOCKS_ENABLED =
-  "widgets.system.stocks.enabled";
-const PREF_CROSSWORD_ENDPOINT = "widgets.crossword.endpoint";
-const PREF_WIDGETS_PICTURE_OF_THE_DAY_ENABLED =
-  "widgets.pictureOfTheDay.enabled";
-const PREF_PICTURE_OF_THE_DAY_SIZE = "widgets.pictureOfTheDay.size";
-const PREF_WIDGETS_SYSTEM_PICTURE_OF_THE_DAY_ENABLED =
-  "widgets.system.pictureOfTheDay.enabled";
-
-/**
- * @typedef {object} WidgetRegistryEntry
- * @property {string} id - Unique key used in prefs and the order pref.
- * @property {string} telemetryName - Snake_case name sent in Glean events. May differ from id (e.g. "focus_timer" for id "focusTimer").
- * @property {number} order - Default render position (0-indexed).
- * @property {string} enabledPref - User-facing pref that toggles this widget on/off.
- * @property {string} sizePref - Pref that stores the user's chosen size ("" = not yet set).
- * @property {string} defaultSize - Fallback size when sizePref is empty and no trainhop suggestion exists.
- * @property {string[]} validSizes - Sizes this widget supports.
- * @property {boolean} hasSidebar - When true, the widget moves to the sidebar at size "small".
- * @property {string} systemEnabledPref - Operator pref that gates the widget independently of the user pref.
- * @property {string} trainhopEnabledKey - Key in trainhopConfig.widgets.* for the enabled override.
- * @property {string|null} trainhopSizeKey - Key in trainhopConfig.widgets.* for the size default suggestion.
- * @property {string|null} trainhopSidebarKey - Key in trainhopConfig.widgets.* for the hasSidebar override.
- * @property {string} widgetsSettingsVisibleKey - Key in trainhopConfig.widgetsSettings.* that additively reveals this widget's toggle in the settings UIs (does not enable the widget).
- * @property {string} widgetsSettingsEnabledKey - Key in trainhopConfig.widgetsSettings.* that overrides this widget's default enabled value (written to the pref default branch; an explicit user toggle still wins).
- */
-
-/** @type {WidgetRegistryEntry[]} */
-const WIDGET_REGISTRY = [
-  {
-    id: "sportsWidget",
-    telemetryName: "sports",
-    order: 0,
-    enabledPref: PREF_WIDGETS_SPORTS_WIDGET_ENABLED,
-    sizePref: PREF_SPORTS_WIDGET_SIZE,
-    defaultSize: "medium",
-    validSizes: ["medium", "large"],
-    hasSidebar: false,
-    systemEnabledPref: PREF_WIDGETS_SYSTEM_SPORTS_WIDGET_ENABLED,
-    trainhopEnabledKey: "sportsWidgetEnabled",
-    trainhopSizeKey: "sportsWidgetSize",
-    trainhopSidebarKey: null,
-    widgetsSettingsVisibleKey: "sportsWidgetVisible",
-    widgetsSettingsEnabledKey: "sportsWidgetEnabled",
-  },
-  {
-    id: "clocks",
-    telemetryName: "clocks",
-    order: 1,
-    enabledPref: PREF_WIDGETS_CLOCKS_ENABLED,
-    sizePref: PREF_CLOCKS_SIZE,
-    defaultSize: "medium",
-    validSizes: ["small", "medium", "large"],
-    hasSidebar: false,
-    systemEnabledPref: PREF_WIDGETS_SYSTEM_CLOCKS_ENABLED,
-    trainhopEnabledKey: "clocksEnabled",
-    trainhopSizeKey: "clocksSize",
-    trainhopSidebarKey: null,
-    widgetsSettingsVisibleKey: "clocksVisible",
-    widgetsSettingsEnabledKey: "clocksEnabled",
-  },
-  {
-    id: "lists",
-    telemetryName: "lists",
-    order: 2,
-    enabledPref: PREF_WIDGETS_LISTS_ENABLED,
-    sizePref: PREF_LISTS_SIZE,
-    defaultSize: "medium",
-    validSizes: ["small", "medium", "large"],
-    hasSidebar: false,
-    systemEnabledPref: PREF_WIDGETS_SYSTEM_LISTS_ENABLED,
-    trainhopEnabledKey: "listsEnabled",
-    trainhopSizeKey: "listsSize",
-    trainhopSidebarKey: null,
-    widgetsSettingsVisibleKey: "listsVisible",
-    widgetsSettingsEnabledKey: "listsEnabled",
-  },
-  {
-    id: "focusTimer",
-    telemetryName: "focus_timer",
-    order: 3,
-    enabledPref: PREF_WIDGETS_TIMER_ENABLED,
-    sizePref: PREF_FOCUS_TIMER_SIZE,
-    defaultSize: "medium",
-    validSizes: ["small", "medium", "large"],
-    hasSidebar: false,
-    systemEnabledPref: PREF_WIDGETS_SYSTEM_TIMER_ENABLED,
-    trainhopEnabledKey: "timerEnabled",
-    trainhopSizeKey: "timerSize",
-    trainhopSidebarKey: null,
-    widgetsSettingsVisibleKey: "focusTimerVisible",
-    widgetsSettingsEnabledKey: "focusTimerEnabled",
-  },
-  {
-    id: "weather",
-    telemetryName: "weather",
-    order: 4,
-    enabledPref: PREF_WIDGETS_WEATHER_ENABLED,
-    sizePref: PREF_WEATHER_SIZE,
-    defaultSize: "small",
-    validSizes: ["small", "medium", "large"],
-    hasSidebar: true,
-    systemEnabledPref: PREF_WIDGETS_SYSTEM_WEATHER_ENABLED,
-    trainhopEnabledKey: "weatherEnabled",
-    trainhopSizeKey: "weatherSize",
-    trainhopSidebarKey: "weatherSidebar",
-    widgetsSettingsVisibleKey: "weatherVisible",
-    widgetsSettingsEnabledKey: "weatherEnabled",
-  },
-  {
-    id: "privacy",
-    telemetryName: "privacy",
-    order: 5,
-    enabledPref: PREF_WIDGETS_PRIVACY_ENABLED,
-    sizePref: PREF_PRIVACY_SIZE,
-    defaultSize: "medium",
-    validSizes: ["medium", "large"],
-    hasSidebar: false,
-    systemEnabledPref: PREF_WIDGETS_SYSTEM_PRIVACY_ENABLED,
-    trainhopEnabledKey: "privacyEnabled",
-    trainhopSizeKey: "privacySize",
-    trainhopSidebarKey: null,
-    widgetsSettingsVisibleKey: "privacyVisible",
-    widgetsSettingsEnabledKey: "privacyEnabled",
-  },
-  {
-    id: "crossword",
-    telemetryName: "crossword",
-    order: 6,
-    enabledPref: PREF_WIDGETS_CROSSWORD_ENABLED,
-    sizePref: PREF_CROSSWORD_SIZE,
-    defaultSize: "medium",
-    validSizes: ["medium", "large"],
-    hasSidebar: false,
-    systemEnabledPref: PREF_WIDGETS_SYSTEM_CROSSWORD_ENABLED,
-    trainhopEnabledKey: "crosswordEnabled",
-    trainhopSizeKey: "crosswordSize",
-    trainhopSidebarKey: null,
-    widgetsSettingsVisibleKey: "crosswordVisible",
-    widgetsSettingsEnabledKey: "crosswordEnabled",
-  },
-  {
-    id: "stocks",
-    telemetryName: "stocks",
-    order: 7,
-    enabledPref: PREF_WIDGETS_STOCKS_ENABLED,
-    sizePref: PREF_STOCKS_SIZE,
-    defaultSize: "medium",
-    validSizes: ["small", "medium", "large"],
-    hasSidebar: false,
-    systemEnabledPref: PREF_WIDGETS_SYSTEM_STOCKS_ENABLED,
-    trainhopEnabledKey: "stocksEnabled",
-    trainhopSizeKey: "stocksSize",
-    trainhopSidebarKey: null,
-    widgetsSettingsVisibleKey: "stocksVisible",
-    widgetsSettingsEnabledKey: "stocksEnabled",
-  },
-  {
-    id: "pictureOfTheDay",
-    telemetryName: "picture_of_the_day",
-    order: 8,
-    enabledPref: PREF_WIDGETS_PICTURE_OF_THE_DAY_ENABLED,
-    sizePref: PREF_PICTURE_OF_THE_DAY_SIZE,
-    defaultSize: "medium",
-    validSizes: ["medium", "large"],
-    hasSidebar: false,
-    systemEnabledPref: PREF_WIDGETS_SYSTEM_PICTURE_OF_THE_DAY_ENABLED,
-    trainhopEnabledKey: "pictureOfTheDayEnabled",
-    trainhopSizeKey: "pictureOfTheDaySize",
-    trainhopSidebarKey: null,
-    widgetsSettingsVisibleKey: "pictureOfTheDayVisible",
-    widgetsSettingsEnabledKey: "pictureOfTheDayEnabled",
-  },
-];
-
-/**
- * Returns an ordered list of all widget IDs (including disabled ones).
- * Saved order is respected; any widget IDs not in the saved pref are appended
- * in registry-default order. Unknown IDs in the saved pref are dropped.
- *
- * @param {string} orderPref - value of the widgets.order pref (CSV string)
- */
-function getWidgetOrder(orderPref) {
-  const registryIds = WIDGET_REGISTRY.map(w => w.id);
-  if (!orderPref) {
-    return registryIds;
-  }
-  const seen = new Set();
-  const saved = orderPref
-    .split(",")
-    .filter(id => registryIds.includes(id) && !seen.has(id) && seen.add(id));
-  const appended = registryIds.filter(id => !seen.has(id));
-  return [...saved, ...appended];
-}
-
-/**
- * Returns the effective widget render order. The user's saved order wins;
- * a trainhop suggestion applies only when no user order is saved.
- *
- * @param {object} prefs - current pref values from the Redux store
- * @returns {string[]} ordered array of widget IDs
- */
-function resolveWidgetOrder(prefs) {
-  const userOrder = prefs[PREF_WIDGETS_ORDER];
-  if (userOrder) {
-    return getWidgetOrder(userOrder);
-  }
-  const trainhopOrder = prefs.trainhopConfig?.widgets?.order;
-  if (trainhopOrder) {
-    return getWidgetOrder(trainhopOrder);
-  }
-  return getWidgetOrder(null);
-}
-
-/**
- * Returns true if the widget is available to the user, based on the
- * system pref, the trainhopConfig.widgets addable key, or a
- * widgetsSettings.*Visible override (revealing a toggle also makes the widget
- * addable so the toggle is functional). Does not consider whether the user has
- * turned the widget on, or whether the widgets container is enabled.
- *
- * @param {object} widget - a WIDGET_REGISTRY entry
- * @param {object} prefs - current pref values from the Redux store
- * @returns {boolean}
- */
-function isWidgetAddable(widget, prefs) {
-  return Boolean(
-    prefs.trainhopConfig?.widgets?.[widget.trainhopEnabledKey] ||
-    prefs.trainhopConfig?.widgetsSettings?.[widget.widgetsSettingsVisibleKey] ||
-    prefs[widget.systemEnabledPref]
-  );
-}
-
-/**
- * Returns true if this widget's toggle should be shown in the settings UIs
- * (about:preferences#home and the Customize menu). A widget is shown when it is
- * addable (system pref, trainhopConfig.widgets, or widgetsSettings.*Visible) or
- * when the legacy `widgetsConfig` Nimbus variable enables it. Showing a toggle
- * does NOT enable the widget — enablement is the widget's own enabled pref,
- * whose default can be overridden via widgetsSettings.*Enabled.
- *
- * @param {object} widget - a WIDGET_REGISTRY entry
- * @param {object} prefs - current pref values from the Redux store
- * @returns {boolean}
- */
-function isWidgetToggleVisible(widget, prefs) {
-  return Boolean(
-    isWidgetAddable(widget, prefs) ||
-    prefs.widgetsConfig?.[widget.trainhopEnabledKey]
-  );
-}
-
-/**
- * Returns true if the Widgets container/section toggle should be shown.
- * Additive across the system pref, the legacy `widgetsConfig` variable, the
- * `trainhopConfig.widgets.enabled` addable key, and the new
- * `trainhopConfig.widgetsSettings.enabled` override.
- *
- * @param {object} prefs - current pref values from the Redux store
- * @returns {boolean}
- */
-function isWidgetsContainerVisible(prefs) {
-  return Boolean(
-    prefs["widgets.system.enabled"] ||
-    prefs.widgetsConfig?.enabled ||
-    prefs.trainhopConfig?.widgets?.enabled ||
-    prefs.trainhopConfig?.widgetsSettings?.enabled
-  );
-}
-
-/**
- * Returns true if the widget is currently enabled: the widgets container is
- * on, the widget is addable, and the user's enabled pref is set.
- *
- * @param {object} widget - a WIDGET_REGISTRY entry
- * @param {object} prefs - current pref values from the Redux store
- * @param {boolean} widgetsEnabled - value of the widgets.enabled container pref
- * @returns {boolean}
- */
-function isWidgetEnabled(widget, prefs, widgetsEnabled) {
-  return Boolean(
-    widgetsEnabled &&
-    isWidgetAddable(widget, prefs) &&
-    prefs[widget.enabledPref]
-  );
-}
-
-/**
- * Returns the effective size for a widget, applying priority:
- *   user-set pref > trainhop suggestion > registry defaultSize
- *
- * A sizePref value of "" means the user has not explicitly chosen a size,
- * so trainhop and defaultSize are consulted. Any non-empty value was written
- * by a user action (size picker, maximize/minimize button) and always wins.
- *
- * @param {object} widget - a WIDGET_REGISTRY entry
- * @param {object} prefs - current pref values from the Redux store
- * @returns {string}
- */
-function resolveWidgetSize(widget, prefs) {
-  const userPref = prefs[widget.sizePref];
-  if (userPref) {
-    return userPref;
-  }
-  const trainhopSize = widget.trainhopSizeKey
-    ? prefs.trainhopConfig?.widgets?.[widget.trainhopSizeKey]
-    : null;
-  return trainhopSize || widget.defaultSize;
-}
-
-/**
- * Returns whether the widget should be placed in the sidebar.
- * A trainhop override (trainhopSidebarKey) takes precedence over the
- * static registry hasSidebar flag when present.
- *
- * @param {object} widget - a WIDGET_REGISTRY entry
- * @param {object} prefs - current pref values from the Redux store
- * @returns {boolean}
- */
-function resolveWidgetHasSidebar(widget, prefs) {
-  if (widget.trainhopSidebarKey) {
-    const override = prefs.trainhopConfig?.widgets?.[widget.trainhopSidebarKey];
-    if (override !== undefined) {
-      return override;
-    }
-  }
-  return widget.hasSidebar;
-}
-
-/**
- * Returns the Merino endpoint the Crossword widget iframe should load.
- * A trainhopConfig.widgets.crosswordEndpoint override wins over the raw pref so
- * the endpoint can be swapped (e.g. staging to production) without a release.
- * The raw pref is never read directly by the component.
- *
- * @param {object} prefs - current pref values from the Redux store
- * @returns {string}
- */
-function resolveCrosswordEndpoint(prefs) {
-  return (
-    prefs.trainhopConfig?.widgets?.crosswordEndpoint ||
-    prefs[PREF_CROSSWORD_ENDPOINT]
-  );
-}
-
-/**
- * Returns the list of widgets to disable when "hide all" is triggered.
- * A widget is included if it has no sidebar variant OR if it is currently
- * in the row (not the sidebar). Each entry carries the pref to disable,
- * the telemetry name, and whether it was active (for telemetry filtering).
- *
- * @param {object} prefs - current pref values from the Redux store
- * @param {object} widgetEnabledMap - map of widget id → boolean (currently active in row)
- * @returns {{ enabledPref: string, telemetryName: string, active: boolean }[]}
- */
-function getHideAllTargets(prefs, widgetEnabledMap) {
-  return WIDGET_REGISTRY.filter(
-    w => !resolveWidgetHasSidebar(w, prefs) || widgetEnabledMap[w.id]
-  ).map(w => ({
-    enabledPref: w.enabledPref,
-    telemetryName: w.telemetryName,
-    active: !!widgetEnabledMap[w.id],
-  }));
-}
-
 ;// CONCATENATED MODULE: ./content-src/components/Widgets/WidgetCelebration.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14926,7 +15204,7 @@ function Lists({
     })
   })), /*#__PURE__*/external_React_default().createElement("moz-button", {
     className: "lists-panel-button",
-    "data-l10n-id": "newtab-menu-section-tooltip",
+    "data-l10n-id": "newtab-widget-lists-menu-button",
     iconSrc: "chrome://global/skin/icons/more.svg",
     menuId: "lists-panel",
     type: "ghost"
@@ -16087,6 +16365,15 @@ const FocusTimer = ({
   // Keep the running-state body layout through the celebration so the ring
   // doesn't shift to a third position during the animation.
   const bodyShowsRunningLayout = hasProgressed || isCelebrating || isComplete;
+
+  // Small has no manual Focus/Break toggle; medium and large show it when idle.
+  const showModeGroup = !bodyShowsRunningLayout && (widgetSize === "medium" || widgetSize === "large");
+
+  // Small shows the celebration headline only; other sizes add a subhead.
+  let celebrationSubheadL10nId;
+  if (widgetSize !== "small") {
+    celebrationSubheadL10nId = timerType === "focus" ? "newtab-widget-timer-celebration-message-focus" : "newtab-widget-timer-celebration-message-break";
+  }
   return timerData ? /*#__PURE__*/external_React_default().createElement("article", {
     // @nova-cleanup(remove-conditional): Remove novaEnabled check; always apply col-4 and size class after Nova ships
     className: `focus-timer widget ${novaEnabled ? `col-4 ${widgetSize}-widget` : ""} ${isSmallSize ? "is-small" : ""} ${isMaximized ? "is-maximized" : ""}${isComplete ? " is-complete" : ""}${isCelebrating ? " is-celebrating" : ""}${hasProgressed && !isComplete ? " is-active" : ""}`,
@@ -16104,7 +16391,7 @@ const FocusTimer = ({
     headlineL10nId: timerType === "focus" ? "newtab-widget-timer-celebration-heading-focus" : "newtab-widget-timer-celebration-heading-break",
     illustrationSrc: null,
     onComplete: handleCelebrationComplete,
-    subheadL10nId: timerType === "focus" ? "newtab-widget-timer-celebration-message-focus" : "newtab-widget-timer-celebration-message-break"
+    subheadL10nId: celebrationSubheadL10nId
   }) : null, /*#__PURE__*/external_React_default().createElement("div", {
     className: "newtab-widget-timer-notification-title-wrapper"
   }, /*#__PURE__*/external_React_default().createElement("h2", {
@@ -16233,7 +16520,7 @@ const FocusTimer = ({
     iconsrc: "chrome://newtab/content/data/content/assets/arrow-clockwise-16.svg",
     "data-l10n-id": "newtab-widget-timer-reset",
     onClick: resetTimer
-  }), !bodyShowsRunningLayout && /*#__PURE__*/external_React_default().createElement("div", {
+  }), showModeGroup && /*#__PURE__*/external_React_default().createElement("div", {
     className: "focus-timer-mode-group",
     role: "radiogroup",
     "data-l10n-id": "newtab-widget-timer-mode-group",
@@ -21987,16 +22274,237 @@ function Privacy({
 const Crossword_USER_ACTION_TYPES = {
   CHANGE_SIZE: "change_size"
 };
+
+// postMessage contract with the Particle crossword bundle (per the widget's
+// postMessage API doc). Every message travels on a single channel; the widget
+// discards anything without it, and so do we.
+const CROSSWORD_CHANNEL = "crossword_widget";
+
+// Outbound: newtab -> widget host commands. Sent with an explicit targetOrigin
+// (never "*"). A menu_action carries a unique requestId so the widget can reply
+// with a matching command_ack.
+const COMMAND_TYPES = {
+  MENU_ACTION: "menu_action",
+  FORCE_REFRESH: "force_refresh"
+};
+
+// Inbound: widget -> newtab events. Only accepted from the Merino bundle origin.
+const EVENT_TYPES = {
+  COMMAND_ACK: "command_ack",
+  WIDGET_READY: "widget_ready",
+  WIDGET_ERROR: "widget_error",
+  PUZZLE_STATE: "puzzle_state",
+  PUZZLE_COMPLETED: "puzzle_completed",
+  INTERACTION: "interaction"
+};
+
+// The puzzle lifecycle states the widget reports via puzzle_state. Only
+// "in_progress" drives the widget to the large layout; "intro" and "completed"
+// (the compact returning-completion card) use the user's configured size.
+const PUZZLE_STATES = ["intro", "in_progress", "completed"];
+
+// Actions that force the widget size to be large when the puzzle is
+// completed if "show clues", "view completed crossword", or "solve puzzle"
+// are clicked.
+const LARGE_LAYOUT_INTERACTIONS = new Set(["admire_crossword_clicked", "all_clues_opened", "reveal_grid_requested"]);
+const isNonNegativeNumber = value => typeof value === "number" && Number.isFinite(value) && value >= 0;
+const isWholeCount = value => isNonNegativeNumber(value) && Number.isInteger(value);
+
+// Structural validators for each inbound event payload. An event whose type is
+// unknown, or whose payload fails its validator, is discarded without side
+// effects so a malformed/unexpected message can't drive Redux or telemetry.
+const EVENT_PAYLOAD_VALIDATORS = {
+  [EVENT_TYPES.COMMAND_ACK]: payload => typeof payload?.requestId === "string" && typeof payload?.status === "string",
+  [EVENT_TYPES.WIDGET_READY]: () => true,
+  [EVENT_TYPES.WIDGET_ERROR]: payload => typeof payload?.reason === "string" && typeof payload?.terminal === "boolean",
+  [EVENT_TYPES.PUZZLE_STATE]: payload => PUZZLE_STATES.includes(payload?.state),
+  [EVENT_TYPES.PUZZLE_COMPLETED]: payload => isNonNegativeNumber(payload?.elapsedTimeSeconds) && isWholeCount(payload?.hintsTaken),
+  [EVENT_TYPES.INTERACTION]: payload => typeof payload?.action === "string"
+};
+const MENU_ACTION_ITEMS = [{
+  key: "show-all-clues",
+  label: "Show clues",
+  action: "show_all_clues"
+}, {
+  // "Solve puzzle" only shows when the crossword is in the intro state or
+  // in-progress, so it is hidden once the puzzle is completed.
+  key: "solve-puzzle",
+  label: "Solve puzzle",
+  action: "reveal_grid",
+  hideWhenCompleted: true
+}];
 const CROSSWORD_ENTRY = WIDGET_REGISTRY.find(w => w.id === "crossword");
+
+// Flipped to true the first time the user interacts with the crossword. Used to
+// hide the "New" badge once the widget has been used.
+const PREF_CROSSWORD_INTERACTION = "widgets.crossword.interaction";
 function Crossword({
   dispatch,
+  handleUserInteraction,
   widgetsMayBeMaximized,
   widgetEnabledMap
 }) {
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
   const widgetSize = resolveWidgetSize(CROSSWORD_ENTRY, prefs);
+  const hasInteracted = prefs[PREF_CROSSWORD_INTERACTION];
   const crosswordEndpoint = resolveCrosswordEndpoint(prefs);
   const impressionFired = (0,external_React_namespaceObject.useRef)(false);
+  const iframeRef = (0,external_React_namespaceObject.useRef)(null);
+
+  // Set once the widget reports the puzzle is finished, so menu actions that
+  // only apply to an in-progress game (Solve puzzle) can be hidden.
+  const [puzzleCompleted, setPuzzleCompleted] = (0,external_React_namespaceObject.useState)(false);
+
+  // Grow to large once a puzzle is in progress and stay large through the
+  // completed screen; only the intro state (or loading directly into completed,
+  // i.e. the returning-completion card) stays medium. Driven by puzzle_state,
+  // plus the interactions in LARGE_LAYOUT_INTERACTIONS that open a large screen
+  const [showLarge, setShowLarge] = (0,external_React_namespaceObject.useState)(false);
+
+  // Gated on widgetsMayBeMaximized so we never render a large-widget on a layout
+  // that can't host it.
+  const displaySize = widgetsMayBeMaximized && showLarge ? "large" : widgetSize;
+
+  // Any real interaction flips the interaction pref, which hides the "New"
+  // badge. The helper is a no-op once the pref is already true.
+  const handleInteraction = (0,external_React_namespaceObject.useCallback)(() => handleUserInteraction("crossword"), [handleUserInteraction]);
+
+  // The single origin we accept inbound messages from and target for outbound
+  // ones.
+  const merinoOrigin = (0,external_React_namespaceObject.useMemo)(() => {
+    try {
+      return new URL(crosswordEndpoint).origin;
+    } catch {
+      return null;
+    }
+  }, [crosswordEndpoint]);
+
+  // requestId -> action for menu_action commands awaiting a command_ack, so an
+  // incoming ack can be matched back to the action the user selected. A
+  // command_ack is the widget's reply confirming it received and processed a
+  // command we sent.
+  const pendingCommandsRef = (0,external_React_namespaceObject.useRef)(new Map());
+
+  // Post a menu_action host command to the widget, always with the Merino
+  // origin as targetOrigin so a replaced/compromised iframe src can never
+  // receive it. Each command gets a unique requestId; without one the widget
+  // replies with widget_error (host-missing-request-id) instead of a
+  // command_ack.
+  const postMenuAction = (0,external_React_namespaceObject.useCallback)(action => {
+    const frameWindow = iframeRef.current?.contentWindow;
+    const requestId = `firefox-menu-${crypto.randomUUID()}`;
+    if (!frameWindow || !merinoOrigin) {
+      return;
+    }
+    pendingCommandsRef.current.set(requestId, action);
+    frameWindow.postMessage({
+      channel: CROSSWORD_CHANNEL,
+      type: COMMAND_TYPES.MENU_ACTION,
+      requestId,
+      action
+    }, merinoOrigin);
+  }, [merinoOrigin]);
+  const handleWidgetEvent = (0,external_React_namespaceObject.useCallback)((type, payload) => {
+    switch (type) {
+      case EVENT_TYPES.COMMAND_ACK:
+        pendingCommandsRef.current.delete(payload.requestId);
+        break;
+      case EVENT_TYPES.WIDGET_READY:
+        break;
+      case EVENT_TYPES.WIDGET_ERROR:
+        break;
+      case EVENT_TYPES.PUZZLE_STATE:
+        // Grow when a puzzle is in progress and stay large through the
+        // completed screen; shrink only when returning to the intro state.
+        if (payload.state === "in_progress") {
+          setShowLarge(true);
+        } else if (payload.state === "intro") {
+          setShowLarge(false);
+        }
+        //  This keeps "Solve puzzle" hidden when the puzzle's been completed.
+        if (payload.state === "completed") {
+          setPuzzleCompleted(true);
+        } else if (payload.state === "intro") {
+          setPuzzleCompleted(false);
+        }
+        break;
+      case EVENT_TYPES.PUZZLE_COMPLETED:
+        setPuzzleCompleted(true);
+        dispatch(actionCreators.AlsoToMain({
+          type: actionTypes.WIDGETS_USER_EVENT,
+          data: {
+            widget_name: "crossword",
+            widget_source: "iframe",
+            user_action: "puzzle_completed",
+            action_value: payload.hintsTaken,
+            widget_size: widgetSize
+          }
+        }));
+        break;
+      case EVENT_TYPES.INTERACTION:
+        // Viewing the completed grid or opening the all-clues panel both need
+        // the large layout, even from the medium completed/returning card.
+        if (LARGE_LAYOUT_INTERACTIONS.has(payload.action)) {
+          setShowLarge(true);
+        }
+        handleInteraction();
+        dispatch(actionCreators.AlsoToMain({
+          type: actionTypes.WIDGETS_USER_EVENT,
+          data: {
+            widget_name: "crossword",
+            widget_source: "iframe",
+            user_action: "interaction",
+            action_value: payload.action,
+            widget_size: widgetSize
+          }
+        }));
+        break;
+      default:
+        break;
+    }
+  }, [dispatch, handleInteraction, widgetSize]);
+
+  // Listen for events from the widget, discarding anything that fails origin,
+  // source, channel, or payload validation before it can touch Redux/telemetry.
+  (0,external_React_namespaceObject.useEffect)(() => {
+    if (!merinoOrigin) {
+      return undefined;
+    }
+    function handleMessage(event) {
+      if (event.origin !== merinoOrigin) {
+        return;
+      }
+      if (event.source !== iframeRef.current?.contentWindow) {
+        return;
+      }
+      const message = event.data;
+      if (!message || message.channel !== CROSSWORD_CHANNEL || typeof message.type !== "string") {
+        return;
+      }
+      const validatePayload = EVENT_PAYLOAD_VALIDATORS[message.type];
+      const payload = message.payload ?? {};
+      if (!validatePayload || !validatePayload(payload)) {
+        return;
+      }
+      handleWidgetEvent(message.type, payload);
+    }
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [merinoOrigin, handleWidgetEvent]);
+  const handleMenuAction = (0,external_React_namespaceObject.useCallback)(action => {
+    handleInteraction();
+    postMenuAction(action);
+    dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.WIDGETS_USER_EVENT,
+      data: {
+        widget_name: "crossword",
+        widget_source: "context_menu",
+        user_action: "menu_action",
+        action_value: action,
+        widget_size: widgetSize
+      }
+    }));
+  }, [handleInteraction, postMenuAction, dispatch, widgetSize]);
   const handleIntersection = (0,external_React_namespaceObject.useCallback)(() => {
     if (impressionFired.current) {
       return;
@@ -22032,6 +22540,7 @@ function Crossword({
     });
   }
   const handleChangeSize = (0,external_React_namespaceObject.useCallback)(size => {
+    handleInteraction();
     (0,external_ReactRedux_namespaceObject.batch)(() => {
       dispatch(actionCreators.OnlyToMain({
         type: actionTypes.SET_PREF,
@@ -22051,9 +22560,10 @@ function Crossword({
         }
       }));
     });
-  }, [dispatch]);
+  }, [dispatch, handleInteraction]);
   const sizeSubmenuRef = useSizeSubmenu(handleChangeSize);
   function handleLearnMore() {
+    handleInteraction();
     (0,external_ReactRedux_namespaceObject.batch)(() => {
       dispatch(actionCreators.OnlyToMain({
         type: actionTypes.OPEN_LINK,
@@ -22072,17 +22582,41 @@ function Crossword({
       }));
     });
   }
+  function handlePoweredByParticle() {
+    handleInteraction();
+    (0,external_ReactRedux_namespaceObject.batch)(() => {
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.OPEN_LINK,
+        data: {
+          url: "https://particle.news"
+        }
+      }));
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.WIDGETS_USER_EVENT,
+        data: {
+          widget_name: "crossword",
+          widget_source: "context_menu",
+          user_action: "powered_by_particle",
+          widget_size: widgetSize
+        }
+      }));
+    });
+  }
   return /*#__PURE__*/external_React_default().createElement("article", {
-    className: `crossword widget col-4 ${widgetSize}-widget`,
+    className: `crossword widget col-4 ${displaySize}-widget`,
     ref: el => {
       widgetRef.current = [el];
     }
   }, /*#__PURE__*/external_React_default().createElement("div", {
     className: "crossword-title-wrapper"
-  }, /*#__PURE__*/external_React_default().createElement("h3", {
-    className: "newtab-crossword-title",
-    "data-l10n-id": "newtab-crossword-widget-header"
-  }), /*#__PURE__*/external_React_default().createElement("div", {
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "crossword-badge-title-wrapper"
+  }, !hasInteracted && /*#__PURE__*/external_React_default().createElement("moz-badge", {
+    className: "crossword-new-badge",
+    "data-l10n-id": "newtab-widget-lists-label-new"
+  }), /*#__PURE__*/external_React_default().createElement("h3", {
+    className: "newtab-crossword-title"
+  }, "Daily crossword")), /*#__PURE__*/external_React_default().createElement("div", {
     className: "crossword-context-menu-wrapper"
   }, /*#__PURE__*/external_React_default().createElement("moz-button", {
     className: "crossword-context-menu-button",
@@ -22091,7 +22625,14 @@ function Crossword({
     type: "ghost"
   }), /*#__PURE__*/external_React_default().createElement("panel-list", {
     id: "crossword-context-menu"
-  }, widgetsMayBeMaximized && /*#__PURE__*/external_React_default().createElement("panel-item", {
+  }, MENU_ACTION_ITEMS.filter(item => !(puzzleCompleted && item.hideWhenCompleted)).map(item => /*#__PURE__*/external_React_default().createElement("panel-item", {
+    key: item.key,
+    className: item.key,
+    onClick: () => handleMenuAction(item.action)
+  }, item.label)), /*#__PURE__*/external_React_default().createElement("panel-item", {
+    className: "powered-by-particle",
+    onClick: handlePoweredByParticle
+  }, "Powered by Particle"), /*#__PURE__*/external_React_default().createElement("hr", null), widgetsMayBeMaximized && /*#__PURE__*/external_React_default().createElement("panel-item", {
     submenu: "crossword-size-submenu"
   }, /*#__PURE__*/external_React_default().createElement("span", {
     "data-l10n-id": "newtab-widget-menu-change-size"
@@ -22113,18 +22654,18 @@ function Crossword({
     onClick: handleCrosswordHide
   }), /*#__PURE__*/external_React_default().createElement("panel-item", {
     className: "learn-more",
-    "data-l10n-id": "newtab-crossword-menu-learn-more",
     onClick: handleLearnMore
-  })))), /*#__PURE__*/external_React_default().createElement("div", {
+  }, "Learn more")))), /*#__PURE__*/external_React_default().createElement("div", {
     className: "crossword-body"
   }, /*#__PURE__*/external_React_default().createElement("iframe", {
+    ref: iframeRef,
     className: "crossword-frame",
     title: "Crossword",
     src: crosswordEndpoint
     // allow-same-origin is required for the crossword to work, but is
     // currently under security review to see if it's safe to keep in our codebase right now.
     ,
-    sandbox: "allow-scripts allow-same-origin"
+    sandbox: "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
   })));
 }
 
@@ -22260,12 +22801,67 @@ function StockTicker({
   }, displayPrice)), changeText)));
 }
 
+;// CONCATENATED MODULE: ./content-src/components/Widgets/Stocks/StocksError.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+// The Stocks widget's error box. It only mounts while there's an error, so the
+// intersection observer set up on mount reports WIDGETS_ERROR the first time the
+// message is actually on screen.
+function StocksError({
+  widgetSize,
+  dispatch
+}) {
+  const errorFired = (0,external_React_namespaceObject.useRef)(false);
+  const handleErrorIntersection = (0,external_React_namespaceObject.useCallback)(() => {
+    if (errorFired.current) {
+      return;
+    }
+    errorFired.current = true;
+    // Fire from content so the event ties to this tab's session, matching the
+    // other widgets' error telemetry.
+    dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.WIDGETS_ERROR,
+      data: {
+        widget_name: "stocks",
+        widget_size: widgetSize,
+        error_type: "load_error"
+      }
+    }));
+  }, [dispatch, widgetSize]);
+  const errorRef = useIntersectionObserver(handleErrorIntersection);
+  return (
+    /*#__PURE__*/
+    // role="alert" so a screen reader announces the failure when the box
+    // appears, since it replaces the widget's data without moving focus.
+    external_React_default().createElement("div", {
+      className: "stocks-error",
+      role: "alert",
+      ref: el => {
+        errorRef.current = [el];
+      }
+    }, /*#__PURE__*/external_React_default().createElement("span", {
+      className: "icon icon-info-warning",
+      "aria-hidden": "true"
+    }), /*#__PURE__*/external_React_default().createElement("p", {
+      className: "stocks-error-text",
+      "data-l10n-id": "newtab-stocks-error-not-available"
+    }))
+  );
+}
+
 ;// CONCATENATED MODULE: ./content-src/components/Widgets/Stocks/Stocks.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // eslint-disable-next-line no-unused-vars
+
 
 
 
@@ -22288,12 +22884,14 @@ function Stocks_Stocks({
 }) {
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
   const {
-    tickers
+    tickers,
+    error
   } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Stocks);
 
   // Resolve size through the registry helper, not the pref, so trainhop and the
   // default can apply.
   const widgetSize = resolveWidgetSize(STOCKS_ENTRY, prefs);
+  const showError = error && !tickers.length;
   const impressionFired = (0,external_React_namespaceObject.useRef)(false);
   const handleIntersection = (0,external_React_namespaceObject.useCallback)(() => {
     if (impressionFired.current) {
@@ -22398,7 +22996,10 @@ function Stocks_Stocks({
     }) : null
   })))), /*#__PURE__*/external_React_default().createElement("div", {
     className: "stocks-body"
-  }, widgetSize === "medium" && /*#__PURE__*/external_React_default().createElement("ul", {
+  }, showError && /*#__PURE__*/external_React_default().createElement(StocksError, {
+    widgetSize: widgetSize,
+    dispatch: dispatch
+  }), !showError && widgetSize === "medium" && /*#__PURE__*/external_React_default().createElement("ul", {
     className: `stocks-grid${tickers.length ? "" : " stocks-grid--loading"}`
   }, tickers.length ? tickers.map(t => /*#__PURE__*/external_React_default().createElement(StockTicker, {
     key: t.ticker,
@@ -22411,7 +23012,7 @@ function Stocks_Stocks({
   }).map((_, i) => /*#__PURE__*/external_React_default().createElement(StockTicker, {
     key: i,
     loading: true
-  }))), widgetSize === "large" && /*#__PURE__*/external_React_default().createElement("ul", {
+  }))), !showError && widgetSize === "large" && /*#__PURE__*/external_React_default().createElement("ul", {
     className: `stocks-list${tickers.length ? "" : " stocks-list--loading"}`
   }, tickers.length ? tickers.map(t => /*#__PURE__*/external_React_default().createElement(StockTicker, {
     key: t.ticker,
@@ -22444,6 +23045,22 @@ function Stocks_Stocks({
 
 const PICTURE_OF_THE_DAY_ENTRY = WIDGET_REGISTRY.find(w => w.id === "pictureOfTheDay");
 
+// Whether the "Set as wallpaper" feature is enabled. The dedicated
+// widgetPictureOfTheDay trainhop object wins, then the legacy widgets.* key, then
+// the pref (each checked with !== undefined so a trainhop `false` can turn the
+// feature off even when the pref default is `true`).
+function resolveSetAsWallpaperEnabled(prefs) {
+  const dedicated = prefs.trainhopConfig?.widgetPictureOfTheDay?.setAsWallpaperEnabled;
+  if (dedicated !== undefined) {
+    return dedicated;
+  }
+  const shared = prefs.trainhopConfig?.widgets?.pictureOfTheDaySetAsWallpaperEnabled;
+  if (shared !== undefined) {
+    return shared;
+  }
+  return Boolean(prefs["widgets.pictureOfTheDay.setAsWallpaper.enabled"]);
+}
+
 // How long the confirmation checkmark shows after setting the wallpaper.
 const JUST_SET_CHECKMARK_MS = 2000;
 
@@ -22463,11 +23080,11 @@ const PictureOfTheDay_PictureOfTheDay = ({
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
   const pictureData = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.PictureOfTheDay);
   const widgetSize = resolveWidgetSize(PICTURE_OF_THE_DAY_ENTRY, prefs);
-  const isSetAsWallpaper = Boolean(prefs["widgets.pictureOfTheDay.setAsWallpaper"]);
 
-  // Only offer the "Set wallpaper" CTA when wallpapers are on and custom
-  // wallpapers are allowed, since this action sets a custom wallpaper.
-  const canSetWallpaper = Boolean(prefs["newtabWallpapers.enabled"] && prefs["newtabWallpapers.customWallpaper.enabled"]);
+  // Only offer the "Set wallpaper" CTA when the feature is enabled and wallpapers
+  // are on and custom wallpapers are allowed, since this action sets a custom
+  // wallpaper.
+  const canSetWallpaper = Boolean(resolveSetAsWallpaperEnabled(prefs) && prefs["newtabWallpapers.enabled"] && prefs["newtabWallpapers.customWallpaper.enabled"]);
 
   // Fall back to the empty state when the picture fails to load (e.g. a cached
   // URL opened offline, or a broken/404 image) instead of showing a broken
@@ -22484,7 +23101,18 @@ const PictureOfTheDay_PictureOfTheDay = ({
   // undated picture restores at local midnight even if Merino hasn't rotated it.
   const pictureDate = pictureData.publishedDate || new Date().toDateString();
   const dismissed = pictureDate === prefs["widgets.pictureOfTheDay.dismissedDate"];
+  // The picture is the active wallpaper only while the stored published date
+  // matches the currently-shown picture (mirrors the dismissed check above, so a
+  // new day's picture automatically re-offers the CTA) AND wallpapers are toggled
+  // on. Toggling wallpapers off in the Content section keeps the picture selected
+  // but hidden, so the checkmark hides while off and returns when toggled back on.
+  const isSetAsWallpaper = Boolean(prefs["newtabWallpapers.user.enabled"]) && pictureDate === prefs["widgets.pictureOfTheDay.wallpaperActive"];
   const hasPicture = Boolean(pictureData.imageUrl) && !dismissed && !imageFailed;
+
+  // Show the "New" badge until the user first interacts with the widget;
+  // handleInteraction flips widgets.pictureOfTheDay.interaction on any action,
+  // which removes it.
+  const hasInteracted = prefs["widgets.pictureOfTheDay.interaction"];
 
   // Show a brief checkmark right after the user sets the wallpaper, then settle
   // into the collapsed "already set" state.
@@ -22616,6 +23244,11 @@ const PictureOfTheDay_PictureOfTheDay = ({
   // derives the theme, and applies it as the custom wallpaper; show a checkmark
   // confirmation immediately.
   const handleSetWallpaper = () => {
+    // Once the picture is the active wallpaper the button is just a status
+    // checkmark, so clicking it is a no-op.
+    if (isSetAsWallpaper) {
+      return;
+    }
     (0,external_ReactRedux_namespaceObject.batch)(() => {
       dispatch(actionCreators.OnlyToMain({
         type: actionTypes.WIDGETS_PICTURE_SET_WALLPAPER
@@ -22629,22 +23262,12 @@ const PictureOfTheDay_PictureOfTheDay = ({
     setSuppressExpand(true);
   };
 
-  // The image, source line, and description open the picture's source page
-  // (Wikimedia Commons) in a new tab. Only wired when the feed supplies a source
-  // URL; otherwise the elements render as their plain text/image equivalents.
+  // The image, source line, and description are anchors whose href opens the
+  // picture's source page (Wikimedia Commons) in the current tab via native
+  // navigation; the handler only records telemetry (mirrors the Weather widget).
   const canOpenSource = Boolean(pictureData.sourceUrl);
   const handleOpenSource = () => {
-    if (!pictureData.sourceUrl) {
-      return;
-    }
     (0,external_ReactRedux_namespaceObject.batch)(() => {
-      dispatch(actionCreators.OnlyToMain({
-        type: actionTypes.OPEN_LINK,
-        data: {
-          url: pictureData.sourceUrl,
-          where: "tab"
-        }
-      }));
       recordUserAction("open_source", {
         source: "widget"
       });
@@ -22652,21 +23275,11 @@ const PictureOfTheDay_PictureOfTheDay = ({
     });
   };
 
-  // The license name links to the license terms (Creative Commons) in a new
-  // tab, separate from the source page link above.
+  // The license name is an anchor whose href opens the license terms (Creative
+  // Commons) in the current tab, separate from the source page link above.
   const canOpenLicense = Boolean(pictureData.licenseUrl);
   const handleOpenLicense = () => {
-    if (!pictureData.licenseUrl) {
-      return;
-    }
     (0,external_ReactRedux_namespaceObject.batch)(() => {
-      dispatch(actionCreators.OnlyToMain({
-        type: actionTypes.OPEN_LINK,
-        data: {
-          url: pictureData.licenseUrl,
-          where: "tab"
-        }
-      }));
       recordUserAction("open_license", {
         source: "widget"
       });
@@ -22690,18 +23303,18 @@ const PictureOfTheDay_PictureOfTheDay = ({
       }));
     }
     if (canOpenSource) {
-      parts.push(/*#__PURE__*/external_React_default().createElement("button", {
+      parts.push(/*#__PURE__*/external_React_default().createElement("a", {
         key: "source",
-        type: "button",
+        href: pictureData.sourceUrl,
         className: "picture-of-the-day-attribution-link picture-of-the-day-source-link",
         "data-l10n-id": "newtab-picture-attribution-source-link",
         onClick: handleOpenSource
       }));
     }
     if (pictureData.licenseLabel) {
-      parts.push(canOpenLicense ? /*#__PURE__*/external_React_default().createElement("button", {
+      parts.push(canOpenLicense ? /*#__PURE__*/external_React_default().createElement("a", {
         key: "license",
-        type: "button",
+        href: pictureData.licenseUrl,
         className: "picture-of-the-day-attribution-link picture-of-the-day-source-link",
         "data-l10n-id": "newtab-picture-attribution-license",
         "data-l10n-args": JSON.stringify({
@@ -22746,10 +23359,15 @@ const PictureOfTheDay_PictureOfTheDay = ({
     className: "picture-of-the-day-toolbar"
   }, hasPicture ? /*#__PURE__*/external_React_default().createElement("div", {
     className: "picture-of-the-day-heading"
-  }, /*#__PURE__*/external_React_default().createElement("p", {
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "picture-of-the-day-title-row"
+  }, !hasInteracted && /*#__PURE__*/external_React_default().createElement("moz-badge", {
+    className: "picture-of-the-day-new-badge",
+    "data-l10n-id": "newtab-widget-lists-label-new"
+  }), /*#__PURE__*/external_React_default().createElement("p", {
     className: "picture-of-the-day-source",
     "data-l10n-id": "newtab-picture-header-main"
-  }), renderAttribution()) : null, /*#__PURE__*/external_React_default().createElement("div", {
+  })), renderAttribution()) : null, /*#__PURE__*/external_React_default().createElement("div", {
     className: "picture-of-the-day-context-menu-wrapper"
   }, /*#__PURE__*/external_React_default().createElement("moz-button", {
     className: "picture-of-the-day-context-menu-button",
@@ -22793,8 +23411,8 @@ const PictureOfTheDay_PictureOfTheDay = ({
     onClick: handleLearnMore
   })))), hasPicture ? /*#__PURE__*/external_React_default().createElement("div", {
     className: "picture-of-the-day-populated"
-  }, canOpenSource ? /*#__PURE__*/external_React_default().createElement("button", {
-    type: "button",
+  }, canOpenSource ? /*#__PURE__*/external_React_default().createElement("a", {
+    href: pictureData.sourceUrl,
     className: "picture-of-the-day-image-link",
     onClick: handleOpenSource
   }, pictureImage) : pictureImage, /*#__PURE__*/external_React_default().createElement("div", {
@@ -22802,9 +23420,9 @@ const PictureOfTheDay_PictureOfTheDay = ({
   }, pictureData.description ? /*#__PURE__*/external_React_default().createElement("p", {
     className: "picture-of-the-day-description"
   }, pictureData.description) : null, canSetWallpaper ? /*#__PURE__*/external_React_default().createElement("moz-button", {
-    className: `picture-of-the-day-set-wallpaper${justSet || isSetAsWallpaper ? " is-collapsed" : ""}${suppressExpand ? " no-expand" : ""}`,
+    className: `picture-of-the-day-set-wallpaper${justSet || isSetAsWallpaper ? " is-collapsed" : ""}${suppressExpand || isSetAsWallpaper ? " no-expand" : ""}`,
     type: "primary",
-    iconSrc: justSet ? SET_WALLPAPER_CHECK_ICON : SET_WALLPAPER_ICON,
+    iconSrc: justSet || isSetAsWallpaper ? SET_WALLPAPER_CHECK_ICON : SET_WALLPAPER_ICON,
     onClick: handleSetWallpaper,
     "data-l10n-id": "newtab-picture-set-wallpaper"
   }) : null)) : /*#__PURE__*/external_React_default().createElement("div", {
@@ -23511,11 +24129,11 @@ function Widgets() {
       className: "widgets-title-heading"
     }, /*#__PURE__*/external_React_default().createElement("h1", {
       "data-l10n-id": "newtab-widget-section-title"
-    }), showWidgetsSizeToggle ? /*#__PURE__*/external_React_default().createElement("button", {
+    }), showWidgetsSizeToggle ? /*#__PURE__*/external_React_default().createElement("moz-button", {
       id: "toggle-widgets-size-button",
-      type: "button",
       className: `widgets-expand-button${isMaximized ? " is-maximized" : ""}`,
       "data-l10n-id": isMaximized ? "newtab-widget-section-minimize" : "newtab-widget-section-maximize",
+      iconsrc: "chrome://global/skin/icons/arrow-down.svg",
       onClick: handleToggleMaximizeClick,
       onKeyDown: handleToggleMaximizeKeyDown
     }) : null);
@@ -25566,7 +26184,7 @@ function WidgetsManagementPanel({
     ontoggle: onToggleWidget,
     "data-preference": "widgets.crossword.enabled",
     "data-event-source": "WIDGET_CROSSWORD",
-    "data-l10n-id": "newtab-crossword-widget-toggle"
+    label: "Crossword"
   })), mayHaveStocksWidget && /*#__PURE__*/external_React_default().createElement("div", {
     id: "stocks-widget-section",
     className: "section"

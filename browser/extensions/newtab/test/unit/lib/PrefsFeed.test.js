@@ -568,6 +568,127 @@ describe("PrefsFeed", () => {
       );
     });
 
+    it("should write widgetPictureOfTheDay.enabled to the user pref default branch, not the system pref", () => {
+      const setBoolPref = sinon.spy();
+      ServicesStub.prefs.getDefaultBranch = sinon
+        .stub()
+        .returns({ setBoolPref });
+      const enrollment = {
+        meta: { isRollout: false },
+        value: {
+          type: "widgetPictureOfTheDay",
+          payload: {
+            enabled: true,
+            setAsWallpaperEnabled: true,
+            size: "large",
+          },
+        },
+      };
+      sandbox
+        .stub(global.NimbusFeatures.newtabTrainhop, "getAllEnrollments")
+        .returns([enrollment]);
+
+      feed.onTrainhopExperimentUpdated();
+
+      // `enabled` overrides the user-facing enabled pref's default; `visible`
+      // (not present here) would reveal the widget separately; size and
+      // setAsWallpaperEnabled are read directly from trainhopConfig.
+      assert.calledWith(setBoolPref, "widgets.pictureOfTheDay.enabled", true);
+      assert.neverCalledWith(
+        setBoolPref,
+        "widgets.system.pictureOfTheDay.enabled",
+        sinon.match.any
+      );
+      assert.neverCalledWith(
+        setBoolPref,
+        "widgets.pictureOfTheDay.setAsWallpaper.enabled",
+        sinon.match.any
+      );
+    });
+
+    it("should not write the POTD enabled default when widgetPictureOfTheDay.enabled is absent", () => {
+      const setBoolPref = sinon.spy();
+      ServicesStub.prefs.getDefaultBranch = sinon
+        .stub()
+        .returns({ setBoolPref });
+      const enrollment = {
+        meta: { isRollout: false },
+        value: {
+          type: "widgetPictureOfTheDay",
+          payload: { size: "large" },
+        },
+      };
+      sandbox
+        .stub(global.NimbusFeatures.newtabTrainhop, "getAllEnrollments")
+        .returns([enrollment]);
+
+      feed.onTrainhopExperimentUpdated();
+
+      assert.neverCalledWith(
+        setBoolPref,
+        "widgets.pictureOfTheDay.enabled",
+        sinon.match.any
+      );
+    });
+
+    it("should write widgetCrossword.enabled to the user pref default branch, not the system pref", () => {
+      const setBoolPref = sinon.spy();
+      ServicesStub.prefs.getDefaultBranch = sinon
+        .stub()
+        .returns({ setBoolPref });
+      const enrollment = {
+        meta: { isRollout: false },
+        value: {
+          type: "widgetCrossword",
+          payload: {
+            enabled: true,
+            endpoint: "https://example.com/crossword/index.html",
+            size: "large",
+          },
+        },
+      };
+      sandbox
+        .stub(global.NimbusFeatures.newtabTrainhop, "getAllEnrollments")
+        .returns([enrollment]);
+
+      feed.onTrainhopExperimentUpdated();
+
+      // `enabled` overrides the user-facing enabled pref's default; `visible`
+      // (not present here) would reveal the widget separately; size and
+      // endpoint are read directly from trainhopConfig.
+      assert.calledWith(setBoolPref, "widgets.crossword.enabled", true);
+      assert.neverCalledWith(
+        setBoolPref,
+        "widgets.system.crossword.enabled",
+        sinon.match.any
+      );
+    });
+
+    it("should not write the crossword enabled default when widgetCrossword.enabled is absent", () => {
+      const setBoolPref = sinon.spy();
+      ServicesStub.prefs.getDefaultBranch = sinon
+        .stub()
+        .returns({ setBoolPref });
+      const enrollment = {
+        meta: { isRollout: false },
+        value: {
+          type: "widgetCrossword",
+          payload: { size: "large" },
+        },
+      };
+      sandbox
+        .stub(global.NimbusFeatures.newtabTrainhop, "getAllEnrollments")
+        .returns([enrollment]);
+
+      feed.onTrainhopExperimentUpdated();
+
+      assert.neverCalledWith(
+        setBoolPref,
+        "widgets.crossword.enabled",
+        sinon.match.any
+      );
+    });
+
     it("should not write widgets.weather.size when weatherSize is missing", () => {
       const setStringPref = sinon.spy();
       ServicesStub.prefs.getDefaultBranch = sinon

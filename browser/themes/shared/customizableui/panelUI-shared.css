@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 @import url("chrome://global/skin/design-system/panel.css");
+@import url("chrome://global/content/elements/moz-promo.tokens.css");
 
 :root {
   --panelui-subview-transition-duration: 150ms;
@@ -566,19 +567,6 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
 
 /* Main menu banner menuitems */
 
-@media -moz-pref("browser.nova.enabled") {
-  #appMenu-nova-update-promo[hidden] {
-    display: none;
-  }
-}
-
-@media not -moz-pref("browser.nova.enabled") {
-  #appMenu-nova-update-promo {
-    display: none !important;
-  }
-}
-
-#appMenu-nova-update-promo,
 #appMenu-nova-switch-device-promo {
   --promo-image-size: var(--icon-size-small);
   --promo-image-fill: var(--icon-color-accent-primary-desaturated);
@@ -588,13 +576,126 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
   padding: var(--panel-menuitem-padding);
 }
 
+.appMenu-update-banner-text,
+.appMenu-update-banner-pulse-ring {
+  display: none;
+}
+
+.appMenu-update-banner-text {
+  /* A couple pixels of padding so the two-line text block visually centers
+     against the leading icon. */
+  padding-block: var(--space-xsmall);
+}
+
+.appMenu-update-banner-title {
+  font-weight: var(--font-weight-heading);
+}
+
+@keyframes appMenu-update-banner-pulse {
+  0% {
+    transform: scale(1);
+    opacity: var(--opacity-deemphasized-strong);
+  }
+  50% {
+    transform: scale(1.75);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.75);
+    opacity: 0;
+  }
+}
+
+.appMenu-update-banner-description {
+  font-weight: var(--font-weight);
+  /* Mirrors .text-box-trim-start on the title so bottom padding matches top. */
+  /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
+  margin-block-end: calc((1cap - 1lh) / 2);
+}
+
+@media -moz-pref("browser.nova.enabled") {
+  #appMenu-popup {
+    .panel-banner-item,
+    .addon-banner-item {
+      --panel-banner-item-color: var(--promo-message-text-color-vibrant);
+      --panel-banner-item-background-color: var(--promo-background-color-vibrant);
+      --panel-banner-item-hover-bgcolor: color-mix(in srgb, var(--panel-banner-item-background-color) 85%, currentColor);
+      --panel-banner-item-active-bgcolor: color-mix(in srgb, var(--panel-banner-item-background-color) 70%, currentColor);
+      align-items: center;
+      gap: var(--space-medium);
+      border: var(--promo-border-width) solid var(--promo-border-color-vibrant);
+      border-radius: var(--promo-border-radius);
+      margin-inline: var(--promo-padding);
+      margin-block-end: var(--space-small);
+      padding-inline: var(--promo-padding);
+      padding-block: var(--space-large);
+    }
+
+    .panel-banner-item > .toolbarbutton-icon {
+      --icon-color: var(--icon-color-accent-primary-desaturated);
+      order: 0;
+      flex-shrink: 0;
+      fill: var(--icon-color);
+    }
+
+    .addon-banner-item::after {
+      order: -1;
+      margin-inline: 0;
+      fill: var(--icon-color-warning);
+    }
+
+    #appMenu-update-banner:is([notificationid="update-manual"], [notificationid="update-unsupported"]),
+    .addon-banner-item {
+      --panel-banner-item-color: var(--button-text-color);
+      --panel-banner-item-background-color: var(--background-color-warning);
+    }
+
+    #appMenu-update-banner:is([notificationid="update-manual"], [notificationid="update-unsupported"]) > .toolbarbutton-icon {
+      background-image: url(chrome://global/skin/icons/warning.svg);
+      -moz-context-properties: fill;
+      fill: var(--icon-color-warning);
+    }
+
+    #appMenu-update-banner[notificationid="update-restart"] {
+      position: relative;
+      align-items: flex-start;
+
+      > .appMenu-update-banner-pulse-ring {
+        --border-color: var(--icon-color-accent-primary-desaturated);
+        display: block;
+        position: absolute;
+        width: var(--icon-size-small);
+        height: var(--icon-size-small);
+        inset-inline-start: var(--promo-padding);
+        inset-block-start: var(--space-large);
+        border: 4px solid var(--border-color);
+        border-radius: var(--border-radius-circle);
+        opacity: 0;
+        pointer-events: none;
+
+        @media (prefers-reduced-motion: no-preference) {
+          animation: appMenu-update-banner-pulse 4s var(--animation-easing-function) infinite;
+        }
+      }
+
+      > .toolbarbutton-text {
+        display: none;
+      }
+
+      .appMenu-update-banner-text {
+        display: flex;
+      }
+    }
+  }
+}
+
 #appMenu-popup {
   .panel-banner-item,
   .addon-banner-item {
     align-items: flex-start;
     color: var(--panel-banner-item-color);
     background-color: var(--panel-banner-item-background-color);
-    margin-bottom: var(--space-xsmall);
+    margin-block-end: var(--space-small);
     font-weight: var(--font-weight-semibold);
   }
 
@@ -602,10 +703,10 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
   .addon-banner-item {
     &:not([disabled]):hover {
       background-color: var(--panel-banner-item-hover-bgcolor);
+    }
 
-      &:active {
-        background-color: var(--panel-banner-item-active-bgcolor);
-      }
+    &:not([disabled]):active {
+      background-color: var(--panel-banner-item-active-bgcolor);
     }
 
     > .toolbarbutton-text {
@@ -782,6 +883,24 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
   margin: 0;
 }
 
+.fxa-menu-secure-sync-now-content {
+  min-width: 0;
+
+  > label {
+    margin: 0;
+  }
+}
+
+#PanelUI-fxa-menu-secure-sync-subpanel,
+#PanelUI-fxa-device-recent-tabs {
+  height: fit-content;
+  min-height: 0 !important;
+}
+
+.panel-viewcontainer:has(#PanelUI-fxa-menu-secure-sync-subpanel[visible], #PanelUI-fxa-device-recent-tabs[visible]) {
+  min-height: 0 !important;
+}
+
 #PanelUI-fxa-cta-menu,
 #PanelUI-fxa-menu-services {
   .fxa-cta-button label {
@@ -861,6 +980,48 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
     /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
     background-color: var(--button-background-color-active);
   }
+}
+
+/* Secure sync status button and sync-off card */
+
+.fxa-menu-sync-status-icon {
+  list-style-image: url("chrome://browser/skin/sync.svg");
+  -moz-context-properties: fill;
+  fill: currentColor;
+  width: var(--size-item-small);
+  height: var(--size-item-small);
+  flex-shrink: 0;
+  margin-inline-end: var(--space-medium);
+}
+
+.fxa-menu-sync-status-button {
+  align-items: center;
+
+  > vbox {
+    min-width: 0;
+  }
+}
+
+.fxa-menu-sync-status-off-card {
+  gap: var(--space-medium);
+  padding: var(--panel-menuitem-padding);
+
+  > vbox {
+    min-width: 0;
+  }
+}
+
+.fxa-menu-sync-status-title {
+  font-weight: var(--font-weight-semibold);
+}
+
+.fxa-menu-sync-status-description {
+  color: var(--text-color-deemphasized);
+  font-size: var(--font-size-small);
+}
+
+.fxa-menu-sync-status-description.fxa-menu-sync-status-description-error {
+  color: var(--text-color-error);
 }
 
 /* Firefox Account Toolbar Panel */
@@ -1026,6 +1187,45 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
   fill: currentColor;
 }
 
+#PanelUI-fxa-menu-create-profile-button,
+#appMenu-create-profile-button {
+  list-style-image: url("chrome://global/skin/icons/users.svg");
+}
+
+#PanelUI-fxa-menu-create-profile-content {
+  gap: var(--space-large);
+  padding: 0 var(--space-large) var(--space-large);
+}
+
+#PanelUI-fxa-menu-create-profile-illustration {
+  /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
+  width: 224px;
+  /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
+  height: 137px;
+  list-style-image: light-dark(
+    url("chrome://browser/content/profiles/assets/kit-profiles-light.svg"),
+    url("chrome://browser/content/profiles/assets/kit-profiles-dark.svg")
+  );
+}
+
+#PanelUI-fxa-menu-create-profile-text {
+  padding: var(--space-xxsmall);
+}
+
+#PanelUI-fxa-menu-create-profile-heading {
+  font-weight: var(--font-weight-semibold);
+}
+
+#PanelUI-fxa-menu-create-profile-description {
+  color: var(--text-color-deemphasized);
+}
+
+#PanelUI-fxa-menu-get-firefox-mobile {
+  list-style-image: url("chrome://browser/skin/device-phone.svg");
+  -moz-context-properties: fill;
+  fill: currentColor;
+}
+
 :root:not([fxastatus="signedin"]) #PanelUI-fxa-menu-connect-device-button {
   color: var(--text-color-disabled);
 }
@@ -1072,7 +1272,8 @@ panelmultiview[mainViewId="PanelUI-fxa"] #PanelUI-remotetabs-syncnow {
   --panel-ui-sync-illustration-height: 141px;
 }
 
-.sendToDevice-device {
+.sendToDevice-device,
+.PanelUI-fxa-menu-device-entry {
   &[clientType="phone"] {
     list-style-image: url("chrome://browser/skin/device-phone.svg");
   }
@@ -1197,10 +1398,6 @@ panelmultiview[mainViewId="PanelUI-fxa"] #PanelUI-remotetabs-syncnow {
   display: none;
 }
 
-#PanelUI-fxa-remotetabs-deck:not([syncingtabs]) {
-  display: none;
-}
-
 #customization-palette .toolbarbutton-text {
   display: none;
 }
@@ -1293,8 +1490,8 @@ panelview .toolbarbutton-1,
   }
 }
 
-#appMenu-profiles-button {
-  justify-content: space-between;
+#appMenu-profiles-button > .toolbarbutton-text {
+  flex: 1;
 }
 
 #PanelUI-fxa-menu-all-profiles-list {
@@ -1559,6 +1756,7 @@ panelview .toolbarbutton-1 {
 }
 
 .PanelUI-tabitem-container > toolbarbutton[itemtype="tab"],
+toolbarbutton[itemtype="tab"].PanelUI-tabitem-container,
 #PanelUI-historyItems > toolbarbutton {
   list-style-image: url("chrome://global/skin/icons/defaultFavicon.svg");
   -moz-context-properties: fill;
@@ -1569,6 +1767,7 @@ panelview .toolbarbutton-1 {
 #appMenu-fxa-label > .toolbarbutton-icon,
 #PanelUI-containersItems > .subviewbutton > .toolbarbutton-icon,
 .PanelUI-tabitem-container > toolbarbutton[itemtype="tab"] > .toolbarbutton-icon,
+toolbarbutton[itemtype="tab"].PanelUI-tabitem-container > .toolbarbutton-icon,
 .PanelUI-remotetabs-clientcontainer > toolbarbutton > .toolbarbutton-icon,
 #PanelUI-recentlyClosedWindows > toolbarbutton > .toolbarbutton-icon,
 #PanelUI-recentlyClosedTabs > toolbarbutton > .toolbarbutton-icon,
@@ -1582,7 +1781,6 @@ panelview .toolbarbutton-1 {
   }
 }
 
-#PanelUI-fxa-remotetabs-tabspane,
 #PanelUI-remotetabs-tabspane {
   min-width: 0;
 }
@@ -1597,7 +1795,8 @@ panelview .toolbarbutton-1 {
     transform: translateY(-20px);
   }
 
-  > toolbarbutton[itemtype="tab"] {
+  > toolbarbutton[itemtype="tab"],
+  &[itemtype="tab"] {
     flex: 1;
     min-width: 0;
     display: flex;

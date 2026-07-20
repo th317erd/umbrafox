@@ -8,6 +8,8 @@ prefs = [
 support-files = [
   "head.js",
   "head_history_thumbnails.js",
+  "test_agent_monitor_item_page.html",
+  "test_agent_monitor_item.mjs",
   "test_ai_action_result_page.html",
   "test_ai_action_result.mjs",
   "test_assistant_message_footer_page.html",
@@ -57,6 +59,8 @@ support-files = [
 
 ["browser_aiwindow_account_auth.js"]
 
+["browser_aiwindow_agent_monitor_item.js"]
+
 ["browser_aiwindow_ai_action_result.js"]
 
 ["browser_aiwindow_aifeature_contract.js"]
@@ -77,6 +81,8 @@ skip-if = [
 
 ["browser_aiwindow_followup_tokens.js"]
 
+["browser_aiwindow_group_tabs_button.js"]
+
 ["browser_aiwindow_grouped_chips.js"]
 
 ["browser_aiwindow_immersive.js"]
@@ -84,6 +90,8 @@ skip-if = [
 ["browser_aiwindow_integration.js"]
 
 ["browser_aiwindow_kit_mention.js"]
+
+["browser_aiwindow_last_usage_timestamp.js"]
 
 ["browser_aiwindow_memories.js"]
 
@@ -241,6 +249,8 @@ skip-if = [
 ["browser_smartwindow_sidebar.js"]
 
 ["browser_smartwindow_sidebar_auto_open_pref_prompt.js"]
+
+["browser_smartwindow_smartbar_contextmenu_autofill_dismiss.js"]
 
 ["browser_smartwindow_smartbar_glow.js"]
 

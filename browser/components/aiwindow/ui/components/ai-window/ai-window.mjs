@@ -59,6 +59,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "moz-src:///browser/components/aiwindow/models/memories/MemoriesManager.sys.mjs",
   getAllModelsData:
     "moz-src:///browser/components/aiwindow/models/Utils.sys.mjs",
+  refreshModelsDataCache:
+    "moz-src:///browser/components/aiwindow/models/Utils.sys.mjs",
   getCurrentModelChoiceId:
     "moz-src:///browser/components/aiwindow/models/Utils.sys.mjs",
   getCurrentModelName:
@@ -144,6 +146,8 @@ const PREF_MEMORIES_HAS_SEEN_MEMORIES =
   "browser.smartwindow.memories.hasSeenMemories";
 const PREF_MODEL_CHOICE = "browser.smartwindow.firstrun.modelChoice";
 const PREF_CUSTOM_ENDPOINT = "browser.smartwindow.customEndpoint";
+// TODO Bug 2053495: remove with mistral release pref
+const PREF_MISTRAL_RELEASE = "browser.smartwindow.mistralRelease";
 const TAB_FAVICON_CHAT =
   "chrome://browser/content/aiwindow/assets/ask-icon.svg";
 const PREF_CHAT_INTERACTION_COUNT = "browser.smartwindow.chat.interactionCount";
@@ -406,6 +410,17 @@ export class AIWindow extends MozLitElement {
       false,
       () => this.#syncTopSites()
     );
+    // TODO Bug 2053495: remove with mistral release pref
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      "mistralReleasePref",
+      PREF_MISTRAL_RELEASE,
+      false,
+      () => this.#onMistralReleasePrefChanged()
+    );
+    // defineLazyPreferenceGetter registers its pref observer on first read, so
+    // touch the value here to arm the onUpdate callback above.
+    void this.mistralReleasePref;
 
     this.userPrompt = "";
     this.#browser = null;
@@ -902,6 +917,23 @@ export class AIWindow extends MozLitElement {
     this.#updateSmartbarModels(this.#smartbar);
   };
 
+  // TODO Bug 2053495: remove with mistral release pref.
+  #onMistralReleasePrefChanged = async () => {
+    await lazy.refreshModelsDataCache();
+    await this.#loadAvailableModels();
+    // The model backing a choice can change across the flip, so re-resolve the
+    // current choice's model to keep selectedModelId valid; otherwise the select
+    // can't find the selected model and renders in a stale/blank state.
+    const defaultModelChoiceId = lazy.getCurrentModelChoiceId();
+    if (
+      !this.#hasModelChoiceOverride &&
+      this.availableModels[defaultModelChoiceId]
+    ) {
+      await this.#switchModel(defaultModelChoiceId, { isTabOverride: false });
+    }
+    this.#updateSmartbarModels(this.#smartbar);
+  };
+
   /**
    * Sets the selected model choice.
    *
@@ -1053,6 +1085,21 @@ export class AIWindow extends MozLitElement {
   }
 
   /**
+   * Restores the smartbar context chips from a persisted per-tab state. Called
+   * on tab switch so the chips are scoped to the tab they were added in.
+   *
+   * @param {ContextWebsite[]} [contextChips] - The user-added chips to restore.
+   * @param {boolean} [removedImplicitContextChip] - Restored dismissal of the
+   *   implicit current-tab chip.
+   */
+  restoreContextChips(contextChips = [], removedImplicitContextChip = false) {
+    this.#smartbar?.restoreContextChips(
+      contextChips,
+      removedImplicitContextChip
+    );
+  }
+
+  /**
    * Captures the current smartbar input as a structured state suitable for
    * persistence: plain text plus the list of inline mention chips with their
    * text-character offsets.
@@ -1128,13 +1175,15 @@ export class AIWindow extends MozLitElement {
     try {
       const gBrowser = window.browsingContext?.topChromeWindow.gBrowser;
       const tabCount = gBrowser?.tabs.length || 0;
-      starters = await lazy.NewTabStarterGenerator.getPrompts(tabCount).catch(
-        e => {
-          lazy.log.error("[Prompts] Failed to load initial starters:", e);
-          return [];
-        }
-      );
 
+      const newTabStarterIds =
+        await lazy.NewTabStarterGenerator.getPrompts(tabCount);
+
+      // Kick off the sidebar generation concurrently so its request is issued
+      // before the l10n await can be interrupted by a re-entrant call.
+      let sidebarStartersPromise = null;
+      let startersKey = null;
+      let sidebarStarters = null;
       if (this.mode === MODE.SIDEBAR && gBrowser) {
         const { contextWebsites } = this.#smartbar.getCurrentContextData();
         const contextTabs = contextWebsites.map(contextWebsite => ({
@@ -1145,14 +1194,14 @@ export class AIWindow extends MozLitElement {
         // Get memories setting from user preferences
         const memoriesEnabled =
           this.#memoriesToggled ?? this.#memoriesIconShown;
-        const startersKey = JSON.stringify({
+        startersKey = JSON.stringify({
           contextTabs,
           memoriesEnabled,
         });
-        let sidebarStarters = this.#sidebarStarterCache.get(startersKey);
+        sidebarStarters = this.#sidebarStarterCache.get(startersKey);
 
         if (!sidebarStarters) {
-          sidebarStarters = await lazy
+          sidebarStartersPromise = lazy
             .generateConversationStartersSidebar(
               contextTabs,
               2,
@@ -1167,6 +1216,22 @@ export class AIWindow extends MozLitElement {
               );
               return null;
             });
+        }
+      }
+
+      starters = await this.ownerDocument.l10n
+        .formatValues(newTabStarterIds.map(({ l10nId }) => ({ id: l10nId })))
+        .then(texts =>
+          texts.map((text, i) => ({ text, type: newTabStarterIds[i].type }))
+        )
+        .catch(e => {
+          lazy.log.error("[Prompts] Failed to load initial starters:", e);
+          return [];
+        });
+
+      if (this.mode === MODE.SIDEBAR && gBrowser) {
+        if (sidebarStartersPromise) {
+          sidebarStarters = await sidebarStartersPromise;
 
           if (sidebarStarters) {
             this.#sidebarStarterCache.delete(startersKey);
@@ -1357,6 +1422,10 @@ export class AIWindow extends MozLitElement {
         "aiwindow-memories-toggle:on-change",
         this.#handleMemoriesToggle
       );
+      smartbar.addEventListener(
+        "smartbar-context-chips-changed",
+        this.#handleContextChips
+      );
     }
     this.#smartbar = smartbar;
     this.#memoriesButton = smartbar.querySelector("memories-icon-button");
@@ -1386,6 +1455,23 @@ export class AIWindow extends MozLitElement {
     this.#smartbarToggleButton = toggleButton;
     this.#updateSmartbarAndHeaderVisibility();
   }
+
+  /**
+   * Dispatches the context chips via ai-window:context-chips-changed
+   * to the tab state manager to save them"
+   *
+   * @private
+   */
+  #handleContextChips = () => {
+    this.#dispatchChromeEvent("ai-window:context-chips-changed", {
+      bubbles: true,
+      detail: {
+        contextChips: this.#smartbar?.contextChips,
+        removedImplicitContextChip: this.#smartbar?.removedImplicitContextChip,
+        tab: this.#getEventTab(),
+      },
+    });
+  };
 
   #setupSmartbarFocus(smartbar) {
     let hasAutoFocused = false;
@@ -2362,6 +2448,25 @@ export class AIWindow extends MozLitElement {
   }
 
   /**
+   * Resolves the tab this ai-window instance relates to: for fullpage that's
+   * the tab hosting the element; for sidebar (no owner tab), fall back to the
+   * currently selected tab the sidebar reflects. Intention is to get the
+   * correct reference for fullpage tabs that might be opening in the
+   * background, like for session restore or tab restores.
+   *
+   * @returns {?MozTabbrowserTab}
+   *
+   * @private
+   */
+  #getEventTab() {
+    const gBrowser = window?.browsingContext?.topChromeWindow?.gBrowser;
+    const ownerTab = this.#hostBrowser
+      ? gBrowser?.getTabForBrowser(this.#hostBrowser)
+      : null;
+    return ownerTab ?? gBrowser?.selectedTab;
+  }
+
+  /**
    * Gets event options for a TabStateEvent
    *
    * @param {false|string} [input=false] The latest input contents
@@ -2372,12 +2477,6 @@ export class AIWindow extends MozLitElement {
    * @private
    */
   #getAIWindowEventOptions(input = false, isAsk = false) {
-    const topChromeWindow = window?.browsingContext?.topChromeWindow;
-    const gBrowser = topChromeWindow?.gBrowser;
-    const ownerTab = this.#hostBrowser
-      ? gBrowser?.getTabForBrowser(this.#hostBrowser)
-      : null;
-
     return {
       bubbles: true,
       detail: {
@@ -2390,14 +2489,7 @@ export class AIWindow extends MozLitElement {
         modelChoiceId: this.#hasModelChoiceOverride
           ? this.#selectedModelChoiceId
           : null,
-
-        // The tab this ai-window instance relates to: for fullpage that's
-        // the tab hosting the element; for sidebar (no owner tab), fall
-        // back to the currently selected tab the sidebar reflects.
-        // Intention is to get the correct reference for fullpage tabs
-        // that might be opening in the background, like for session restore
-        // or tab restores.
-        tab: ownerTab ?? gBrowser?.selectedTab,
+        tab: this.#getEventTab(),
       },
     };
   }

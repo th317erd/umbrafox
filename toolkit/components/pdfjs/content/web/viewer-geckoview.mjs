@@ -21,8 +21,8 @@
  */
 
 /**
- * pdfjsVersion = 6.1.283
- * pdfjsBuild = 8bc2fe68e
+ * pdfjsVersion = 6.1.335
+ * pdfjsBuild = dd7e3731d
  */
 
 ;// ./web/ui_utils.js
@@ -958,6 +958,7 @@ const {
   makeArr,
   makeMap,
   makeObj,
+  makeSet,
   MathClamp,
   noContextMenu,
   normalizeUnicode,
@@ -989,7 +990,7 @@ const {
 } = globalThis.pdfjsLib;
 
 ;// ./web/internal_evt.js
-const INTERNAL_EVT = "c9678826-c438-4306-a452-3b873c566c24";
+const INTERNAL_EVT = "ef6148f6-6ec0-4217-9ce6-b56c33db7fbd";
 const internalOpt = Object.freeze({
   internal: INTERNAL_EVT
 });
@@ -4027,11 +4028,7 @@ function normalize(text, options = {}) {
       return replacement;
     }
     if (p2) {
-      let replacement = NFKC_CHARS_TO_NORMALIZE.get(p2);
-      if (!replacement) {
-        replacement = p2.normalize("NFKC");
-        NFKC_CHARS_TO_NORMALIZE.set(p2, replacement);
-      }
+      const replacement = NFKC_CHARS_TO_NORMALIZE.getOrInsertComputed(p2, () => p2.normalize("NFKC"));
       const jj = replacement.length;
       for (let j = 1; j < jj; j++) {
         positions.push(i - shift + j, shift - j);
@@ -8724,7 +8721,7 @@ class PDFViewer {
   #savedPageViews = null;
   #deletedPageNumbers = null;
   constructor(options) {
-    const viewerVersion = "6.1.283";
+    const viewerVersion = "6.1.335";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -11308,6 +11305,7 @@ const PDFViewerApplication = {
     if (!this.downloadManager) {
       return;
     }
+    this.pdfViewer._layerProperties.annotationEditorUIManager?.endCurrentEditing();
     const {
       classList
     } = this.appConfig.appContainer;

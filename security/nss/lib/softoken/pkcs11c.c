@@ -1376,7 +1376,10 @@ sftk_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
                     break;
                 }
             } else if ((pMechanism->mechanism == CKM_AES_CTR && BAD_PARAM_CAST(pMechanism, sizeof(CK_AES_CTR_PARAMS))) ||
-                       ((pMechanism->mechanism == CKM_AES_CBC || pMechanism->mechanism == CKM_AES_CTS) && BAD_PARAM_CAST(pMechanism, AES_BLOCK_SIZE))) {
+                       ((pMechanism->mechanism == CKM_AES_CBC ||
+                         pMechanism->mechanism == CKM_AES_CBC_PAD ||
+                         pMechanism->mechanism == CKM_AES_CTS) &&
+                        BAD_PARAM_CAST(pMechanism, AES_BLOCK_SIZE))) {
                 crv = CKR_MECHANISM_PARAM_INVALID;
                 break;
             }
@@ -2291,10 +2294,23 @@ sftk_SignCopy(
 
 /* Verify is just a compare for HMAC */
 static SECStatus
-sftk_HMACCmp(void *copyLen, const unsigned char *sig, unsigned int sigLen,
+sftk_HMACCmp(void *ctx, const unsigned char *sig, unsigned int sigLen,
              const unsigned char *hash, unsigned int hashLen)
 {
-    if (NSS_SecureMemcmp(sig, hash, *(CK_ULONG *)copyLen) == 0) {
+    CK_ULONG compareLen = *(CK_ULONG *)ctx;
+    PORT_Assert(compareLen == hashLen);
+    if (compareLen != hashLen) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+
+    // Handle MAC truncation. NB: should the caller not wish to support
+    // truncation, it is their responsibility to ensure that the MAC has not
+    // been truncated.
+    if (compareLen > sigLen) {
+        compareLen = sigLen;
+    }
+    if (NSS_SecureMemcmp(sig, hash, compareLen) == 0) {
         return SECSuccess;
     }
 
@@ -2395,6 +2411,17 @@ sftk_SSLMACSign(void *ctx, unsigned char *sig, unsigned int *sigLen,
     unsigned char tmpBuf[SFTK_MAX_MAC_LENGTH];
     unsigned int out;
 
+    PORT_Assert(info->macSize <= SFTK_MAX_MAC_LENGTH);
+    if (info->macSize > SFTK_MAX_MAC_LENGTH) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+
+    if (info->macSize > maxLen) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
     info->begin(info->hashContext);
     info->update(info->hashContext, info->key, info->keySize);
     info->update(info->hashContext, ssl_pad_2, info->padSize);
@@ -2415,6 +2442,17 @@ sftk_SSLMACVerify(void *ctx, const unsigned char *sig, unsigned int sigLen,
     unsigned int out;
     int cmp;
 
+    PORT_Assert(info->macSize <= SFTK_MAX_MAC_LENGTH);
+    if (info->macSize > SFTK_MAX_MAC_LENGTH) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+
+    if (info->macSize > sigLen) {
+        PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
+        return SECFailure;
+    }
+
     info->begin(info->hashContext);
     info->update(info->hashContext, info->key, info->keySize);
     info->update(info->hashContext, ssl_pad_2, info->padSize);
@@ -2422,7 +2460,12 @@ sftk_SSLMACVerify(void *ctx, const unsigned char *sig, unsigned int sigLen,
     info->end(info->hashContext, tmpBuf, &out, SFTK_MAX_MAC_LENGTH);
     cmp = NSS_SecureMemcmp(sig, tmpBuf, info->macSize);
     PORT_Memset(tmpBuf, 0, info->macSize);
-    return (cmp == 0) ? SECSuccess : SECFailure;
+    if (cmp == 0) {
+        return SECSuccess;
+    }
+
+    PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
+    return SECFailure;
 }
 
 /*
@@ -3351,7 +3394,7 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
 #define INIT_HMAC_MECH(mmm)                                        \
     case CKM_##mmm##_HMAC_GENERAL:                                 \
         PORT_Assert(pMechanism->pParameter);                       \
-        if (BAD_PARAM_CAST(pMechanism, sizeof(CK_ULONG))) {       \
+        if (BAD_PARAM_CAST(pMechanism, sizeof(CK_ULONG))) {        \
             crv = CKR_MECHANISM_PARAM_INVALID;                     \
             break;                                                 \
         }                                                          \
@@ -10283,6 +10326,7 @@ NSC_GetOperationState(CK_SESSION_HANDLE hSession,
 
     /* a zero cipherInfoLen signals that this context cannot be serialized */
     if (context->cipherInfoLen == 0) {
+        sftk_FreeSession(session);
         return CKR_STATE_UNSAVEABLE;
     }
 
@@ -10292,6 +10336,7 @@ NSC_GetOperationState(CK_SESSION_HANDLE hSession,
         return CKR_OK;
     } else {
         if (pOSLen < *pulOperationStateLen) {
+            sftk_FreeSession(session);
             return CKR_BUFFER_TOO_SMALL;
         }
     }

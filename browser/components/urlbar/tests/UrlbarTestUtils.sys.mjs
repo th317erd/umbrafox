@@ -26,12 +26,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+  ProvidersManager:
+    "moz-src:///browser/components/urlbar/UrlbarProvidersManager.sys.mjs",
   SearchService: "moz-src:///toolkit/components/search/SearchService.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
   UrlbarChildController:
     "chrome://browser/content/urlbar/UrlbarChildController.mjs",
-  UrlbarParentController:
-    "moz-src:///browser/components/urlbar/UrlbarParentController.sys.mjs",
   UrlbarPrefs: "moz-src:///browser/components/urlbar/UrlbarPrefs.sys.mjs",
   UrlbarShared: "chrome://browser/content/urlbar/UrlbarShared.mjs",
   UrlbarSearchUtils:
@@ -194,7 +194,7 @@ class UrlbarInputTestUtils {
         lazy.UrlbarPrefs.get("trimURLs") &&
         value != lazy.BrowserUIUtils.trimURL(value)
       ) {
-        this.#urlbar(window)._setValue(value);
+        this.#urlbar(window).setValue(value);
         fireInputEvent = true;
       } else {
         this.#urlbar(window).value = value;
@@ -248,7 +248,12 @@ class UrlbarInputTestUtils {
     if (index >= container.children.length) {
       throw new Error("Not enough results");
     }
-    return container.children[index];
+    let row = container.children[index];
+    // A dynamic result's view update is applied asynchronously (and lands a
+    // round-trip later on the message path), so wait for it before returning
+    // the row. Undefined for non-dynamic rows, so this is a no-op for them.
+    await row._dynamicViewUpdatePromise;
+    return row;
   }
 
   /**
@@ -836,6 +841,31 @@ class UrlbarInputTestUtils {
   }
 
   /**
+   * Returns a promise that resolves the next time the given controller
+   * notification is dispatched. Useful for awaiting an effect that arrives
+   * asynchronously on the actor message path (e.g. a result dismissal) while
+   * resolving synchronously on the in-process path. Register it before
+   * triggering the effect.
+   *
+   * @param {ChromeWindow} win The window containing the urlbar.
+   * @param {string} notification The listener method name, e.g.
+   *   "onQueryResultRemoved".
+   * @returns {Promise<any[]>} Resolves with the notification's arguments.
+   */
+  promiseControllerNotification(win, notification) {
+    let { controller } = this.#urlbar(win);
+    return new Promise(resolve => {
+      let listener = {
+        [notification](...args) {
+          controller.removeListener(listener);
+          resolve(args);
+        },
+      };
+      controller.addListener(listener);
+    });
+  }
+
+  /**
    * Open the input field context menu and run a task on it.
    *
    * @param {ChromeWindow} win the current window
@@ -1380,23 +1410,36 @@ class UrlbarInputTestUtils {
       },
       options
     );
-    let parentController = new lazy.UrlbarParentController({
-      sapName,
-      isPrivate: parentOptions.input.isPrivate,
-      manager: parentOptions.manager,
-    });
-    // Stub the actor plumbing so the child controller's constructor reaches
-    // the parent we just built.
+    // The parent controller resolves the browser window from its actor (for the
+    // SAP window facts telemetry reads). Mock a minimal one representing a
+    // non-blank, non-extension page, exposed on the stubbed actor.
+    let browserWindow = {
+      closed: false,
+      isBlankPageURL: () => false,
+      gBrowser: { currentURI: Services.io.newURI("https://example.com/") },
+    };
+    // Stub the actor so the child controller builds a direct-path parent
+    // controller (the child owns construction; the actor only resolves the
+    // chrome window). It is exposed as `controller.parentController`.
     parentOptions.input.window.windowGlobalChild = {
       getActor: () => ({
-        getOrCreateController: () => parentController,
+        usesMessagePath: false,
+        browsingContext: { topChromeWindow: browserWindow },
       }),
     };
-    let controller = new lazy.UrlbarChildController({
-      input: parentOptions.input,
-    });
-    controller.parentController = parentController;
-    return controller;
+    // A provided `manager` stands in for the per-sap `ProvidersManager` the
+    // child-built parent controller resolves at construction. Swap it in for the
+    // duration of construction so the controller adopts it without touching the
+    // real per-sap instance (and its search-service init).
+    let originalGetInstanceForSap = lazy.ProvidersManager.getInstanceForSap;
+    if (parentOptions.manager) {
+      lazy.ProvidersManager.getInstanceForSap = () => parentOptions.manager;
+    }
+    try {
+      return new lazy.UrlbarChildController({ input: parentOptions.input });
+    } finally {
+      lazy.ProvidersManager.getInstanceForSap = originalGetInstanceForSap;
+    }
   }
 
   /**
@@ -1493,7 +1536,7 @@ class UrlbarInputTestUtils {
       // Set most of the string directly instead of going through sendString,
       // so that we don't make life unnecessarily hard for consumers by
       // possibly starting multiple searches.
-      this.#urlbar(win)._setValue(text.substr(0, text.length - 1));
+      this.#urlbar(win).setValue(text.substr(0, text.length - 1));
     }
     this.EventUtils.sendString(text.substr(-1, 1), win);
   }

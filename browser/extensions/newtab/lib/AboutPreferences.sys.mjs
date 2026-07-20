@@ -386,6 +386,14 @@ export class AboutPreferences {
         type: "bool",
       },
       {
+        id: "browser.newtabpage.activity-stream.widgets.system.crossword.enabled",
+        type: "bool",
+      },
+      {
+        id: "browser.newtabpage.activity-stream.widgets.crossword.enabled",
+        type: "bool",
+      },
+      {
         id: "browser.newtabpage.activity-stream.widgets.system.stocks.enabled",
         type: "bool",
       },
@@ -1300,6 +1308,18 @@ export class AboutPreferences {
     });
 
     Preferences.addSetting({
+      id: "crosswordEnabled",
+      pref: "browser.newtabpage.activity-stream.widgets.system.crossword.enabled",
+    });
+
+    Preferences.addSetting({
+      id: "crossword",
+      pref: "browser.newtabpage.activity-stream.widgets.crossword.enabled",
+      deps: ["crosswordEnabled"],
+      visible: widgetToggleVisible("crossword"),
+    });
+
+    Preferences.addSetting({
       id: "stocksEnabled",
       pref: "browser.newtabpage.activity-stream.widgets.system.stocks.enabled",
     });
@@ -1467,6 +1487,10 @@ export class AboutPreferences {
             {
               id: "privacy",
               l10nId: "home-prefs-privacy-header",
+            },
+            {
+              id: "crossword",
+              l10nId: "home-prefs-crossword-widget-header",
             },
             {
               id: "stocks",

@@ -19,6 +19,7 @@ import { UrlbarShared } from "chrome://browser/content/urlbar/UrlbarShared.mjs";
 /**
  * @import { UrlbarSearchOneOffs } from "moz-src:///browser/components/urlbar/UrlbarSearchOneOffs.sys.mjs"
  * @import { SearchEngine } from "moz-src:///toolkit/components/search/SearchEngine.sys.mjs"
+ * @import { SuggestBackendMerino } from "moz-src:///browser/components/urlbar/private/SuggestBackendMerino.sys.mjs"
  */
 
 /**
@@ -48,6 +49,8 @@ const lazy = XPCOMUtils.declareLazy({
   AIWindow:
     "moz-src:///browser/components/aiwindow/ui/modules/AIWindow.sys.mjs",
   ASRouter: "resource:///modules/asrouter/ASRouter.sys.mjs",
+  AppProvidedConfigEngine:
+    "moz-src:///toolkit/components/search/ConfigSearchEngine.sys.mjs",
   BrowserSearchTelemetry:
     "moz-src:///browser/components/search/BrowserSearchTelemetry.sys.mjs",
   BrowserUIUtils: "resource:///modules/BrowserUIUtils.sys.mjs",
@@ -59,9 +62,10 @@ const lazy = XPCOMUtils.declareLazy({
   ExtensionSearchHandler:
     "resource://gre/modules/ExtensionSearchHandler.sys.mjs",
   ExtensionUtils: "resource://gre/modules/ExtensionUtils.sys.mjs",
-  ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   PartnerLinkAttribution: "resource:///modules/PartnerLinkAttribution.sys.mjs",
+  PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+  QuickSuggest: "moz-src:///browser/components/urlbar/QuickSuggest.sys.mjs",
   ReaderMode: "moz-src:///toolkit/components/reader/ReaderMode.sys.mjs",
   SearchService: "moz-src:///toolkit/components/search/SearchService.sys.mjs",
   SharingUtils: "resource:///modules/SharingUtils.sys.mjs",
@@ -72,6 +76,8 @@ const lazy = XPCOMUtils.declareLazy({
     "moz-src:///browser/components/urlbar/UrlbarUtils.sys.mjs",
   UrlbarProviderOpenTabs:
     "moz-src:///browser/components/urlbar/UrlbarProviderOpenTabs.sys.mjs",
+  UrlbarTokenizer:
+    "moz-src:///browser/components/urlbar/UrlbarTokenizer.sys.mjs",
   UrlbarSearchUtils:
     "moz-src:///browser/components/urlbar/UrlbarSearchUtils.sys.mjs",
   UrlbarUtils: "moz-src:///browser/components/urlbar/UrlbarUtils.sys.mjs",
@@ -648,6 +654,9 @@ ${
     if (this.#isAddressbar && AppConstants.platform == "macosx") {
       this.#initShareURL();
     }
+    if (this.#isAddressbar) {
+      this._initAutofillDismiss();
+    }
     if (this.sapName == "searchbar") {
       this.#initClearSearchHistory();
     }
@@ -969,7 +978,7 @@ ${
     const previousSelectionStart = this.selectionStart + offset;
     const previousSelectionEnd = this.selectionEnd + offset;
 
-    this._setValue(value, { allowTrim: true, valueIsTyped: !valid });
+    this.setValue(value, { allowTrim: true, valueIsTyped: !valid });
     this.toggleAttribute("usertyping", !valid && value);
 
     if (this.focused && value != previousUntrimmedValue) {
@@ -1803,6 +1812,7 @@ ${
         }
 
         if (
+          this.#isAddressbar &&
           !this.searchMode &&
           result.heuristic &&
           // If we asked the DNS earlier, avoid the post-facto check.
@@ -1810,7 +1820,6 @@ ${
           // TODO (bug 1642623): for now there is no smart heuristic to skip the
           // DNS lookup, so any value above 0 will run it.
           lazy.UrlbarPrefs.get("dnsResolveSingleWordsAfterSearch") > 0 &&
-          this.window.gKeywordURIFixup &&
           lazy.UrlbarUtils.looksLikeSingleWordHost(originalUntrimmedValue)
         ) {
           // When fixing a single word to a search, the docShell would also
@@ -1861,6 +1870,41 @@ ${
           this._recordSearch(engine, event, actionDetails);
         }
 
+        if (
+          this.#isAddressbar &&
+          !actionDetails.isFormHistory &&
+          !result.payload.inPrivateWindow &&
+          !this.isPrivate &&
+          engine instanceof lazy.AppProvidedConfigEngine &&
+          engine.id == lazy.SearchService.defaultEngine.id
+        ) {
+          let merinoBackend = /** @type {?SuggestBackendMerino} */ (
+            lazy.QuickSuggest.getFeature("SuggestBackendMerino")
+          );
+          if (merinoBackend?.isEnabled) {
+            let selection = (
+              result.payload.suggestion || result.payload.query
+            )?.trim();
+            // Don't record an empty selection, or one that looks like an origin
+            // (e.g. "facebook.com"), which `allowRemoteResults` would otherwise
+            // allow.
+            if (
+              selection &&
+              lazy.UrlUtils.looksLikeOrigin(selection) ==
+                lazy.UrlUtils.LOOKS_LIKE_ORIGIN.NONE
+            ) {
+              // Build a context around the selection so all of
+              // `allowRemoteResults`'s checks apply to it rather than to the
+              // originally typed string.
+              let context = this.#makeQueryContext({ searchString: selection });
+              context.tokens = lazy.UrlbarTokenizer.tokenize(context);
+              merinoBackend
+                .query(selection, { queryContext: context })
+                .catch(console.error);
+            }
+          }
+        }
+
         if (!result.payload.inPrivateWindow) {
           lazy.UrlbarUtils.addToFormHistory(
             this,
@@ -1906,6 +1950,12 @@ ${
             searchSource: this.getSearchSource(event),
             windowMode: this.windowMode,
           });
+          if (result.payload.providesSearchMode) {
+            this.maybeConfirmSearchModeFromResult({
+              result,
+              checkValue: false,
+            });
+          }
           return;
         }
         break;
@@ -2003,11 +2053,12 @@ ${
         lazy.UrlbarUtils.addToInputHistory(url, input).catch(console.error);
       }
 
-      // Re-integration: If the user picks a non-autofill result for a URL
-      // that has a blocked origin, clear the block.
+      // Re-integration: If the user picks a non-autofill result, or a "url"
+      // autofill from manually typing the URL for a blocked origin, clear the
+      // block.
       if (
         lazy.UrlbarPrefs.get("autoFill.adaptiveHistory.enabled") &&
-        !result.autofill &&
+        (!result.autofill || result.autofill.type == "url") &&
         result.type == UrlbarShared.RESULT_TYPE.URL
       ) {
         let isOrigin = lazy.UrlbarUtils.isOriginUrl(url);
@@ -2052,7 +2103,7 @@ ${
         searchSource: this.getSearchSource(event),
         windowMode: this.windowMode,
       })
-      .catch(lazy.logger.error);
+      .catch(e => lazy.logger.error(e));
 
     this.controller.engagementEvent.record(event, {
       result,
@@ -2150,7 +2201,7 @@ ${
       return false;
     }
 
-    // We won't allow trimming when calling _setValue, since it makes too easy
+    // We won't allow trimming when calling setValue, since it makes too easy
     // for the user to wrongly transform `https` into `http`, for example by
     // picking a https://site/path_1 result and editing the path to path_2,
     // then we'd end up visiting http://site/path_2.
@@ -2167,7 +2218,7 @@ ${
       result.autofill ? this._lastSearchString : this.value
     );
     if (canonizedUrl) {
-      this._setValue(canonizedUrl);
+      this.setValue(canonizedUrl);
 
       this.setResultForCurrentValue(result);
       return true;
@@ -2195,7 +2246,7 @@ ${
         });
       }
       if (!enteredSearchMode) {
-        this._setValue(this.#getValueFromResult(result), {
+        this.setValue(this.#getValueFromResult(result), {
           actionType: this.#getActionTypeFromResult(result),
         });
         this.searchMode = null;
@@ -2206,7 +2257,7 @@ ${
 
     if (!result.autofill) {
       let value = this.#getValueFromResult(result, { urlOverride, element });
-      this._setValue(value, {
+      this.setValue(value, {
         actionType: this.#getActionTypeFromResult(result),
       });
     }
@@ -2332,7 +2383,7 @@ ${
       !this.value.endsWith(" ")
     ) {
       this._autofillPlaceholder = null;
-      this._setValue(this.userTypedValue);
+      this.setValue(this.userTypedValue);
     }
 
     return false;
@@ -2696,7 +2747,7 @@ ${
     let currentSearchMode = this.getSearchMode(browser);
     let areSearchModesSame =
       (!currentSearchMode && !searchMode) ||
-      lazy.ObjectUtils.deepEqual(currentSearchMode, searchMode);
+      UrlbarShared.deepEqual(currentSearchMode, searchMode);
 
     // Exit search mode if the passed-in engine is invalid or hidden.
     let engine;
@@ -2890,7 +2941,7 @@ ${
   }
 
   set value(val) {
-    this._setValue(val, { allowTrim: true });
+    this.setValue(val, { allowTrim: true });
   }
 
   get untrimmedValue() {
@@ -3105,7 +3156,7 @@ ${
     this.searchMode = searchMode;
 
     let value = result.payload.query?.trimStart() || "";
-    this._setValue(value);
+    this.setValue(value);
 
     if (startQuery) {
       this.startQuery({ allowAutofill: false });
@@ -3406,7 +3457,7 @@ ${
    *
    * @returns {string} The set value.
    */
-  _setValue(
+  setValue(
     val,
     {
       allowTrim = false,
@@ -3529,6 +3580,7 @@ ${
     // trim the http protocol from the input value, as https-first may upgrade
     // it to https, breaking user expectations.
     let stripHttp =
+      this.#isAddressbar &&
       result.heuristic &&
       result.payload.url.startsWith("http://") &&
       this.userTypedValue &&
@@ -4048,7 +4100,7 @@ ${
   }) {
     // The autofilled value may be a URL that includes a scheme at the
     // beginning.  Do not allow it to be trimmed.
-    this._setValue(value, { untrimmedValue });
+    this.setValue(value, { untrimmedValue });
     this.inputField.setSelectionRange(selectionStart, selectionEnd);
     this._autofillPlaceholder = {
       value,
@@ -4500,7 +4552,7 @@ ${
     }
 
     if (moveCursorToStart) {
-      this._setValue(this._untrimmedValue, {
+      this.setValue(this._untrimmedValue, {
         valueIsTyped: this.valueIsTyped,
       });
       this.setSelectionRange(0, 0);
@@ -4542,7 +4594,7 @@ ${
       selectionEnd += offset;
     }
 
-    this._setValue(this._untrimmedValue, {
+    this.setValue(this._untrimmedValue, {
       valueIsTyped: this.valueIsTyped,
     });
 
@@ -4639,6 +4691,124 @@ ${
     });
 
     insertLocation.insertAdjacentElement("afterend", pasteAndGo);
+  }
+
+  // Adds "Dismiss" and "Forget this site" entries to the urlbar input context
+  // menu, both hidden unless the heuristic result is autofill.
+  _initAutofillDismiss() {
+    let contextMenu = this.querySelector("moz-input-box").menupopup;
+    let insertLocation = this.#findMenuItemLocation("cmd_selectAll");
+    if (!insertLocation) {
+      return;
+    }
+
+    let separator = this.document.createXULElement("menuseparator");
+    separator.setAttribute("anonid", "urlbar-input-autofill-dismiss-separator");
+
+    let dismiss = this.document.createXULElement("menuitem");
+    dismiss.setAttribute("anonid", "urlbar-input-dismiss-autofill");
+    this.document.l10n.setAttributes(dismiss, "urlbar-input-dismiss-autofill");
+    dismiss.addEventListener("command", () => {
+      this.#dismissAdaptiveAutofillFromContextMenu("dismiss");
+    });
+
+    let forget = this.document.createXULElement("menuitem");
+    forget.setAttribute("anonid", "urlbar-input-remove-from-history");
+    this.document.l10n.setAttributes(
+      forget,
+      "urlbar-input-remove-from-history"
+    );
+    forget.addEventListener("command", () => {
+      this.#dismissAdaptiveAutofillFromContextMenu("forget");
+    });
+
+    insertLocation.insertAdjacentElement("afterend", separator);
+    separator.insertAdjacentElement("afterend", dismiss);
+    dismiss.insertAdjacentElement("afterend", forget);
+
+    contextMenu.addEventListener("popupshowing", () => {
+      let { showDismiss, showForget } =
+        this.#autofillDismissContextMenuVisibility();
+      separator.hidden = !showDismiss && !showForget;
+      dismiss.hidden = !showDismiss;
+      forget.hidden = !showForget;
+    });
+  }
+
+  /**
+   * Computes whether the autofill dismiss/forget context menu items should be
+   * shown for the current heuristic autofill result.
+   *
+   * @returns {{ showDismiss: boolean, showForget: boolean }}
+   *   showDismiss is true when the "Dismiss" item should be visible, which
+   *   requires adaptive history autofill to be enabled, the current heuristic
+   *   result to be an autofill of type "adaptive_url", "adaptive_origin" or
+   *   "origin", and the window to not be private. showForget is true when the
+   *   "Remove from history" item should be visible, which requires the
+   *   autofilled URL to be a deep link.
+   */
+  #autofillDismissContextMenuVisibility() {
+    let hidden = { showDismiss: false, showForget: false };
+
+    if (!lazy.UrlbarPrefs.get("autoFill.adaptiveHistory.enabled")) {
+      return hidden;
+    }
+
+    let result = this._resultForCurrentValue;
+    if (!result?.heuristic || !result.autofill) {
+      return hidden;
+    }
+
+    let type = result.autofill.type;
+    if (
+      type !== "adaptive_url" &&
+      type !== "adaptive_origin" &&
+      type !== "origin"
+    ) {
+      return hidden;
+    }
+
+    let isOrigin = lazy.UrlbarUtils.isOriginUrl(result.payload.url);
+    return {
+      showDismiss: !this.isPrivate,
+      showForget: !isOrigin,
+    };
+  }
+
+  /**
+   * Dismisses the current heuristic autofill result.
+   *
+   * @param {"dismiss" | "forget"} action
+   *   "dismiss" blocks the autofill pairing for a period of time.
+   *   "forget" removes the URL from history entirely.
+   */
+  async #dismissAdaptiveAutofillFromContextMenu(action) {
+    let result = this._resultForCurrentValue;
+    if (!result?.heuristic || !result.autofill) {
+      return;
+    }
+
+    Glean.urlbarAutofill.inputContextMenuDismissal[action].add(1);
+
+    let { url } = result.payload;
+    if (action === "forget") {
+      await lazy.PlacesUtils.history.remove(url).catch(console.error);
+    } else {
+      let blockUntilMs =
+        Date.now() + lazy.UrlbarPrefs.get("autoFill.dismissalBlockDurationMs");
+      await lazy.UrlbarUtils.blockAutofill(url, blockUntilMs).catch(
+        console.error
+      );
+    }
+
+    lazy.UrlbarUtils.clearAutofillBackspaceEntryForUrl(url);
+
+    this.setValue(this._lastSearchString);
+    this.startQuery({
+      searchString: this._lastSearchString,
+      allowAutofill: false,
+      resetSearchState: false,
+    });
   }
 
   /**
@@ -5300,7 +5470,7 @@ ${
     // This is necessary when a protocol was typed, but the whole url has
     // invalid parts, like the origin, then editing and confirming the trimmed
     // value would execute a search instead of visiting the typed url.
-    if (this._protocolIsTrimmed) {
+    if (this.#isAddressbar && this._protocolIsTrimmed) {
       let untrim = false;
       let fixedURI = this._getURIFixupInfo(this.value)?.preferredURI;
       if (fixedURI) {
@@ -5321,7 +5491,7 @@ ${
         }
       }
       if (untrim) {
-        this._setValue(this._untrimmedValue);
+        this.setValue(this._untrimmedValue);
       }
     }
 
@@ -5656,7 +5826,7 @@ ${
       event.stopImmediatePropagation();
 
       const value = oldStart + pasteData + oldEnd;
-      this._setValue(value, { valueIsTyped: true });
+      this.setValue(value, { valueIsTyped: true });
       this.userTypedValue = value;
 
       // Since we prevent the default paste event, we have to ensure the
@@ -6463,7 +6633,7 @@ class AddSearchEngineHelper {
     if (engines1?.length != engines2?.length) {
       return false;
     }
-    return lazy.ObjectUtils.deepEqual(
+    return UrlbarShared.deepEqual(
       engines1.map(e => e.title),
       engines2.map(e => e.title)
     );

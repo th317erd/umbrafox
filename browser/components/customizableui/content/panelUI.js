@@ -128,6 +128,16 @@ const PanelUI = {
       }
     );
 
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      "referralsEnabled",
+      "browser.referrals.enabled",
+      false,
+      (_pref, _previousValue, _newValue) => {
+        this._showReferralsMenuItem();
+      }
+    );
+
     if (this.autoHideToolbarInFullScreen) {
       window.addEventListener("fullscreen", this);
     } else {
@@ -157,6 +167,7 @@ const PanelUI = {
 
     this._showAIMenuItem();
     this._showTabGroupsMenuItem();
+    this._showReferralsMenuItem();
     this._initialized = true;
   },
 
@@ -387,16 +398,13 @@ const PanelUI = {
       case "activate":
         this.updateNotifications();
         break;
-      case "click":
-        if (aEvent.target.id === "appMenu-nova-update-link") {
-          this._onNovaUpdateLinkClicked(aEvent);
-        } else {
-          let novaFxaButton = aEvent.target.closest("#appMenu-nova-fxa-label");
-          if (novaFxaButton) {
-            gSync.toggleAccountPanel(novaFxaButton, aEvent);
-          }
+      case "click": {
+        let novaFxaButton = aEvent.target.closest("#appMenu-nova-fxa-label");
+        if (novaFxaButton) {
+          gSync.toggleAccountPanel(novaFxaButton, aEvent);
         }
         break;
+      }
       case "command":
         this.onCommand(aEvent);
         break;
@@ -1194,6 +1202,20 @@ const PanelUI = {
     button.hidden = !this.tabGroupsAlternateMenu;
   },
 
+  _showReferralsMenuItem() {
+    const button = PanelMultiView.getViewNode(
+      document,
+      "appMenu-referrals-button"
+    );
+    const separator = PanelMultiView.getViewNode(
+      document,
+      "appMenu-referrals-separator"
+    );
+    const hidden = !this.referralsEnabled;
+    button.hidden = hidden;
+    separator.hidden = hidden;
+  },
+
   _showBadge(notification) {
     let badgeStatus = this._getBadgeStatus(notification);
     this.menuButton.setAttribute("badge-status", badgeStatus);
@@ -1230,25 +1252,22 @@ const PanelUI = {
       messageIDs[notification.id]
     );
 
+    const isNovaUpdateRestart =
+      notification.id === "update-restart" &&
+      Services.prefs.getBoolPref("browser.nova.enabled", false);
+
+    if (isNovaUpdateRestart) {
+      this._panelBannerItem.setAttribute(
+        "aria-labelledby",
+        "appMenu-update-banner-title appMenu-update-banner-description"
+      );
+    } else {
+      this._panelBannerItem.removeAttribute("aria-labelledby");
+    }
+
     this._panelBannerItem.setAttribute("notificationid", notification.id);
     this._panelBannerItem.hidden = false;
     this._panelBannerItem.notification = notification;
-
-    if (Services.prefs.getBoolPref("browser.nova.enabled", false)) {
-      if (!this._novaUpdatePromo) {
-        this._novaUpdatePromo = this.mainView.querySelector(
-          "#appMenu-nova-update-promo"
-        );
-      }
-      if (this._novaUpdatePromo) {
-        const showPromo = notification.id === "update-restart";
-        if (!this._panelBannerItem.hidden && showPromo) {
-          this._panelBannerItem.hidden = true;
-        }
-        this._novaUpdatePromo.hidden = !showPromo;
-        this._novaUpdatePromo.notification = showPromo ? notification : null;
-      }
-    }
   },
 
   _clearBadge() {
@@ -1259,10 +1278,6 @@ const PanelUI = {
     if (this._panelBannerItem) {
       this._panelBannerItem.notification = null;
       this._panelBannerItem.hidden = true;
-    }
-    if (this._novaUpdatePromo) {
-      this._novaUpdatePromo.notification = null;
-      this._novaUpdatePromo.hidden = true;
     }
   },
 
@@ -1302,18 +1317,6 @@ const PanelUI = {
 
     event.stopPropagation();
     AppMenuNotifications.callMainAction(window, target.notification, false);
-  },
-
-  _onNovaUpdateLinkClicked(event) {
-    event.preventDefault();
-    if (!this._novaUpdatePromo?.notification) {
-      return;
-    }
-    AppMenuNotifications.callMainAction(
-      window,
-      this._novaUpdatePromo.notification,
-      false
-    );
   },
 
   _getPopupId(notification) {

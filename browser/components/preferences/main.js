@@ -99,6 +99,7 @@ function canShowAiFeature(featureSetting, defaultSetting) {
 Preferences.addAll([
   // Startup
   { id: "browser.startup.page", type: "int" },
+  { id: "browser.sessionstore.newTabOnRestore", type: "bool" },
   { id: "browser.startup.windowsLaunchOnLogin.enabled", type: "bool" },
   { id: "browser.privatebrowsing.autostart", type: "bool" },
 
@@ -333,6 +334,18 @@ Preferences.addSetting({
 });
 
 Preferences.addSetting({
+  id: "sessionRestoreNewTab",
+  pref: "browser.sessionstore.newTabOnRestore",
+  deps: ["browserRestoreSession"],
+  visible: () =>
+    Services.prefs.getBoolPref(
+      "browser.sessionstore.newTabOnRestore.showSetting",
+      false
+    ),
+  disabled: deps => !deps.browserRestoreSession.value,
+});
+
+Preferences.addSetting({
   id: "containersPane",
   onUserClick(e) {
     e.preventDefault();
@@ -382,14 +395,18 @@ Preferences.addSetting({
   id: "isDefaultPane",
   deps: ["alwaysCheckDefault"],
   visible: () =>
-    DefaultBrowserHelper.canCheck && DefaultBrowserHelper.isBrowserDefault,
+    DefaultBrowserHelper.canCheck &&
+    DefaultBrowserHelper.isBrowserDefault &&
+    Services.policies.isAllowed("setDefaultBrowser"),
 });
 
 Preferences.addSetting({
   id: "isNotDefaultPane",
   deps: ["alwaysCheckDefault"],
   visible: () =>
-    DefaultBrowserHelper.canCheck && !DefaultBrowserHelper.isBrowserDefault,
+    DefaultBrowserHelper.canCheck &&
+    !DefaultBrowserHelper.isBrowserDefault &&
+    Services.policies.isAllowed("setDefaultBrowser"),
   onUserClick: (e, { alwaysCheckDefault }) => {
     if (!DefaultBrowserHelper.canCheck) {
       return;
@@ -504,6 +521,12 @@ function createStartupConfig(hidden = false) {
       {
         id: "browserRestoreSession",
         l10nId: "startup-restore-windows-and-tabs",
+        items: [
+          {
+            id: "sessionRestoreNewTab",
+            l10nId: "windows-launch-on-login-open-new-tab",
+          },
+        ],
       },
       {
         id: "windowsLaunchOnLogin",

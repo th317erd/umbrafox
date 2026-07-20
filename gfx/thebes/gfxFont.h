@@ -5,35 +5,35 @@
 #ifndef GFX_FONT_H
 #define GFX_FONT_H
 
+#include <functional>
 #include <limits>
 #include <new>
-#include <functional>
+
+#include "DrawMode.h"
 #include "PLDHashTable.h"
 #include "ThebesRLBoxTypes.h"
 #include "gfxFontVariations.h"
 #include "gfxRect.h"
 #include "gfxTypes.h"
-#include "harfbuzz/hb.h"
 #include "harfbuzz/hb-ot.h"
+#include "harfbuzz/hb.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/FontPropertyTypes.h"
 #include "mozilla/HashTable.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/RefPtr.h"
 #include "mozilla/RWLock.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/TypedEnumBits.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/FontPaletteCache.h"
 #include "mozilla/gfx/MatrixFwd.h"
 #include "mozilla/gfx/Point.h"
-#include "mozilla/gfx/2D.h"
 #include "mozilla/intl/UnicodeScriptCodes.h"
 #include "nsCOMPtr.h"
 #include "nsColor.h"
-#include "nsTHashMap.h"
-#include "nsTHashSet.h"
 #include "nsExpirationTracker.h"
 #include "nsFontMetrics.h"
 #include "nsHashKeys.h"
@@ -42,9 +42,10 @@
 #include "nsISupports.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "nsTHashMap.h"
+#include "nsTHashSet.h"
 #include "nsTHashtable.h"
 #include "nscore.h"
-#include "DrawMode.h"
 
 // Only required for function bodies
 #include "gfxFontEntry.h"
@@ -2244,6 +2245,17 @@ class gfxFont {
     bool mTextIs8Bit;
     // 3 bytes of padding here
 
+    static constexpr PLDHashNumber ComputeHash(uint32_t aStringHash,
+                                               Script aScriptCode,
+                                               uint32_t aLanguageHash,
+                                               int16_t aAppUnitsPerDevUnit,
+                                               ShapedTextFlags aFlags,
+                                               RoundingFlags aRounding) {
+      return (aStringHash + static_cast<int32_t>(aScriptCode) +
+              aAppUnitsPerDevUnit * 0x100 + uint16_t(aFlags) * 0x10000 +
+              int(aRounding) + aLanguageHash);
+    }
+
     WordCacheKey(const uint8_t* aText, uint8_t aLength, uint32_t aStringHash,
                  Script aScriptCode, nsAtom* aLanguage,
                  uint16_t aAppUnitsPerDevUnit, ShapedTextFlags aFlags,
@@ -2254,9 +2266,9 @@ class gfxFont {
           mAppUnitsPerDevUnit(aAppUnitsPerDevUnit),
           mLength(aLength),
           mRounding(aRounding),
-          mHashKey(aStringHash + static_cast<int32_t>(aScriptCode) +
-                   aAppUnitsPerDevUnit * 0x100 + uint16_t(aFlags) * 0x10000 +
-                   int(aRounding) + (aLanguage ? aLanguage->hash() : 0)),
+          mHashKey(ComputeHash(aStringHash, aScriptCode,
+                               aLanguage ? aLanguage->hash() : 0,
+                               aAppUnitsPerDevUnit, aFlags, aRounding)),
           mTextIs8Bit(true) {
       NS_ASSERTION(aFlags & ShapedTextFlags::TEXT_IS_8BIT,
                    "8-bit flag should have been set");
@@ -2273,9 +2285,9 @@ class gfxFont {
           mAppUnitsPerDevUnit(aAppUnitsPerDevUnit),
           mLength(aLength),
           mRounding(aRounding),
-          mHashKey(aStringHash + static_cast<int32_t>(aScriptCode) +
-                   aAppUnitsPerDevUnit * 0x100 + uint16_t(aFlags) * 0x10000 +
-                   int(aRounding)),
+          mHashKey(ComputeHash(aStringHash, aScriptCode,
+                               aLanguage ? aLanguage->hash() : 0,
+                               aAppUnitsPerDevUnit, aFlags, aRounding)),
           mTextIs8Bit(false) {
       // We can NOT assert that TEXT_IS_8BIT is false in aFlags here,
       // because this might be an 8bit-only word from a 16-bit textrun,

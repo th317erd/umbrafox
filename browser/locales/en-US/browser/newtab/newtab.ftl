@@ -68,7 +68,7 @@ newtab-topsites-clear-input =
     .aria-label = Clear text
 
 newtab-topsites-image-url-label = Custom Image URL
-newtab-topsites-use-image-link = Use a custom image…
+newtab-topsites-use-custom-image-link = Use a custom image
 newtab-topsites-image-validation = Image failed to load. Try a different URL.
 
 ## Top Sites - General form dialog buttons. These are verbs/actions.
@@ -114,6 +114,7 @@ newtab-menu-content-tooltip =
 ## Context Menu: These strings are displayed in a context menu and are meant as a call to action for a given page.
 
 newtab-menu-edit-topsites = Edit
+newtab-menu-add-topsite = Add New Shortcut
 newtab-menu-open-new-window = Open in a New Window
 newtab-menu-open-new-private-window = Open in a New Private Window
 newtab-menu-dismiss = Dismiss
@@ -590,11 +591,6 @@ newtab-download-mobile-highlight-body-variant-c = Did you know you can take { -b
 newtab-download-mobile-highlight-image =
     .aria-label = QR code to download { -brand-product-name } for mobile
 
-## Strings for shortcuts highlight
-
-newtab-shortcuts-highlight-title = Your favorites at your fingertips
-newtab-shortcuts-highlight-subtitle = Add a shortcut to keep your favorite sites one click away.
-
 ## Strings for reporting issues with ads and content
 
 newtab-report-content-why-reporting-this =
@@ -731,6 +727,9 @@ newtab-widget-lists-input-menu-edit2 =
 newtab-widget-lists-edit-clear =
     .aria-label = Cancel
     .title = Cancel
+# Lists is a noun, as in "options for the lists"
+newtab-widget-lists-menu-button =
+    .aria-label = Lists options
 
 # the + symbol emphasises the functionality of adding a new list
 newtab-widget-lists-dropdown-create =
@@ -1298,6 +1297,10 @@ home-prefs-clocks-header =
 home-prefs-privacy-header =
     .label = Privacy
 
+# Crossword is a widget on New Tab that shows a daily crossword puzzle.
+home-prefs-crossword-widget-header =
+    .label = Crossword
+
 # Stocks is a widget on New Tab that shows stock ticker prices.
 home-prefs-stocks-header =
     .label = Stocks
@@ -1551,6 +1554,9 @@ newtab-stocks-menu-search = Search ticker symbols
 
 # Context menu item linking to more information about the Stocks widget.
 newtab-stocks-menu-learn-more = Learn more
+
+# Shown in the Stocks widget when its data could not be loaded.
+newtab-stocks-error-not-available = Stock data is not available.
 
 # "Stocks widget options" is an icon-only button in the widget toolbar — the
 # attributes are consumed as tooltip/screen-reader label only. The button

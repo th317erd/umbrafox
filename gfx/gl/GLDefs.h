@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#if !defined(LOCALGL_H_)
-#  define LOCALGL_H_
+#ifndef LOCALGL_H_
+#define LOCALGL_H_
 
-#  include "GLTypes.h"
-#  include "GLConsts.h"
+#include "GLConsts.h"
+#include "GLTypes.h"
+#include "mozilla/Assertions.h"
 
 namespace mozilla {
 namespace gl {
@@ -15,8 +16,8 @@ bool CheckContextLost(const GLContext* gl);
 }  // namespace gl
 }  // namespace mozilla
 
-#  define MOZ_GL_ASSERT(glContext, expr) \
-    MOZ_ASSERT((expr) || mozilla::gl::CheckContextLost(glContext))
+#define MOZ_GL_ASSERT(glContext, expr) \
+  MOZ_ASSERT((expr) || mozilla::gl::CheckContextLost(glContext))
 
 // -
 
@@ -113,6 +114,11 @@ bool CheckContextLost(const GLContext* gl);
 #define LOCAL_EGL_TEXTURE_INTERNAL_FORMAT_ANGLE         0x345D
 #define LOCAL_EGL_IOSURFACE_USAGE_HINT_ANGLE            0x348A
 #define LOCAL_EGL_BIND_TO_TEXTURE_TARGET_ANGLE          0x348D
+
+// EGL_ANGLE_display_power_preference
+#define LOCAL_EGL_POWER_PREFERENCE_ANGLE                0x3482
+#define LOCAL_EGL_LOW_POWER_ANGLE                       0x0001
+#define LOCAL_EGL_HIGH_POWER_ANGLE                      0x0002
 
 // clang-format on
 

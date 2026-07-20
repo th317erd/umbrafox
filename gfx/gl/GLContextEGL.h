@@ -5,10 +5,11 @@
 #ifndef GLCONTEXTEGL_H_
 #define GLCONTEXTEGL_H_
 
+#include <memory>
+
 #include "GLContext.h"
 #include "GLLibraryEGL.h"
 #include "nsRegion.h"
-#include <memory>
 
 namespace mozilla {
 namespace layers {
@@ -34,7 +35,18 @@ inline std::shared_ptr<EglDisplay> CreateSoftwareEglDisplay(
   if (!lib) {
     return nullptr;
   }
-  return lib->CreateDisplay(false, true, out_failureId);
+  return lib->CreateDisplay(EGLCreateDisplayFlags{.mForceSoftware = true},
+                            out_failureId);
+}
+
+inline std::shared_ptr<EglDisplay> CreateHighPowerEglDisplay(
+    nsACString* const out_failureId) {
+  const auto lib = GLLibraryEGL::Get(out_failureId);
+  if (!lib) {
+    return nullptr;
+  }
+  return lib->CreateDisplay(EGLCreateDisplayFlags{.mPreferHighPower = true},
+                            out_failureId);
 }
 
 // -

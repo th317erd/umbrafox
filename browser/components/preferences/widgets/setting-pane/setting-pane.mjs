@@ -5,6 +5,7 @@
 import { html } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 import { SettingPaneManager } from "chrome://browser/content/preferences/config/SettingPaneManager.mjs";
+import { SettingGroupManager } from "chrome://browser/content/preferences/config/SettingGroupManager.mjs";
 
 /**
  * @import { MozPageHeader } from "chrome://global/content/elements/moz-page-header.mjs"
@@ -12,17 +13,19 @@ import { SettingPaneManager } from "chrome://browser/content/preferences/config/
 
 /**
  * Whether the sub-pane back arrow should call `history.back()` (and let
- * the browser restore the parent pane's saved scroll position) instead of
- * doing a fresh navigation. True when the previous history entry is the
- * current sub-pane's parent; false when the sub-pane was loaded directly
- * (e.g. via the URL bar).
+ * the browser restore the previous entry's saved scroll position and
+ * search state) instead of doing a fresh navigation. True when the
+ * previous history entry is the sub-pane's parent, or when it's the
+ * search-results view the user drilled in from. False when the sub-pane
+ * was loaded directly (e.g. via the URL bar).
  *
  * @param {Window} win
  * @param {string} parentCategory The friendly id of this sub-pane's parent.
  * @returns {boolean}
  */
 function shouldGoBackToParent(win, parentCategory) {
-  if (win.history.state?.previousCategory !== parentCategory) {
+  let prev = win.history.state?.previousCategory;
+  if (prev !== parentCategory && prev !== "searchResults") {
     return false;
   }
   // Defense in depth: confirm with the Navigation API where available. If
@@ -197,8 +200,12 @@ export class SettingPane extends MozLitElement {
       `${this.config.id}-pane-loaded`
     );
 
+    // Skip groups not yet registered, like the Home groups. A setting-group
+    // initializes itself only when its config is registered (bug 2051119).
     for (let groupId of this.config.groupIds) {
-      window.initSettingGroup(groupId);
+      if (SettingGroupManager.has(groupId)) {
+        window.initSettingGroup(groupId);
+      }
     }
   }
 

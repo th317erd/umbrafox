@@ -145,7 +145,6 @@ pub enum DisplayItem {
     Line(LineDisplayItem),
     Border(BorderDisplayItem),
     BoxShadow(BoxShadowDisplayItem),
-    PushShadow(PushShadowDisplayItem),
     Gradient(GradientDisplayItem),
     RadialGradient(RadialGradientDisplayItem),
     ConicGradient(ConicGradientDisplayItem),
@@ -175,7 +174,6 @@ pub enum DisplayItem {
     // These marker items terminate a scope introduced by a previous item.
     PopReferenceFrame,
     PopStackingContext,
-    PopAllShadows,
 
     // For debugging purposes.
     DebugMarker(u32),
@@ -193,7 +191,6 @@ pub enum DebugDisplayItem {
     Line(LineDisplayItem),
     Border(BorderDisplayItem),
     BoxShadow(BoxShadowDisplayItem),
-    PushShadow(PushShadowDisplayItem),
     Gradient(GradientDisplayItem),
     RadialGradient(RadialGradientDisplayItem),
     ConicGradient(ConicGradientDisplayItem),
@@ -218,7 +215,6 @@ pub enum DebugDisplayItem {
 
     PopReferenceFrame,
     PopStackingContext,
-    PopAllShadows,
 
     DebugMarker(u32)
 }
@@ -243,6 +239,11 @@ pub struct RoundedRectClipDisplayItem {
     pub id: ClipId,
     pub spatial_id: SpatialId,
     pub clip: ComplexClipRegion,
+    /// Layout-space outset applied when snapping this clip's rect. Non-zero
+    /// only for the internal zero-blur box-shadow desugar, where the inner
+    /// ClipOut edge must stay a constant distance from the snapped element
+    /// (bug 2052033). All public callers leave this 0.
+    pub snap_outset: f32,
 }
 
 /// The minimum and maximum allowable offset for a sticky frame in a single dimension.
@@ -372,6 +373,25 @@ pub enum LineStyle {
     Wavy,
 }
 
+/// Identifies whether a text run is a normal (drawable) run or a shadow copy
+/// produced by desugaring a text-shadow, and if the latter whether the shadow
+/// is blurred. The scene builder maps this onto the two properties the old
+/// scene-builder shadow expansion baked into the shadow's `TextRun` key: the
+/// `shadow` flag (which makes color-bitmap glyphs sample alpha only), and the
+/// requested raster space (a blurred shadow rasterizes in `Local(1.0)` space,
+/// like the removed `TextRun::create_shadow`).
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, Eq, Hash, PeekPoke)]
+pub enum GlyphShadowMode {
+    /// Not a shadow: normal glyphs, raster space taken from the stack.
+    #[default]
+    None,
+    /// Shadow with no (noop) blur: shadow glyphs, raster space from the stack.
+    Unblurred,
+    /// Blurred shadow: shadow glyphs, raster space forced to `Local(1.0)`.
+    Blurred,
+}
+
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct TextDisplayItem {
     pub common: CommonItemProperties,
@@ -386,6 +406,9 @@ pub struct TextDisplayItem {
     pub font_key: font::FontInstanceKey,
     pub color: ColorF,
     pub glyph_options: Option<font::GlyphOptions>,
+    /// Set by the display-list builder's shadow desugaring on the offset copies
+    /// of shadowed text. `None` for ordinary text.
+    pub shadow: GlyphShadowMode,
 } // IMPLICIT: glyphs: Vec<font::GlyphInstance>
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize, PeekPoke)]
@@ -403,6 +426,18 @@ pub struct NormalBorder {
 }
 
 impl NormalBorder {
+    /// Return a copy of this border with every side's color replaced by
+    /// `color`, keeping styles, radius and anti-aliasing. Used to recolor a
+    /// border into its shadow.
+    pub fn with_color(&self, color: ColorF) -> Self {
+        let mut b = *self;
+        b.left.color = color;
+        b.right.color = color;
+        b.top.color = color;
+        b.bottom.color = color;
+        b
+    }
+
     fn can_disable_antialiasing(&self) -> bool {
         fn is_valid(style: BorderStyle) -> bool {
             style == BorderStyle::Solid || style == BorderStyle::None
@@ -602,13 +637,6 @@ pub struct BoxShadowDisplayItem {
     pub border_radius: BorderRadius,
     pub shadow_radius: BorderRadius,
     pub clip_mode: BoxShadowClipMode,
-}
-
-#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
-pub struct PushShadowDisplayItem {
-    pub space_and_clip: SpaceAndClipInfo,
-    pub shadow: Shadow,
-    pub should_inflate: bool,
 }
 
 #[repr(C)]
@@ -1258,9 +1286,12 @@ pub enum FilterOp {
     /// CSS filter semantics - operates on previous picture, uses sRGB space (non-linear)
     Identity,
     /// apply blur effect
-    /// parameters: stdDeviationX, stdDeviationY
+    /// parameters: stdDeviationX, stdDeviationY, should_inflate
+    /// `should_inflate` controls whether WebRender inflates the blur surface by
+    /// the sample radius; callers that have already inflated the bounds (e.g.
+    /// text-shadow) pass false. CSS/SVG filter blurs pass true.
     /// CSS filter semantics - operates on previous picture, uses sRGB space (non-linear)
-    Blur(f32, f32),
+    Blur(f32, f32, bool),
     /// apply brightness effect
     /// parameters: amount
     /// CSS filter semantics - operates on previous picture, uses sRGB space (non-linear)
@@ -2343,10 +2374,8 @@ impl DisplayItem {
             DisplayItem::Image(..) => "image",
             DisplayItem::RepeatingImage(..) => "repeating_image",
             DisplayItem::Line(..) => "line",
-            DisplayItem::PopAllShadows => "pop_all_shadows",
             DisplayItem::PopReferenceFrame => "pop_reference_frame",
             DisplayItem::PopStackingContext => "pop_stacking_context",
-            DisplayItem::PushShadow(..) => "push_shadow",
             DisplayItem::PushReferenceFrame(..) => "push_reference_frame",
             DisplayItem::PushStackingContext(..) => "push_stacking_context",
             DisplayItem::SetFilterOps => "set_filter_ops",

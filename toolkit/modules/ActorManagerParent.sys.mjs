@@ -26,6 +26,19 @@ let JSPROCESSACTORS = {
     safeForUntrustedWebProcess: true,
   },
 
+  // Runs the content-analysis DLP WebAssembly module in the privilegedabout
+  // process. The module is compiled there under a non-system principal
+  // because the parent process forbids wasm/eval regardless of principal.
+  ContentAnalysisWasm: {
+    remoteTypes: ["privilegedabout"],
+    parent: {
+      esModuleURI: "resource://gre/modules/ContentAnalysisWasmParent.sys.mjs",
+    },
+    child: {
+      esModuleURI: "resource://gre/modules/ContentAnalysisWasmChild.sys.mjs",
+    },
+  },
+
   ContentPrefs: {
     parent: {
       esModuleURI: "resource://gre/modules/ContentPrefServiceParent.sys.mjs",
@@ -101,10 +114,12 @@ let JSPROCESSACTORS = {
 let JSWINDOWACTORS = {
   AboutCertViewer: {
     parent: {
-      esModuleURI: "resource://gre/modules/AboutCertViewerParent.sys.mjs",
+      esModuleURI:
+        "moz-src:///toolkit/components/certviewer/AboutCertViewerParent.sys.mjs",
     },
     child: {
-      esModuleURI: "resource://gre/modules/AboutCertViewerChild.sys.mjs",
+      esModuleURI:
+        "moz-src:///toolkit/components/certviewer/AboutCertViewerChild.sys.mjs",
 
       events: {
         DOMDocElementInserted: { capture: true },
@@ -811,7 +826,8 @@ if (AppConstants.platform != "android") {
 
   JSWINDOWACTORS.PictureInPictureLauncher = {
     parent: {
-      esModuleURI: "resource://gre/modules/PictureInPicture.sys.mjs",
+      esModuleURI:
+        "moz-src:///toolkit/components/pictureinpicture/PictureInPicture.sys.mjs",
     },
     child: {
       esModuleURI: "resource://gre/actors/PictureInPictureChild.sys.mjs",
@@ -826,7 +842,8 @@ if (AppConstants.platform != "android") {
 
   JSWINDOWACTORS.PictureInPicture = {
     parent: {
-      esModuleURI: "resource://gre/modules/PictureInPicture.sys.mjs",
+      esModuleURI:
+        "moz-src:///toolkit/components/pictureinpicture/PictureInPicture.sys.mjs",
     },
     child: {
       esModuleURI: "resource://gre/actors/PictureInPictureChild.sys.mjs",
@@ -838,7 +855,8 @@ if (AppConstants.platform != "android") {
 
   JSWINDOWACTORS.PictureInPictureToggle = {
     parent: {
-      esModuleURI: "resource://gre/modules/PictureInPicture.sys.mjs",
+      esModuleURI:
+        "moz-src:///toolkit/components/pictureinpicture/PictureInPicture.sys.mjs",
     },
     child: {
       esModuleURI: "resource://gre/actors/PictureInPictureChild.sys.mjs",

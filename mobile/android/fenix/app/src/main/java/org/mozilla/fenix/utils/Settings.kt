@@ -2464,6 +2464,14 @@ class Settings(
     )
 
     /**
+     * Whether the universal edge-to-edge wallpapers treatment is enabled.
+     */
+    var enableUniversalEdgeToEdgeWallpapers by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_enable_universal_edge_to_edge_wallpapers),
+        default = { FxNimbus.features.universalEdgeToEdgeWallpapers.value().enabled },
+    )
+
+    /**
      * Indicates if the Homepage Search Bar is enabled.
      */
     var enableHomepageSearchBar by booleanPreference(
@@ -3298,5 +3306,21 @@ class Settings(
     var uninstallSurveyFeatureFlagEnabled by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_enable_uninstall_survey),
         default = { FxNimbus.features.uninstallSurvey.value().enabled },
+    )
+
+    /**
+     * Indicates if Homepage Customization is enabled.
+     */
+    var enableHomepageCustomization by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_enable_homepage_customization),
+        default = { FxNimbus.features.homepageCustomization.value().enabled },
+    )
+
+    /**
+     * Indicates if trending and recent searches are shown on the Homepage Search.
+     */
+    var enableHomepageTrendingRecentSearch by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_enable_homepage_trending_recent_search),
+        default = { FxNimbus.features.homepageTrendingRecentSearch.value().enabled },
     )
 }

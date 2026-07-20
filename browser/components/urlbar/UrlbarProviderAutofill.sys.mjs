@@ -535,10 +535,10 @@ export class UrlbarProviderAutofill extends UrlbarProvider {
       UrlbarUtils.clearAutofillBackspaceEntryForUrl(result.payload.url);
 
       // Upon removing the autofill, we should do another search.
-      controller.input._setValue(queryContext.searchString);
+      controller.input.setValue(queryContext.searchString);
       controller.input.startQuery({
         searchString: queryContext.searchString,
-        allowAutofill: false,
+        allowAutofill: true,
         resetSearchState: false,
       });
     }

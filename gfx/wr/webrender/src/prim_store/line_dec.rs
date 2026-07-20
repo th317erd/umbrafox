@@ -3,15 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use api::{
-    ColorF, RasterSpace,
-    LineOrientation, LineStyle, Shadow,
+    ColorF,
+    LineOrientation, LineStyle,
 };
 use api::units::*;
 use euclid::Scale;
 use crate::render_task::{RenderTask, RenderTaskKind};
 use crate::render_task_cache::{RenderTaskCacheKey, RenderTaskCacheKeyKind, RenderTaskParent};
 use crate::render_task_graph::RenderTaskId;
-use crate::scene_building::{CreateShadow, IsVisible};
+use crate::scene_building::{IsVisible};
 use crate::frame_builder::{FrameBuildingContext, FrameBuildingState};
 use crate::intern;
 use crate::internal_types::LayoutPrimitiveInfo;
@@ -41,18 +41,6 @@ pub struct LineDecorationCacheKey {
 pub use api::interned_prims::LineDecoration;
 
 pub type LineDecorationKey = PrimKey<LineDecoration>;
-
-impl LineDecorationKey {
-    pub fn new(
-        info: &LayoutPrimitiveInfo,
-        line_dec: LineDecoration,
-    ) -> Self {
-        LineDecorationKey {
-            common: info.into(),
-            kind: line_dec,
-        }
-    }
-}
 
 impl intern::InternDebug for LineDecorationKey {}
 
@@ -214,7 +202,7 @@ impl InternablePrimitive for LineDecoration {
         info: &LayoutPrimitiveInfo,
     ) -> LineDecorationKey {
         LineDecorationKey::new(
-            info,
+            info.into(),
             self,
         )
     }
@@ -230,21 +218,6 @@ impl InternablePrimitive for LineDecoration {
     }
 }
 
-impl CreateShadow for LineDecoration {
-    fn create_shadow(
-        &self,
-        shadow: &Shadow,
-        _: bool,
-        _: RasterSpace,
-    ) -> Self {
-        LineDecoration {
-            style: self.style,
-            orientation: self.orientation,
-            wavy_line_thickness: self.wavy_line_thickness,
-            color: shadow.color.into(),
-        }
-    }
-}
 
 impl IsVisible for LineDecoration {
     fn is_visible(&self) -> bool {

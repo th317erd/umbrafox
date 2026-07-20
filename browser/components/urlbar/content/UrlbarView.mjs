@@ -10,7 +10,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ContextualIdentityService:
     "moz-src:///toolkit/components/contextualidentity/ContextualIdentityService.sys.mjs",
-  ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   SearchService: "moz-src:///toolkit/components/search/SearchService.sys.mjs",
   UrlbarProviderOpenTabs:
     "moz-src:///browser/components/urlbar/UrlbarProviderOpenTabs.sys.mjs",
@@ -117,6 +116,13 @@ export class UrlbarView {
    */
   get isOpen() {
     return this.input.hasAttribute("open");
+  }
+
+  /**
+   * @returns {UrlbarQueryContext} The context of the most recent query.
+   */
+  get queryContext() {
+    return this.#queryContext;
   }
 
   get allowEmptySelection() {
@@ -554,10 +560,16 @@ export class UrlbarView {
     if (!row) {
       return;
     }
+    // Compare against the row's own result rather than `result`: across the
+    // actor boundary `result` is a wire copy, so an identity check would always
+    // fail. This still guards against the row's result changing during the
+    // async l10n fetch below, though it can't confirm the row still matches the
+    // dismissed result -- that needs a stable result id (Bug 2052875).
+    let { result: rowResult } = row;
 
     let l10n = { id: "urlbar-feedback-acknowledgment" };
     await this.#l10nCache.ensure(l10n);
-    if (row.result != result) {
+    if (row.result != rowResult) {
       return;
     }
 
@@ -1076,14 +1088,20 @@ export class UrlbarView {
    * This assumes that the result rows are in index order.
    *
    * @param {number} index The index of the result that has been removed.
+   * @param {object} [acknowledgeDismissalL10n]
+   *   The dismissal-acknowledgment l10n the dismissing provider set on the
+   *   result, supplied by the caller. It isn't read from this row's result
+   *   because the provider sets it after the results were serialized to this
+   *   process, so this row's result -- a query-time snapshot -- never received
+   *   it. Undefined when the row is removed without acknowledgment.
    */
-  onQueryResultRemoved(index) {
+  onQueryResultRemoved(index, acknowledgeDismissalL10n) {
     let rowToRemove = this.#rows.children[index];
 
     let { result } = rowToRemove;
-    if (result.acknowledgeDismissalL10n) {
+    if (acknowledgeDismissalL10n) {
       // Replace the result's row with a dismissal acknowledgment tip.
-      this.#acknowledgeDismissal(result, result.acknowledgeDismissalL10n);
+      this.#acknowledgeDismissal(result, acknowledgeDismissalL10n);
       return;
     }
 
@@ -1099,9 +1117,9 @@ export class UrlbarView {
     if (index >= this.#queryContext.results.length) {
       newSelectionIndex = this.#queryContext.results.length - 1;
     }
-    if (newSelectionIndex >= 0) {
-      this.selectedRowIndex = newSelectionIndex;
-    }
+    // A negative index clears the selection, which resets the input value
+    // when no results remain.
+    this.selectedRowIndex = newSelectionIndex;
   }
 
   openResultMenu(result, anchor) {
@@ -1708,7 +1726,7 @@ export class UrlbarView {
 
   #createRowContentForDynamicType(item, result) {
     let { dynamicType } = result.payload;
-    let viewTemplate = this.controller.getViewTemplate(result);
+    let viewTemplate = result.viewTemplate;
     if (!viewTemplate) {
       console.error(`No viewTemplate found for ${result.providerName}`);
       return;
@@ -1956,7 +1974,7 @@ export class UrlbarView {
 
     if (
       oldResult.payload.buttons?.length != newResult.payload.buttons?.length ||
-      !lazy.ObjectUtils.deepEqual(
+      !UrlbarShared.deepEqual(
         oldResult.payload.buttons,
         newResult.payload.buttons
       )
@@ -2193,10 +2211,7 @@ export class UrlbarView {
       }
 
       if (
-        !lazy.ObjectUtils.deepEqual(
-          this.controller.getViewTemplate(oldResult),
-          this.controller.getViewTemplate(newResult)
-        )
+        !UrlbarShared.deepEqual(oldResult.viewTemplate, newResult.viewTemplate)
       ) {
         return true;
       }
@@ -2683,6 +2698,22 @@ export class UrlbarView {
   }
 
   async #updateRowForDynamicType(item, result) {
+    // The update is applied asynchronously (getViewUpdate round-trips to
+    // another process on the message path), so expose a promise that resolves
+    // once it lands. Callers that read the updated DOM await it via
+    // UrlbarTestUtils.waitForAutocompleteResultAt.
+    let resolveViewUpdate;
+    item._dynamicViewUpdatePromise = new Promise(
+      resolve => (resolveViewUpdate = resolve)
+    );
+    try {
+      await this.#applyDynamicTypeViewUpdate(item, result);
+    } finally {
+      resolveViewUpdate();
+    }
+  }
+
+  async #applyDynamicTypeViewUpdate(item, result) {
     item.setAttribute("dynamicType", result.payload.dynamicType);
 
     let idsByName = new Map();
@@ -2693,7 +2724,7 @@ export class UrlbarView {
 
     // Get the view update from the result's provider.
     let viewUpdate = await this.controller.getViewUpdate(result, idsByName);
-    if (item.result != result) {
+    if (item.result != result || !viewUpdate) {
       return;
     }
 
@@ -2949,7 +2980,7 @@ export class UrlbarView {
     if (
       !label ||
       item.result.hideRowLabel ||
-      lazy.ObjectUtils.deepEqual(label, lastVisibleLabel)
+      UrlbarShared.deepEqual(label, lastVisibleLabel)
     ) {
       this.#l10nCache.removeElementL10n(item, { attribute: "label" });
       if (groupAriaLabel) {
@@ -3884,10 +3915,7 @@ export class UrlbarView {
     /**
      * @type {?UrlbarResultCommand[]}
      */
-    let commands = this.controller.getResultCommands(
-      result,
-      this.#queryContext?.isPrivate
-    );
+    let commands = result.commands;
     if (commands) {
       this.#resultMenuCommands.set(result, commands);
       return commands;

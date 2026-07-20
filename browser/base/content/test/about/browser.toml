@@ -54,6 +54,8 @@ skip-if = [
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && msix && verify-standalone",
 ]
 
+["browser_aboutDialog_referrals.js"]
+
 ["browser_aboutNetError.js"]
 
 ["browser_aboutNetError_basicHttpAuth.js"]
@@ -108,6 +110,11 @@ support-files = [
   "server_error.sjs",
 ]
 
+["browser_aboutNetError_sslKeyLogging.js"]
+support-files = [
+  "sslKeyLogging_processScript.js",
+]
+
 ["browser_aboutNetError_telemetry.js"]
 
 ["browser_aboutNetError_timeout.js"]
@@ -142,8 +149,6 @@ skip-if = [
 ["browser_aboutNewTab_bookmarksToolbarNewWindow.js"]
 
 ["browser_aboutNewTab_bookmarksToolbarPrefs.js"]
-
-["browser_aboutStopReload.js"]
 
 ["browser_aboutSupport.js"]
 tags = "remote-settings"

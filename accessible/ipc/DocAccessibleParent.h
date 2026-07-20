@@ -5,10 +5,10 @@
 #ifndef mozilla_a11y_DocAccessibleParent_h
 #define mozilla_a11y_DocAccessibleParent_h
 
-#include "nsAccessibilityService.h"
 #include "mozilla/a11y/PDocAccessibleParent.h"
 #include "mozilla/a11y/RemoteAccessible.h"
 #include "mozilla/dom/BrowserBridgeParent.h"
+#include "nsAccessibilityService.h"
 #include "nsClassHashtable.h"
 #include "nsHashKeys.h"
 #include "nsIMemoryReporter.h"
@@ -16,8 +16,9 @@
 
 namespace mozilla {
 namespace dom {
+class BrowserParent;
 class CanonicalBrowsingContext;
-}
+}  // namespace dom
 
 namespace a11y {
 
@@ -97,6 +98,12 @@ class DocAccessibleParent : public RemoteAccessible,
   dom::CanonicalBrowsingContext* GetBrowsingContext() const {
     return mBrowsingContext;
   }
+
+  /**
+   * Return our manager as a BrowserParent. This document's manager is always
+   * a BrowserParent since PDocAccessible is managed by PBrowser.
+   */
+  dom::BrowserParent* Manager() const;
 
   /*
    * Called when a message from a document in a child process notifies the main

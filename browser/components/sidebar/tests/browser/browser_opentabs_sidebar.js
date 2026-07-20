@@ -574,3 +574,156 @@ add_task(async function test_search_filters_visible_rows() {
   BrowserTestUtils.removeTab(bananaTab);
   SidebarTestUtils.closePanel(window);
 });
+
+add_task(async function test_medium_view_shows_domain_and_time() {
+  const tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "https://example.com/"
+  );
+
+  const component = await showOpenTabsPanel();
+  const tabList = getTabList(component);
+  await waitForRowCount(tabList, getVisibleTabCount());
+
+  const row = [...tabList.rowEls].find(r => r.url === "https://example.com/");
+  Assert.ok(row, "Found the row for the opened tab.");
+
+  const domain = row.domainEl;
+  Assert.ok(domain, "The row renders a domain in the medium view.");
+  Assert.equal(
+    domain.textContent.trim(),
+    "example.com",
+    "The domain shows the base domain of the tab URL."
+  );
+
+  const time = row.timeEl;
+  Assert.ok(time, "The row renders a time in the medium view.");
+  Assert.equal(
+    time.getAttribute("data-l10n-id"),
+    "fxviewtabrow-time",
+    "The time uses the clock-time format."
+  );
+
+  // about: pages have no base domain, so the row falls back to the formatted
+  // URI instead of showing nothing (matching Firefox View).
+  const aboutTab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "about:robots"
+  );
+  await waitForRowCount(tabList, getVisibleTabCount());
+  const aboutRow = [...tabList.rowEls].find(r => r.url === "about:robots");
+  Assert.ok(aboutRow, "Found the row for the about: tab.");
+  Assert.equal(
+    aboutRow.domainEl.textContent.trim(),
+    "about:robots",
+    "An about: page shows its formatted URI, not an empty domain."
+  );
+  BrowserTestUtils.removeTab(aboutTab);
+  await waitForRowCount(tabList, getVisibleTabCount());
+
+  // The domain and time are revealed by container-query breakpoints on the
+  // row width, so constrain the list width to exercise each state.
+  tabList.style.width = "240px";
+  await TestUtils.waitForCondition(
+    () => !BrowserTestUtils.isVisible(domain),
+    "Domain is hidden when the panel is narrow."
+  );
+  Assert.ok(
+    !BrowserTestUtils.isVisible(time),
+    "Time is hidden when the panel is narrow."
+  );
+
+  tabList.style.width = "370px";
+  await TestUtils.waitForCondition(
+    () => BrowserTestUtils.isVisible(domain),
+    "Domain becomes visible past the first breakpoint."
+  );
+  Assert.ok(
+    !BrowserTestUtils.isVisible(time),
+    "Time is still hidden before the second breakpoint."
+  );
+
+  tabList.style.width = "520px";
+  await TestUtils.waitForCondition(
+    () => BrowserTestUtils.isVisible(time),
+    "Time becomes visible past the second breakpoint."
+  );
+  Assert.ok(
+    BrowserTestUtils.isVisible(domain),
+    "Domain remains visible when the panel is wide."
+  );
+
+  tabList.style.width = "";
+
+  BrowserTestUtils.removeTab(tab);
+  SidebarTestUtils.closePanel(window);
+});
+
+add_task(async function test_pinned_tab_selected_marker() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.nova.enabled", true]],
+  });
+
+  const nonPinnedTab = gBrowser.selectedTab;
+  const tabA = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "data:text/html,<title>PinnedA</title>"
+  );
+  const tabB = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "data:text/html,<title>PinnedB</title>"
+  );
+  gBrowser.pinTab(tabA);
+  gBrowser.pinTab(tabB);
+
+  const component = await showOpenTabsPanel();
+  await BrowserTestUtils.waitForMutationCondition(
+    component.shadowRoot,
+    { childList: true, subtree: true },
+    () =>
+      component.shadowRoot.querySelectorAll(".pinned-tabs moz-button")
+        .length === 2
+  );
+
+  const buttonFor = title =>
+    [...component.shadowRoot.querySelectorAll(".pinned-tabs moz-button")].find(
+      button => button.title === title
+    );
+
+  // tabB is the currently-selected tab, so its pinned button is marked.
+  await TestUtils.waitForCondition(
+    () => buttonFor("PinnedB").classList.contains("selected"),
+    "The selected pinned tab's button carries the selected class."
+  );
+  Assert.ok(
+    !buttonFor("PinnedA").classList.contains("selected"),
+    "A non-selected pinned tab's button does not carry the selected class."
+  );
+
+  // Selecting the other pinned tab moves the marker.
+  gBrowser.selectedTab = tabA;
+  await TestUtils.waitForCondition(
+    () => buttonFor("PinnedA").classList.contains("selected"),
+    "Selecting the other pinned tab moves the selected class."
+  );
+  Assert.ok(
+    !buttonFor("PinnedB").classList.contains("selected"),
+    "The previously-selected pinned tab no longer carries the selected class."
+  );
+
+  // Selecting a non-pinned tab clears the marker from both pinned buttons.
+  gBrowser.selectedTab = nonPinnedTab;
+  await TestUtils.waitForCondition(
+    () =>
+      !buttonFor("PinnedA").classList.contains("selected") &&
+      !buttonFor("PinnedB").classList.contains("selected"),
+    "Selecting a non-pinned tab clears the marker from the pinned buttons."
+  );
+
+  gBrowser.unpinTab(tabA);
+  gBrowser.unpinTab(tabB);
+  BrowserTestUtils.removeTab(tabA);
+  BrowserTestUtils.removeTab(tabB);
+  SidebarTestUtils.closePanel(window);
+  await SpecialPowers.popPrefEnv();
+});

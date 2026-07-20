@@ -1363,9 +1363,17 @@ export var Bookmarks = Object.freeze({
 
       await removeBookmarks(removeItems, options);
 
+      let untaggedURLs = new Set();
+      for (let item of removeItems) {
+        if (item.url && item._grandParentId == lazy.PlacesUtils.tagsFolderId) {
+          untaggedURLs.add(item.url.href);
+        }
+      }
+      let entriesByURL = untaggedURLs.size
+        ? await fetchBookmarksByURLs([...untaggedURLs], { concurrent: true })
+        : new Map();
       // Notify bookmark-removed to listeners.
       let notifications = [];
-
       for (let item of removeItems) {
         let isUntagging = item._grandParentId == lazy.PlacesUtils.tagsFolderId;
         let url = "";
@@ -1390,9 +1398,7 @@ export var Bookmarks = Object.freeze({
         );
 
         if (isUntagging) {
-          for (let entry of await fetchBookmarksByURL(item, {
-            concurrent: true,
-          })) {
+          for (let entry of entriesByURL.get(url) || []) {
             notifications.push(
               new PlacesBookmarkTags({
                 id: entry._id,
@@ -2589,7 +2595,6 @@ async function fetchBookmarksByGUIDPrefix(info, options = {}) {
   );
 }
 
-// eslint-disable-next-line no-unused-vars
 async function fetchBookmarksByURLs(urls, options = {}) {
   if (!urls.length) {
     throw new Error("URLs array must not be empty");
@@ -3239,8 +3244,22 @@ var removeFoldersContents = async function (db, folderGuids, options) {
 
   // Notify listeners in reverse order to serve children before parents.
   let { source = Bookmarks.SOURCES.DEFAULT } = options;
+  itemsRemoved.reverse();
+
+  let untaggedUrls = new Set();
+  for (let item of itemsRemoved) {
+    if (item.url && item._grandParentId == lazy.PlacesUtils.tagsFolderId) {
+      untaggedUrls.add(item.url.href);
+    }
+  }
+  let entriesByUrl = untaggedUrls.size
+    ? // Cannot use {concurrent: true} here because removeFolderContents is invoked inside eraseEverything transaction,
+      // which is already using a connection. Using {concurrent: true} would try to use a different connection and fail.
+      await fetchBookmarksByURLs([...untaggedUrls])
+    : new Map();
   let notifications = [];
-  for (let item of itemsRemoved.reverse()) {
+
+  for (let item of itemsRemoved) {
     let isUntagging = item._grandParentId == lazy.PlacesUtils.tagsFolderId;
     let url = "";
     if (item.type == Bookmarks.TYPE_BOOKMARK) {
@@ -3266,7 +3285,7 @@ var removeFoldersContents = async function (db, folderGuids, options) {
     );
 
     if (isUntagging) {
-      for (let entry of await fetchBookmarksByURL(item, true)) {
+      for (let entry of entriesByUrl.get(url) || []) {
         notifications.push(
           new PlacesBookmarkTags({
             id: entry._id,

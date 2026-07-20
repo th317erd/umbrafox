@@ -1919,6 +1919,8 @@ const ActionChecklistProgressBar = ({
   progress
 }) => {
   return /*#__PURE__*/external_React_default().createElement("div", {
+    className: "action-checklist-progress-bar-container"
+  }, /*#__PURE__*/external_React_default().createElement("div", {
     className: "action-checklist-progress-bar"
   }, /*#__PURE__*/external_React_default().createElement("progress", {
     className: "sr-only",
@@ -1930,15 +1932,19 @@ const ActionChecklistProgressBar = ({
     style: {
       "--action-checklist-progress-bar-progress": `${progress || 0}%`
     }
-  }));
+  })), /*#__PURE__*/external_React_default().createElement("span", {
+    className: "action-checklist-progress-text"
+  }, Math.round(progress || 0), "%"));
 };
 const ActionChecklist = ({
   content,
-  message_id
+  message_id,
+  handleAction
 }) => {
   const tiles = content.tiles.data;
   const [progressValue, setProgressValue] = (0,external_React_namespaceObject.useState)(0);
   const [numberOfCompletedActions, setNumberOfCompletedActions] = (0,external_React_namespaceObject.useState)(0);
+  const allComplete = !!tiles.length && numberOfCompletedActions === tiles.length;
   function determineProgressValue() {
     let newValue = numberOfCompletedActions / tiles.length * 100;
     setProgressValue(newValue);
@@ -1964,7 +1970,7 @@ const ActionChecklist = ({
     determineProgressValue();
   }, [numberOfCompletedActions]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function handleAction(event) {
+  function handleTileClick(event) {
     let {
       action,
       source_id
@@ -1979,6 +1985,16 @@ const ActionChecklist = ({
       data
     });
     MultiStageUtils.sendActionTelemetry(message_id, source_id, "CLICK_BUTTON");
+  }
+  function handleRemoveChecklistClick(event) {
+    let {
+      action,
+      source_id
+    } = content[event.currentTarget.value];
+    handleAction({
+      currentTarget: event.currentTarget,
+      source: source_id
+    }, action);
   }
   return /*#__PURE__*/external_React_default().createElement("div", {
     className: "action-checklist"
@@ -1996,9 +2012,15 @@ const ActionChecklist = ({
     key: item.id,
     index: index,
     item: item,
-    handleAction: handleAction,
+    handleAction: handleTileClick,
     showExternalLinkIcon: item.showExternalLinkIcon
-  }))));
+  }))), allComplete && content.remove_checklist_button && /*#__PURE__*/external_React_default().createElement("button", {
+    className: "action-checklist-complete-button",
+    value: "remove_checklist_button",
+    onClick: handleRemoveChecklistClick
+  }, /*#__PURE__*/external_React_default().createElement(Localized, {
+    text: content.remove_checklist_button.label
+  }, /*#__PURE__*/external_React_default().createElement("span", null))));
 };
 ;// ./content-src/components/EmbeddedBrowser.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -2185,10 +2207,12 @@ const PINNED = "pinned";
 const PinnableSitesList = ({
   tile,
   messageId,
-  handleAction
+  handleAction,
+  setPinnedSite
 }) => {
   const items = tile?.data;
   const pinButtonLabel = tile?.pinButtonLabel;
+  const alwaysShow = tile?.alwaysShowPinButton;
   const [itemStates, setItemStates] = (0,external_React_namespaceObject.useState)(() => Object.fromEntries((items ?? []).map(item => [item.id, IDLE])));
   if (!items?.length) {
     return null;
@@ -2223,9 +2247,15 @@ const PinnableSitesList = ({
 
     // Re-enable the button only on explicit failure so the user can retry.
     setItemState(item.id, result === false ? IDLE : PINNED);
+
+    // Latch the screen as having at least one pinned site so a gated primary
+    // button can enable. A failure leaves the latch untouched.
+    if (result !== false) {
+      setPinnedSite?.();
+    }
   };
   return /*#__PURE__*/external_React_default().createElement("ul", {
-    className: "pinnable-sites-list"
+    className: `pinnable-sites-list${alwaysShow ? " always-visible" : ""}`
   }, items.map(item => {
     const nameId = `pinnable-site-name-${item.id}`;
     const state = itemStates[item.id] ?? IDLE;
@@ -2578,7 +2608,8 @@ const ContentTiles = props => {
       }
     }), tile.type === "action_checklist" && tile.data && /*#__PURE__*/external_React_default().createElement(ActionChecklist, {
       content: content,
-      message_id: props.messageId
+      message_id: props.messageId,
+      handleAction: props.handleAction
     }), tile.type === "embedded_browser" && tile.data?.url && /*#__PURE__*/external_React_default().createElement(EmbeddedBrowser, {
       url: tile.data.url,
       style: tile.data.style
@@ -2604,7 +2635,8 @@ const ContentTiles = props => {
     }), tile.type === "pinnable_sites" && tile.data && /*#__PURE__*/external_React_default().createElement(PinnableSitesList, {
       tile: tile,
       messageId: props.messageId,
-      handleAction: props.handleAction
+      handleAction: props.handleAction,
+      setPinnedSite: props.setPinnedSite
     }), tile.type === "content-toggle" && tile.data && /*#__PURE__*/external_React_default().createElement(ContentToggle, {
       content: {
         tiles: tile
@@ -2799,6 +2831,8 @@ const MultiStageProtonScreen = props => {
     setActiveSingleSelectSelection: props.setActiveSingleSelectSelection,
     textInputs: props.textInputs,
     setTextInput: props.setTextInput,
+    pinnedSites: props.pinnedSites,
+    setPinnedSite: props.setPinnedSite,
     contentToggleChecked: props.contentToggleChecked,
     setContentToggleChecked: props.setContentToggleChecked,
     totalNumberOfScreens: props.totalNumberOfScreens,
@@ -2839,6 +2873,7 @@ const ProtonScreenActionButtons = props => {
     activeMultiSelect,
     activeSingleSelectSelections,
     textInputs,
+    pinnedSites,
     installedAddons
   } = props;
   const defaultValue = content.checkbox?.defaultValue;
@@ -2888,6 +2923,10 @@ const ProtonScreenActionButtons = props => {
         return true;
       }
       return Object.values(textInputs).every(input => !input.isValid || input.value.trim().length === 0);
+    }
+    // Disables the primary button until the user has pinned at least one site.
+    if (disabledValue === "hasPinnedSite") {
+      return !pinnedSites;
     }
     return disabledValue;
   };
@@ -3301,7 +3340,8 @@ class ProtonScreen extends (external_React_default()).PureComponent {
       handleAction: this.props.handleAction,
       activeMultiSelect: this.props.activeMultiSelect,
       activeSingleSelectSelections: this.props.activeSingleSelectSelections,
-      textInputs: this.props.textInputs
+      textInputs: this.props.textInputs,
+      pinnedSites: this.props.pinnedSites
     }) : null;
   }
 
@@ -3336,7 +3376,7 @@ class ProtonScreen extends (external_React_default()).PureComponent {
           ${screenClassName} ${textColorClass}`,
       "reverse-split": content.reverse_split ? "" : null,
       fullscreen: content.fullscreen ? "" : null,
-      style: content.screen_style && MultiStageUtils.getValidStyle(content.screen_style, ["overflow", "display", "height"]),
+      style: content.screen_style && MultiStageUtils.getValidStyle(content.screen_style, ["overflow", "display"]),
       role: ariaRole ?? "alertdialog",
       layout: content.layout,
       pos: content.position || "center",
@@ -3351,7 +3391,7 @@ class ProtonScreen extends (external_React_default()).PureComponent {
       className: `section-main ${isEmbeddedMigration ? "embedded-migration" : ""}${isSystemPromptStyleSpotlight ? "system-prompt-spotlight" : ""}`,
       "hide-secondary-section": content.hide_secondary_section ? String(content.hide_secondary_section) : null,
       role: "document",
-      style: content.screen_style && MultiStageUtils.getValidStyle(content.screen_style, ["width", "padding"])
+      style: content.screen_style && MultiStageUtils.getValidStyle(content.screen_style, ["width", "padding", "height"])
     }, content.secondary_button_top ? /*#__PURE__*/external_React_default().createElement(SecondaryCTA, {
       content: content,
       handleAction: this.props.handleAction,
@@ -3478,25 +3518,8 @@ const MultiStageAboutWelcome = props => {
       let filteredScreens = screensVisited.concat((await window.AWEvaluateScreenTargeting(upcomingScreens)) ?? upcomingScreens);
 
       // Use existing screen for the filtered screen to carry over any modification
-      // e.g. if AW_LANGUAGE_MISMATCH exists, use it from existing screens.
-      // Includes tiles from the targeting pass so per item targeting is
-      // reflected before the screen renders.
-      setScreens(filteredScreens.map(filtered => {
-        const filteredScreen = screens.find(s => s.id === filtered.id);
-        if (!filteredScreen) {
-          return filtered;
-        }
-        if (filtered.content?.tiles && filtered.content) {
-          return {
-            ...filteredScreen,
-            content: {
-              ...filteredScreen.content,
-              tiles: filtered.content.tiles
-            }
-          };
-        }
-        return filteredScreen;
-      }));
+      // e.g. if AW_LANGUAGE_MISMATCH exists, use it from existing screens
+      setScreens(filteredScreens.map(filtered => filtered.id === LANGUAGE_MISMATCH_SCREEN_ID ? screens.find(s => s.id === filtered.id) ?? filtered : filtered));
       // Mark the initial filter pass complete and allow the first paint.
       if (!didFilter.current) {
         didFilter.current = true;
@@ -3653,6 +3676,11 @@ const MultiStageAboutWelcome = props => {
   // structured like this: { screenId: { textareaId: { value, isValid } } }
   const [textInputs, setTextInputs] = (0,external_React_namespaceObject.useState)({});
 
+  // Track whether each screen has had at least one successful pin, keyed by
+  // screen id. This is a boolean (there is no "unpin"), used to gate a
+  // primary button with `disabled: "hasPinnedSite"`.
+  const [pinnedSites, setPinnedSites] = (0,external_React_namespaceObject.useState)({});
+
   // Whether animated backgrounds/illustrations are paused for this session.
   // Defaults to paused when the user has prefers-reduced-motion: reduce set,
   // so we never autoplay motion for those users. The toggle stays consistent
@@ -3738,6 +3766,12 @@ const MultiStageAboutWelcome = props => {
         };
       });
     };
+    const setPinnedSite = () => {
+      setPinnedSites(prevState => ({
+        ...prevState,
+        [currentScreen.id]: true
+      }));
+    };
     const setTextInput = (value, inputId) => {
       setTextInputs(prevState => {
         const currentScreenInputs = prevState[currentScreen.id] || {};
@@ -3778,6 +3812,8 @@ const MultiStageAboutWelcome = props => {
       setActiveSingleSelectSelection: setActiveSingleSelectSelection,
       textInputs: textInputs[currentScreen.id],
       setTextInput: setTextInput,
+      pinnedSites: pinnedSites[currentScreen.id],
+      setPinnedSite: setPinnedSite,
       contentToggleChecked: contentToggleChecked,
       setContentToggleChecked: setContentToggleChecked,
       negotiatedLanguage: negotiatedLanguage,
@@ -4087,7 +4123,7 @@ class WelcomeScreen extends (external_React_default()).PureComponent {
       context.contentToggleState = props.contentToggleChecked;
     }
     MultiStageUtils.sendActionTelemetry(props.messageId, source, event.name, context);
-    if (value === "dismiss_button" && !event.name) {
+    if (value === "dismiss_button" && !event.name || action.sendDismissTelemetry) {
       MultiStageUtils.sendDismissTelemetry(props.messageId, source);
     }
     if (action.collectSelect) {
@@ -4297,6 +4333,8 @@ class WelcomeScreen extends (external_React_default()).PureComponent {
       setActiveSingleSelectSelection: this.props.setActiveSingleSelectSelection,
       textInputs: this.props.textInputs,
       setTextInput: this.props.setTextInput,
+      pinnedSites: this.props.pinnedSites,
+      setPinnedSite: this.props.setPinnedSite,
       contentToggleChecked: this.props.contentToggleChecked,
       setContentToggleChecked: this.props.setContentToggleChecked,
       totalNumberOfScreens: this.props.totalNumberOfScreens,
@@ -4336,6 +4374,7 @@ class WelcomeScreen extends (external_React_default()).PureComponent {
 
 
 
+
 function MultistageWithDismiss({
   config,
   handleDismiss,
@@ -4346,7 +4385,10 @@ function MultistageWithDismiss({
     handleDismiss?.();
   }
   return /*#__PURE__*/external_React_default().createElement("div", {
-    className: "multistage-newtab-wrapper"
+    className: "multistage-newtab-wrapper",
+    style: config.wrapper_content_style ? MultiStageUtils.getValidStyle(config.wrapper_content_style, ["height"]) : {
+      height: "500px"
+    }
   }, /*#__PURE__*/external_React_default().createElement("moz-button", {
     type: "icon ghost",
     size: "small",

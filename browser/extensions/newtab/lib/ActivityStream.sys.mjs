@@ -61,6 +61,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   TopStoriesFeed: "resource://newtab/lib/TopStoriesFeed.sys.mjs",
   WallpaperFeed: "resource://newtab/lib/Wallpapers/WallpaperFeed.sys.mjs",
   WeatherFeed: "resource://newtab/lib/WeatherFeed.sys.mjs",
+  WebNotificationsFeed: "resource://newtab/lib/WebNotificationsFeed.sys.mjs",
 });
 
 XPCOMUtils.defineLazyServiceGetter(
@@ -556,9 +557,18 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
-    "widgets.pictureOfTheDay.setAsWallpaper",
+    "widgets.pictureOfTheDay.wallpaperActive",
     {
-      title: "Whether the current Picture of the day is set as the wallpaper",
+      title:
+        "Published date of the Picture of the day set as the active wallpaper",
+      value: "",
+    },
+  ],
+  [
+    "widgets.pictureOfTheDay.setAsWallpaper.enabled",
+    {
+      title:
+        "Whether the Picture of the day 'Set as wallpaper' feature/CTA is enabled",
       value: false,
     },
   ],
@@ -1489,6 +1499,14 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "widgets.crossword.interaction",
+    {
+      title:
+        "Boolean flag for determining if a user has interacted with the crossword widget",
+      value: false,
+    },
+  ],
+  [
     "widgets.stocks.enabled",
     {
       title: "Enables the stocks widget",
@@ -2179,6 +2197,12 @@ const FEEDS_DATA = [
     factory: () => new lazy.ExternalComponentsFeed(),
     title: "Handles updating the registry of external components",
     value: true,
+  },
+  {
+    name: "webnotificationsfeed",
+    factory: () => new lazy.WebNotificationsFeed(),
+    title: "Handles snapshotting the platform NotificationDB",
+    value: false,
   },
 ];
 

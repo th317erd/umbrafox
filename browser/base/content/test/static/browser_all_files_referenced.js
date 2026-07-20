@@ -74,6 +74,7 @@ var gExceptionPaths = [
   // Points to theme preview images, which are defined in browser/ but only used
   // in toolkit/mozapps/extensions/content/aboutaddons.js.
   "resource://usercontext-content/builtin-themes/",
+  "resource://usercontext-content/extra-themes-previews/",
 
   // Page data schemas are referenced programmatically.
   "chrome://browser/content/pagedata/schemas/",
@@ -340,21 +341,6 @@ var allowlist = [
   // `chrome://global/skin/icons/shaft-arrow-${isRTL ? "right" : "left"}.svg`
   { file: "chrome://global/skin/icons/shaft-arrow-left.svg" },
   { file: "chrome://global/skin/icons/shaft-arrow-right.svg" },
-
-  // Bug 1907594 - Created an inital set of messaging system targeting constants
-  // Preparation for future use in ASRouter
-  {
-    file: "resource://app/modules/asrouter/MessagingTargetingConstants.sys.mjs",
-  },
-
-  // Bug 2051554 - Added a new FirefoxThemesList.sys.mjs as single source of truth for the Nova themes
-  // to be shown in the new Firefox Themes Picker UI components.
-  //
-  // TODO: remove this exception once the first patch using the new module has been landed
-  // (e.g. Bug 2050529 and/or Bug 2051571)
-  {
-    file: "moz-src:///browser/themes/ThemesList.sys.mjs",
-  },
 ];
 
 if (AppConstants.NIGHTLY_BUILD) {

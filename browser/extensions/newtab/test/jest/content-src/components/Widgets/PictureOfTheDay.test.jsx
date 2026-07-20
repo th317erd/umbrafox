@@ -19,7 +19,9 @@ const mockState = {
       "widgets.system.pictureOfTheDay.enabled": true,
       "widgets.pictureOfTheDay.enabled": true,
       "widgets.pictureOfTheDay.size": "medium",
+      "widgets.pictureOfTheDay.setAsWallpaper.enabled": true,
       "newtabWallpapers.enabled": true,
+      "newtabWallpapers.user.enabled": true,
       "newtabWallpapers.customWallpaper.enabled": true,
     },
   },
@@ -236,6 +238,28 @@ describe("PictureOfTheDay widget", () => {
       ).toBeFalsy();
     });
 
+    it("renders the New badge until the widget has been interacted with", () => {
+      const { container } = renderWidget(jest.fn(), {}, populatedState);
+      const badge = container.querySelector(".picture-of-the-day-new-badge");
+      expect(badge).toBeTruthy();
+      // type="new" logs a missing-string error on newtab, so it must stay off.
+      expect(badge.hasAttribute("type")).toBe(false);
+      expect(badge.getAttribute("data-l10n-id")).toBe(
+        "newtab-widget-lists-label-new"
+      );
+    });
+
+    it("hides the New badge once the interaction pref is set", () => {
+      const { container } = renderWidget(
+        jest.fn(),
+        {},
+        withPrefs({ "widgets.pictureOfTheDay.interaction": true })
+      );
+      expect(
+        container.querySelector(".picture-of-the-day-new-badge")
+      ).toBeFalsy();
+    });
+
     it("falls back to the empty state when the picture fails to load", () => {
       const { container } = renderWidget(jest.fn(), {}, populatedState);
       const img = container.querySelector("img.picture-of-the-day-image");
@@ -267,17 +291,70 @@ describe("PictureOfTheDay widget", () => {
       ).toBeTruthy();
     });
 
-    it("collapses the Set wallpaper button once it is set as wallpaper", () => {
+    it("keeps the Set wallpaper button collapsed with a checkmark while the current picture is the active wallpaper", () => {
       const { container } = renderWidget(
         jest.fn(),
         {},
-        withPrefs({ "widgets.pictureOfTheDay.setAsWallpaper": true })
+        withPrefs({ "widgets.pictureOfTheDay.wallpaperActive": "2026-07-01" })
+      );
+      const button = container.querySelector(
+        ".picture-of-the-day-set-wallpaper"
+      );
+      expect(button.classList.contains("is-collapsed")).toBe(true);
+      expect(button.classList.contains("no-expand")).toBe(true);
+      expect(button.getAttribute("iconsrc")).toBe(
+        "chrome://global/skin/icons/check.svg"
+      );
+    });
+
+    it("does nothing when the checkmark (already-set) button is clicked", () => {
+      const dispatch = jest.fn();
+      const { container } = renderWidget(
+        dispatch,
+        {},
+        withPrefs({ "widgets.pictureOfTheDay.wallpaperActive": "2026-07-01" })
+      );
+      fireEvent.click(
+        container.querySelector(".picture-of-the-day-set-wallpaper")
       );
       expect(
-        container.querySelector(
-          ".picture-of-the-day-set-wallpaper.is-collapsed"
+        dispatch.mock.calls.find(
+          ([action]) => action.type === at.WIDGETS_PICTURE_SET_WALLPAPER
         )
-      ).toBeTruthy();
+      ).toBeFalsy();
+    });
+
+    it("hides the checkmark while wallpapers are toggled off, keeping the stored date", () => {
+      const { container } = renderWidget(
+        jest.fn(),
+        {},
+        withPrefs({
+          "widgets.pictureOfTheDay.wallpaperActive": "2026-07-01",
+          "newtabWallpapers.user.enabled": false,
+        })
+      );
+      const button = container.querySelector(
+        ".picture-of-the-day-set-wallpaper"
+      );
+      expect(button.classList.contains("is-collapsed")).toBe(false);
+      expect(button.getAttribute("iconsrc")).toBe(
+        "chrome://browser/skin/canvas.svg"
+      );
+    });
+
+    it("re-offers the Set wallpaper CTA when the active-wallpaper date is for a different picture", () => {
+      const { container } = renderWidget(
+        jest.fn(),
+        {},
+        withPrefs({ "widgets.pictureOfTheDay.wallpaperActive": "2026-06-30" })
+      );
+      const button = container.querySelector(
+        ".picture-of-the-day-set-wallpaper"
+      );
+      expect(button.classList.contains("is-collapsed")).toBe(false);
+      expect(button.getAttribute("iconsrc")).toBe(
+        "chrome://browser/skin/canvas.svg"
+      );
     });
 
     it("hides the Set wallpaper button when custom wallpapers are disabled", () => {
@@ -296,6 +373,66 @@ describe("PictureOfTheDay widget", () => {
         jest.fn(),
         {},
         withPrefs({ "newtabWallpapers.enabled": false })
+      );
+      expect(
+        container.querySelector(".picture-of-the-day-set-wallpaper")
+      ).toBeFalsy();
+    });
+
+    it("hides the Set wallpaper button when the feature is disabled", () => {
+      const { container } = renderWidget(
+        jest.fn(),
+        {},
+        withPrefs({ "widgets.pictureOfTheDay.setAsWallpaper.enabled": false })
+      );
+      expect(
+        container.querySelector(".picture-of-the-day-set-wallpaper")
+      ).toBeFalsy();
+    });
+
+    it("shows the Set wallpaper button when a trainhopConfig override enables the feature despite the pref being off", () => {
+      const { container } = renderWidget(
+        jest.fn(),
+        {},
+        withPrefs({
+          "widgets.pictureOfTheDay.setAsWallpaper.enabled": false,
+          trainhopConfig: {
+            widgets: { pictureOfTheDaySetAsWallpaperEnabled: true },
+          },
+        })
+      );
+      expect(
+        container.querySelector(".picture-of-the-day-set-wallpaper")
+      ).toBeTruthy();
+    });
+
+    it("shows the Set wallpaper button when the dedicated widgetPictureOfTheDay namespace enables the feature", () => {
+      const { container } = renderWidget(
+        jest.fn(),
+        {},
+        withPrefs({
+          "widgets.pictureOfTheDay.setAsWallpaper.enabled": false,
+          trainhopConfig: {
+            widgetPictureOfTheDay: { setAsWallpaperEnabled: true },
+          },
+        })
+      );
+      expect(
+        container.querySelector(".picture-of-the-day-set-wallpaper")
+      ).toBeTruthy();
+    });
+
+    it("lets the dedicated widgetPictureOfTheDay namespace win over the shared widgets key", () => {
+      const { container } = renderWidget(
+        jest.fn(),
+        {},
+        withPrefs({
+          "widgets.pictureOfTheDay.setAsWallpaper.enabled": true,
+          trainhopConfig: {
+            widgetPictureOfTheDay: { setAsWallpaperEnabled: false },
+            widgets: { pictureOfTheDaySetAsWallpaperEnabled: true },
+          },
+        })
       );
       expect(
         container.querySelector(".picture-of-the-day-set-wallpaper")
@@ -401,9 +538,6 @@ describe("PictureOfTheDay widget", () => {
       },
     };
 
-    const findOpenLink = dispatch =>
-      dispatch.mock.calls.find(([action]) => action.type === at.OPEN_LINK);
-
     it("renders the author credit, source link, and license link", () => {
       const { container } = renderWidget(jest.fn(), {}, attributedState);
       const author = container.querySelector(
@@ -435,27 +569,22 @@ describe("PictureOfTheDay widget", () => {
       ).toBeTruthy();
     });
 
-    it("opens the source page in a new tab from the attribution link", () => {
-      const dispatch = jest.fn();
-      const { container } = renderWidget(dispatch, {}, attributedState);
+    it("links the source page via the anchor href for same-tab navigation", () => {
+      const { container } = renderWidget(jest.fn(), {}, attributedState);
       const sourceLink = container.querySelector(
         '[data-l10n-id="newtab-picture-attribution-source-link"]'
       );
-      fireEvent.click(sourceLink);
-      const openLink = findOpenLink(dispatch);
-      expect(openLink[0].data.url).toBe(SOURCE_URL);
-      expect(openLink[0].data.where).toBe("tab");
+      expect(sourceLink.tagName).toBe("A");
+      expect(sourceLink.getAttribute("href")).toBe(SOURCE_URL);
     });
 
-    it("opens the license page in a new tab from the license link", () => {
-      const dispatch = jest.fn();
-      const { container } = renderWidget(dispatch, {}, attributedState);
-      fireEvent.click(
-        container.querySelector(
-          '[data-l10n-id="newtab-picture-attribution-license"]'
-        )
+    it("links the license page via the anchor href for same-tab navigation", () => {
+      const { container } = renderWidget(jest.fn(), {}, attributedState);
+      const licenseLink = container.querySelector(
+        '[data-l10n-id="newtab-picture-attribution-license"]'
       );
-      expect(findOpenLink(dispatch)[0].data.url).toBe(LICENSE_URL);
+      expect(licenseLink.tagName).toBe("A");
+      expect(licenseLink.getAttribute("href")).toBe(LICENSE_URL);
     });
 
     it("records an open_license user event when the license link is clicked", () => {
@@ -475,13 +604,13 @@ describe("PictureOfTheDay widget", () => {
       expect(evt[0].data.widget_name).toBe("picture_of_the_day");
     });
 
-    it("opens the source when the image is clicked", () => {
-      const dispatch = jest.fn();
-      const { container } = renderWidget(dispatch, {}, attributedState);
-      fireEvent.click(
-        container.querySelector(".picture-of-the-day-image-link")
+    it("links the image to the source page via the anchor href", () => {
+      const { container } = renderWidget(jest.fn(), {}, attributedState);
+      const imageLink = container.querySelector(
+        ".picture-of-the-day-image-link"
       );
-      expect(findOpenLink(dispatch)[0].data.url).toBe(SOURCE_URL);
+      expect(imageLink.tagName).toBe("A");
+      expect(imageLink.getAttribute("href")).toBe(SOURCE_URL);
     });
 
     it("omits attribution parts and links whose fields are absent", () => {

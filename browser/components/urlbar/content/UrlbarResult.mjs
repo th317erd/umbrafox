@@ -20,7 +20,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   JsonSchemaValidator:
     "resource://gre/modules/components-utils/JsonSchemaValidator.sys.mjs",
-  ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   UrlbarUtils: "moz-src:///browser/components/urlbar/UrlbarUtils.sys.mjs",
 });
 
@@ -73,6 +72,10 @@ export class UrlbarResult {
    * @param {Payload} [params.payload]
    * @param {Highlights} [params.highlights]
    * @param {boolean} [params.testForceNewContent] Used for test only.
+   * @param {boolean} [params.skipPayloadValidation]
+   *   Skips payload schema validation. Set by {@link UrlbarResult.fromWire} when
+   *   reconstructing a result that was already validated before serialization;
+   *   the wire payload can carry internal fields added after validation.
    */
   constructor({
     type,
@@ -96,6 +99,7 @@ export class UrlbarResult {
     payload,
     highlights = null,
     testForceNewContent,
+    skipPayloadValidation = false,
   }) {
     // Type describes the payload and visualization that should be used for
     // this result.
@@ -125,7 +129,9 @@ export class UrlbarResult {
       this.#highlights = Object.freeze(highlights);
     }
 
-    this.#payload = this.#validatePayload(payload);
+    this.#payload = skipPayloadValidation
+      ? payload
+      : this.#validatePayload(payload);
 
     this.#autofill = autofill;
     this.#exposureTelemetry = exposureTelemetry;
@@ -158,6 +164,24 @@ export class UrlbarResult {
    *   updated by UrlbarView when new result sets are displayed.
    */
   rowIndex = undefined;
+
+  /**
+   * A dynamic result's view template, computed eagerly when the result is
+   * finalized so the view can read it synchronously without asking the
+   * provider (which, on the actor message path, lives in another process).
+   * Undefined for non-dynamic results.
+   *
+   * @type {object|undefined}
+   */
+  viewTemplate = undefined;
+
+  /**
+   * The result menu commands the result's provider offers, computed eagerly
+   * alongside `viewTemplate`. Undefined if the provider offers none.
+   *
+   * @type {?UrlbarResultCommand[]|undefined}
+   */
+  commands = undefined;
 
   get type() {
     return this.#type;
@@ -329,7 +353,7 @@ export class UrlbarResult {
       if (
         options.isURL == cached.options.isURL &&
         (options.tokens == undefined ||
-          lazy.ObjectUtils.deepEqual(options.tokens, cached.options.tokens))
+          UrlbarShared.deepEqual(options.tokens, cached.options.tokens))
       ) {
         return this.#displayValuesCache.get(payloadName);
       }
@@ -406,6 +430,11 @@ export class UrlbarResult {
    * Returns the given payload if it's valid or throws an error if it's not.
    * The schemas in UrlbarUtils.RESULT_PAYLOAD_SCHEMA are used for validation.
    *
+   * This must only validate the payload, never transform it or add/remove
+   * properties: the constructor's skipPayloadValidation option bypasses this
+   * method entirely, so any such change would make skipPayloadValidation
+   * consumers (e.g. fromWire) diverge from validated results.
+   *
    * @param {object} payload The payload object.
    * @returns {object} `payload` if it's valid.
    */
@@ -449,9 +478,9 @@ export class UrlbarResult {
 
   /**
    * Serializes this result to a plain, structured-cloneable object for sending
-   * across the Urlbar actor boundary. The data lives in private fields that a
-   * bare structuredClone() would drop, so capture it explicitly. `rowIndex` is
-   * the only public own property.
+   * across the Urlbar actor boundary. Most data lives in private fields that a
+   * bare structuredClone() would drop, so capture it explicitly; `rowIndex`,
+   * `viewTemplate`, and `commands` are the public own properties.
    *
    * @returns {object} The wire representation; reconstruct with fromWire().
    */
@@ -476,9 +505,12 @@ export class UrlbarResult {
       rowLabel: this.#rowLabel,
       showFeedbackMenu: this.#showFeedbackMenu,
       suggestedIndex: this.#suggestedIndex,
+      testForceNewContent: this.#testForceNewContent,
       payload: this.#payload,
       highlights: this.#highlights,
       rowIndex: this.rowIndex,
+      viewTemplate: this.viewTemplate,
+      commands: this.commands,
     };
   }
 
@@ -490,10 +522,12 @@ export class UrlbarResult {
    * @returns {UrlbarResult} The reconstructed result.
    */
   static fromWire(wire) {
-    let result = new UrlbarResult(wire);
+    let result = new UrlbarResult({ ...wire, skipPayloadValidation: true });
     // providerType and rowIndex aren't constructor parameters, so re-apply them.
     result.providerType = wire.providerType;
     result.rowIndex = wire.rowIndex;
+    result.viewTemplate = wire.viewTemplate;
+    result.commands = wire.commands;
     return result;
   }
 

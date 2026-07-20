@@ -58,8 +58,8 @@ const lazy = XPCOMUtils.declareLazy({
   ExtensionSearchHandler:
     "resource://gre/modules/ExtensionSearchHandler.sys.mjs",
   ExtensionUtils: "resource://gre/modules/ExtensionUtils.sys.mjs",
-  ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   PartnerLinkAttribution: "resource:///modules/PartnerLinkAttribution.sys.mjs",
+  PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   ReaderMode: "moz-src:///toolkit/components/reader/ReaderMode.sys.mjs",
   SearchService: "moz-src:///toolkit/components/search/SearchService.sys.mjs",
@@ -708,6 +708,9 @@ ${
    * Note that it might be called before #init has finished.
    */
   #onContextMenuRebuilt() {
+    if (this.#isAddressbar || this.#isSmartbarMode) {
+      this._initAutofillDismiss();
+    }
     if (this.#isSmartbarMode) {
       this.#initSmartbarContextMenuPaste();
       this._initPasteAndGo();
@@ -1089,7 +1092,7 @@ ${
       case "keyword.enabled":
         this._updatePlaceholderFromDefaultEngine().catch(e =>
           // This can happen if the search service failed.
-          console.warn("Falied to update urlbar placeholder:", e)
+          console.warn("Failed to update urlbar placeholder:", e)
         );
         break;
       case "browser.search.widget.new": {
@@ -1326,7 +1329,7 @@ ${
     const previousSelectionStart = this.selectionStart + offset;
     const previousSelectionEnd = this.selectionEnd + offset;
 
-    this._setValue(value, { allowTrim: true, valueIsTyped: !valid });
+    this.setValue(value, { allowTrim: true, valueIsTyped: !valid });
     this.toggleAttribute("usertyping", !valid && value);
 
     if (this.focused && value != previousUntrimmedValue) {
@@ -2625,7 +2628,7 @@ ${
         searchSource: this.getSearchSource(event),
         windowMode: this.windowMode,
       })
-      .catch(lazy.logger.error);
+      .catch(e => lazy.logger.error(e));
 
     this.controller.engagementEvent.record(event, {
       result,
@@ -2700,6 +2703,11 @@ ${
     this.#updateCtaSearchEngineInfo();
     this.#contextWebsites = [];
     this.#updateContextChips();
+    this.dispatchEvent(
+      new CustomEvent("smartbar-context-chips-changed", {
+        bubbles: true,
+      })
+    );
     this.setSelectionRange(0, 0);
     this.view.close();
   }
@@ -2761,7 +2769,7 @@ ${
       return false;
     }
 
-    // We won't allow trimming when calling _setValue, since it makes too easy
+    // We won't allow trimming when calling setValue, since it makes too easy
     // for the user to wrongly transform `https` into `http`, for example by
     // picking a https://site/path_1 result and editing the path to path_2,
     // then we'd end up visiting http://site/path_2.
@@ -2778,7 +2786,7 @@ ${
       result.autofill ? this._lastSearchString : this.value
     );
     if (canonizedUrl) {
-      this._setValue(canonizedUrl);
+      this.setValue(canonizedUrl);
 
       this.setResultForCurrentValue(result);
       return true;
@@ -2806,7 +2814,7 @@ ${
         });
       }
       if (!enteredSearchMode) {
-        this._setValue(this.#getValueFromResult(result), {
+        this.setValue(this.#getValueFromResult(result), {
           actionType: this.#getActionTypeFromResult(result),
         });
         this.searchMode = null;
@@ -2817,7 +2825,7 @@ ${
 
     if (!result.autofill) {
       let value = this.#getValueFromResult(result, { urlOverride, element });
-      this._setValue(value, {
+      this.setValue(value, {
         actionType: this.#getActionTypeFromResult(result),
       });
     }
@@ -2946,7 +2954,7 @@ ${
       !this.value.endsWith(" ")
     ) {
       this._autofillPlaceholder = null;
-      this._setValue(this.userTypedValue);
+      this.setValue(this.userTypedValue);
     }
 
     return false;
@@ -3372,7 +3380,7 @@ ${
     let currentSearchMode = this.getSearchMode(browser);
     let areSearchModesSame =
       (!currentSearchMode && !searchMode) ||
-      lazy.ObjectUtils.deepEqual(currentSearchMode, searchMode);
+      UrlbarShared.deepEqual(currentSearchMode, searchMode);
 
     // Exit search mode if the passed-in engine is invalid or hidden.
     let engine;
@@ -3715,7 +3723,7 @@ ${
   }
 
   set value(val) {
-    this._setValue(val, { allowTrim: true });
+    this.setValue(val, { allowTrim: true });
   }
 
   get untrimmedValue() {
@@ -3933,7 +3941,7 @@ ${
     this.searchMode = searchMode;
 
     let value = result.payload.query?.trimStart() || "";
-    this._setValue(value);
+    this.setValue(value);
 
     if (startQuery) {
       this.startQuery({ allowAutofill: false });
@@ -4224,7 +4232,7 @@ ${
    *
    * @returns {string} The set value.
    */
-  _setValue(
+  setValue(
     val,
     {
       allowTrim = false,
@@ -4876,7 +4884,7 @@ ${
         );
         this.formatValue();
       } else {
-        this._setValue(value, { untrimmedValue });
+        this.setValue(value, { untrimmedValue });
         this.setSelectionRange(selectionStart, selectionEnd);
       }
       this._autofillPlaceholder = {
@@ -5328,7 +5336,7 @@ ${
     }
 
     if (moveCursorToStart) {
-      this._setValue(this._untrimmedValue, {
+      this.setValue(this._untrimmedValue, {
         valueIsTyped: this.valueIsTyped,
       });
       this.setSelectionRange(0, 0);
@@ -5370,7 +5378,7 @@ ${
       selectionEnd += offset;
     }
 
-    this._setValue(this._untrimmedValue, {
+    this.setValue(this._untrimmedValue, {
       valueIsTyped: this.valueIsTyped,
     });
 
@@ -5499,6 +5507,125 @@ ${
     });
 
     insertLocation.insertAdjacentElement("afterend", pasteAndGo);
+  }
+
+  // Adds "Dismiss" and "Forget this site" entries to the urlbar input context
+  // menu, both hidden unless the heuristic result is autofill.
+  _initAutofillDismiss() {
+    let contextMenu = this.querySelector("moz-input-box").menupopup;
+    let insertLocation = this.#findMenuItemLocation("cmd_selectAll");
+    if (!insertLocation) {
+      return;
+    }
+
+    // Use ownerDocument so the elements share a docgroup with the context
+    // menu. In smartbar mode this.document points at the top chrome window,
+    // which is a different docgroup than the AI window that hosts the input.
+    let doc = this.ownerDocument;
+    let separator = doc.createXULElement("menuseparator");
+    separator.setAttribute("anonid", "urlbar-input-autofill-dismiss-separator");
+
+    let dismiss = doc.createXULElement("menuitem");
+    dismiss.setAttribute("anonid", "urlbar-input-dismiss-autofill");
+    doc.l10n.setAttributes(dismiss, "urlbar-input-dismiss-autofill");
+    dismiss.addEventListener("command", () => {
+      this.#dismissAdaptiveAutofillFromContextMenu("dismiss");
+    });
+
+    let forget = doc.createXULElement("menuitem");
+    forget.setAttribute("anonid", "urlbar-input-remove-from-history");
+    doc.l10n.setAttributes(forget, "urlbar-input-remove-from-history");
+    forget.addEventListener("command", () => {
+      this.#dismissAdaptiveAutofillFromContextMenu("forget");
+    });
+
+    insertLocation.insertAdjacentElement("afterend", separator);
+    separator.insertAdjacentElement("afterend", dismiss);
+    dismiss.insertAdjacentElement("afterend", forget);
+
+    contextMenu.addEventListener("popupshowing", () => {
+      let { showDismiss, showForget } =
+        this.#autofillDismissContextMenuVisibility();
+      separator.hidden = !showDismiss && !showForget;
+      dismiss.hidden = !showDismiss;
+      forget.hidden = !showForget;
+    });
+  }
+
+  /**
+   * Computes whether the autofill dismiss/forget context menu items should be
+   * shown for the current heuristic autofill result.
+   *
+   * @returns {{ showDismiss: boolean, showForget: boolean }}
+   *   showDismiss is true when the "Dismiss" item should be visible, which
+   *   requires adaptive history autofill to be enabled, the current heuristic
+   *   result to be an autofill of type "adaptive_url", "adaptive_origin" or
+   *   "origin", and the window to not be private. showForget is true when the
+   *   "Remove from history" item should be visible, which requires the
+   *   autofilled URL to be a deep link.
+   */
+  #autofillDismissContextMenuVisibility() {
+    let hidden = { showDismiss: false, showForget: false };
+
+    if (!lazy.UrlbarPrefs.get("autoFill.adaptiveHistory.enabled")) {
+      return hidden;
+    }
+
+    let result = this._resultForCurrentValue;
+    if (!result?.heuristic || !result.autofill) {
+      return hidden;
+    }
+
+    let type = result.autofill.type;
+    if (
+      type !== "adaptive_url" &&
+      type !== "adaptive_origin" &&
+      type !== "origin"
+    ) {
+      return hidden;
+    }
+
+    let isOrigin = lazy.UrlbarUtils.isOriginUrl(result.payload.url);
+    return {
+      showDismiss: !this.isPrivate,
+      showForget: !isOrigin,
+    };
+  }
+
+  /**
+   * Dismisses the current heuristic autofill result.
+   *
+   * @param {"dismiss" | "forget"} action
+   *   "dismiss" blocks the autofill pairing for a period of time.
+   *   "forget" removes the URL from history entirely.
+   */
+  async #dismissAdaptiveAutofillFromContextMenu(action) {
+    let result = this._resultForCurrentValue;
+    if (!result?.heuristic || !result.autofill) {
+      return;
+    }
+
+    Glean.urlbarAutofill.inputContextMenuDismissal[action].add(1);
+
+    let { url } = result.payload;
+    if (action === "forget") {
+      await lazy.PlacesUtils.history.remove(url).catch(console.error);
+    } else {
+      let blockUntilMs =
+        Date.now() + lazy.UrlbarPrefs.get("autoFill.dismissalBlockDurationMs");
+      await lazy.UrlbarUtils.blockAutofill(url, blockUntilMs).catch(
+        console.error
+      );
+    }
+
+    lazy.UrlbarUtils.clearAutofillBackspaceEntryForUrl(url);
+
+    this.setValue(this._lastSearchString);
+    this.startQuery({
+      searchString: this._lastSearchString,
+      allowAutofill: false,
+      resetSearchState: false,
+    });
   }
 
   /**
@@ -6162,7 +6289,7 @@ ${
         }
       }
       if (untrim) {
-        this._setValue(this._untrimmedValue);
+        this.setValue(this._untrimmedValue);
       }
     }
 
@@ -6516,7 +6643,7 @@ ${
       event.stopImmediatePropagation();
 
       const value = oldStart + pasteData + oldEnd;
-      this._setValue(value, { valueIsTyped: true });
+      this.setValue(value, { valueIsTyped: true });
       this.userTypedValue = value;
 
       // Since we prevent the default paste event, we have to ensure the
@@ -6562,10 +6689,14 @@ ${
   } = {}) {
     // When we are in actions search mode we can show more results so
     // increase the limit.
-    let maxResults =
-      this.searchMode?.source != UrlbarShared.RESULT_SOURCE.ACTIONS
-        ? lazy.UrlbarPrefs.get("maxRichResults")
-        : UNLIMITED_MAX_RESULTS;
+    let maxResults;
+    if (this.searchMode?.source == UrlbarShared.RESULT_SOURCE.ACTIONS) {
+      maxResults = UNLIMITED_MAX_RESULTS;
+    } else if (this.#isSmartbarMode) {
+      maxResults = lazy.UrlbarPrefs.get("smartbar.maxResults");
+    } else {
+      maxResults = lazy.UrlbarPrefs.get("maxRichResults");
+    }
     let options = {
       allowAutofill,
       isPrivate: this.isPrivate,
@@ -7239,6 +7370,45 @@ ${
   }
 
   /**
+   * Returns the user-added context chips, excluding the
+   * implicit current-tab chip, which is derived per tab.
+   *
+   * @returns {ContextWebsite[]}
+   */
+  get contextChips() {
+    return this.#contextWebsites;
+  }
+
+  /**
+   * Whether the user dismissed the implicit current-tab chip. Persisted with
+   * the chips so the dismissal is restored per tab.
+   *
+   * @returns {boolean}
+   */
+  get removedImplicitContextChip() {
+    return !!this.#removedImplicitTabUrl;
+  }
+
+  /**
+   * Replaces the context chips with the saved ones during a tab-state restore and
+   * re-renders. Does not emit the context-chips-change event, so re-applying
+   * saved chips doesn't feed back into the tab state manager.
+   *
+   * @param {ContextWebsite[]} [chips] - The user-added chips to restore.
+   * @param {boolean} [removedImplicitContextChip] - Restored dismissal of the
+   *   implicit current-tab chip.
+   */
+  restoreContextChips(chips = [], removedImplicitContextChip = false) {
+    this.#contextWebsites = [...chips];
+    const currentTabUrl =
+      this.window.gBrowser?.selectedTab?.linkedBrowser?.currentURI?.spec;
+    this.#removedImplicitTabUrl = removedImplicitContextChip
+      ? currentTabUrl
+      : null;
+    this.#updateContextChips();
+  }
+
+  /**
    * Resolves a tab favicon to a URL safe for use in both aiWindow.html and
    * aiChatContent.html. Only chrome: URLs are passed through; all others
    * (data:, moz-remote-image:, https:, etc.) fall back to page-icon: which
@@ -7323,6 +7493,11 @@ ${
       this.#contextWebsites = [...this.#contextWebsites, mention];
     }
     this.#updateContextChips();
+    this.dispatchEvent(
+      new CustomEvent("smartbar-context-chips-changed", {
+        bubbles: true,
+      })
+    );
   }
 
   /**
@@ -7345,6 +7520,11 @@ ${
 
     if (this.#contextWebsites.length !== originalLength || isCurrentTab) {
       this.#updateContextChips();
+      this.dispatchEvent(
+        new CustomEvent("smartbar-context-chips-changed", {
+          bubbles: true,
+        })
+      );
     }
   }
 }
@@ -7624,7 +7804,7 @@ class AddSearchEngineHelper {
     if (engines1?.length != engines2?.length) {
       return false;
     }
-    return lazy.ObjectUtils.deepEqual(
+    return UrlbarShared.deepEqual(
       engines1.map(e => e.title),
       engines2.map(e => e.title)
     );

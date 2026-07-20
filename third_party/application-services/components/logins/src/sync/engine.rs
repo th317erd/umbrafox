@@ -8,7 +8,7 @@ use super::SyncStatus;
 use crate::db::CLONE_ENTIRE_MIRROR_SQL;
 use crate::encryption::EncryptorDecryptor;
 use crate::error::*;
-use crate::login::EncryptedLogin;
+use crate::login::{EncryptedLogin, FXA_CREDENTIALS_ORIGIN};
 use crate::schema;
 use crate::util;
 use crate::LoginDb;
@@ -24,18 +24,10 @@ use sync15::engine::{CollSyncIds, CollectionRequest, EngineSyncAssociation, Sync
 use sync15::{telemetry, ServerTimestamp};
 use sync_guid::Guid;
 
-// The Desktop FxA session-credentials pseudo-login. Firefox stores its account
-// credentials as a login under this origin; it must never be synced. This
-// mirrors the exclusion the JS `PasswordEngine` does via
-// `Utils.getSyncCredentialsHosts()`. Only relevant on Desktop (mobile never has
-// such a login), but it's harmless to filter everywhere.
-const FXA_CREDENTIALS_ORIGIN: &str = "chrome://FirefoxAccounts";
-
 // The sync engine.
 pub struct LoginsSyncEngine {
     pub store: Arc<LoginStore>,
     pub scope: SqlInterruptScope,
-    pub encdec: Arc<dyn EncryptorDecryptor>,
     // `Mutex` (rather than `RefCell`) so the engine is `Sync`, which the
     // Desktop `BridgedEngineAdaptor` requires. Only ever locked briefly.
     pub staged: Mutex<Vec<IncomingBso>>,
@@ -43,16 +35,20 @@ pub struct LoginsSyncEngine {
 
 impl LoginsSyncEngine {
     pub fn new(store: Arc<LoginStore>) -> Result<Self> {
-        let db = store.lock_db()?;
-        let scope = db.begin_interrupt_scope()?;
-        let encdec = db.encdec.clone();
-        drop(db);
+        let scope = store.lock_db()?.begin_interrupt_scope()?;
         Ok(Self {
             store,
-            encdec,
             scope,
             staged: Mutex::new(vec![]),
         })
+    }
+
+    // on Desktop the `EncryptorDecryptor` owns a foreign
+    // `PrimaryPasswordAuthenticator` callback, and a long-lived `Arc` clone
+    // held by the engine would keep that callback alive past
+    // `LoginDb::shutdown` (which drops the db's own reference).
+    fn encdec(&self) -> Result<Arc<dyn EncryptorDecryptor>> {
+        Ok(self.store.lock_db()?.encdec.clone())
     }
 
     fn reconcile(
@@ -62,6 +58,7 @@ impl LoginsSyncEngine {
         telem: &mut telemetry::EngineIncoming,
     ) -> Result<UpdatePlan> {
         let mut plan = UpdatePlan::default();
+        let encdec = self.encdec()?;
 
         for mut record in records {
             self.scope.err_if_interrupted()?;
@@ -83,7 +80,7 @@ impl LoginsSyncEngine {
                         upstream,
                         upstream_time,
                         server_now,
-                        self.encdec.as_ref(),
+                        encdec.as_ref(),
                     )?;
                     telem.reconciled(1);
                 }
@@ -143,10 +140,11 @@ impl LoginsSyncEngine {
     ) -> Result<Vec<SyncLoginData>> {
         let mut sync_data = Vec::with_capacity(records.len());
         {
+            let encdec = self.encdec()?;
             let mut seen_ids: HashSet<Guid> = HashSet::with_capacity(records.len());
             for incoming in records.into_iter() {
                 let id = incoming.envelope.id.clone();
-                match SyncLoginData::from_bso(incoming, self.encdec.as_ref()) {
+                match SyncLoginData::from_bso(incoming, encdec.as_ref()) {
                     Ok(v) => sync_data.push(v),
                     Err(e) => {
                         match e {
@@ -272,7 +270,7 @@ impl LoginsSyncEngine {
                 } else {
                     let unknown = row.get::<_, Option<String>>("enc_unknown_fields")?;
                     let mut bso =
-                        EncryptedLogin::from_row(row)?.into_bso(self.encdec.as_ref(), unknown)?;
+                        EncryptedLogin::from_row(row)?.into_bso(db.encdec.as_ref(), unknown)?;
                     bso.envelope.sortindex = Some(DEFAULT_SORTINDEX);
                     bso
                 })
@@ -395,7 +393,8 @@ impl LoginsSyncEngine {
             .form_action_origin
             .as_ref()
             .and_then(|s| util::url_host_port(s));
-        let enc_fields = l.decrypt_fields(self.encdec.as_ref())?;
+        let encdec = self.encdec()?;
+        let enc_fields = l.decrypt_fields(encdec.as_ref())?;
         let args = named_params! {
             ":origin": l.fields.origin,
             ":http_realm": l.fields.http_realm,
@@ -420,7 +419,7 @@ impl LoginsSyncEngine {
             .query_and_then(args, EncryptedLogin::from_row)?
             .collect::<Result<Vec<EncryptedLogin>>>()?
         {
-            let this_enc_fields = login.decrypt_fields(self.encdec.as_ref())?;
+            let this_enc_fields = login.decrypt_fields(encdec.as_ref())?;
             if enc_fields.username == this_enc_fields.username {
                 return Ok(Some(login));
             }

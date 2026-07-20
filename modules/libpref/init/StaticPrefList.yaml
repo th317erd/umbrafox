@@ -521,11 +521,7 @@
 #     applies to touchpad scrolling)
 - name: apz.axis_lock.mode
   type: RelaxedAtomicInt32
-#if defined(XP_MACOSX) && !defined(NIGHTLY_BUILD)
-  value: 3
-#else
   value: 2
-#endif
   mirror: always
 
 - name: apz.content_response_timeout
@@ -1316,6 +1312,20 @@
   type: bool
   value: false
   mirror: always
+
+# If true, content analysis uses an in-process WebAssembly DLP module
+# instead of an external agent.
+- name: browser.contentanalysis.use_wasm_backend
+  type: bool
+  value: false
+  mirror: always
+
+# If true, the content analysis extension must be signed before Firefox will
+# read and run its DLP module. Should only be set to false for testing.
+- name: browser.contentanalysis.wasm_module_extension_require_signature
+  type: bool
+  value: true
+  mirror: never
 
 # On Windows, whether to bring the foreground window to the front when printing
 # to avoid a DLP agent stealing focus and cancelling the print (bug 1980225)
@@ -2846,11 +2856,6 @@
   value: true
   mirror: always
 
-- name: dom.details_group.enabled
-  type: bool
-  value: true
-  mirror: always
-
 # Only propagate the open window click permission if the setTimeout() is equal
 # to or less than this value.
 - name: dom.disable_open_click_delay
@@ -3904,6 +3909,13 @@
   value: true
   mirror: always
 
+# Whether the muted content attribute acts as a live fallback for the muted
+# state. Gated to Nightly while other engines have not shipped this behavior.
+- name: dom.media.muted-state.enabled
+  type: bool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
 # Media element pseudo-classes
 - name: dom.media.pseudo-classes.enabled
   type: RelaxedAtomicBool
@@ -4662,6 +4674,36 @@
 - name: dom.quotaManager.artificialFailure.errorCode
   type: RelaxedAtomicUint32
   value: 0
+  mirror: always
+
+# A time interval in milliseconds from the latest modification of origin's
+# quota managed data after which the origin's metadata may be saved and the
+# origin marked as clean to avoid saving the metadata at shutdown and to
+# read to metadata from the storage database at startup. To avoid breaking
+# things, if the value is below 100 ms, 100 ms will be used instead.
+- name: dom.quotaManager.originWriteQuiescentThresholdMs
+  type: RelaxedAtomicUint32
+  value: 300000
+  mirror: always
+
+# A time interval in milliseconds for checking if any origins have not been
+# modified within dom.quotaManager.originWriteQuiescentThresholdMs
+# time interval and if so, saving their metadata. To avoid breaking things,
+# the value is bounded from below to 100 ms. The check is initialized together
+# with quota management and changing this value at runtime has no effect.
+- name: dom.quotaManager.originMetadataFlushCheckIntervalMs
+  type: RelaxedAtomicUint32
+  value: 120000
+  mirror: always
+
+# How many write-quiescent origins' metadata we try to save every
+# dom.quotaManager.originMetadataFlushCheckIntervalMs milliseconds?
+# To avoid excessive sudden IO spikes, we don't save every quiescent
+# origin's metadata at once but at most a fixed number and leave the rest
+# for the next round.
+- name: dom.quotaManager.maxOriginsToSaveInOneBatch
+  type: RelaxedAtomicUint32
+  value: 25
   mirror: always
 
 # Use to control to dump CheckedUnsafePtr creation stack and assignment stacks.
@@ -6397,12 +6439,6 @@
   value: false
   mirror: always
 
-# Whether to make the document name getter follow the spec.
-- name: dom.document.name_getter_follow_spec.enabled
-  type: bool
-  value: true
-  mirror: always
-
 # Whether to block the shadowing of known document properties.
 - name: dom.document.name_getter_prevent_shadowing.enabled
   type: bool
@@ -8110,18 +8146,17 @@
   value: false
   mirror: once
 
-#ifdef XP_WIN
-- name: gfx.webrender.force-angle
+- name: gfx.webrender.enable-angle
   type: bool
+#if defined(XP_WIN)
   value: true
-  mirror: once
+#else
+  value: false
 #endif
+  mirror: once
 
-# WebRender is not enabled when there is no GPU process on window when
-# WebRender uses ANGLE. It is for avoiding that WebGL and WebRender use ANGLE
-# at once. But there is a case that we want to enable WebRender for testing.
 #ifdef XP_WIN
-- name: gfx.webrender.enabled-no-gpu-process-with-angle-win
+- name: gfx.webrender.require-angle
   type: bool
   value: true
   mirror: once
@@ -8356,7 +8391,7 @@
 
 - name: gfx.webrender.compositor
   type: bool
-#if defined(XP_WIN) || defined(XP_DARWIN)
+#if defined(XP_WIN) || defined(XP_DARWIN) || defined(MOZ_WIDGET_GTK)
   value: true
 #else
   value: false
@@ -8797,12 +8832,10 @@
 # Prefs starting with "gl." (OpenGL)
 #---------------------------------------------------------------------------
 
-#ifdef XP_MACOSX
 - name: gl.allow-high-power
   type: RelaxedAtomicBool
   value: true
   mirror: always
-#endif
 
 #ifdef XP_WIN
 - name: gl.ignore-dx-interop2-blacklist
@@ -10587,13 +10620,6 @@
   mirror: always
   rust: true
 
-# Whether to enable position-try-order
-- name: layout.css.anchor-positioning.position-try-order.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-  rust: true
-
 # Whether to enable appearance: base for authors.
 - name: layout.css.appearance-base.enabled
   type: RelaxedAtomicBool
@@ -10615,6 +10641,14 @@
 # https://drafts.csswg.org/mediaqueries-5/
 # TODO(emilio): Needs more tests before enabling.
 - name: layout.css.custom-media.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+  rust: true
+
+# Whether to enable the CSS margin-trim property
+# https://drafts.csswg.org/css-box-4/#margin-trim
+- name: layout.css.margin-trim.enabled
   type: RelaxedAtomicBool
   value: false
   mirror: always
@@ -11276,7 +11310,7 @@
 # https://drafts.csswg.org/css-inline-3/#text-box-shorthand
 - name: layout.css.text-box.enabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Maximum number of lines to try balancing.
@@ -11710,6 +11744,14 @@
   type: bool
   value: false
   mirror: always
+
+# TODO(Bug 1540681): Merge with the prefixed version.
+# Is support for the unprefixed 'line-clamp' property enabled?
+- name: layout.css.line-clamp.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+  rust: true
 
 # Does webkit-line-clamp skip painting clamped lines?
 # See bug 1934547.
@@ -13917,11 +13959,7 @@
 
 - name: media.webrtc.hw.h264.enabled
   type: RelaxedAtomicBool
-#if defined(MOZ_WIDGET_ANDROID)
   value: true
-#else
-  value: false
-#endif
   mirror: always
 
 - name: media.webrtc.codec.video.av1.enabled
@@ -14042,6 +14080,21 @@
 - name: media.audio.playbackrate.soundtouch_overlap_ms
   type: RelaxedAtomicInt32
   value: 8
+  mirror: always
+
+# Reuse the cubeb audio stream across a seek instead of destroying and
+# recreating it. The stream is kept running (not stopped) and its clock is
+# rebased in place, avoiding the synchronous cubeb_stream_start on the seek
+# critical path that otherwise dominates audible seek-resume latency on macOS.
+# Enabled on macOS first, where the win is largest; once it proves out there it
+# can be turned on for other platforms.
+- name: media.audio.reuse-stream-on-seek
+  type: RelaxedAtomicBool
+#if defined(XP_MACOSX)
+  value: true
+#else
+  value: false
+#endif
   mirror: always
 
 # The duration, in milliseconds, of decoded audio to keep around in the
@@ -15559,11 +15612,9 @@
   mirror: always
 
 # This preference controls if we need to fail transactions for Local Network Access (LNA) failures.
-# Currently it is enabled only for nightly builds.
-# For beta and release users we will be enabling it only for ETP strict users using network.lna.etp.enabled
 - name: network.lna.blocking
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # When this pref is true, loads triggered by scripts classified as trackers
@@ -18549,15 +18600,6 @@
     value: @IS_NIGHTLY_BUILD@
     mirror: always
 
-  # This controls the depth of stack trace that is logged when Windows sandbox
-  # logging is turned on. This is only currently available for the content
-  # process because the only other sandbox (for GMP) has too strict a policy to
-  # allow stack tracing. This does not require a restart to take effect.
--   name: security.sandbox.windows.log.stackTraceDepth
-    type: RelaxedAtomicUint32
-    value: 0
-    mirror: always
-
   # Whether \Device\KsecDD is closed in content process. We are closing this
   # using a pref to give users a work-around if they have issues.
 -   name: security.sandbox.content.close-ksecdd-handle
@@ -18748,6 +18790,16 @@
 - name: security.nocertdb
   type: RelaxedAtomicBool
   value: false
+  mirror: always
+
+# How long (in milliseconds) security-sensitive notifications delay before
+# their buttons become enabled, to guard against clickjacking. Native file
+# pickers reuse this value to ignore a confirmation that arrives too soon after
+# the picker is shown, keeping the picker open instead of accepting it. Set to
+# 0 to disable.
+- name: security.notification_enable_delay
+  type: RelaxedAtomicUint32
+  value: 500
   mirror: always
 
 # Whether or not to import and trust third party root certificates from the OS.
@@ -18980,6 +19032,12 @@
   mirror: always
   rust: true
 
+# Whether to enable the CNSA 2.0 ML-KEM-1024 key agreement in TLS.
+- name: security.tls.enable_mlkem1024
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 - name: security.tls.client_hello.send_p256_keyshare
   type: RelaxedAtomicBool
   value: @IS_NOT_NIGHTLY_BUILD@
@@ -19081,7 +19139,7 @@
 
 - name: security.ssl3.ecdhe_ecdsa_aes_256_sha
   type: RelaxedAtomicBool
-  value: @IS_NOT_EARLY_BETA_OR_EARLIER@
+  value: false
   mirror: always
 
 - name: security.ssl3.dhe_rsa_aes_128_sha
@@ -20568,6 +20626,14 @@
   value: true
   mirror: always
 
+# Whether to throttle X11 key press events that look like auto-repeat.
+# Disabling this can fix dropped characters with barcode scanners and other
+# fast input devices (bug 1098981).
+- name: widget.gtk.x11-key-repeat-throttle.enabled
+  type: bool
+  value: false
+  mirror: always
+
 # Whether we enable rounded bottom corners on GTK by default.
 #
 # The implementation is a bit hacky (see details in bug 1850827) so behind a
@@ -20684,7 +20750,7 @@
 # Use xdg-session-management-v1 for session restore on Wayland.
 - name: widget.wayland.session-management.enabled
   type: bool
-  value: true
+  value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: once
 
 # Use native D&D session type on Wayland instead of Gtk.

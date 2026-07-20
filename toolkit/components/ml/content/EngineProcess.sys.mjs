@@ -208,6 +208,14 @@ export const FEATURES = {
   "llm-telemetry": {
     engineId: "llm-telemetry-engine",
   },
+  //agents
+  "agent-monitor": {
+    engineId: "agent-monitor-engine",
+  },
+  // see browser/components/aiwindow/models/search/SearchAgent.sys.mjs
+  "search-answer-generation": {
+    engineId: "smart-openai",
+  },
 };
 
 /**

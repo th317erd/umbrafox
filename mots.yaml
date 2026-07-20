@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2026-06-24T13:35:09.623323+00:00'
+updated_at: '2026-07-16T14:38:22.699835+00:00'
 export:
   path: ./docs/mots/index.md
   format: md
@@ -54,6 +54,10 @@ people:
     bmo_id: 693303
     name: Alex Hochheiden
     nick: ahochheiden
+  - &alaskanemily
+    bmo_id: 650458
+    name: Emily McDonough
+    nick: alaskanemily
   - &aleiserson
     bmo_id: 713407
     name: Andy Leiserson
@@ -336,10 +340,6 @@ people:
     bmo_id: 455480
     name: Edgar Chen
     nick: edgar
-  - &edgul
-    bmo_id: 701256
-    name: edgul
-    nick: edgul
   - &eeejay
     bmo_id: 291675
     name: Eitan Isaacson
@@ -1587,18 +1587,19 @@ modules:
         - Honza Bambas
         - Emma Zühlcke
         - Tom Schuster
+        - Ed Guloien
       group: dev-platform
       components:
         - 'Core::Networking: Cookies'
       review_group: cookies
     owners:
-      - *dveditz
       - *timhuang
-      - *valentin
       - *baku
     peers:
-      - *edgul
+      - *manuel
       - *bvandersloot
+      - *valentin
+      - *dveditz
     machine_name: core_cookies
 
   - name: 'Core: Crash reporting'
@@ -2242,6 +2243,7 @@ modules:
       - *emilio
       - *TYLin
       - *jwatt
+      - *alaskanemily
     machine_name: core_layout_engine
 
   - name: 'Core: Legacy HTML Parser'
@@ -2978,6 +2980,7 @@ modules:
       - *dshin
       - *tlouw
       - *zrhoffman
+      - *alaskanemily
     machine_name: core_style_system
 
   - name: 'Core: Supply Chain'
@@ -4800,5 +4803,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: f76af66e70a647591557a42ecc1cd5a1c13e922f
-  export: 26ca53b86692a3584fe24811a6db0cd0e788c65b
+  config: 7f3f39072cdfe8276ee0338d3431eaadb7fc5ce2
+  export: 52cb1e07a475512694ad2f7c88561e678c8d135c

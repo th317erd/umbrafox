@@ -100,8 +100,21 @@ affects = "layout"
 type = "LineClamp"
 initial = "computed::LineClamp::none()"
 struct = "box"
+boxed = true
 engine = "gecko"
-spec = "https://drafts.csswg.org/css-overflow-3/#line-clamp"
+parse_method = "parse_legacy"
+spec = "https://drafts.csswg.org/css-overflow-4/#webkit-line-clamp"
+affects = "layout"
+
+[line-clamp]
+type = "LineClamp"
+initial = "computed::LineClamp::none()"
+struct = "box"
+boxed = true
+engine = "gecko"
+gecko_pref = "layout.css.line-clamp.enabled"
+gecko_ffi_name = "mWebkitLineClamp"
+spec = "https://drafts.csswg.org/css-overflow-4/#propdef-line-clamp"
 affects = "layout"
 
 [-x-lang]
@@ -1760,7 +1773,7 @@ initial = "computed::PositionTryOrder::normal()"
 struct = "position"
 engine = "gecko"
 animation_type = "discrete"
-gecko_pref = "layout.css.anchor-positioning.position-try-order.enabled"
+gecko_pref = "layout.css.anchor-positioning.enabled"
 spec = "https://drafts.csswg.org/css-anchor-position-1/#position-try-order-property"
 affects = "layout"
 
@@ -3359,6 +3372,16 @@ gecko_ffi_name = "mMargin.7"
 spec = "https://drafts.csswg.org/css-logical-props/#propdef-margin-inline-end"
 rule_types_allowed = ["style", "keyframe", "scope", "position-try"]
 servo_restyle_damage = "rebuild_box"
+affects = "layout"
+
+[margin-trim]
+type = "MarginTrim"
+initial = "computed::MarginTrim::empty()"
+struct = "margin"
+engine = "gecko"
+gecko_pref = "layout.css.margin-trim.enabled"
+animation_type = "none"
+spec = "https://drafts.csswg.org/css-box-4/#propdef-margin-trim"
 affects = "layout"
 
 [scroll-margin-top]

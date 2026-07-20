@@ -756,21 +756,23 @@ features:
         type: Boolean
         default: false
 
-  search-suggestions-on-homepage:
-    description: Enables search suggestions on homepage.
-    variables:
-      enabled:
-        description: >
-          Whether or not to enable search suggestions on homepage.
-        type: Boolean
-        default: false
-
   homepage-as-new-tab:
     description: Enables homepage as a a new tab.
     variables:
       enabled:
         description: >
           Whether or not to enable homepage as a new tab
+        type: Boolean
+        default: false
+
+  universal-edge-to-edge-wallpapers:
+    description: >
+      Extends non-default homepage wallpapers edge-to-edge and adapts the toolbar, navigation bar
+      and system bars to them.
+    variables:
+      enabled:
+        description: >
+          Whether or not to enable the universal edge-to-edge wallpaper treatment.
         type: Boolean
         default: false
 
@@ -1347,6 +1349,22 @@ features:
       - channel: developer
         value:
           enabled: true
+
+  homepage-customization:
+    description: Feature to enable Homepage Customization for users on Firefox on Android.
+    variables:
+      enabled:
+        description: If true, Homepage Customization is enabled.
+        type: Boolean
+        default: false
+
+  homepage-trending-recent-search:
+    description: Feature to show trending and recent searches on the Homepage Search for users on Firefox on Android.
+    variables:
+      enabled:
+        description: If true, trending and recent searches are shown on the Homepage Search.
+        type: Boolean
+        default: false
 
 types:
   objects:

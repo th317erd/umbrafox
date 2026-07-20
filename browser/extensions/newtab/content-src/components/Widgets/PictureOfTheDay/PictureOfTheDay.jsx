@@ -15,6 +15,24 @@ const PICTURE_OF_THE_DAY_ENTRY = WIDGET_REGISTRY.find(
   w => w.id === "pictureOfTheDay"
 );
 
+// Whether the "Set as wallpaper" feature is enabled. The dedicated
+// widgetPictureOfTheDay trainhop object wins, then the legacy widgets.* key, then
+// the pref (each checked with !== undefined so a trainhop `false` can turn the
+// feature off even when the pref default is `true`).
+function resolveSetAsWallpaperEnabled(prefs) {
+  const dedicated =
+    prefs.trainhopConfig?.widgetPictureOfTheDay?.setAsWallpaperEnabled;
+  if (dedicated !== undefined) {
+    return dedicated;
+  }
+  const shared =
+    prefs.trainhopConfig?.widgets?.pictureOfTheDaySetAsWallpaperEnabled;
+  if (shared !== undefined) {
+    return shared;
+  }
+  return Boolean(prefs["widgets.pictureOfTheDay.setAsWallpaper.enabled"]);
+}
+
 // How long the confirmation checkmark shows after setting the wallpaper.
 const JUST_SET_CHECKMARK_MS = 2000;
 
@@ -35,13 +53,11 @@ const PictureOfTheDay = ({
   const pictureData = useSelector(state => state.PictureOfTheDay);
   const widgetSize = resolveWidgetSize(PICTURE_OF_THE_DAY_ENTRY, prefs);
 
-  const isSetAsWallpaper = Boolean(
-    prefs["widgets.pictureOfTheDay.setAsWallpaper"]
-  );
-
-  // Only offer the "Set wallpaper" CTA when wallpapers are on and custom
-  // wallpapers are allowed, since this action sets a custom wallpaper.
+  // Only offer the "Set wallpaper" CTA when the feature is enabled and wallpapers
+  // are on and custom wallpapers are allowed, since this action sets a custom
+  // wallpaper.
   const canSetWallpaper = Boolean(
+    resolveSetAsWallpaperEnabled(prefs) &&
     prefs["newtabWallpapers.enabled"] &&
     prefs["newtabWallpapers.customWallpaper.enabled"]
   );
@@ -62,8 +78,21 @@ const PictureOfTheDay = ({
   const pictureDate = pictureData.publishedDate || new Date().toDateString();
   const dismissed =
     pictureDate === prefs["widgets.pictureOfTheDay.dismissedDate"];
+  // The picture is the active wallpaper only while the stored published date
+  // matches the currently-shown picture (mirrors the dismissed check above, so a
+  // new day's picture automatically re-offers the CTA) AND wallpapers are toggled
+  // on. Toggling wallpapers off in the Content section keeps the picture selected
+  // but hidden, so the checkmark hides while off and returns when toggled back on.
+  const isSetAsWallpaper =
+    Boolean(prefs["newtabWallpapers.user.enabled"]) &&
+    pictureDate === prefs["widgets.pictureOfTheDay.wallpaperActive"];
   const hasPicture =
     Boolean(pictureData.imageUrl) && !dismissed && !imageFailed;
+
+  // Show the "New" badge until the user first interacts with the widget;
+  // handleInteraction flips widgets.pictureOfTheDay.interaction on any action,
+  // which removes it.
+  const hasInteracted = prefs["widgets.pictureOfTheDay.interaction"];
 
   // Show a brief checkmark right after the user sets the wallpaper, then settle
   // into the collapsed "already set" state.
@@ -192,6 +221,11 @@ const PictureOfTheDay = ({
   // derives the theme, and applies it as the custom wallpaper; show a checkmark
   // confirmation immediately.
   const handleSetWallpaper = () => {
+    // Once the picture is the active wallpaper the button is just a status
+    // checkmark, so clicking it is a no-op.
+    if (isSetAsWallpaper) {
+      return;
+    }
     batch(() => {
       dispatch(ac.OnlyToMain({ type: at.WIDGETS_PICTURE_SET_WALLPAPER }));
       recordUserAction("set_wallpaper", { source: "widget" });
@@ -201,40 +235,22 @@ const PictureOfTheDay = ({
     setSuppressExpand(true);
   };
 
-  // The image, source line, and description open the picture's source page
-  // (Wikimedia Commons) in a new tab. Only wired when the feed supplies a source
-  // URL; otherwise the elements render as their plain text/image equivalents.
+  // The image, source line, and description are anchors whose href opens the
+  // picture's source page (Wikimedia Commons) in the current tab via native
+  // navigation; the handler only records telemetry (mirrors the Weather widget).
   const canOpenSource = Boolean(pictureData.sourceUrl);
   const handleOpenSource = () => {
-    if (!pictureData.sourceUrl) {
-      return;
-    }
     batch(() => {
-      dispatch(
-        ac.OnlyToMain({
-          type: at.OPEN_LINK,
-          data: { url: pictureData.sourceUrl, where: "tab" },
-        })
-      );
       recordUserAction("open_source", { source: "widget" });
       handleInteraction();
     });
   };
 
-  // The license name links to the license terms (Creative Commons) in a new
-  // tab, separate from the source page link above.
+  // The license name is an anchor whose href opens the license terms (Creative
+  // Commons) in the current tab, separate from the source page link above.
   const canOpenLicense = Boolean(pictureData.licenseUrl);
   const handleOpenLicense = () => {
-    if (!pictureData.licenseUrl) {
-      return;
-    }
     batch(() => {
-      dispatch(
-        ac.OnlyToMain({
-          type: at.OPEN_LINK,
-          data: { url: pictureData.licenseUrl, where: "tab" },
-        })
-      );
       recordUserAction("open_license", { source: "widget" });
       handleInteraction();
     });
@@ -257,21 +273,21 @@ const PictureOfTheDay = ({
     }
     if (canOpenSource) {
       parts.push(
-        <button
+        <a
           key="source"
-          type="button"
+          href={pictureData.sourceUrl}
           className="picture-of-the-day-attribution-link picture-of-the-day-source-link"
           data-l10n-id="newtab-picture-attribution-source-link"
           onClick={handleOpenSource}
-        ></button>
+        ></a>
       );
     }
     if (pictureData.licenseLabel) {
       parts.push(
         canOpenLicense ? (
-          <button
+          <a
             key="license"
-            type="button"
+            href={pictureData.licenseUrl}
             className="picture-of-the-day-attribution-link picture-of-the-day-source-link"
             data-l10n-id="newtab-picture-attribution-license"
             data-l10n-args={JSON.stringify({
@@ -280,7 +296,7 @@ const PictureOfTheDay = ({
             onClick={handleOpenLicense}
           >
             {pictureData.licenseLabel}
-          </button>
+          </a>
         ) : (
           <span key="license" className="picture-of-the-day-attribution-item">
             {pictureData.licenseLabel}
@@ -337,10 +353,18 @@ const PictureOfTheDay = ({
       <div className="picture-of-the-day-toolbar">
         {hasPicture ? (
           <div className="picture-of-the-day-heading">
-            <p
-              className="picture-of-the-day-source"
-              data-l10n-id="newtab-picture-header-main"
-            ></p>
+            <div className="picture-of-the-day-title-row">
+              {!hasInteracted && (
+                <moz-badge
+                  className="picture-of-the-day-new-badge"
+                  data-l10n-id="newtab-widget-lists-label-new"
+                ></moz-badge>
+              )}
+              <p
+                className="picture-of-the-day-source"
+                data-l10n-id="newtab-picture-header-main"
+              ></p>
+            </div>
             {renderAttribution()}
           </div>
         ) : null}
@@ -410,13 +434,13 @@ const PictureOfTheDay = ({
       {hasPicture ? (
         <div className="picture-of-the-day-populated">
           {canOpenSource ? (
-            <button
-              type="button"
+            <a
+              href={pictureData.sourceUrl}
               className="picture-of-the-day-image-link"
               onClick={handleOpenSource}
             >
               {pictureImage}
-            </button>
+            </a>
           ) : (
             pictureImage
           )}
@@ -430,10 +454,12 @@ const PictureOfTheDay = ({
               <moz-button
                 className={`picture-of-the-day-set-wallpaper${
                   justSet || isSetAsWallpaper ? " is-collapsed" : ""
-                }${suppressExpand ? " no-expand" : ""}`}
+                }${suppressExpand || isSetAsWallpaper ? " no-expand" : ""}`}
                 type="primary"
                 iconSrc={
-                  justSet ? SET_WALLPAPER_CHECK_ICON : SET_WALLPAPER_ICON
+                  justSet || isSetAsWallpaper
+                    ? SET_WALLPAPER_CHECK_ICON
+                    : SET_WALLPAPER_ICON
                 }
                 onClick={handleSetWallpaper}
                 data-l10n-id="newtab-picture-set-wallpaper"

@@ -24,6 +24,7 @@
 #include "mozilla/intl/Segmenter.h"
 #include "nsDOMCSSDeclaration.h"
 #include "nsGenericHTMLElement.h"
+#include "nsLayoutUtils.h"
 #include "nsTextNode.h"
 
 namespace mozilla::dom {
@@ -172,18 +173,35 @@ auto EditContext::ToRect(const DOMRect& aRect) const -> Rect {
   return Rect(aRect.X(), aRect.Y(), aRect.Width(), aRect.Height());
 }
 
-LayoutDeviceIntRect EditContext::ToDeviceRect(const nsPresContext& aPresContext,
-                                              const Rect& aRect) {
-  CSSIntRect rect;
-  aRect.ToIntRect(&rect);
-  LayoutDeviceIntRect deviceRect;
-  deviceRect.x = aPresContext.CSSPixelsToDevPixels(rect.x);
-  deviceRect.y = aPresContext.CSSPixelsToDevPixels(rect.y);
+LayoutDeviceIntRect EditContext::ToRootRelativeDeviceRect(
+    const nsPresContext& aPresContext, const Rect& aRect) {
+  CSSIntRect cssRect;
+  aRect.ToIntRect(&cssRect);
+  return ToRootRelativeDeviceRect(aPresContext, Rect::ToAppUnits(cssRect));
+}
+
+LayoutDeviceIntRect EditContext::ToRootRelativeDeviceRect(
+    const nsPresContext& aPresContext, const nsRect& aRect) {
+  nsRect rect = aRect;
+  if (!aPresContext.IsRoot()) {
+    nsPresContext* rootPC = aPresContext.GetRootPresContext();
+    if (NS_WARN_IF(!rootPC)) {
+      return {0, 0, 1, 1};
+    }
+    nsIFrame* documentRootFrame = aPresContext.PresShell()->GetRootFrame();
+    nsIFrame* topLevelRootFrame = rootPC->PresShell()->GetRootFrame();
+    if (NS_WARN_IF(!documentRootFrame) || NS_WARN_IF(!topLevelRootFrame)) {
+      return {0, 0, 1, 1};
+    }
+    rect = nsLayoutUtils::TransformFrameRectToAncestor(documentRootFrame, rect,
+                                                       topLevelRootFrame);
+  }
+  LayoutDeviceIntRect deviceRect = LayoutDeviceIntRect::FromAppUnitsToOutside(
+      rect, aPresContext.AppUnitsPerDevPixel());
   // ContentCache, etc. is confused if the rectangles are empty,
   // so ensure that they aren't.
-  deviceRect.width = std::max(1, aPresContext.CSSPixelsToDevPixels(rect.width));
-  deviceRect.height =
-      std::max(1, aPresContext.CSSPixelsToDevPixels(rect.height));
+  deviceRect.width = std::max(1, deviceRect.width);
+  deviceRect.height = std::max(1, deviceRect.height);
   return deviceRect;
 }
 
@@ -214,6 +232,10 @@ void EditContext::UpdateCharacterBounds(
   for (const auto& rect : aCharacterBounds) {
     mCodepointRects.AppendElement(ToRect(rect));
   }
+
+  mCodepointRectsTextChanged = false;
+  mControlBoundsAtLastUpdateCharacterBounds = GetControlBoundsOrClientRect();
+
   if (!mExpectingCharacterBounds && IsActive()) {
     // Web app sent new character bounds of its own accord, without
     // a characterboundsupdate event - inform IME that position may
@@ -264,6 +286,13 @@ void EditContext::UpdateText(uint32_t aRangeStart, uint32_t aRangeEnd,
     mTextNextToCaretChangedByTextUpdateHandler = true;
   }
   mText->ReplaceData(start, end - start, aText, IgnoreErrors());
+  // Check if the existing codepoint rects are affected by this change.
+  // If the text being changed is after the last stored codepoint rect,
+  // then the codepoint rects most likely won't be affected, so we don't
+  // need to fire characterboundsupdate again.
+  if (start < mCodepointRectsStartIndex + mCodepointRects.Length()) {
+    mCodepointRectsTextChanged = true;
+  }
   // XXX: Perhaps mSelectionStart/End should be clamped to new length
   //      of text? See https://github.com/w3c/edit-context/issues/88
   if (IsActive()) {
@@ -273,7 +302,7 @@ void EditContext::UpdateText(uint32_t aRangeStart, uint32_t aRangeEnd,
           SelectionEndClamped() != prevSelectionEnd) {
         observer->EditContextSelectionChanged();
       }
-      observer->EditContextTextChanged(aRangeStart, aRangeEnd, aText);
+      observer->EditContextTextChanged(start, end, aText);
     }
   }
 }
@@ -482,7 +511,7 @@ static InlineDir ReverseInlineDir(InlineDir dir) {
   return InlineDir::LTR;
 }
 
-nsresult EditContext::FireCharacterBoundsUpdateAndGetRects(
+nsresult EditContext::FireCharacterBoundsUpdateIfNeededAndGetRects(
     uint32_t aStart, uint32_t aEnd, nsTArray<LayoutDeviceIntRect>& aRects) {
   MOZ_ASSERT(aRects.IsEmpty());
   aStart = std::min(aStart, TextLength());
@@ -558,12 +587,18 @@ nsresult EditContext::FireCharacterBoundsUpdateAndGetRects(
 
   RefPtr<nsPresContext> presContext = mText->OwnerDoc()->GetPresContext();
 
-  CharacterBoundsUpdateEventInit eventOptions;
-  eventOptions.mBubbles = false;
-  eventOptions.mCancelable = true;
-  eventOptions.mRangeStart = startExtendedToGraphemeCluster;
-  eventOptions.mRangeEnd = endExtendedToGraphemeCluster;
-  {
+  // If we already have the requested character bounds and nothing relevant has
+  // changed, don't fire characterboundsupdate again.
+  if (mCodepointRectsTextChanged ||
+      mControlBoundsAtLastUpdateCharacterBounds !=
+          GetControlBoundsOrClientRect() ||
+      aStart < mCodepointRectsStartIndex ||
+      aEnd > mCodepointRectsStartIndex + mCodepointRects.Length()) {
+    CharacterBoundsUpdateEventInit eventOptions;
+    eventOptions.mBubbles = false;
+    eventOptions.mCancelable = true;
+    eventOptions.mRangeStart = startExtendedToGraphemeCluster;
+    eventOptions.mRangeEnd = endExtendedToGraphemeCluster;
     AutoRestore restore(mExpectingCharacterBounds);
     mExpectingCharacterBounds = true;
     RefPtr event = CharacterBoundsUpdateEvent::Constructor(
@@ -583,7 +618,8 @@ nsresult EditContext::FireCharacterBoundsUpdateAndGetRects(
       return NS_ERROR_FAILURE;
     }
     Rect cssRect = mCodepointRects[indexInCodepointRects.value()];
-    LayoutDeviceIntRect deviceRect = ToDeviceRect(*presContext, cssRect);
+    LayoutDeviceIntRect deviceRect =
+        ToRootRelativeDeviceRect(*presContext, cssRect);
     aRects.AppendElement(deviceRect);
   }
   if (collapse != CollapseDirection::None) {
@@ -628,7 +664,7 @@ Maybe<LayoutDeviceIntRect> EditContext::GetControlBounds() const {
     // Control bounds were never set.
     return Nothing();
   }
-  return Some(ToDeviceRect(*presContext, *mControlBounds));
+  return Some(ToRootRelativeDeviceRect(*presContext, *mControlBounds));
 }
 
 Maybe<LayoutDeviceIntRect> EditContext::GetSelectionBounds() const {
@@ -637,7 +673,19 @@ Maybe<LayoutDeviceIntRect> EditContext::GetSelectionBounds() const {
     // Selection bounds were never set.
     return Nothing();
   }
-  return Some(ToDeviceRect(*presContext, *mSelectionBounds));
+  return Some(ToRootRelativeDeviceRect(*presContext, *mSelectionBounds));
+}
+
+Maybe<nsRect> EditContext::GetControlBoundsOrClientRect() const {
+  if (mControlBounds) {
+    CSSIntRect intRect;
+    mControlBounds->ToIntRect(&intRect);
+    return Some(Rect::ToAppUnits(intRect));
+  }
+  if (!mAssociatedElement || !mAssociatedElement->GetPrimaryFrame()) {
+    return Nothing();
+  }
+  return Some(mAssociatedElement->GetPrimaryFrame()->GetRect());
 }
 
 LayoutDeviceIntRect EditContext::FallbackBounds() const {
@@ -647,24 +695,14 @@ LayoutDeviceIntRect EditContext::FallbackBounds() const {
   if (Maybe<LayoutDeviceIntRect> bounds = GetControlBounds()) {
     return *bounds;
   }
-  if (NS_WARN_IF(!mAssociatedElement) ||
-      NS_WARN_IF(!mAssociatedElement->GetPrimaryFrame())) {
+  Maybe<nsRect> appUnitsRect = GetControlBoundsOrClientRect();
+  if (NS_WARN_IF(!appUnitsRect)) {
     // Nothing good we can return here.
     return {0, 0, 1, 1};
   }
   nsPresContext* presContext =
       mAssociatedElement->GetPrimaryFrame()->PresContext();
-  nsRect appUnitsRect = mAssociatedElement->GetPrimaryFrame()->GetRect();
-  LayoutDeviceIntRect deviceRect;
-  deviceRect.x = presContext->AppUnitsToDevPixels(appUnitsRect.x);
-  deviceRect.y = presContext->AppUnitsToDevPixels(appUnitsRect.y);
-  // ContentCache, etc. is confused if the rectangles are empty,
-  // so ensure that they aren't.
-  deviceRect.width =
-      std::max(1, presContext->AppUnitsToDevPixels(appUnitsRect.width));
-  deviceRect.height =
-      std::max(1, presContext->AppUnitsToDevPixels(appUnitsRect.height));
-  return deviceRect;
+  return ToRootRelativeDeviceRect(*presContext, *appUnitsRect);
 }
 
 }  // namespace mozilla::dom

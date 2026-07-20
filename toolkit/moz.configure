@@ -1624,6 +1624,8 @@ with only_when(compile_environment & depends(target.os)(lambda os: os != "WINNT"
 
     set_config("HAVE_EXECINFO", check_header("execinfo.h"))
 
+    set_config("HAVE_SINGLE_THREADED_H", check_header("sys/single_threaded.h"))
+
 # Elfhack
 # ==============================================================
 with only_when("--enable-compile-environment"):
@@ -2700,10 +2702,10 @@ def nasm_asflags(target):
 set_config("NASM_ASFLAGS", nasm_asflags)
 
 
-# ANGLE OpenGL->D3D translator for WebGL
+# ANGLE renderer
 # ==============================================================
 
-with only_when(compile_environment & target_is_windows):
+with only_when(compile_environment & (target_is_windows | target_is_osx)):
     set_config("MOZ_ANGLE_RENDERER", True)
 
 with only_when(target_is_windows):

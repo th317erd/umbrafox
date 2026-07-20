@@ -61,6 +61,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.Toolbar
+import org.mozilla.fenix.GleanMetrics.ToolbarGoogleLensButton
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
@@ -1420,6 +1421,7 @@ class BrowserToolbarSearchMiddlewareTest {
 
         store.dispatch(lensButton.onClick as BrowserToolbarEvent)
         assertTelemetryRecorded(ACTION_LENS_CLICKED)
+        assertNotNull(ToolbarGoogleLensButton.tapped.testGetValue())
         verify { appStore.dispatch(LensRequested) }
     }
 
@@ -1555,7 +1557,7 @@ class BrowserToolbarSearchMiddlewareTest {
     )
 
     private val expectedLensButton = ActionButtonRes(
-        drawableResId = R.drawable.ic_logo_google_lens_24,
+        drawableResId = iconsR.drawable.mozac_ic_logo_google_lens_24,
         contentDescription = R.string.lens_search_content_description,
         state = ActionButton.State.DEFAULT,
         onClick = LensButtonClicked,

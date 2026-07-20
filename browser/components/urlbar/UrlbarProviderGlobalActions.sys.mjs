@@ -130,13 +130,12 @@ export class UrlbarProviderGlobalActions extends UrlbarProvider {
   }
 
   async onEngagement(queryContext, controller, details) {
-    let key = details.element.dataset.action;
+    let key = details.pickedActionKey;
     let action = details.result.payload.actionsResults.find(a => a.key == key);
     let provider = globalActionsProviders.find(
       p => p.name == action.providerName
     );
     provider.onPick(queryContext, controller, action);
-    controller.view.close();
   }
 
   onSearchSessionEnd(queryContext, controller, details) {

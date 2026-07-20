@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{PropertyBinding, ColorF, Shadow, RasterSpace};
-use crate::scene_building::{CreateShadow, IsVisible};
+use api::{PropertyBinding, ColorF};
+use crate::scene_building::{IsVisible};
 use crate::intern;
 use crate::internal_types::LayoutPrimitiveInfo;
 use crate::prim_store::{
@@ -21,11 +21,6 @@ pub type RectangleKey = PrimKey<RectanglePrim>;
 
 pub type RectangleDataHandle = intern::Handle<RectanglePrim>;
 
-impl RectangleKey {
-    pub fn new(info: &LayoutPrimitiveInfo, kind: RectanglePrim) -> Self {
-        RectangleKey { common: info.into(), kind }
-    }
-}
 
 impl intern::InternDebug for RectangleKey {}
 
@@ -41,7 +36,7 @@ impl InternablePrimitive for RectanglePrim {
         self,
         info: &LayoutPrimitiveInfo,
     ) -> RectangleKey {
-        RectangleKey::new(info, self)
+        RectangleKey::new(info.into(), self)
     }
 
     fn make_instance_kind(
@@ -64,18 +59,6 @@ impl IsVisible for RectanglePrim {
     }
 }
 
-impl CreateShadow for RectanglePrim {
-    fn create_shadow(
-        &self,
-        shadow: &Shadow,
-        _: bool,
-        _: RasterSpace,
-    ) -> RectanglePrim {
-        RectanglePrim {
-            color: PropertyBinding::Value(shadow.color.into()),
-        }
-    }
-}
 
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
