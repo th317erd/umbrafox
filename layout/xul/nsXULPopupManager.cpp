@@ -341,6 +341,10 @@ bool nsXULPopupManager::Rollup(const RollupOptions& aOptions,
   return RollupInternal(RollupKind::Menu, aOptions, aLastRolledUp);
 }
 
+bool nsXULPopupManager::RollupMenusOnly(nsIContent** aLastRolledUp) {
+  return RollupInternal(RollupKind::MenuOnly, {}, aLastRolledUp);
+}
+
 bool nsXULPopupManager::RollupNativeMenu() {
   if (mNativeMenu) {
     RefPtr<NativeMenu> menu = mNativeMenu;
@@ -651,11 +655,21 @@ nsMenuChainItem* nsXULPopupManager::GetRollupItem(RollupKind aKind) {
     if (item->Frame()->PopupState() == ePopupInvisible) {
       continue;
     }
-    MOZ_ASSERT_IF(item->Frame()->GetPopupType() == PopupType::Tooltip,
+    PopupType popupType = item->Frame()->GetPopupType();
+    MOZ_ASSERT_IF(popupType == PopupType::Tooltip,
                   item->IsNoAutoHide());
-    const bool valid = aKind == RollupKind::Tooltip
-                           ? item->Frame()->GetPopupType() == PopupType::Tooltip
-                           : !item->IsNoAutoHide();
+    const bool valid = [&] {
+      switch (aKind) {
+        case RollupKind::Tooltip:
+          return popupType == PopupType::Tooltip;
+        case RollupKind::MenuOnly:
+          return popupType == PopupType::Menu && !item->IsNoAutoHide();
+        case RollupKind::Menu:
+          return !item->IsNoAutoHide();
+      }
+      MOZ_ASSERT_UNREACHABLE("Unknown rollup kind");
+      return false;
+    }();
     if (valid) {
       return item;
     }
@@ -2602,7 +2616,7 @@ bool nsXULPopupManager::HandleKeyboardEventWithKeyCode(
   // Other panel keydown events should have no popup-manager effect.
   if (aTopVisibleMenuItem &&
       aTopVisibleMenuItem->GetPopupType() != PopupType::Menu) {
-    return true;
+    return false;
   }
 
   bool consume = (aTopVisibleMenuItem || mActiveMenuBar);

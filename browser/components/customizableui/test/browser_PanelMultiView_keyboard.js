@@ -58,6 +58,12 @@ async function hidePopup() {
   await hidden;
 }
 
+function waitForStablePopupState() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+}
+
 async function showSubView(view = gSubView) {
   let shown = BrowserTestUtils.waitForEvent(view, "ViewShown");
   // We must show with an anchor so the Back button is generated.
@@ -279,6 +285,60 @@ add_setup(async function () {
     gAnchor.remove();
     gPanel.remove();
   });
+});
+
+// Test that ordinary panel keydown events do not close browser panels. Panels
+// should only close on Escape keyup so focused panel content can receive keydown.
+add_task(async function testPanelKeydownDoesNotClosePopup() {
+  await openPopup();
+  gMainTextbox.focus();
+  is(document.activeElement, gMainTextbox, "Textbox focused");
+
+  let hiddenCount = 0;
+  let onHidden = () => hiddenCount++;
+  gPanel.addEventListener("popuphidden", onHidden);
+
+  EventUtils.synthesizeKey("a", { type: "keydown" });
+  await waitForStablePopupState();
+  is(gPanel.state, "open", "Non-Escape keydown does not close the panel");
+  is(hiddenCount, 0, "Panel was not hidden after non-Escape keydown");
+  gMainTextbox.value = "value";
+
+  EventUtils.synthesizeKey("KEY_Escape", { type: "keydown" });
+  await waitForStablePopupState();
+  is(gPanel.state, "open", "Escape keydown does not close the panel");
+  is(hiddenCount, 0, "Panel was not hidden after Escape keydown");
+
+  EventUtils.synthesizeKey("KEY_F4", {
+    type: "keydown",
+    ctrlKey: true,
+    altKey: true,
+    shiftKey: true,
+  });
+  await waitForStablePopupState();
+  is(
+    gPanel.state,
+    "open",
+    "Ctrl+Alt+Shift+F4 keydown does not close the panel"
+  );
+  is(hiddenCount, 0, "Panel was not hidden after Ctrl+Alt+Shift+F4 keydown");
+
+  EventUtils.synthesizeKey("KEY_F4", {
+    ctrlKey: true,
+    altKey: true,
+    shiftKey: true,
+  });
+  await waitForStablePopupState();
+  is(gPanel.state, "open", "Ctrl+Alt+Shift+F4 does not close the panel");
+  is(hiddenCount, 0, "Panel was not hidden after Ctrl+Alt+Shift+F4");
+
+  let hidden = BrowserTestUtils.waitForEvent(gPanel, "popuphidden");
+  EventUtils.synthesizeKey("KEY_Escape", { type: "keyup" });
+  await hidden;
+  is(gPanel.state, "closed", "Escape keyup closes the panel");
+  is(hiddenCount, 1, "Panel was hidden exactly once");
+
+  gPanel.removeEventListener("popuphidden", onHidden);
 });
 
 // Test that the tab key focuses all expected controls.

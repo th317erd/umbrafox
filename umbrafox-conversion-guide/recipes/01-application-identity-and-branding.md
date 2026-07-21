@@ -48,7 +48,32 @@ imply_option("MOZ_APP_ID", "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}")
 
 The application ID must remain Firefox's canonical desktop ID. Browser startup categories, some privileged components, add-on compatibility, and other internal Firefox plumbing use this ID as a product selector. Changing it can prevent `BrowserGlue` from starting, which breaks JSWindowActor registration and leaves the address bar/search UI unusable.
 
-### 2. Change the default app basename and executable name
+### 2. Keep web-facing user-agent identity as Firefox
+
+In `browser/moz.configure`, explicitly set the app UA name:
+
+```python
+# Keep browser/server-visible identity Firefox-compatible. UI and executable
+# branding are Umbrafox, but web content must not receive an Umbrafox UA token.
+imply_option("MOZ_APP_UA_NAME", "Firefox")
+```
+
+This is mandatory. `MOZ_APP_NAME`, `MOZ_APP_BASENAME`, `MOZ_APP_DISPLAYNAME`,
+and `MOZ_APP_VENDOR` can identify the local application as Umbrafox. The web
+identity must not.
+
+If `MOZ_APP_UA_NAME` is unset, `netwerk/protocol/http/nsHttpHandler.cpp` falls
+back through app info and can append an `Umbrafox/<version>` token to the
+outbound HTTP `User-Agent` and expose Umbrafox through `navigator.userAgent`.
+That leak was observed on AMO: `addons.mozilla.org` treated the browser as not
+Firefox and showed "Download Firefox and get the extension" instead of normal
+install controls.
+
+Do not put `MOZ_APP_UA_NAME=Firefox` in `browser/confvars.sh`; configure rejects
+that as an invalid confvars-owned option. Use `imply_option(...)` in
+`browser/moz.configure`, matching Firefox's supported configure flow.
+
+### 3. Change the default app basename and executable name
 
 In `build/moz.configure/init.configure`, change the default browser basename from `Firefox` to `Umbrafox`.
 
@@ -75,7 +100,7 @@ dist/bin/umbrafox-bin
 
 Do not confuse this with `MOZ_APP_DISPLAYNAME`, which controls visible product text, or with user-agent/app-version web surfaces, which must remain Firefox-equivalent under the mandatory rulebook.
 
-### 3. Rename the branding mozbuild template
+### 4. Rename the branding mozbuild template
 
 In `browser/branding/branding-common.mozbuild`, rename the branding template:
 
@@ -91,7 +116,7 @@ def UmbrafoxBranding():
 
 Then update every branding `moz.build` file to call `UmbrafoxBranding()`.
 
-### 4. Update channel display names and remoting names
+### 5. Update channel display names and remoting names
 
 Set:
 
@@ -106,7 +131,7 @@ Set:
 
 These live in the channel-specific `configure.sh` files under `browser/branding/`.
 
-### 5. Update brand localization files
+### 6. Update brand localization files
 
 For each channel brand file:
 
@@ -130,7 +155,7 @@ Expected official/unofficial values:
 trademarkInfo = { " " }
 ```
 
-### 6. Update TypeScript app constants
+### 7. Update TypeScript app constants
 
 In `tools/@types/subs/AppConstants.sys.d.mts`, update the expected browser constants:
 
@@ -144,7 +169,7 @@ MOZ_MACBUNDLE_NAME: "Umbrafox.app";
 
 This keeps static analysis and editor tooling aligned with the rebrand.
 
-### 7. Avoid duplicate version output
+### 8. Avoid duplicate version output
 
 After setting both vendor and app name to Umbrafox, version output can become `Umbrafox Umbrafox ...`.
 
@@ -160,7 +185,7 @@ static inline bool ShouldDumpVendor() {
 
 Use this helper in `DumpVersion()` and `DumpFullVersion()`.
 
-### 8. Sweep nearby user-visible comments and strings
+### 9. Sweep nearby user-visible comments and strings
 
 The current patch also changes explanatory comments in `nsAppRunner.cpp` from Firefox to Umbrafox. That is not required for runtime behavior, but it keeps future searches clearer.
 
@@ -173,6 +198,7 @@ After building:
 ```bash
 grep -n "^Vendor=\\|^Name=" obj-*/dist/bin/application.ini
 grep -n "MOZ_APP_NAME" obj-*/config.status
+grep -n "MOZ_APP_UA_NAME" obj-*/config.status
 ls obj-*/dist/bin/umbrafox obj-*/dist/bin/umbrafox-bin
 ./mach run --temp-profile --version
 ```
@@ -187,3 +213,15 @@ Name=Umbrafox
 Version output should not duplicate `Umbrafox`.
 
 If stale `dist/bin/firefox` files remain after changing branding, they are old object-directory build artifacts. A clobber or manual removal of those generated files clears them; source builds should use `umbrafox` once `MOZ_APP_NAME=umbrafox` is configured.
+
+Also verify web-facing identity with a local page or equivalent browser test.
+Both the HTTP request header and page-visible navigator value must match
+Firefox and must not contain Umbrafox:
+
+```text
+HTTP_USER_AGENT=Mozilla/5.0 (X11; Linux x86_64; rv:154.0) Gecko/20100101 Firefox/154.0
+NAVIGATOR_USER_AGENT=Mozilla/5.0 (X11; Linux x86_64; rv:154.0) Gecko/20100101 Firefox/154.0
+```
+
+Record any future identity leak in
+`umbrafox-conversion-guide/reference/web-identity-leak-log.md`.

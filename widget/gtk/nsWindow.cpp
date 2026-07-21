@@ -3235,7 +3235,12 @@ void nsWindow::OnContainerFocusOutEvent(GdkEventFocus* aEvent) {
     }();
 
     if (shouldRollupMenus) {
-      RollupAllMenus();
+      // Focus changes caused by native key handling, such as window manager
+      // processing of Alt+F4 variants, should not close browser panels.
+      // Menus still need to roll up on focus-out.
+      if (RefPtr pm = nsXULPopupManager::GetInstance()) {
+        pm->RollupMenusOnly();
+      }
     }
 
     if (RefPtr pm = nsXULPopupManager::GetInstance()) {

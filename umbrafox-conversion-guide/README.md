@@ -42,8 +42,11 @@ When new Firefox source arrives:
    - `recipes/10-userland-mutation-events.md`
    - `recipes/11-bot-control-channel.md`
    - `recipes/12-local-control-input.md`
+   - `recipes/13-panel-keyup-escape.md`
 7. Use `reference/changed-files.md` as the file-level checklist.
 8. Use `reference/known-gotchas.md` before deciding a rebase is done.
+9. Use `reference/web-identity-leak-log.md` to preserve every web-visible
+   identity leak fix and its verification command.
 
 ## Mandatory rules
 
@@ -54,6 +57,12 @@ The rulebook also establishes that Umbrafox is intentionally a sharp power-user 
 ## Maintenance rule
 
 Every intentional Umbrafox behavior change should get a recipe update in the same patch or work session that introduces the change. Add a new recipe if the behavior is its own subsystem. Extend an existing recipe if the change is a refinement of that subsystem.
+
+Every discovered web identity leak must also be recorded in
+`reference/web-identity-leak-log.md`. Include the leaked surface, the symptom,
+the exact source fix, and the command or manual check that proves the leak is
+closed. Treat that log as canonical rebase evidence: if a future upstream sync
+reopens one of those surfaces, the conversion is not complete.
 
 Keep recipes practical:
 

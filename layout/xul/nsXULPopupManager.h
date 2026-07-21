@@ -388,6 +388,8 @@ class nsXULPopupManager final : public nsIDOMEventListener,
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
   bool Rollup(const RollupOptions&,
               nsIContent** aLastRolledUp = nullptr) override;
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
+  bool RollupMenusOnly(nsIContent** aLastRolledUp = nullptr);
   bool ShouldRollupOnMouseWheelEvent() override;
   bool ShouldConsumeOnMouseWheelEvent() override;
   bool ShouldRollupOnMouseActivate() override;
@@ -397,7 +399,7 @@ class nsXULPopupManager final : public nsIDOMEventListener,
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY bool RollupTooltips();
 
-  enum class RollupKind { Tooltip, Menu };
+  enum class RollupKind { Tooltip, Menu, MenuOnly };
   MOZ_CAN_RUN_SCRIPT
   bool RollupInternal(RollupKind, const RollupOptions&,
                       nsIContent** aLastRolledUp);

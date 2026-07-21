@@ -246,3 +246,13 @@ This inventory was generated from the current working tree when the guide was wr
 - `remote/webdriver-bidi/jar.mn`
 - `remote/webdriver-bidi/test/xpcshell/test_UmbrafoxModule.js`
 - `remote/webdriver-bidi/test/xpcshell/xpcshell.toml`
+
+## Browser chrome panel behavior
+
+- `layout/xul/nsXULPopupManager.cpp`
+- `layout/xul/nsXULPopupManager.h`
+- `widget/gtk/nsWindow.cpp`
+- `browser/components/customizableui/test/browser_PanelMultiView_keyboard.js`
+- `toolkit/content/tests/chrome/test_panel_keyup_escape.xhtml`
+- `toolkit/content/tests/chrome/chrome.toml`
+- `toolkit/content/tests/chrome/mochitest.toml`

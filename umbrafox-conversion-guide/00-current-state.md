@@ -19,6 +19,8 @@ Umbrafox currently changes Firefox in these broad ways:
 11. en-US visible copy and comments were swept from Firefox to Umbrafox where appropriate.
 12. Focused regression tests were added or adjusted so the Umbrafox defaults remain intentional.
 13. The built browser executable name is explicitly `umbrafox` via `MOZ_APP_NAME`.
+14. Web-facing user-agent identity is forced back to Firefox with `MOZ_APP_UA_NAME = Firefox`, so HTTP `User-Agent` and `navigator.userAgent` do not expose Umbrafox.
+15. Browser chrome panels ignore ordinary keydown events, survive GTK native focus-out caused by non-Escape keyboard shortcuts, and close from keyboard input only on Escape keyup, so extension and permission panels remain usable while typing.
 
 ## Userland scripts state
 
@@ -158,6 +160,31 @@ The first userland request-event slice was later verified with:
 ```bash
 ./mach lint toolkit/components/umbrafox toolkit/actors/UmbrafoxUserlandChild.sys.mjs toolkit/actors/UmbrafoxUserlandParent.sys.mjs
 ./mach test --headless toolkit/components/umbrafox/tests/browser/browser_userland_events.js
+```
+
+The Firefox-equivalent web identity fix was later verified with:
+
+```bash
+./mach build
+./mach lint browser/moz.configure
+./mach package
+```
+
+Manual/local probes confirmed both web-visible surfaces omit Umbrafox:
+
+```text
+HTTP_USER_AGENT=Mozilla/5.0 (X11; Linux x86_64; rv:154.0) Gecko/20100101 Firefox/154.0
+NAVIGATOR_USER_AGENT=Mozilla/5.0 (X11; Linux x86_64; rv:154.0) Gecko/20100101 Firefox/154.0
+```
+
+The browser panel key handling fix was later verified with:
+
+```bash
+./mach lint layout/xul/nsXULPopupManager.cpp layout/xul/nsXULPopupManager.h widget/gtk/nsWindow.cpp browser/components/customizableui/test/browser_PanelMultiView_keyboard.js
+./mach build binaries
+./mach test --headless browser/components/customizableui/test/browser_PanelMultiView_keyboard.js
+./mach test --headless toolkit/content/tests/chrome/test_panel_keyup_escape.xhtml
+./mach package
 ```
 
 The search-engine selector test was previously verified with:

@@ -38,6 +38,38 @@ Examples that currently remain:
 
 Rename identifiers only when every reference path is traced.
 
+## Local branding can leak through the user agent
+
+`MOZ_APP_NAME`, `MOZ_APP_BASENAME`, `MOZ_APP_DISPLAYNAME`, and
+`MOZ_APP_VENDOR` are local branding fields. They must not drive web-facing
+identity.
+
+Keep this in `browser/moz.configure`:
+
+```python
+imply_option("MOZ_APP_UA_NAME", "Firefox")
+```
+
+If `MOZ_APP_UA_NAME` is unset, `nsHttpHandler` can fall back to Umbrafox app
+metadata and expose Umbrafox through the HTTP `User-Agent` header and
+`navigator.userAgent`. AMO used this to treat Umbrafox as not Firefox.
+
+Do not move this setting to `browser/confvars.sh`; configure rejects it there.
+After upstream rebases, verify both the generated config and the live browser
+surface:
+
+```bash
+grep -n "MOZ_APP_UA_NAME" obj-*/config.status
+```
+
+Expected live surface:
+
+```text
+Mozilla/5.0 (X11; Linux x86_64; rv:<version>) Gecko/20100101 Firefox/<version>
+```
+
+No web-visible value may contain `Umbrafox`.
+
 ## Browser tests may need opt-in prefs
 
 Because Umbrafox defaults the customize menu off, upstream tests that expect it must push:
