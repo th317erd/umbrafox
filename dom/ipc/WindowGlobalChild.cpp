@@ -6,11 +6,15 @@
 
 #include "GeckoProfiler.h"
 #include "Navigator.h"
+#include "Units.h"
+#include "gfxPlatform.h"
 #include "mozilla/AntiTrackingUtils.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/MozPrintCallbackRunner.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/ScopeExit.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/AudioSession.h"
 #include "mozilla/dom/BrowserBridgeChild.h"
 #include "mozilla/dom/BrowserChild.h"
@@ -19,6 +23,9 @@
 #include "mozilla/dom/CloseWatcherManager.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/ContentParent.h"
+#include "mozilla/dom/Document.h"
+#include "mozilla/dom/Element.h"
+#include "mozilla/dom/HTMLCanvasElement.h"
 #include "mozilla/dom/IdentityCredential.h"
 #include "mozilla/dom/InProcessChild.h"
 #include "mozilla/dom/InProcessParent.h"
@@ -37,14 +44,19 @@
 #include "mozilla/dom/WindowContext.h"
 #include "mozilla/dom/WindowGlobalActorsBinding.h"
 #include "mozilla/dom/WindowGlobalParent.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/CrossProcessPaint.h"
 #include "mozilla/ipc/Endpoint.h"
+#include "nsAtom.h"
 #include "nsContentUtils.h"
 #include "nsDocShell.h"
 #include "nsFocusManager.h"
 #include "nsFrameLoader.h"
 #include "nsFrameLoaderOwner.h"
 #include "nsGlobalWindowInner.h"
+#include "nsIDocumentEncoder.h"
 #include "nsIHttpChannelInternal.h"
+#include "nsITimer.h"
 #include "nsIURIMutator.h"
 #include "nsNetUtil.h"
 #include "nsQueryObject.h"
@@ -57,6 +69,190 @@ using namespace mozilla::ipc;
 using namespace mozilla::dom::ipc;
 
 namespace mozilla::dom {
+
+// Retrieves language metadata for the current document.
+//
+// The request waits for the document to load up to a configured limit. Once
+// collection begins, it may retry until the visible text sample meets the
+// requested minimum or the configured retry limit is reached. The request
+// completes without metadata if the current document is no longer eligible for
+// collection.
+class WindowGlobalChild::DocumentLanguageMetadataRequest final {
+ public:
+  NS_INLINE_DECL_REFCOUNTING(DocumentLanguageMetadataRequest)
+
+  DocumentLanguageMetadataRequest(
+      WindowGlobalChild* aWindowGlobalChild, uint32_t aTextSampleMinCodeUnits,
+      uint32_t aTextSampleTargetCodeUnits,
+      RequestDocumentLanguageMetadataResolver&& aResolver)
+      : mWindowGlobalChild(aWindowGlobalChild),
+        mResolver(std::move(aResolver)),
+        mTextSampleMinCodeUnits(aTextSampleMinCodeUnits),
+        mTextSampleTargetCodeUnits(aTextSampleTargetCodeUnits) {
+    MOZ_ASSERT(aWindowGlobalChild);
+    MOZ_ASSERT(aTextSampleMinCodeUnits <= aTextSampleTargetCodeUnits);
+  }
+
+  // Starts the process of collecting language metadata from the document
+  // by waiting for the document to load until the configured timeout, or
+  // by collecting immediately if the document has already loaded.
+  void Start() {
+    RefPtr<WindowGlobalChild> windowGlobalChild = mWindowGlobalChild.get();
+    if (!windowGlobalChild ||
+        !windowGlobalChild->CanCollectDocumentLanguageMetadata()) {
+      Cancel();
+      return;
+    }
+
+    if (windowGlobalChild->GetWindowGlobal()->IsDocumentLoaded()) {
+      OnDocumentLoaded();
+      return;
+    }
+
+    uint32_t loadTimeoutMs =
+        StaticPrefs::dom_document_language_metadata_load_timeout_ms();
+    if (!ScheduleTimer(loadTimeoutMs)) {
+      mLoadTimedOut = true;
+      CollectOrScheduleRetry();
+    }
+  }
+
+  // Reacts to the document loading by starting the collection process.
+  void OnDocumentLoaded() {
+    if (mCompleted) {
+      return;
+    }
+
+    CancelTimer();
+    CollectOrScheduleRetry();
+  }
+
+  // Resolves the request without language metadata.
+  void Cancel() {
+    CancelTimer();
+    Resolve(Nothing());
+  }
+
+  // Returns whether the request has completed.
+  bool IsCompleted() const { return mCompleted; }
+
+ private:
+  ~DocumentLanguageMetadataRequest() { CancelTimer(); }
+
+  // Schedules another attempt to collect language metadata.
+  bool ScheduleRetry() {
+    mRetryCount++;
+    uint32_t retryDelayMs =
+        StaticPrefs::dom_document_language_metadata_retry_delay_base_ms() *
+        mRetryCount;
+    return ScheduleTimer(retryDelayMs);
+  }
+
+  // Schedules language metadata collection after the requested delay.
+  bool ScheduleTimer(uint32_t aDelayMs) {
+    CancelTimer();
+
+    WeakPtr<WindowGlobalChild> weakWindowGlobalChild = mWindowGlobalChild;
+    RefPtr<DocumentLanguageMetadataRequest> request = this;
+    nsresult rv = NS_NewTimerWithCallback(
+        getter_AddRefs(mTimer),
+        [weakWindowGlobalChild, request](nsITimer*) {
+          RefPtr<WindowGlobalChild> windowGlobalChild =
+              weakWindowGlobalChild.get();
+
+          if (!windowGlobalChild) {
+            return;
+          }
+
+          if (!request->mCompleted) {
+            if (request->mRetryCount == 0) {
+              request->mLoadTimedOut = true;
+            }
+            request->CancelTimer();
+            request->CollectOrScheduleRetry();
+          }
+          windowGlobalChild->RemoveCompletedDocumentLanguageMetadataRequests();
+        },
+        aDelayMs, nsITimer::TYPE_ONE_SHOT,
+        "WindowGlobalChild::DocumentLanguageMetadataRequest"_ns);
+    return NS_SUCCEEDED(rv);
+  }
+
+  void CancelTimer() {
+    if (mTimer) {
+      mTimer->Cancel();
+      mTimer = nullptr;
+    }
+  }
+
+  // Returns whether another collection attempt should be made.
+  bool ShouldRetry(const DocumentLanguageMetadata& aMetadata) const {
+    if (mLoadTimedOut) {
+      // The page did not load in time. We will make only one attempt
+      // to extract whatever text is available.
+      return false;
+    }
+
+    uint32_t maxRetries =
+        StaticPrefs::dom_document_language_metadata_max_retries();
+    return aMetadata.mTextSample.Length() < mTextSampleMinCodeUnits &&
+           mRetryCount < maxRetries;
+  }
+
+  // Collects language metadata. If the text sample is too short, the request
+  // may retry before resolving with the most recently collected metadata.
+  void CollectOrScheduleRetry() {
+    if (mCompleted) {
+      return;
+    }
+
+    RefPtr<WindowGlobalChild> windowGlobalChild = mWindowGlobalChild.get();
+    if (!windowGlobalChild ||
+        !windowGlobalChild->CanCollectDocumentLanguageMetadata()) {
+      Cancel();
+      return;
+    }
+
+    Maybe<DocumentLanguageMetadata> metadata =
+        windowGlobalChild->GetDocumentLanguageMetadata(
+            mTextSampleTargetCodeUnits);
+    if (metadata.isNothing()) {
+      Cancel();
+      return;
+    }
+
+    if (ShouldRetry(*metadata)) {
+      if (ScheduleRetry()) {
+        return;
+      }
+    }
+
+    Resolve(std::move(metadata));
+  }
+
+  // Resolves the request with the provided result.
+  void Resolve(Maybe<DocumentLanguageMetadata>&& aMetadata) {
+    if (mCompleted) {
+      return;
+    }
+
+    mCompleted = true;
+    mWindowGlobalChild = nullptr;
+    CancelTimer();
+
+    auto resolver = std::move(mResolver);
+    resolver(std::move(aMetadata));
+  }
+
+  WeakPtr<WindowGlobalChild> mWindowGlobalChild;
+  RequestDocumentLanguageMetadataResolver mResolver;
+  nsCOMPtr<nsITimer> mTimer;
+  uint32_t mTextSampleMinCodeUnits;
+  uint32_t mTextSampleTargetCodeUnits;
+  uint32_t mRetryCount = 0;
+  bool mCompleted = false;
+  bool mLoadTimedOut = false;
+};
 
 WindowGlobalChild::WindowGlobalChild(dom::WindowContext* aWindowContext,
                                      nsIPrincipal* aPrincipal,
@@ -78,8 +274,8 @@ WindowGlobalChild::WindowGlobalChild(dom::WindowContext* aWindowContext,
   // loaded, the first url loaded in it will be about:blank. This call keeps the
   // first non-about:blank registration of window and discards the previous one.
   uint64_t embedderInnerWindowID = 0;
-  if (BrowsingContext()->GetParent()) {
-    embedderInnerWindowID = BrowsingContext()->GetEmbedderInnerWindowId();
+  if (auto* parent = WindowContext()->GetParentWindowContext()) {
+    embedderInnerWindowID = parent->InnerWindowId();
   }
   profiler_register_page(
       BrowsingContext()->BrowserId(), InnerWindowId(),
@@ -192,6 +388,8 @@ void WindowGlobalChild::OnNewDocument(Document* aDocument) {
           aDocument->NodePrincipal(), aDocument->PartitionedPrincipal()),
       "Invalid partitioned principal");
 
+  CancelDocumentLanguageMetadataRequests();
+
   mDocumentPrincipal = aDocument->NodePrincipal();
 
   // Send a series of messages to update document-specific state on
@@ -277,6 +475,96 @@ void WindowGlobalChild::OnNewDocument(Document* aDocument) {
                         mWindowContext->IsLocalIP());
 
   MOZ_ALWAYS_SUCCEEDS(txn.Commit(mWindowContext));
+}
+
+void WindowGlobalChild::OnDocumentLoaded() {
+  for (const RefPtr<DocumentLanguageMetadataRequest>& request :
+       mDocumentLanguageMetadataRequests) {
+    request->OnDocumentLoaded();
+  }
+  RemoveCompletedDocumentLanguageMetadataRequests();
+}
+
+void WindowGlobalChild::OnDocumentUnloaded() {
+  CancelDocumentLanguageMetadataRequests();
+}
+
+bool WindowGlobalChild::CanCollectDocumentLanguageMetadata() {
+  if (!mWindowGlobal || IsClosed() || !mWindowGlobal->IsCurrentInnerWindow()) {
+    return false;
+  }
+
+  Document* document = mWindowGlobal->GetExtantDoc();
+  if (!document || !document->IsTopLevelContentDocument() ||
+      document->IsInitialDocument() || !document->IsCurrentActiveDocument() ||
+      document->GetWindowGlobalChild() != this) {
+    return false;
+  }
+
+  nsIURI* uri = document->GetDocumentURI();
+  if (!uri) {
+    return false;
+  }
+
+  return uri->SchemeIs("https") || uri->SchemeIs("http") ||
+         uri->SchemeIs("file") || uri->SchemeIs("moz-extension");
+}
+
+Maybe<DocumentLanguageMetadata> WindowGlobalChild::GetDocumentLanguageMetadata(
+    uint32_t aTextSampleTargetCodeUnits) {
+  if (!CanCollectDocumentLanguageMetadata()) {
+    return Nothing();
+  }
+
+  Document* document = mWindowGlobal->GetExtantDoc();
+  DocumentLanguageMetadata metadata;
+
+  if (Element* root = document->GetRootElement()) {
+    if (nsAtom* langAtom = root->GetLang()) {
+      langAtom->ToString(metadata.mHtmlLangAttribute);
+    }
+  }
+
+  AUTO_PROFILER_MARKER_INNERWINDOWID("DocumentLanguageMetadata", DOM,
+                                     InnerWindowId());
+
+  nsCOMPtr<nsIDocumentEncoder> encoder = do_createDocumentEncoder("text/plain");
+  uint32_t flags = nsIDocumentEncoder::OutputBodyOnly |
+                   nsIDocumentEncoder::SkipInvisibleContent |
+                   nsIDocumentEncoder::AllowCrossShadowBoundary |
+                   nsIDocumentEncoder::OutputForPlainTextClipboardCopy |
+                   nsIDocumentEncoder::OutputDisallowLineBreaking |
+                   nsIDocumentEncoder::OutputDropInvisibleBreak |
+                   nsIDocumentEncoder::OutputLFLineBreak;
+
+  nsresult rv = encoder->Init(document, u"text/plain"_ns, flags);
+  if (NS_FAILED(rv)) {
+    return Some(std::move(metadata));
+  }
+
+  nsAutoString textSample;
+  rv = encoder->EncodeToStringWithMaxLength(aTextSampleTargetCodeUnits,
+                                            textSample);
+  if (NS_SUCCEEDED(rv)) {
+    metadata.mTextSample = textSample;
+  }
+
+  return Some(std::move(metadata));
+}
+
+void WindowGlobalChild::RemoveCompletedDocumentLanguageMetadataRequests() {
+  mDocumentLanguageMetadataRequests.RemoveElementsBy(
+      [](const RefPtr<DocumentLanguageMetadataRequest>& aRequest) {
+        return aRequest->IsCompleted();
+      });
+}
+
+void WindowGlobalChild::CancelDocumentLanguageMetadataRequests() {
+  for (const RefPtr<DocumentLanguageMetadataRequest>& request :
+       mDocumentLanguageMetadataRequests) {
+    request->Cancel();
+  }
+  mDocumentLanguageMetadataRequests.Clear();
 }
 
 /* static */
@@ -389,6 +677,8 @@ void WindowGlobalChild::NavigateRemoved() {
 }
 
 void WindowGlobalChild::Destroy() {
+  CancelDocumentLanguageMetadataRequests();
+
   JSActorWillDestroy();
 
   mWindowContext->Discard();
@@ -429,7 +719,7 @@ mozilla::ipc::IPCResult WindowGlobalChild::RecvMakeFrameLocal(
 
   // Trigger a process switch into the current process.
   RemotenessOptions options;
-  options.mRemoteType = NOT_REMOTE_TYPE;
+  options.mRemoteType = dom::RemoteType::NotRemote().Stringify();
   options.mPendingSwitchID.Construct(aPendingSwitchId);
   options.mSwitchingInProgressLoad = true;
   flo->ChangeRemoteness(options, IgnoreErrors());
@@ -506,12 +796,149 @@ mozilla::ipc::IPCResult WindowGlobalChild::RecvMakeFrameRemote(
   return IPC_OK();
 }
 
+class PrintCallbackSnapshot final : public nsITimerCallback, public nsINamed {
+ public:
+  NS_DECL_ISUPPORTS
+
+  // Returns false if there's nothing to wait for, in which case the caller
+  // should record the snapshot synchronously.
+  static bool MaybeStart(dom::BrowsingContext* aBc,
+                         const Maybe<gfx::IntRect>& aRect, float aScale,
+                         nscolor aBackgroundColor,
+                         gfx::CrossProcessPaintFlags aFlags,
+                         WindowGlobalChild::DrawSnapshotResolver&& aResolve) {
+    if (!(aFlags & gfx::CrossProcessPaintFlags::ForPrinting)) {
+      return false;
+    }
+    nsCOMPtr<nsIDocShell> ds = aBc->GetDocShell();
+    if (!ds) {
+      return false;
+    }
+    RefPtr<Document> doc = ds->GetDocument();
+    if (!doc || !DocumentTreeHasPrintCallbacks(*doc)) {
+      return false;
+    }
+    // Flush upfront so that the frame tree walk below finds the canvases.
+    nsContentUtils::FlushLayoutForTree(ds->GetWindow());
+    RefPtr<PresShell> presShell = doc->GetPresShell();
+    if (!presShell) {
+      return false;
+    }
+    MozPrintCallbackRunner runner;
+    runner.CollectCanvases(presShell->GetRootFrame());
+    if (!runner.HasCanvases()) {
+      return false;
+    }
+
+    // This matches PaintFragment::Record.
+    RefPtr<gfx::DrawTarget> referenceDt = gfx::Factory::CreateDrawTarget(
+        gfxPlatform::GetPlatform()->GetSoftwareBackend(), gfx::IntSize(1, 1),
+        gfx::SurfaceFormat::B8G8R8A8);
+    if (!referenceDt) {
+      return false;
+    }
+
+    RefPtr self = new PrintCallbackSnapshot(aBc, std::move(runner), aRect,
+                                            aScale, aBackgroundColor, aFlags,
+                                            std::move(aResolve));
+    self->mRunner.DispatchCallbacks(referenceDt, self);
+    if (self->mRunner.AreCallbacksDone()) {
+      // No callback could be dispatched, so nothing will notify us.
+      self->Finish();
+    }
+    return true;
+  }
+
+  NS_IMETHOD Notify(nsITimer*) override {
+    if (mRunner.AreCallbacksDone()) {
+      Finish();
+    }
+    return NS_OK;
+  }
+
+  NS_IMETHOD GetName(nsACString& aName) override {
+    aName.AssignLiteral("PrintCallbackSnapshot");
+    return NS_OK;
+  }
+
+ private:
+  static bool DocumentTreeHasPrintCallbacks(Document& aDoc) {
+    if (aDoc.HasPrintCallbacks()) {
+      return true;
+    }
+    bool found = false;
+    aDoc.EnumerateSubDocuments([&found](Document& aSubDoc) {
+      found = DocumentTreeHasPrintCallbacks(aSubDoc);
+      return found ? CallState::Stop : CallState::Continue;
+    });
+    return found;
+  }
+
+  PrintCallbackSnapshot(dom::BrowsingContext* aBc,
+                        MozPrintCallbackRunner&& aRunner,
+                        const Maybe<gfx::IntRect>& aRect, float aScale,
+                        nscolor aBackgroundColor,
+                        gfx::CrossProcessPaintFlags aFlags,
+                        WindowGlobalChild::DrawSnapshotResolver&& aResolve)
+      : mBrowsingContext(aBc),
+        mRunner(std::move(aRunner)),
+        mRect(aRect),
+        mScale(aScale),
+        mBackgroundColor(aBackgroundColor),
+        mFlags(aFlags),
+        mResolve(std::move(aResolve)) {}
+
+  ~PrintCallbackSnapshot() = default;
+
+  void Finish() {
+    if (!mResolve) {
+      return;
+    }
+    gfx::PaintFragment fragment = gfx::PaintFragment::Record(
+        mBrowsingContext, mRect, mScale, mBackgroundColor, mFlags);
+    mRunner.Reset();
+    auto resolve = std::move(mResolve);
+    mResolve = nullptr;
+    resolve(std::move(fragment));
+  }
+
+  RefPtr<dom::BrowsingContext> mBrowsingContext;
+  MozPrintCallbackRunner mRunner;
+  Maybe<gfx::IntRect> mRect;
+  float mScale;
+  nscolor mBackgroundColor;
+  gfx::CrossProcessPaintFlags mFlags;
+  WindowGlobalChild::DrawSnapshotResolver mResolve;
+};
+
+NS_IMPL_ISUPPORTS(PrintCallbackSnapshot, nsITimerCallback, nsINamed)
+
 mozilla::ipc::IPCResult WindowGlobalChild::RecvDrawSnapshot(
     const Maybe<IntRect>& aRect, const float& aScale,
     const nscolor& aBackgroundColor, const gfx::CrossProcessPaintFlags& aFlags,
     DrawSnapshotResolver&& aResolve) {
+  if (PrintCallbackSnapshot::MaybeStart(BrowsingContext(), aRect, aScale,
+                                        aBackgroundColor, aFlags,
+                                        std::move(aResolve))) {
+    return IPC_OK();
+  }
   aResolve(gfx::PaintFragment::Record(BrowsingContext(), aRect, aScale,
                                       aBackgroundColor, aFlags));
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult WindowGlobalChild::RecvRequestDocumentLanguageMetadata(
+    uint32_t aTextSampleMinCodeUnits, uint32_t aTextSampleTargetCodeUnits,
+    RequestDocumentLanguageMetadataResolver&& aResolver) {
+  MOZ_ASSERT(aTextSampleMinCodeUnits <= aTextSampleTargetCodeUnits);
+
+  RefPtr request = MakeRefPtr<DocumentLanguageMetadataRequest>(
+      this, aTextSampleMinCodeUnits, aTextSampleTargetCodeUnits,
+      std::move(aResolver));
+  mDocumentLanguageMetadataRequests.AppendElement(request);
+  request->Start();
+  RemoveCompletedDocumentLanguageMetadataRequests();
+
   return IPC_OK();
 }
 
@@ -677,6 +1104,30 @@ IPCResult WindowGlobalChild::RecvGetModelContextTools(
   return IPC_OK();
 }
 
+IPCResult WindowGlobalChild::RecvGetContentMetrics(
+    GetContentMetricsResolver&& aResolver) {
+  CSSSize size;
+  float devicePixelRatio = 1.0f;
+
+  if (IsCurrentGlobal()) {
+    if (RefPtr<nsGlobalWindowInner> win = GetWindowGlobal()) {
+      if (RefPtr<Document> doc = win->GetExtantDoc()) {
+        if (RefPtr<Element> root = doc->GetDocumentElement()) {
+          size = CSSPixel::FromAppUnits(root->GetScrollSize());
+        }
+      }
+
+      IgnoredErrorResult rv;
+      double dpr = win->GetDevicePixelRatio(CallerType::System, rv);
+      if (!rv.Failed() && dpr > 0.0) {
+        devicePixelRatio = float(dpr);
+      }
+    }
+  }
+  aResolver(std::make_tuple(size, devicePixelRatio));
+  return IPC_OK();
+}
+
 IPCResult WindowGlobalChild::RecvInvokeModelContextTool(
     const nsCString& aToolName, NotNull<StructuredCloneData*> aInput,
     InvokeModelContextToolResolver&& aResolver) {
@@ -760,8 +1211,8 @@ void WindowGlobalChild::SetDocumentURI(nsIURI* aDocumentURI) {
   // loaded, the first url loaded in it will be about:blank. This call keeps the
   // first non-about:blank registration of window and discards the previous one.
   uint64_t embedderInnerWindowID = 0;
-  if (BrowsingContext()->GetParent()) {
-    embedderInnerWindowID = BrowsingContext()->GetEmbedderInnerWindowId();
+  if (auto* parent = WindowContext()->GetParentWindowContext()) {
+    embedderInnerWindowID = parent->InnerWindowId();
   }
   profiler_register_page(
       BrowsingContext()->BrowserId(), InnerWindowId(),
@@ -785,12 +1236,12 @@ void WindowGlobalChild::SetDocumentURI(nsIURI* aDocumentURI) {
   SendUpdateDocumentURI(WrapNotNull(aDocumentURI));
 }
 
-const nsACString& WindowGlobalChild::GetRemoteType() const {
+const RemoteType& WindowGlobalChild::GetRemoteType() const {
   if (XRE_IsContentProcess()) {
     return ContentChild::GetSingleton()->GetRemoteType();
   }
 
-  return NOT_REMOTE_TYPE;
+  return RemoteType::NotRemote();
 }
 
 already_AddRefed<JSWindowActorChild> WindowGlobalChild::GetActor(
@@ -826,6 +1277,8 @@ already_AddRefed<JSActor> WindowGlobalChild::InitJSActor(
 void WindowGlobalChild::ActorDestroy(ActorDestroyReason aWhy) {
   MOZ_ASSERT(nsContentUtils::IsSafeToRunScript(),
              "Destroying WindowGlobalChild can run script");
+
+  CancelDocumentLanguageMetadataRequests();
 
   // If our WindowContext hasn't been marked as discarded yet, ensure it's
   // marked as discarded at this point.
@@ -982,7 +1435,7 @@ NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(WindowGlobalChild)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(WindowGlobalChild)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mWindowGlobal)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mContainerFeaturePolicy)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mContainerPermissionsPolicy)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mWindowContext)
   tmp->UnlinkManager();
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
@@ -991,7 +1444,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(WindowGlobalChild)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWindowGlobal)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mContainerFeaturePolicy)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mContainerPermissionsPolicy)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWindowContext)
   if (!tmp->IsInProcess()) {
     CycleCollectionNoteChild(cb, static_cast<BrowserChild*>(tmp->Manager()),

@@ -683,6 +683,7 @@ class TypedArrayObjectTemplate {
   static TypedArrayObject* fromBufferSameCompartment(
       JSContext* cx, Handle<ArrayBufferObjectMaybeShared*> buffer,
       uint64_t byteOffset, uint64_t lengthIndex, HandleObject proto) {
+    cx->releaseCheck(buffer);
     // Steps 6-9.
     size_t length = 0;
     auto autoLength = AutoLength::No;
@@ -7549,10 +7550,6 @@ JS_PUBLIC_API JS::Scalar::Type JS_GetArrayBufferViewType(JSObject* obj) {
     return Scalar::MaxTypedArrayViewType;
   }
   MOZ_CRASH("invalid ArrayBufferView type");
-}
-
-JS_PUBLIC_API size_t JS_MaxMovableTypedArraySize() {
-  return FixedLengthTypedArrayObject::INLINE_BUFFER_LIMIT;
 }
 
 namespace JS {

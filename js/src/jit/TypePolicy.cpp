@@ -1054,11 +1054,10 @@ bool ClampPolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins) const {
   _(UnboxedInt32Policy<1>)                                                    \
   _(IntPtrPolicy<0>)                                                          \
   _(TruncateToInt32OrToInt64Policy<2>)                                        \
+  _(MixPolicy<DoublePolicy<0>, UnboxedInt32Policy<1>>)                        \
   _(MixPolicy<ObjectPolicy<0>, StringPolicy<1>, BoxPolicy<2>>)                \
   _(MixPolicy<ObjectPolicy<0>, BoxPolicy<1>, BoxPolicy<2>>)                   \
-  IF_EXPLICIT_RESOURCE_MANAGEMENT(                                            \
-      _(MixPolicy<ObjectPolicy<0>, BoxPolicy<1>, BoxPolicy<2>,                \
-                  BooleanPolicy<3>>))                                         \
+  _(MixPolicy<ObjectPolicy<0>, BoxPolicy<1>, BoxPolicy<2>, BooleanPolicy<3>>) \
   _(MixPolicy<ObjectPolicy<0>, BoxPolicy<1>, ObjectPolicy<2>>)                \
   _(MixPolicy<ObjectPolicy<0>, BoxPolicy<1>, UnboxedInt32Policy<2>>)          \
   _(MixPolicy<ObjectPolicy<0>, UnboxedInt32Policy<1>, BoxPolicy<2>>)          \

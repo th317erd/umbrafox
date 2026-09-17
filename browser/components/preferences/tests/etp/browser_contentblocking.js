@@ -25,8 +25,6 @@ const PREF_TEST_NOTIFICATIONS =
   "browser.safebrowsing.test-notifications.enabled";
 const STRICT_PREF = "browser.contentblocking.features.strict";
 const PRIVACY_PAGE = "about:preferences#privacy";
-const ISOLATE_UI_PREF =
-  "browser.contentblocking.reject-and-isolate-cookies.preferences.ui.enabled";
 const FPI_PREF = "privacy.firstparty.isolate";
 const FPP_PREF = "privacy.fingerprintingProtection";
 const FPP_PBM_PREF = "privacy.fingerprintingProtection.pbmode";
@@ -90,7 +88,6 @@ add_task(async function testContentBlockingMainCategory() {
     [STP_PREF, false],
     [NCB_PREF, Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER],
     [NCBP_PREF, Ci.nsICookieService.BEHAVIOR_PARTITION_FOREIGN],
-    [ISOLATE_UI_PREF, true],
     [FPI_PREF, false],
     [FPP_PREF, false],
     [FPP_PBM_PREF, true],
@@ -202,7 +199,7 @@ add_task(async function testContentBlockingMainCategory() {
     "menupopup > menuitem[value=always]"
   );
   // Select block trackers
-  cookieMenuTrackers.click();
+  await BrowserTestUtils.selectMenulistItem(cookieMenuTrackers);
   ok(cookieMenuTrackers.selected, "The trackers item should be selected");
   is(
     Services.prefs.getIntPref(NCB_PREF),
@@ -215,7 +212,7 @@ add_task(async function testContentBlockingMainCategory() {
     `${NCBP_PREF} has been set to ${Ci.nsICookieService.BEHAVIOR_PARTITION_FOREIGN}`
   );
   // Select block trackers and isolate
-  cookieMenuTrackersPlusIsolate.click();
+  await BrowserTestUtils.selectMenulistItem(cookieMenuTrackersPlusIsolate);
   ok(
     cookieMenuTrackersPlusIsolate.selected,
     "The trackers plus isolate item should be selected"
@@ -231,7 +228,7 @@ add_task(async function testContentBlockingMainCategory() {
     `${NCBP_PREF} has been set to ${Ci.nsICookieService.BEHAVIOR_PARTITION_FOREIGN}`
   );
   // Select block unvisited
-  cookieMenuUnvisited.click();
+  await BrowserTestUtils.selectMenulistItem(cookieMenuUnvisited);
   ok(cookieMenuUnvisited.selected, "The unvisited item should be selected");
   is(
     Services.prefs.getIntPref(NCB_PREF),
@@ -244,7 +241,7 @@ add_task(async function testContentBlockingMainCategory() {
     `${NCBP_PREF} has been set to ${Ci.nsICookieService.BEHAVIOR_PARTITION_FOREIGN}`
   );
   // Select block all third party
-  cookieMenuAllThirdParties.click();
+  await BrowserTestUtils.selectMenulistItem(cookieMenuAllThirdParties);
   ok(
     cookieMenuAllThirdParties.selected,
     "The all-third-parties item should be selected"
@@ -260,7 +257,7 @@ add_task(async function testContentBlockingMainCategory() {
     `${NCBP_PREF} has been set to ${Ci.nsICookieService.BEHAVIOR_PARTITION_FOREIGN}`
   );
   // Select block all third party
-  cookieMenuAll.click();
+  await BrowserTestUtils.selectMenulistItem(cookieMenuAll);
   ok(cookieMenuAll.selected, "The all cookies item should be selected");
   is(
     Services.prefs.getIntPref(NCB_PREF),
@@ -271,20 +268,6 @@ add_task(async function testContentBlockingMainCategory() {
     Services.prefs.getIntPref(NCBP_PREF),
     Ci.nsICookieService.BEHAVIOR_PARTITION_FOREIGN,
     `${NCBP_PREF} has been set to ${Ci.nsICookieService.BEHAVIOR_PARTITION_FOREIGN}`
-  );
-
-  gBrowser.removeCurrentTab();
-
-  // Ensure the isolate option only shows in the dropdown if the UI pref is set.
-  Services.prefs.setBoolPref(ISOLATE_UI_PREF, false);
-  await openPreferencesViaOpenPreferencesAPI("privacy", { leaveOpen: true });
-  doc = gBrowser.contentDocument;
-  cookieMenuTrackersPlusIsolate = doc.querySelector(
-    "#blockCookiesMenu menupopup > menuitem[value=isolate]"
-  );
-  ok(
-    cookieMenuTrackersPlusIsolate.hidden,
-    "Trackers plus isolate option is hidden from the dropdown if the ui pref is not set."
   );
 
   gBrowser.removeCurrentTab();
@@ -1132,7 +1115,6 @@ add_task(async function testTPMenuForEmailTP() {
   await openPreferencesViaOpenPreferencesAPI("privacy", { leaveOpen: true });
   let doc = gBrowser.contentDocument;
 
-  let menu = doc.querySelector("#trackingProtectionMenu");
   let always = doc.querySelector(
     "#trackingProtectionMenu > menupopup > menuitem[value=always]"
   );
@@ -1141,8 +1123,7 @@ add_task(async function testTPMenuForEmailTP() {
   );
 
   // Click the always option on the tracking protection drop down.
-  menu.selectedItem = always;
-  always.click();
+  await BrowserTestUtils.selectMenulistItem(always);
 
   // Verify the pref states.
   is(
@@ -1158,8 +1139,7 @@ add_task(async function testTPMenuForEmailTP() {
   );
 
   // Click the private-only option on the tracking protection drop down.
-  menu.selectedItem = privateElement;
-  privateElement.click();
+  await BrowserTestUtils.selectMenulistItem(privateElement);
 
   // Verify the pref states.
   is(
@@ -1211,8 +1191,7 @@ add_task(async function testFPPCustomCheckBox() {
   );
 
   // Click the always option on the FPP drop down.
-  menu.selectedItem = alwaysMenuItem;
-  alwaysMenuItem.click();
+  await BrowserTestUtils.selectMenulistItem(alwaysMenuItem);
 
   // Verify the pref states and the telemetry.
   is(
@@ -1232,8 +1211,7 @@ add_task(async function testFPPCustomCheckBox() {
   is(events[0].extra.value, "always", "The extra field is correct.");
 
   // Click the private-only option on the FPP drop down.
-  menu.selectedItem = privateMenuItem;
-  privateMenuItem.click();
+  await BrowserTestUtils.selectMenulistItem(privateMenuItem);
 
   // Verify the pref states and the telemetry.
   is(

@@ -240,9 +240,6 @@ nsDNSRecord::GetAddresses(nsTArray<NetAddr>& aAddressArray) {
   mHostRecord->addr_info_lock.Lock();
   if (mHostRecord->addr_info) {
     for (const auto& address : mHostRecord->addr_info->Addresses()) {
-      if (mHostRecord->Blocklisted(&address)) {
-        continue;
-      }
       NetAddr* addr = aAddressArray.AppendElement(address);
       if (addr->raw.family == AF_INET) {
         addr->inet.port = 0;
@@ -366,6 +363,11 @@ nsDNSRecord::GetLastUpdate(mozilla::TimeStamp* aLastUpdate) {
   return mHostRecord->GetLastUpdate(aLastUpdate);
 }
 
+NS_IMETHODIMP
+nsDNSRecord::GetFromStaleCache(bool* aResult) {
+  return mHostRecord->GetFromStaleCache(aResult);
+}
+
 class nsDNSByTypeRecord : public nsIDNSByTypeRecord,
                           public nsIDNSTXTRecord,
                           public nsIDNSHTTPSSVCRecord {
@@ -459,6 +461,11 @@ NS_IMETHODIMP
 nsDNSByTypeRecord::GetResults(mozilla::net::TypeRecordResultType* aResults) {
   *aResults = mHostRecord->GetResults();
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDNSByTypeRecord::GetFromStaleCache(bool* aResult) {
+  return mHostRecord->GetFromStaleCache(aResult);
 }
 
 NS_IMETHODIMP
@@ -848,7 +855,7 @@ void nsDNSService::ReadPrefs(const char* name) {
     } else {
       mHasMockHTTPSRRDomainSet = true;
       MutexAutoLock lock(mLock);
-      mMockHTTPSRRDomain = mockHTTPSRRDomain;
+      mMockHTTPSRRDomain = std::move(mockHTTPSRRDomain);
     }
   }
 }
@@ -1696,6 +1703,7 @@ nsresult GetTRRSkipReasonName(TRRSkippedReason aReason, nsACString& aName) {
   static_assert(TRRSkippedReason::TRR_HEURISTIC_TRIPPED_NRPT == 47);
   static_assert(TRRSkippedReason::TRR_BAD_URL == 48);
   static_assert(TRRSkippedReason::TRR_SYSTEM_SLEEP_MODE == 49);
+  static_assert(TRRSkippedReason::TRR_HEURISTIC_TRIPPED_PRIVATE_DNS == 50);
 
   switch (aReason) {
     case TRRSkippedReason::TRR_UNSET:
@@ -1847,6 +1855,9 @@ nsresult GetTRRSkipReasonName(TRRSkippedReason aReason, nsACString& aName) {
       break;
     case TRRSkippedReason::TRR_SYSTEM_SLEEP_MODE:
       aName = "TRR_SYSTEM_SLEEP_MODE"_ns;
+      break;
+    case TRRSkippedReason::TRR_HEURISTIC_TRIPPED_PRIVATE_DNS:
+      aName = "TRR_HEURISTIC_TRIPPED_PRIVATE_DNS"_ns;
       break;
     default:
       MOZ_ASSERT(false, "Unknown value");

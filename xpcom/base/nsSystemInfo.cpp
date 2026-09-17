@@ -1332,7 +1332,7 @@ nsresult CollectProcessInfo(ProcessInfo& info) {
     glean::system_cpu::logical_cores.Set(info.cpuCount);
   }
 #endif
-  if (Maybe<hal::HeterogeneousCpuInfo> hetCpuInfo =
+  if (const Maybe<hal::HeterogeneousCpuInfo>& hetCpuInfo =
           hal::GetHeterogeneousCpuInfo()) {
     info.cpuPCount = int32_t(hetCpuInfo->mBigCpus.Count());
     info.cpuMCount = int32_t(hetCpuInfo->mMediumCpus.Count());
@@ -1774,6 +1774,7 @@ nsresult nsSystemInfo::Init() {
   nsCString dist, desc, release, codename;
   if (widget::lsb::GetLSBRelease(dist, desc, release, codename)) {
     SetPropertyAsACString(u"distro"_ns, dist);
+    SetPropertyAsACString(u"distroDesc"_ns, desc);
     SetPropertyAsACString(u"distroVersion"_ns, release);
   }
 
@@ -2353,4 +2354,15 @@ nsSystemInfo::GetProcessInfo(JSContext* aCx, Promise** aResult) {
   promise.forget(aResult);
 
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsSystemInfo::IsWindows10BuildOrLater(uint32_t aBuildNumber, bool* aResult) {
+#ifdef XP_WIN
+  NS_ENSURE_ARG_POINTER(aResult);
+  *aResult = mozilla::IsWindows10BuildOrLater(aBuildNumber);
+  return NS_OK;
+#else
+  return NS_ERROR_NOT_AVAILABLE;
+#endif
 }

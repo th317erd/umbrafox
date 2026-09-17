@@ -201,7 +201,7 @@ Result<EntryId, QMResult> GetUniqueEntryId(
       return entryId;
     }
 
-    generatorInput.parentId() = entryId;
+    generatorInput.parentId() = std::move(entryId);
   }
 
   return Err(QMResult(NS_ERROR_UNEXPECTED));
@@ -502,6 +502,9 @@ FileSystemDatabaseManagerVersion001::FileSystemDatabaseManagerVersion001(
       mClientMetadata(aDataManager->OriginMetadataRef(),
                       quota::Client::FILESYSTEM),
       mFilesOfUnknownUsage(-1) {}
+
+FileSystemDatabaseManagerVersion001::~FileSystemDatabaseManagerVersion001() =
+    default;
 
 /* static */
 nsresult FileSystemDatabaseManagerVersion001::RescanTrackedUsages(

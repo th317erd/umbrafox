@@ -11,13 +11,13 @@
 #include "GLTypes.h"
 #include "mozilla/HashFunctions.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/layers/GpuFence.h"
 #include "mozilla/layers/ScreenshotGrabber.h"
 #include "mozilla/webrender/RenderCompositor.h"
 
 namespace mozilla {
 
 namespace layers {
-class GpuFence;
 class NativeLayerRootSnapshotter;
 class NativeLayerRoot;
 class NativeLayer;
@@ -145,7 +145,7 @@ class RenderCompositorNative : public RenderCompositor {
   gfx::IntRect mVisibleBounds;
   std::unordered_map<wr::NativeSurfaceId, Surface, SurfaceIdHashFn> mSurfaces;
   TimeStamp mBeginFrameTimeStamp;
-  std::deque<RefPtr<layers::GpuFence>> mPendingGpuFeces;
+  std::deque<RefPtr<layers::GpuFence>> mPendingGpuFences;
 };
 
 static inline bool operator==(const RenderCompositorNative::TileKey& a0,
@@ -168,8 +168,8 @@ class RenderCompositorNativeOGL : public RenderCompositorNative {
 
   gl::GLContext* gl() const override { return mGL; }
 
-  void Bind(wr::NativeTileId aId, wr::DeviceIntPoint* aOffset, uint32_t* aFboId,
-            wr::DeviceIntRect aDirtyRect,
+  void Bind(wr::NativeTileId aId, wr::DeviceIntPoint* aOffset,
+            uint64_t* aSurfaceHandle, wr::DeviceIntRect aDirtyRect,
             wr::DeviceIntRect aValidRect) override;
   void Unbind() override;
 
@@ -187,11 +187,11 @@ class RenderCompositorNativeOGL : public RenderCompositorNative {
 
   struct BackPressureFences {
     explicit BackPressureFences(
-        std::deque<RefPtr<layers::GpuFence>>&& aGpuFeces)
-        : mGpuFeces(std::move(aGpuFeces)) {}
+        std::deque<RefPtr<layers::GpuFence>>&& aGpuFences)
+        : mGpuFences(std::move(aGpuFences)) {}
 
     GLsync mSync = nullptr;
-    std::deque<RefPtr<layers::GpuFence>> mGpuFeces;
+    std::deque<RefPtr<layers::GpuFence>> mGpuFences;
   };
 
   // Used to apply back-pressure in WaitForGPU().

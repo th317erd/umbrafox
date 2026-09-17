@@ -547,11 +547,11 @@ JS_PUBLIC_API void* JS_GetCompartmentPrivate(JS::Compartment* compartment) {
 }
 
 JS_PUBLIC_API void JS_MarkCrossZoneId(JSContext* cx, jsid id) {
-  cx->markId(id);
+  cx->recordRefToId(id);
 }
 
 JS_PUBLIC_API void JS_MarkCrossZoneIdValue(JSContext* cx, const Value& value) {
-  cx->markAtomValue(value);
+  cx->recordRefToValue(value);
 }
 
 JS_PUBLIC_API void JS_SetZoneUserData(JS::Zone* zone, void* data) {
@@ -2768,12 +2768,16 @@ JS_PUBLIC_API JSString* JS_DecompileScript(JSContext* cx, HandleScript script) {
   if (fun) {
     return JS_DecompileFunction(cx, fun);
   }
-  bool haveSource;
-  if (!ScriptSource::loadSource(cx, script->scriptSource(), &haveSource)) {
+
+  bool loaded;
+  Maybe<ScriptSource::DataReader> reader;
+  if (!script->scriptSource()->tryLoadSource(cx, reader, &loaded)) {
     return nullptr;
   }
-  return haveSource ? JSScript::sourceData(cx, script)
-                    : NewStringCopyZ<CanGC>(cx, "[no source]");
+  MOZ_ASSERT_IF(loaded, (*reader).hasSourceText());
+  return loaded ? (*reader)->substring(cx, script->sourceStart(),
+                                       script->sourceEnd())
+                : NewStringCopyZ<CanGC>(cx, "[no source]");
 }
 
 JS_PUBLIC_API JSString* JS_DecompileFunction(JSContext* cx,
@@ -3059,7 +3063,6 @@ JS_PUBLIC_API bool JS::RejectPromise(JSContext* cx, JS::HandleObject promiseObj,
   return ResolveOrRejectPromise(cx, promiseObj, rejectionValue, true);
 }
 
-#ifdef NIGHTLY_BUILD
 JS_PUBLIC_API bool JS::SafeResolve(JSContext* cx, JS::HandleObject promiseObj,
                                    JS::HandleValue resolutionValue) {
   AssertHeapIsIdle();
@@ -3087,7 +3090,6 @@ JS_PUBLIC_API bool JS::SafeResolve(JSContext* cx, JS::HandleObject promiseObj,
 
   return js::SafeResolvePromise(cx, promise, resolution);
 }
-#endif  // NIGHTLY_BUILD
 
 JS_PUBLIC_API JSObject* JS::CallOriginalPromiseThen(
     JSContext* cx, JS::HandleObject promiseObj, JS::HandleObject onFulfilled,
@@ -4217,10 +4219,6 @@ void JSErrorBase::freeMessage() {
   }
   message_ = JS::ConstUTF8CharsZ();
 }
-
-JSErrorNotes::JSErrorNotes() = default;
-
-JSErrorNotes::~JSErrorNotes() = default;
 
 static UniquePtr<JSErrorNotes::Note> CreateErrorNoteVA(
     FrontendContext* fc, const char* filename, unsigned sourceId,

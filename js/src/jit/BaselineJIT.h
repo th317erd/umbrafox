@@ -119,6 +119,9 @@ class RetAddrEntry {
     // A callVM for the over-recursion check on function entry.
     StackCheck,
 
+    // A callVM for the over-recursion check on the generator resume path.
+    ResumeStackCheck,
+
     // A callVM for an interrupt check.
     InterruptCheck,
 
@@ -409,6 +412,17 @@ void AddSizeOfBaselineData(JSScript* script, mozilla::MallocSizeOf mallocSizeOf,
 
 void ToggleBaselineProfiling(JSContext* cx, bool enable);
 
+// Metadata about a stack frame that is reconstructed during bailout.
+struct BailoutStubInfo {
+  // The stack address up to which the frame's contents extend.
+  // This excludes the return address calling into the next frame.
+  uint8_t* frameBoundary = nullptr;
+  // The bailout stub that pushes the return address for the frame's
+  // call into an outer frame.
+  // A nullptr indicates the final reconstructed frame.
+  uint8_t* bailoutStub = nullptr;
+};
+
 struct alignas(uintptr_t) BaselineBailoutInfo {
   // Pointer into the current C stack, where overwriting will start.
   uint8_t* incomingStack = nullptr;
@@ -417,6 +431,9 @@ struct alignas(uintptr_t) BaselineBailoutInfo {
   // which will be copied to the bottom.
   uint8_t* copyStackTop = nullptr;
   uint8_t* copyStackBottom = nullptr;
+
+  // The number of BailoutStubInfo entries that follow this header.
+  uint32_t numStubInfos = 0;
 
   // The value of the frame pointer register on resume.
   void* resumeFramePtr = nullptr;
@@ -481,6 +498,7 @@ class BaselineInterpreter {
   };
   struct ICReturnOffset {
     uint32_t offset;
+    uint32_t bailoutStubOffset = 0;
     JSOp op;
     ICReturnOffset(uint32_t offset, JSOp op) : offset(offset), op(op) {}
   };
@@ -499,6 +517,10 @@ class BaselineInterpreter {
   // Early Ion bailouts will enter at this address. This is after frame
   // construction and environment initialization.
   uint32_t bailoutPrologueOffset_ = 0;
+
+  // Ion bailouts of a frame that is still mid-generator-resume enter at this
+  // address, which re-runs the generator resume prologue.
+  uint32_t bailoutResumePrologueOffset_ = 0;
 
   // The offsets for the toggledJump instructions for profiler instrumentation.
   uint32_t profilerEnterToggleOffset_ = 0;
@@ -539,7 +561,9 @@ class BaselineInterpreter {
 
   void init(JitCode* code, uint32_t interpretOpOffset,
             uint32_t interpretOpNoDebugTrapOffset,
-            uint32_t bailoutPrologueOffset, uint32_t profilerEnterToggleOffset,
+            uint32_t bailoutPrologueOffset,
+            uint32_t bailoutResumePrologueOffset,
+            uint32_t profilerEnterToggleOffset,
             uint32_t profilerExitToggleOffset, uint32_t debugTrapHandlerOffset,
             CodeOffsetVector&& debugInstrumentationOffsets,
             CodeOffsetVector&& debugTrapOffsets,
@@ -561,8 +585,12 @@ class BaselineInterpreter {
   uint8_t* bailoutPrologueEntryAddr() const {
     return codeAtOffset(bailoutPrologueOffset_);
   }
+  uint8_t* bailoutResumePrologueEntryAddr() const {
+    return codeAtOffset(bailoutResumePrologueOffset_);
+  }
 
   uint8_t* retAddrForIC(JSOp op) const;
+  uint8_t* bailoutStubAddrForIC(JSOp op) const;
 
   TrampolinePtr interpretOpAddr() const {
     return TrampolinePtr(codeAtOffset(interpretOpOffset_));

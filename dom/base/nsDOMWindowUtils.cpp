@@ -35,6 +35,7 @@
 #include "mozilla/dom/ContentList.h"
 #include "mozilla/dom/DOMCollectedFramesBinding.h"
 #include "mozilla/dom/DOMRect.h"
+#include "mozilla/dom/DirectionalityUtils.h"
 #include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/DocumentTimeline.h"
 #include "mozilla/dom/Event.h"
@@ -1946,7 +1947,9 @@ nsDOMWindowUtils::NeedsFlush(int32_t aFlushType, bool* aResult) {
       return NS_ERROR_INVALID_ARG;
   }
 
-  *aResult = presShell->NeedFlush(flushType);
+  // FIXME(emilio): Some callers do care about aFlushAnimations and kinda work
+  // around it...
+  *aResult = presShell->NeedFlush(flushType, /* aFlushAnimations = */ true);
   return NS_OK;
 }
 
@@ -2385,6 +2388,8 @@ nsDOMWindowUtils::SendSelectionSetEvent(uint32_t aOffset, uint32_t aLength,
   selectionEvent.mOffset = aOffset;
   selectionEvent.mLength = aLength;
   selectionEvent.mReversed = (aAdditionalFlags & SELECTION_SET_FLAG_REVERSE);
+  selectionEvent.mExpandToClusterBoundary =
+      (aAdditionalFlags & SELECTION_EXPAND_TO_CLUSTER_BOUNDARY);
 
   widget->DispatchEvent(&selectionEvent);
 

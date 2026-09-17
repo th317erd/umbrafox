@@ -468,18 +468,6 @@ nsDocShellTreeOwner::SizeShellTo(nsIDocShellTreeItem* aShellItem, int32_t aCX,
 }
 
 NS_IMETHODIMP
-nsDocShellTreeOwner::SetPersistence(bool aPersistPosition, bool aPersistSize,
-                                    bool aPersistSizeMode) {
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-nsDocShellTreeOwner::GetPersistence(bool* aPersistPosition, bool* aPersistSize,
-                                    bool* aPersistSizeMode) {
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
 nsDocShellTreeOwner::GetHasPrimaryContent(bool* aResult) {
   *aResult = mPrimaryRemoteTab || mPrimaryContentShell;
   return NS_OK;
@@ -978,7 +966,11 @@ ChromeTooltipListener::ChromeTooltipListener(nsWebBrowser* aInBrowser,
       mShowingTooltip(false),
       mTooltipShownOnce(false) {}
 
-ChromeTooltipListener::~ChromeTooltipListener() = default;
+ChromeTooltipListener::~ChromeTooltipListener() {
+  if (mTooltipTimer) {
+    mTooltipTimer->Cancel();
+  }
+}
 
 nsITooltipTextProvider* ChromeTooltipListener::GetTooltipTextProvider() {
   if (!mTooltipTextProvider) {
@@ -1241,7 +1233,8 @@ bool ChromeTooltipListener::WebProgressShowedTooltip(
 //   -- the dom node the user hovered over    (mPossibleTooltipNode)
 void ChromeTooltipListener::sTooltipCallback(nsITimer* aTimer,
                                              void* aChromeTooltipListener) {
-  auto* self = static_cast<ChromeTooltipListener*>(aChromeTooltipListener);
+  RefPtr<ChromeTooltipListener> self =
+      static_cast<ChromeTooltipListener*>(aChromeTooltipListener);
   if (!self || !self->mPossibleTooltipNode) {
     return;
   }
@@ -1280,8 +1273,9 @@ void ChromeTooltipListener::sTooltipCallback(nsITimer* aTimer,
                                getter_Copies(tooltipText),
                                getter_Copies(directionText), &textFound);
 
-  if (textFound && (!self->mTooltipShownOnce ||
-                    tooltipText != self->mLastShownTooltipText)) {
+  if (self->mPossibleTooltipNode && textFound &&
+      (!self->mTooltipShownOnce ||
+       tooltipText != self->mLastShownTooltipText)) {
     // ShowTooltip expects screen-relative position.
     self->ShowTooltip(self->mMouseScreenPoint.x, self->mMouseScreenPoint.y,
                       tooltipText, directionText);

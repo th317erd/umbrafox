@@ -31,6 +31,17 @@ pub enum AutofillApiError {
     UnexpectedAutofillApiError { reason: String },
 }
 
+// The `sync15` BridgedEngine traits use `anyhow::Result`, so the bridged engine
+// in `sync::bridge` needs those errors mapped onto the public error type before
+// UniFFI can expose its methods.
+impl From<anyhow::Error> for AutofillApiError {
+    fn from(value: anyhow::Error) -> Self {
+        AutofillApiError::UnexpectedAutofillApiError {
+            reason: value.to_string(),
+        }
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("Error opening database: {0}")]
@@ -65,6 +76,18 @@ pub enum Error {
 
     #[error("No record with guid exists: {0}")]
     NoSuchRecord(String),
+
+    #[error("The store is closed")]
+    DatabaseClosed,
+}
+
+impl From<sql_support::path::Error> for Error {
+    fn from(e: sql_support::path::Error) -> Self {
+        match e {
+            sql_support::path::Error::IllegalDatabasePath(path) => Error::IllegalDatabasePath(path),
+            sql_support::path::Error::IoError(e) => Error::IoError(e),
+        }
+    }
 }
 
 // Define how our internal errors are handled and converted to external errors
@@ -125,6 +148,13 @@ impl GetErrorHandling for Error {
             Self::NoSuchRecord(guid) => {
                 ErrorHandling::convert(AutofillApiError::NoSuchRecord { guid: guid.clone() })
                     .log_warning()
+            }
+
+            Self::DatabaseClosed => {
+                ErrorHandling::convert(AutofillApiError::UnexpectedAutofillApiError {
+                    reason: "The store is closed".to_string(),
+                })
+                .report_error("autofill-database-closed")
             }
         }
     }

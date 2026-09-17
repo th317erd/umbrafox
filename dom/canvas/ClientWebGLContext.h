@@ -12,11 +12,13 @@
 #include <vector>
 
 #include "GLConsts.h"
+#include "WebGLChild.h"
 #include "WebGLCommandQueue.h"
 #include "WebGLStrongTypes.h"
 #include "WebGLTypes.h"
 #include "js/GCAPI.h"
 #include "mozilla/Logging.h"
+#include "mozilla/MozPromise.h"
 #include "mozilla/Range.h"
 #include "mozilla/RefCounted.h"
 #include "mozilla/StaticPrefs_webgl.h"
@@ -820,9 +822,9 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
   void RestoreContext(webgl::LossStatus requiredStatus) const;
 
  private:
-  bool DispatchEvent(const nsAString&) const;
-  void Event_webglcontextlost() const;
-  void Event_webglcontextrestored() const;
+  MOZ_CAN_RUN_SCRIPT bool DispatchEvent(const nsAString&) const;
+  MOZ_CAN_RUN_SCRIPT void Event_webglcontextlost() const;
+  MOZ_CAN_RUN_SCRIPT void Event_webglcontextrestored() const;
 
   bool CreateHostContext(const uvec2& requestedSize);
   void ThrowEvent_WebGLContextCreationError(const std::string&) const;
@@ -1016,6 +1018,11 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
   already_AddRefed<mozilla::gfx::SourceSurface> GetSurfaceSnapshot(
       gfxAlphaType* out_alphaType) override;
 
+  bool SupportAsyncSnapshot() override;
+
+  RefPtr<dom::HTMLCanvasElement::SurfaceSnapshotPromise>
+  GetSurfaceSnapshotAsync() override;
+
   mozilla::ipc::IProtocol* SupportsSnapshotExternalCanvas() const override;
 
   void SetOpaqueValueFromOpaqueAttr(bool) override {};
@@ -1114,6 +1121,13 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
   RefPtr<gfx::DataSourceSurface> BackBufferSnapshot();
   [[nodiscard]] bool DoReadPixels(const webgl::ReadPixelsDesc&,
                                   Span<uint8_t>) const;
+
+  RefPtr<dom::HTMLCanvasElement::SurfaceSnapshotPromise>
+  BackBufferSnapshotAsync();
+
+  [[nodiscard]]
+  RefPtr<dom::HTMLCanvasElement::SurfaceSnapshotPromise> DoReadPixelsAsync();
+
   uvec2 DrawingBufferSize();
 
   // -
@@ -2417,10 +2431,11 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
     Run_WithDestArgTypes(std::move(noGc), method, info, args...);
   }
 
+  // FIXME: This should be marked as MOZ_CAN_RUN_SCRIPT
   template <typename MethodT, typename... DestArgs>
-  void Run_WithDestArgTypes(std::optional<JS::AutoCheckCannotGC>&&, MethodT,
-                            const WebGLMethodInfo info,
-                            const DestArgs&...) const;
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void Run_WithDestArgTypes(
+      std::optional<JS::AutoCheckCannotGC>&&, MethodT,
+      const WebGLMethodInfo info, const DestArgs&...) const;
 
   // -------------------------------------------------------------------------
   // Helpers for DOM operations, composition, actors, etc

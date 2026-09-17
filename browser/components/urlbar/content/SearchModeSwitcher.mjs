@@ -4,57 +4,46 @@
 
 /**
  * @import MozButton from "chrome://global/content/elements/moz-button.mjs";
- * @import { SearchEngine } from "moz-src:///toolkit/components/search/SearchEngine.sys.mjs"
+ * @import { PartialSearchEngine } from "chrome://browser/content/urlbar/SearchEngineStore.mjs"
  * @import { OpenSearchData } from "moz-src:///browser/components/search/OpenSearchManager.sys.mjs"
- * @import { LocalSearchMode } from "moz-src:///browser/components/urlbar/UrlbarUtils.sys.mjs"
+ * @import { LocalSearchMode } from "chrome://browser/content/urlbar/UrlbarShared.mjs"
  * @import { PanelItem, PanelList } from "chrome://global/content/elements/panel-list.mjs"
  */
 
+import UrlbarPrefs from "chrome://browser/content/urlbar/UrlbarContentPrefs.mjs";
+import * as UrlbarContentUtils from "chrome://browser/content/urlbar/UrlbarContentUtils.mjs";
 import { UrlbarShared } from "chrome://browser/content/urlbar/UrlbarShared.mjs";
 
-const lazy = {};
+const lazy = typeof ChromeUtils != "undefined" ? {} : null;
 
-ChromeUtils.defineESModuleGetters(lazy, {
-  AppProvidedConfigEngine:
-    "moz-src:///toolkit/components/search/ConfigSearchEngine.sys.mjs",
-  BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
-  ConfigSearchEngine:
-    "moz-src:///toolkit/components/search/ConfigSearchEngine.sys.mjs",
-  OpenSearchManager:
-    "moz-src:///browser/components/search/OpenSearchManager.sys.mjs",
-  SearchService: "moz-src:///toolkit/components/search/SearchService.sys.mjs",
-  SearchUIUtils: "moz-src:///browser/components/search/SearchUIUtils.sys.mjs",
-  UrlbarPrefs: "moz-src:///browser/components/urlbar/UrlbarPrefs.sys.mjs",
-  UrlbarSearchUtils:
-    "moz-src:///browser/components/urlbar/UrlbarSearchUtils.sys.mjs",
-  UrlbarUtils: "moz-src:///browser/components/urlbar/UrlbarUtils.sys.mjs",
-});
+if (lazy) {
+  ChromeUtils.defineESModuleGetters(lazy, {
+    OpenSearchManager:
+      "moz-src:///browser/components/search/OpenSearchManager.sys.mjs",
+    SearchUIUtils: "moz-src:///browser/components/search/SearchUIUtils.sys.mjs",
+  });
+}
 
-ChromeUtils.defineLazyGetter(lazy, "SearchModeSwitcherL10n", () => {
-  return new Localization(["browser/browser.ftl"]);
-});
+/** @type {Localization} */
+let l10n;
 
-const { XPCOMUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/XPCOMUtils.sys.mjs"
-);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "settingsRedesignEnabled",
-  "browser.settings-redesign.enabled",
-  true
-);
+function getL10n() {
+  l10n ??= new Localization(["browser/browser.ftl"]);
+  return l10n;
+}
 
 // Default icon used for engines that do not have icons loaded.
 const DEFAULT_ENGINE_ICON =
   "chrome://browser/skin/search-engine-placeholder@2x.png";
 
+const SKIP_TAB_STOP_PREF = "searchModeSwitcher.skipTabStop";
+
 /**
  * Implements the SearchModeSwitcher in the urlbar.
  */
 export class SearchModeSwitcher {
-  static ICON_GLASS = lazy.UrlbarUtils.ICON.SEARCH_GLASS;
-  static ICON_GLOBE = lazy.UrlbarUtils.ICON.GLOBE;
+  static ICON_GLASS = UrlbarShared.ICON.SEARCH_GLASS;
+  static ICON_GLOBE = UrlbarShared.ICON.GLOBE;
   /**
    * The maximum number of openSearch engines available to install
    * to display.
@@ -86,13 +75,6 @@ export class SearchModeSwitcher {
   constructor(input) {
     this.#input = input;
 
-    this.QueryInterface = ChromeUtils.generateQI([
-      "nsIObserver",
-      "nsISupportsWeakReference",
-    ]);
-
-    lazy.UrlbarPrefs.addObserver(this);
-
     this.#panelList = input.querySelector(".searchmode-switcher-panel-list");
     this.#button = input.querySelector(".searchmode-switcher");
     this.#closebutton = input.querySelector(".searchmode-switcher-close");
@@ -112,24 +94,42 @@ export class SearchModeSwitcher {
       this.#panelList.replaceWith(panel);
       panel.appendChild(this.#panelList);
     }
+  }
 
-    if (this.#isEnabled) {
+  /**
+   * Called when the input is connected.
+   */
+  connect() {
+    UrlbarPrefs.addObserver(this);
+
+    if (this.#isEnabled()) {
       this.#enableObservers();
     }
   }
 
+  /**
+   * Called when the input is disconnected.
+   */
+  disconnect() {
+    UrlbarPrefs.removeObserver(this);
+    this.#disableObservers();
+  }
+
   #isEnabled() {
     return (
-      lazy.UrlbarPrefs.get("scotchBonnet.enableOverride") ||
-      this.#input.sapName == "searchbar"
+      UrlbarPrefs.get("scotchBonnet.enableOverride") ||
+      this.#input.isSearchbarSAP
     );
   }
 
   async #onPopupShowing() {
     // Discard event to avoid recording an abandonment.
     this.#input.controller.engagementEvent.discard();
-    await this.#buildSearchModeList();
+    // Close the view before anything is awaited. Closing it collapses the
+    // urlbar, and the panel aligns itself asynchronously and abandons the open
+    // if its anchor moves mid-alignment.
     this.#input.view.close({ showFocusBorder: false });
+    await this.#buildSearchModeList();
 
     if (this.#input.sapName == "urlbar") {
       Glean.urlbarUnifiedsearchbutton.opened.add(1);
@@ -144,7 +144,7 @@ export class SearchModeSwitcher {
   }
 
   #openPreferences() {
-    this.#input.window.openPreferences("paneSearch");
+    this.#input.parentController.openPreferences("paneSearch");
 
     if (this.#input.sapName == "urlbar") {
       Glean.urlbarUnifiedsearchbutton.picked.settings.add(1);
@@ -176,17 +176,6 @@ export class SearchModeSwitcher {
 
     if (this.#isEnabled()) {
       this.updateSearchIcon({ searchModeChanged: true });
-
-      let engine = lazy.UrlbarSearchUtils.getEngineByName(
-        this.#input.searchMode?.engineName
-      );
-      if (
-        engine &&
-        engine instanceof lazy.ConfigSearchEngine &&
-        !engine.hasBeenUsed
-      ) {
-        engine.markAsUsed();
-      }
     }
   }
 
@@ -211,6 +200,16 @@ export class SearchModeSwitcher {
     }
     if (event.type == "focus") {
       this.#input.setUnifiedSearchButtonAvailability(true);
+      return;
+    }
+    if (event.type == "focusin") {
+      this.#button.tabIndex = 0;
+      return;
+    }
+    if (event.type == "focusout") {
+      if (!this.#input.contains(event.relatedTarget)) {
+        this.#button.tabIndex = -1;
+      }
       return;
     }
     if (event.type == "showing") {
@@ -284,9 +283,7 @@ export class SearchModeSwitcher {
         ) {
           return;
         }
-        // Prevent the keystroke from generating a
-        // click event and reopening the switcher.
-        keyboardEvent.preventDefault();
+        event.preventDefault();
         break;
       }
       case "auxclick": {
@@ -309,7 +306,8 @@ export class SearchModeSwitcher {
       case "searchmode": {
         // #remoteSearch() decides whether to close the panel or keep it open.
         let engineId = panelItem.dataset.engineId;
-        this.#remoteSearch(lazy.SearchService.getEngineById(engineId), event);
+        let engine = this.#input.controller.engineStore.getEngine(engineId);
+        this.#remoteSearch(engine, event);
         break;
       }
       case "localsearchmode": {
@@ -337,29 +335,17 @@ export class SearchModeSwitcher {
     panelItem.addEventListener("auxclick", this);
   }
 
-  observe(_subject, topic, data) {
-    if (
-      !this.#input.window ||
-      this.#input.window.closed ||
-      // TODO bug 2005783 stop observing when input is disconnected.
-      !this.#input.isConnected
-    ) {
+  onSearchEngineUpdate = (modifiedType, _engine) => {
+    if (!this.#input.window || this.#input.window.closed) {
       return;
     }
 
-    switch (topic) {
-      case "browser-search-engine-modified": {
-        if (
-          data === "engine-default" ||
-          data === "engine-default-private" ||
-          data === "engine-icon-changed"
-        ) {
-          this.updateSearchIcon();
-        }
-        break;
-      }
+    switch (modifiedType) {
+      case "changed":
+      case "default":
+        this.updateSearchIcon();
     }
-  }
+  };
 
   /**
    * Called when a urlbar pref changes.
@@ -372,14 +358,25 @@ export class SearchModeSwitcher {
       return;
     }
 
-    if (this.#input.sapName == "searchbar") {
-      // The searchbar cares about neither of the two prefs.
+    if (pref == SKIP_TAB_STOP_PREF) {
+      if (this.#isEnabled()) {
+        if (UrlbarPrefs.get(pref)) {
+          this.#enableSkipTabStop();
+        } else {
+          this.#disableSkipTabStop();
+        }
+      }
+      return;
+    }
+
+    if (this.#input.isSearchbarSAP) {
+      // A search bar cares about neither of the two remaining prefs.
       return;
     }
 
     switch (pref) {
       case "scotchBonnet.enableOverride": {
-        if (lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
+        if (UrlbarPrefs.get("scotchBonnet.enableOverride")) {
           this.#enableObservers();
           this.updateSearchIcon();
         } else {
@@ -388,7 +385,7 @@ export class SearchModeSwitcher {
         break;
       }
       case "keyword.enabled": {
-        if (lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
+        if (UrlbarPrefs.get("scotchBonnet.enableOverride")) {
           this.updateSearchIcon();
         }
         break;
@@ -454,9 +451,16 @@ export class SearchModeSwitcher {
   }
 
   async #populateEngines() {
-    let searchEngines = (await lazy.SearchService.getVisibleEngines()).filter(
-      engine => !engine.hideOneOffButton
-    );
+    let searchEngines = [];
+
+    try {
+      await this.#input.controller.engineStore.init();
+      searchEngines = this.#input.controller.engineStore
+        .getEngines()
+        .filter(engine => !engine.hideOneOffButton);
+    } catch {
+      // Search service failed but we still offer local search modes.
+    }
 
     if (this.#input.sapName != "urlbar") {
       this.#engines = searchEngines;
@@ -465,12 +469,23 @@ export class SearchModeSwitcher {
       // search modes. Hence when the settings redesign is enabled we show
       // all local search modes regardless of the prefs.
       this.#engines = searchEngines.concat(
-        lazy.UrlbarUtils.LOCAL_SEARCH_MODES.filter(
+        UrlbarShared.LOCAL_SEARCH_MODES.filter(
           engine =>
-            lazy.settingsRedesignEnabled || lazy.UrlbarPrefs.get(engine.pref)
+            UrlbarPrefs.get("browser.settings-redesign.enabled") ||
+            UrlbarPrefs.get(engine.pref)
         )
       );
     }
+  }
+
+  /**
+   * Badges the unified search button to indicate that the current page offers
+   * engines that can be added.
+   *
+   * @param {boolean} show
+   */
+  toggleAddEnginesBadge(show) {
+    this.#button.toggleAttribute("addengines", show);
   }
 
   /**
@@ -509,10 +524,7 @@ export class SearchModeSwitcher {
       labelEl.textContent = label;
     }
 
-    if (
-      !lazy.UrlbarPrefs.get("keyword.enabled") &&
-      this.#input.sapName != "searchbar"
-    ) {
+    if (!UrlbarShared.keywordEnabled(this.#input.sapName)) {
       this.#input.document.l10n.setAttributes(
         this.#button,
         "urlbar-searchmode-no-keyword2"
@@ -524,16 +536,12 @@ export class SearchModeSwitcher {
     let searchMode = this.#input.searchMode;
 
     try {
-      await lazy.UrlbarSearchUtils.init();
+      await this.#input.controller.engineStore.init();
     } catch {
-      console.error("Search service failed to init");
+      // Search service failed but we continue anyways.
     }
 
-    if (
-      this.#input.sapName != "searchbar" &&
-      !lazy.UrlbarPrefs.get("keyword.enabled") &&
-      !searchMode
-    ) {
+    if (!UrlbarShared.keywordEnabled(this.#input.sapName) && !searchMode) {
       return { icon: SearchModeSwitcher.ICON_GLOBE };
     }
 
@@ -549,7 +557,7 @@ export class SearchModeSwitcher {
     }
 
     if (
-      lazy.UrlbarPrefs.get("unifiedSearchButton.always") &&
+      UrlbarPrefs.get("unifiedSearchButton.always") &&
       !this.#lastInputValue &&
       this.#input.focused &&
       this.#input.value.length
@@ -570,24 +578,18 @@ export class SearchModeSwitcher {
   }
 
   async #getSearchModeLabel(source) {
-    let mode = lazy.UrlbarUtils.LOCAL_SEARCH_MODES.find(
-      m => m.source == source
-    );
-    let [str] = await lazy.SearchModeSwitcherL10n.formatMessages([
-      { id: mode.uiLabel },
-    ]);
+    let mode = UrlbarShared.LOCAL_SEARCH_MODES.find(m => m.source == source);
+    let [str] = await getL10n().formatMessages([{ id: mode.uiLabel }]);
     return str.value;
   }
 
   async #getDisplayedEngineDetails(searchMode = null) {
-    if (!lazy.SearchService.hasSuccessfullyInitialized) {
-      return { label: null, icon: SearchModeSwitcher.ICON_GLASS };
-    }
-
     if (!searchMode || searchMode.engineName) {
       let engine = searchMode
-        ? lazy.UrlbarSearchUtils.getEngineByName(searchMode.engineName)
-        : lazy.UrlbarSearchUtils.getDefaultEngine(this.#input.isPrivate);
+        ? this.#input.controller.engineStore.getEngineByName(
+            searchMode.engineName
+          )
+        : this.#input.controller.engineStore.default;
       if (!engine) {
         return { label: null, icon: SearchModeSwitcher.ICON_GLASS };
       }
@@ -595,7 +597,7 @@ export class SearchModeSwitcher {
       return { label: engine.name, icon };
     }
 
-    let mode = lazy.UrlbarUtils.LOCAL_SEARCH_MODES.find(
+    let mode = UrlbarShared.LOCAL_SEARCH_MODES.find(
       m => m.source == searchMode.source
     );
     return {
@@ -631,10 +633,11 @@ export class SearchModeSwitcher {
     }
     this.#buildSettingsButton();
 
-    // Add engines that can be installed.
-    let openSearchEngines = lazy.OpenSearchManager.getEngines(
-      browser.selectedBrowser
-    );
+    // Add engines that can be installed. Only a browser window has a page to
+    // offer them from.
+    let openSearchEngines = browser
+      ? lazy.OpenSearchManager.getInstallableEngines(browser.selectedBrowser)
+      : [];
     openSearchEngines = openSearchEngines.slice(
       0,
       SearchModeSwitcher.MAX_OPENSEARCH_ENGINES
@@ -682,7 +685,7 @@ export class SearchModeSwitcher {
    *   Where the search engine result page should be opened.
    */
   #whereToOpenSerp(event) {
-    let where = lazy.BrowserUtils.whereToOpenLink(event, false, true);
+    let where = UrlbarContentUtils.whereToOpenLink(event);
     // Usually, shift means "open in new window", but in the search
     // mode switcher it means "open SERP even if urlbar is empty",
     // so we just return tab, tabshifted or current but never window.
@@ -704,7 +707,7 @@ export class SearchModeSwitcher {
     menuitem.setAttribute("data-l10n-attrs", "accesskey");
     this.#input.document.l10n.setAttributes(
       menuitem,
-      Services.prefs.getBoolPref("browser.nova.enabled", false)
+      UrlbarPrefs.get("browser.nova.enabled")
         ? "urlbar-searchmode-popup-settings"
         : "urlbar-searchmode-popup-search-settings"
     );
@@ -712,6 +715,9 @@ export class SearchModeSwitcher {
     this.#panelList.appendChild(menuitem);
   }
 
+  /**
+   * @param {PartialSearchEngine} engine
+   */
   async #buildEngineSearchButton(engine) {
     let icon = await engine.getIconURL();
     let menuitem = this.#createButton(icon, engine.name);
@@ -721,7 +727,7 @@ export class SearchModeSwitcher {
     menuitem.setAttribute("accesskey", engine.name[0]);
     menuitem.setAttribute("closemenu", "none");
 
-    if (engine.isNew() && engine instanceof lazy.AppProvidedConfigEngine) {
+    if (engine.isNew() && engine.isAppProvided) {
       menuitem.setAttribute("badge-type", "new");
     }
 
@@ -738,7 +744,7 @@ export class SearchModeSwitcher {
    * @returns {Promise<PanelItem>}
    */
   async #buildLocalSearchButton(mode) {
-    let sourceName = lazy.UrlbarUtils.getResultSourceName(mode.source);
+    let sourceName = UrlbarShared.getResultSourceName(mode.source);
     let { icon } = await this.#getDisplayedEngineDetails(mode);
     let menuitem = this.#createButton(icon);
     menuitem.classList.add(
@@ -771,11 +777,9 @@ export class SearchModeSwitcher {
 
   /**
    * Enters searchmode in the urlbar or opens a SERP, depending
-   * on whether the urlbar is empty.
-   * Shift can be used to force the SERP.
-   * Also handles closing the panel.
+   * on modifier keys. Also handles closing the panel.
    *
-   * @param {SearchEngine} searchEngine
+   * @param {PartialSearchEngine} searchEngine
    *   The engine to search with.
    * @param {KeyboardEvent|MouseEvent} event
    *   The event that triggered the search.
@@ -807,9 +811,7 @@ export class SearchModeSwitcher {
     if (this.#input.sapName == "urlbar") {
       // TODO do we really need to distinguish here?
       Glean.urlbarUnifiedsearchbutton.picked[
-        searchEngine instanceof lazy.ConfigSearchEngine
-          ? "builtin_search"
-          : "addon_search"
+        searchEngine.isConfigEngine ? "builtin_search" : "addon_search"
       ].add(1);
     }
   }
@@ -848,10 +850,14 @@ export class SearchModeSwitcher {
   }
 
   #enableObservers() {
-    Services.obs.addObserver(this, "browser-search-engine-modified", true);
+    this.#input.controller.engineStore.addObserver(this.onSearchEngineUpdate);
 
     this.#button.addEventListener("focus", this);
     this.#button.addEventListener("keydown", this);
+
+    if (UrlbarPrefs.get(SKIP_TAB_STOP_PREF)) {
+      this.#enableSkipTabStop();
+    }
 
     this.#panelList.addEventListener("showing", this);
     this.#panelList.addEventListener("hidden", this);
@@ -863,10 +869,14 @@ export class SearchModeSwitcher {
   }
 
   #disableObservers() {
-    Services.obs.removeObserver(this, "browser-search-engine-modified");
+    this.#input.controller.engineStore.removeObserver(
+      this.onSearchEngineUpdate
+    );
 
     this.#button.removeEventListener("focus", this);
     this.#button.removeEventListener("keydown", this);
+
+    this.#disableSkipTabStop();
 
     this.#panelList.removeEventListener("showing", this);
     this.#panelList.removeEventListener("hidden", this);
@@ -875,6 +885,25 @@ export class SearchModeSwitcher {
     this.#closebutton.removeEventListener("mousedown", this);
 
     this.#input.removeEventListener("searchmodechanged", this);
+  }
+
+  /**
+   * The button precedes the input, so it's what the toolbar tab stop in front
+   * of the widget redirects to. Declining that redirect and joining the tab
+   * order only while the widget has focus makes Tab land on the input, with
+   * the button reached by Shift+Tab from there.
+   */
+  #enableSkipTabStop() {
+    this.#button.setAttribute("keyNav", "skipTabStop");
+    this.#input.addEventListener("focusin", this);
+    this.#input.addEventListener("focusout", this);
+  }
+
+  #disableSkipTabStop() {
+    this.#button.removeAttribute("keyNav");
+    this.#button.tabIndex = -1;
+    this.#input.removeEventListener("focusin", this);
+    this.#input.removeEventListener("focusout", this);
   }
 
   /**
@@ -908,16 +937,16 @@ export class SearchModeSwitcher {
    *   The engine to install.
    */
   async #installOpenSearchEngine(engine) {
-    let topic = "browser-search-engine-modified";
-    /** @type {(subject: {wrappedJSObject: SearchEngine}) => void} */
-    let observer = subject => {
-      Services.obs.removeObserver(observer, topic);
+    /** @type {(_: string, newEngine: PartialSearchEngine) => void} */
+    let observer = (_, newEngine) => {
       this.#input.search(this.#getSearchString(), {
-        searchEngine: subject.wrappedJSObject,
+        searchEngine: newEngine,
         searchModeEntry: "searchbutton",
       });
+
+      this.#input.controller.engineStore.removeObserver(observer);
     };
-    Services.obs.addObserver(observer, topic);
+    this.#input.controller.engineStore.addObserver(observer);
     if (this.#input.sapName == "urlbar") {
       Glean.urlbarUnifiedsearchbutton.picked.addon_search.add(1);
     }

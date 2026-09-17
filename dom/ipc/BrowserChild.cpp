@@ -5,7 +5,6 @@
 #include "BrowserChild.h"
 
 #ifdef ACCESSIBILITY
-#  include "mozilla/a11y/DocAccessibleChild.h"
 #  include "nsAccessibilityService.h"
 #endif
 #include <utility>
@@ -124,12 +123,10 @@
 #  include "nsAppRunner.h"
 #endif
 
-#ifdef NS_PRINTING
-#  include "mozilla/layout/RemotePrintJobChild.h"
-#  include "nsIPrintSettings.h"
-#  include "nsIPrintSettingsService.h"
-#  include "nsIWebBrowserPrint.h"
-#endif
+#include "mozilla/layout/RemotePrintJobChild.h"
+#include "nsIPrintSettings.h"
+#include "nsIPrintSettingsService.h"
+#include "nsIWebBrowserPrint.h"
 
 static mozilla::LazyLogModule sApzChildLog("apz.child");
 
@@ -362,9 +359,6 @@ BrowserChild::BrowserChild(ContentChild* aManager, const TabId& aTabId,
       mShouldSendWebProgressEventsToParent(false),
       mRenderLayers(true),
       mIsPreservingLayers(false),
-#if defined(XP_WIN) && defined(ACCESSIBILITY)
-      mNativeWindowHandle(0),
-#endif
       mCancelContentJSEpoch(0) {
   mozilla::HoldJSObjects(this);
 
@@ -466,15 +460,6 @@ nsresult BrowserChild::Init(mozIDOMWindowProxy* aParent,
   MOZ_ASSERT(aInitialWindowChild->DocumentPrincipal() ==
              aOpenWindowInfo->PrincipalToInheritForAboutBlank());
 
-  // Ensure we have marked this process as untrusted before BrowserChild can
-  // receive any further messages.
-  //
-  // This call could load additional trusted scripts, which are safe to cache
-  // with the ScriptPreloader, so we avoid setting ourselves as untrusted until
-  // this method returns.
-  auto markAsUntrustedGuard =
-      MakeScopeExit([&] { ContentChild::MaybeBecomeUntrusted(); });
-
   nsCOMPtr<nsIWidget> widget = nsIWidget::CreatePuppetWidget(this);
   mPuppetWidget = static_cast<PuppetWidget*>(widget.get());
   if (!mPuppetWidget) {
@@ -525,13 +510,6 @@ nsresult BrowserChild::Init(mozIDOMWindowProxy* aParent,
   NS_ENSURE_TRUE(window, NS_ERROR_FAILURE);
   nsCOMPtr<EventTarget> chromeHandler = window->GetChromeEventHandler();
   docShell->SetChromeEventHandler(chromeHandler);
-
-  // Window scrollbar flags only affect top level remote frames, not fission
-  // frames.
-  if (mIsTopLevel) {
-    nsContentUtils::SetScrollbarsVisibility(
-        docShell, !!(mChromeFlags & nsIWebBrowserChrome::CHROME_SCROLLBARS));
-  }
 
   nsWeakPtr weakPtrThis = do_GetWeakReference(
       static_cast<nsIBrowserChild*>(this));  // for capture by the lambda
@@ -604,13 +582,6 @@ NS_IMETHODIMP
 BrowserChild::GetChromeFlags(uint32_t* aChromeFlags) {
   *aChromeFlags = mChromeFlags;
   return NS_OK;
-}
-
-NS_IMETHODIMP
-BrowserChild::SetChromeFlags(uint32_t aChromeFlags) {
-  NS_WARNING("trying to SetChromeFlags from content process?");
-
-  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
@@ -935,7 +906,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvResumeLoad(
 nsresult BrowserChild::CloneDocumentTreeIntoSelf(
     const MaybeDiscarded<BrowsingContext>& aSourceBC,
     const embedding::PrintData& aPrintData) {
-#ifdef NS_PRINTING
   if (NS_WARN_IF(aSourceBC.IsNullOrDiscarded())) {
     return NS_ERROR_FAILURE;
   }
@@ -987,7 +957,6 @@ nsresult BrowserChild::CloneDocumentTreeIntoSelf(
     return rv;
   }
 
-#endif
   return NS_OK;
 }
 
@@ -997,9 +966,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvCloneDocumentTreeIntoSelf(
     CloneDocumentTreeIntoSelfResolver&& aResolve) {
   nsresult rv = NS_OK;
 
-#ifdef NS_PRINTING
   rv = CloneDocumentTreeIntoSelf(aSourceBC, aPrintData);
-#endif
 
   aResolve(NS_SUCCEEDED(rv));
   return IPC_OK();
@@ -1007,7 +974,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvCloneDocumentTreeIntoSelf(
 
 nsresult BrowserChild::UpdateRemotePrintSettings(
     const embedding::PrintData& aPrintData) {
-#ifdef NS_PRINTING
   nsCOMPtr<nsIDocShell> ourDocShell = do_GetInterface(WebNavigation());
   if (NS_WARN_IF(!ourDocShell)) {
     return NS_ERROR_FAILURE;
@@ -1063,16 +1029,13 @@ nsresult BrowserChild::UpdateRemotePrintSettings(
     }
     return BrowsingContext::WalkFlag::Next;
   });
-#endif
 
   return NS_OK;
 }
 
 mozilla::ipc::IPCResult BrowserChild::RecvUpdateRemotePrintSettings(
     const embedding::PrintData& aPrintData) {
-#ifdef NS_PRINTING
   UpdateRemotePrintSettings(aPrintData);
-#endif
 
   return IPC_OK();
 }
@@ -1151,8 +1114,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvInitRendering(
 mozilla::ipc::IPCResult BrowserChild::RecvScrollbarPreferenceChanged(
     ScrollbarPreference aPreference) {
   MOZ_ASSERT(!mIsTopLevel,
-             "Scrollbar visibility should be derived from chrome flags for "
-             "top-level windows");
+             "Top-level windows use the default scrollbar preference");
   if (nsCOMPtr<nsIDocShell> docShell = do_GetInterface(WebNavigation())) {
     nsDocShell::Cast(docShell)->SetScrollbarPreference(aPreference);
   }
@@ -2237,7 +2199,7 @@ already_AddRefed<DataTransfer> BrowserChild::ConvertToDataTransfer(
   // the principal permits it (and dom.events.datatransfer.protected.enabled is
   // false).  Otherwise, protected DataTransfer access should only be given to
   // the system.
-  if (!aPrincipal || Manager()->GetRemoteType() != EXTENSION_REMOTE_TYPE) {
+  if (!aPrincipal || !Manager()->GetRemoteType().IsExtension()) {
     aPrincipal = nsContentUtils::GetSystemPrincipal();
   }
 
@@ -2430,6 +2392,7 @@ void BrowserChild::RequestEditCommands(NativeKeyBindingsType aType,
 
   // Don't send aEvent to the parent process directly because it'll be marked
   // as posted to remote process.
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
   WidgetKeyboardEvent localEvent(aEvent);
   SendRequestNativeKeyBindings(aType, localEvent, &aCommands);
 }
@@ -2761,21 +2724,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvPasteTransferable(
   return IPC_OK();
 }
 
-#ifdef ACCESSIBILITY
-a11y::PDocAccessibleChild* BrowserChild::AllocPDocAccessibleChild(
-    PDocAccessibleChild*, const uint64_t&, const MaybeDiscardedBrowsingContext&,
-    const bool&) {
-  MOZ_ASSERT_UNREACHABLE("should never call this!");
-  return nullptr;
-}
-
-bool BrowserChild::DeallocPDocAccessibleChild(
-    a11y::PDocAccessibleChild* aChild) {
-  delete static_cast<mozilla::a11y::DocAccessibleChild*>(aChild);
-  return true;
-}
-#endif
-
 RefPtr<VsyncMainChild> BrowserChild::GetVsyncChild() {
   // Initializing VsyncMainChild here turns on per-BrowserChild Vsync for a
   // given platform. Note: this only makes sense if nsWindow returns a
@@ -2918,7 +2866,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvHandleAccessKey(
 mozilla::ipc::IPCResult BrowserChild::RecvPrintPreview(
     const PrintData& aPrintData, const MaybeDiscardedBrowsingContext& aSourceBC,
     PrintPreviewResolver&& aCallback) {
-#ifdef NS_PRINTING
   // If we didn't succeed in passing off ownership of aCallback, then something
   // went wrong.
   auto sendCallbackError = MakeScopeExit([&] {
@@ -2972,26 +2919,22 @@ mozilla::ipc::IPCResult BrowserChild::RecvPrintPreview(
                       nsGlobalWindowOuter::IsPreview::Yes,
                       nsGlobalWindowOuter::IsForWindowDotPrint::No,
                       std::move(aCallback), nullptr, IgnoreErrors());
-#endif
   return IPC_OK();
 }
 
 mozilla::ipc::IPCResult BrowserChild::RecvExitPrintPreview() {
-#ifdef NS_PRINTING
   nsCOMPtr<nsIWebBrowserPrint> webBrowserPrint =
       do_GetInterface(ToSupports(WebNavigation()));
   if (NS_WARN_IF(!webBrowserPrint)) {
     return IPC_OK();
   }
   webBrowserPrint->ExitPrintPreview();
-#endif
   return IPC_OK();
 }
 
 mozilla::ipc::IPCResult BrowserChild::CommonPrint(
     const MaybeDiscardedBrowsingContext& aBc, const PrintData& aPrintData,
     RefPtr<BrowsingContext>* aCachedBrowsingContext) {
-#ifdef NS_PRINTING
   if (NS_WARN_IF(aBc.IsNullOrDiscarded())) {
     return IPC_OK();
   }
@@ -3029,42 +2972,31 @@ mozilla::ipc::IPCResult BrowserChild::CommonPrint(
       return IPC_OK();
     }
   }
-#endif
   return IPC_OK();
 }
 
 mozilla::ipc::IPCResult BrowserChild::RecvPrint(
     const MaybeDiscardedBrowsingContext& aBc, const PrintData& aPrintData,
     bool aReturnStaticClone, PrintResolver&& aResolve) {
-#ifdef NS_PRINTING
   RefPtr<BrowsingContext> browsingContext;
   auto result = CommonPrint(aBc, aPrintData,
                             aReturnStaticClone ? &browsingContext : nullptr);
   aResolve(browsingContext);
   return result;
-#else
-  aResolve(nullptr);
-  return IPC_OK();
-#endif
 }
 
 mozilla::ipc::IPCResult BrowserChild::RecvPrintClonedPage(
     const MaybeDiscardedBrowsingContext& aBc, const PrintData& aPrintData,
     const MaybeDiscardedBrowsingContext& aClonedBc) {
-#ifdef NS_PRINTING
   if (aClonedBc.IsNullOrDiscarded()) {
     return IPC_OK();
   }
   RefPtr<BrowsingContext> clonedBc = aClonedBc.get();
   return CommonPrint(aBc, aPrintData, &clonedBc);
-#else
-  return IPC_OK();
-#endif
 }
 
 mozilla::ipc::IPCResult BrowserChild::RecvDestroyPrintClone(
     const MaybeDiscardedBrowsingContext& aCachedPage) {
-#ifdef NS_PRINTING
   if (aCachedPage) {
     RefPtr<nsPIDOMWindowOuter> window = aCachedPage->GetDOMWindow();
     if (NS_WARN_IF(!window)) {
@@ -3072,18 +3004,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvDestroyPrintClone(
     }
     window->Close();
   }
-#endif
   return IPC_OK();
-}
-
-mozilla::ipc::IPCResult BrowserChild::RecvUpdateNativeWindowHandle(
-    const uintptr_t& aNewHandle) {
-#if defined(XP_WIN) && defined(ACCESSIBILITY)
-  mNativeWindowHandle = aNewHandle;
-  return IPC_OK();
-#else
-  return IPC_FAIL_NO_REASON(this);
-#endif
 }
 
 mozilla::ipc::IPCResult BrowserChild::RecvDestroy() {
@@ -3179,8 +3100,8 @@ mozilla::ipc::IPCResult BrowserChild::RecvRenderLayers(const bool& aEnabled) {
   } else {
     // NOTE: We want to call in even without a root frame (we might paint the
     // canvas background in that case).
-    presShell->PaintAndRequestComposite(presShell->GetRootFrame(),
-                                        mPuppetWidget->GetWindowRenderer(),
+    RefPtr<WindowRenderer> renderer = mPuppetWidget->GetWindowRenderer();
+    presShell->PaintAndRequestComposite(presShell->GetRootFrame(), renderer,
                                         PaintFlags::None);
   }
   presShell->SuppressDisplayport(false);
@@ -4261,7 +4182,7 @@ void BrowserChild::OnPointerRawUpdateEventListenerRemoved(
            mPointerRawUpdateWindowCount));
 }
 
-#if defined(ACCESSIBILITY) && defined(MOZ_ENABLE_SKIA_PDF)
+#ifdef ACCESSIBILITY
 mozilla::ipc::IPCResult BrowserChild::RecvRequestDocAccessibleForPrint() {
   if (RefPtr<Document> doc = GetTopLevelDocument()) {
     a11y::DocManager::NotifyOfPrintDocument(doc);

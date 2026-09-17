@@ -168,7 +168,7 @@ export class SidebarState {
    * @returns {XULElement}
    */
   get #pinnedTabsItemsWrapper() {
-    return this.#pinnedTabsContainerEl.shadowRoot.querySelector(
+    return this.#pinnedTabsContainerEl?.shadowRoot?.querySelector(
       "[part=items-wrapper]"
     );
   }
@@ -276,13 +276,9 @@ export class SidebarState {
         case "panelOpen":
           // we need to know if we have a command value before finalizing panelOpen
           break;
-        case "expandedPinnedTabsHeight":
-        case "collapsedPinnedTabsHeight":
-          this.updatePinnedTabsHeight();
-          break;
-        case "expandedToolsHeight":
-        case "collapsedToolsHeight":
-          this.updateToolsHeight();
+        case "pinnedTabsHeight":
+        case "toolsHeight":
+          this.#props[key] = value;
           break;
         default:
           this[key] = value;
@@ -308,10 +304,18 @@ export class SidebarState {
       // show() is async, so make sure we return its promise here
       return this.#controller.showInitially(this.command);
     }
-    if (["hide-sidebar", "hide-launcher"].includes(this.revampVisibility)) {
-      // No panel is open, so the launcher stays hidden as these modes intend. A
-      // new or restored window can otherwise inherit a visible launcher state,
-      // which shouldn't carry over here.
+    if (this.launcherHiddenWithPanel) {
+      // "hide-launcher" replaces the launcher with the panel header switcher,
+      // so it never shows regardless of what was restored.
+      this.launcherVisible = false;
+    } else if (
+      !hasPreviousVisibleState &&
+      this.revampVisibility === "hide-sidebar"
+    ) {
+      // No panel is open and the state we were handed didn't say whether the
+      // launcher was visible, so fall back to hidden as this mode intends. An
+      // explicitly restored or adopted visibility wins over that default,
+      // otherwise a launcher the user revealed would be lost on every restart.
       this.launcherVisible = false;
     }
     return this.#controller.hide();
@@ -603,25 +607,28 @@ export class SidebarState {
       }
 
       this.#launcherEl.toggleAttribute("customWidth", true);
-    } else if (this.launcherWidth < LAUNCHER_MINIMUM_WIDTH) {
-      // Re-enable expand on hover if necessary
-      if (this.#controller.sidebarRevampVisibility === "expand-on-hover") {
-        this.#controller.toggleExpandOnHover(true, true);
-      }
-
-      // Snap back to collapsed state when the new width is too narrow.
-      this.launcherExpanded = false;
-      if (this.revampVisibility === "hide-sidebar") {
-        this.launcherVisible = false;
-      }
     } else {
+      this.launcherWidth =
+        this.#controllerGlobal.windowUtils.getBoundsWithoutFlushing(
+          this.#launcherContainerEl
+        ).width;
+
       // Re-enable expand on hover if necessary
       if (this.#controller.sidebarRevampVisibility === "expand-on-hover") {
         this.#controller.toggleExpandOnHover(true, true);
       }
 
-      // Store the user-preferred launcher width.
-      this.expandedLauncherWidth = this.launcherWidth;
+      if (this.launcherWidth < LAUNCHER_MINIMUM_WIDTH) {
+        // Snap back to collapsed state when the new width is too narrow.
+        this.launcherExpanded = false;
+        if (this.revampVisibility === "hide-sidebar") {
+          this.launcherVisible = false;
+        }
+      } else {
+        this.launcherExpanded = true;
+        // Store the user-preferred launcher width.
+        this.expandedLauncherWidth = this.launcherWidth;
+      }
     }
     const rootEl = this.#controllerGlobal.document.documentElement;
     rootEl.toggleAttribute("sidebar-launcher-drag-active", active);
@@ -632,7 +639,7 @@ export class SidebarState {
   }
 
   set pinnedTabsDragActive(active) {
-    this.#props.pinnedDragActive = active;
+    this.#props.pinnedTabsDragActive = active;
 
     let itemsWrapperHeight =
       this.#controllerGlobal.windowUtils.getBoundsWithoutFlushing(
@@ -791,17 +798,38 @@ export class SidebarState {
    * height (if available).
    */
   updatePinnedTabsHeight() {
-    if (!lazy.verticalTabsEnabled) {
-      if (this.#pinnedTabsContainerEl) {
-        this.#pinnedTabsContainerEl.style.height = "";
-      }
+    if (!this.#pinnedTabsContainerEl || this.pinnedTabsDragActive) {
       return;
     }
-    if (this.launcherExpanded && this.expandedPinnedTabsHeight) {
-      this.#pinnedTabsContainerEl.style.height = `${this.expandedPinnedTabsHeight}px`;
-    } else if (!this.launcherExpanded && this.collapsedPinnedTabsHeight) {
-      this.#pinnedTabsContainerEl.style.height = `${this.collapsedPinnedTabsHeight}px`;
+    if (!lazy.verticalTabsEnabled) {
+      this.#pinnedTabsContainerEl.style.height = "";
+      return;
     }
+    const preferredHeight = this.launcherExpanded
+      ? this.expandedPinnedTabsHeight
+      : this.collapsedPinnedTabsHeight;
+    if (!preferredHeight) {
+      // Nothing stored for this state, so clear any height left over from the
+      // other state and let the container size itself to its contents.
+      this.#pinnedTabsContainerEl.style.height = "";
+      return;
+    }
+    const itemsWrapper = this.#pinnedTabsItemsWrapper;
+    const itemsWrapperHeight = itemsWrapper
+      ? this.#controllerGlobal.windowUtils.getBoundsWithoutFlushing(
+          itemsWrapper
+        ).height
+      : 0;
+    if (!itemsWrapperHeight) {
+      // The pinned tabs have no layout to clamp the stored height to, so leave
+      // the container's height alone until they do.
+      return;
+    }
+    // Clamp for display only, never overwriting the user's saved preference.
+    this.#pinnedTabsContainerEl.style.height = `${Math.min(
+      preferredHeight,
+      itemsWrapperHeight
+    )}px`;
   }
 
   /**

@@ -15,13 +15,15 @@
 
 import { UrlbarShared } from "chrome://browser/content/urlbar/UrlbarShared.mjs";
 
-const lazy = {};
+const lazy = typeof ChromeUtils != "undefined" ? {} : null;
 
-ChromeUtils.defineESModuleGetters(lazy, {
-  JsonSchemaValidator:
-    "resource://gre/modules/components-utils/JsonSchemaValidator.sys.mjs",
-  UrlbarUtils: "moz-src:///browser/components/urlbar/UrlbarUtils.sys.mjs",
-});
+if (lazy) {
+  ChromeUtils.defineESModuleGetters(lazy, {
+    JsonSchemaValidator:
+      "resource://gre/modules/components-utils/JsonSchemaValidator.sys.mjs",
+    UrlbarUtils: "moz-src:///browser/components/urlbar/UrlbarUtils.sys.mjs",
+  });
+}
 
 /**
  * @typedef UrlbarAutofillData
@@ -44,7 +46,7 @@ export class UrlbarResult {
   /**
    * @typedef {{ [name: string]: any }} Payload
    *
-   * @typedef {typeof lazy.UrlbarUtils.HIGHLIGHT} HighlightType
+   * @typedef {typeof lazy.UrlbarShared.HIGHLIGHT} HighlightType
    * @typedef {Array<[number, number]>} HighlightIndexes e.g. [[index, length],,]
    * @typedef {Record<string, HighlightType | HighlightIndexes>} Highlights
    */
@@ -55,7 +57,7 @@ export class UrlbarResult {
    * @param {Values<typeof UrlbarShared.RESULT_SOURCE>} params.source
    * @param {UrlbarAutofillData} [params.autofill]
    * @param {number} [params.exposureTelemetry]
-   * @param {Values<typeof lazy.UrlbarUtils.RESULT_GROUP>} [params.group]
+   * @param {Values<typeof UrlbarShared.RESULT_GROUP>} [params.group]
    * @param {boolean} [params.heuristic]
    * @param {boolean} [params.hideRowLabel]
    * @param {boolean} [params.isBestMatch]
@@ -81,7 +83,7 @@ export class UrlbarResult {
     type,
     source,
     autofill,
-    exposureTelemetry = lazy.UrlbarUtils.EXPOSURE_TELEMETRY.NONE,
+    exposureTelemetry = UrlbarShared.EXPOSURE_TELEMETRY.NONE,
     group,
     heuristic = false,
     hideRowLabel = false,
@@ -166,22 +168,31 @@ export class UrlbarResult {
   rowIndex = undefined;
 
   /**
-   * A dynamic result's view template, computed eagerly when the result is
-   * finalized so the view can read it synchronously without asking the
-   * provider (which, on the actor message path, lives in another process).
-   * Undefined for non-dynamic results.
-   *
-   * @type {object|undefined}
+   * @type {number}
+   *   A stable id assigned once when the result is finalized by
+   *   UrlbarProvidersManager. Unlike rowIndex it never changes and is
+   *   independent of the results' order, so it matches this result to its
+   *   context entry and view row across the actor boundary.
    */
-  viewTemplate = undefined;
+  id = undefined;
 
   /**
    * The result menu commands the result's provider offers, computed eagerly
-   * alongside `viewTemplate`. Undefined if the provider offers none.
+   * by the providers manager when the result is finalized.
+   * Undefined if the provider offers none.
    *
    * @type {?UrlbarResultCommand[]|undefined}
    */
   commands = undefined;
+
+  /**
+   * Whether the result's URL is a search engine results page. Resolved when the
+   * result is finalized, since it takes the search service, which only the
+   * parent process has.
+   *
+   * @type {boolean}
+   */
+  isSERP = false;
 
   get type() {
     return this.#type;
@@ -246,7 +257,7 @@ export class UrlbarResult {
   /**
    * The type of the UrlbarProvider providing the result.
    *
-   * @type {?Values<typeof lazy.UrlbarUtils.PROVIDER_TYPE>}
+   * @type {?Values<typeof UrlbarShared.PROVIDER_TYPE>}
    */
   get providerType() {
     return this.#providerType;
@@ -326,7 +337,7 @@ export class UrlbarResult {
    *   Whether the result should be hidden.
    */
   get isHiddenExposure() {
-    return this.exposureTelemetry == lazy.UrlbarUtils.EXPOSURE_TELEMETRY.HIDDEN;
+    return this.exposureTelemetry == UrlbarShared.EXPOSURE_TELEMETRY.HIDDEN;
   }
 
   /**
@@ -339,7 +350,7 @@ export class UrlbarResult {
    *   Make highlighting that matches this tokens.
    *   If no specific tokens, this function returns only value.
    * @param {object} [options.isURL]
-   *   If true, the value will be from UrlbarUtils.prepareUrlForDisplay().
+   *   If true, the value will be from UrlbarShared.prepareUrlForDisplay().
    */
   getDisplayableValueAndHighlights(payloadName, options = {}) {
     if (!this.#displayValuesCache) {
@@ -372,7 +383,7 @@ export class UrlbarResult {
       // always be shown because otherwise the result's row in the view will
       // look a little strange, so show the URL's domain as the title. Not all
       // valid URLs have a domain, so fall back to the full URL.
-      highlightType = lazy.UrlbarUtils.HIGHLIGHT.TYPED;
+      highlightType = UrlbarShared.HIGHLIGHT.TYPED;
       try {
         // This will throw if `this.payload.url` isn't a valid URL. If the URL
         // is valid but doesn't have a domain, it won't throw and
@@ -387,11 +398,11 @@ export class UrlbarResult {
     }
 
     if (isURL) {
-      value = lazy.UrlbarUtils.prepareUrlForDisplay(value);
+      value = UrlbarShared.prepareUrlForDisplay(value);
     }
 
     if (typeof value == "string") {
-      value = value.substring(0, lazy.UrlbarUtils.MAX_TEXT_LENGTH);
+      value = value.substring(0, UrlbarShared.MAX_TEXT_LENGTH);
     }
 
     if (Array.isArray(this.#highlights?.[payloadName])) {
@@ -413,13 +424,9 @@ export class UrlbarResult {
 
     let highlights = Array.isArray(value)
       ? value.map(subval =>
-          lazy.UrlbarUtils.getTokenMatches(
-            options.tokens,
-            subval,
-            highlightType
-          )
+          UrlbarShared.getTokenMatches(options.tokens, subval, highlightType)
         )
-      : lazy.UrlbarUtils.getTokenMatches(options.tokens, value, highlightType);
+      : UrlbarShared.getTokenMatches(options.tokens, value, highlightType);
 
     let cached = { value, highlights, options };
     this.#displayValuesCache.set(payloadName, cached);
@@ -439,6 +446,14 @@ export class UrlbarResult {
    * @returns {object} `payload` if it's valid.
    */
   #validatePayload(payload) {
+    if (!lazy) {
+      // The schemas and the validator live in system modules, out of reach of a
+      // content realm. Skipping this does mean that in a content realm, we will
+      // not validate payloads built directly by the view, such as a dismissal
+      // acknowledge tip. All provider results cross the actor boundary already
+      // validated.
+      return payload;
+    }
     let schema = lazy.UrlbarUtils.getPayloadSchema(this.type);
     if (!schema) {
       throw new Error(`Unrecognized result type: ${this.type}`);
@@ -479,8 +494,8 @@ export class UrlbarResult {
   /**
    * Serializes this result to a plain, structured-cloneable object for sending
    * across the Urlbar actor boundary. Most data lives in private fields that a
-   * bare structuredClone() would drop, so capture it explicitly; `rowIndex`,
-   * `viewTemplate`, and `commands` are the public own properties.
+   * bare structuredClone() would drop, so capture it explicitly; `id`,
+   * `rowIndex`, `commands`, and `isSERP` are the public own properties.
    *
    * @returns {object} The wire representation; reconstruct with fromWire().
    */
@@ -508,9 +523,10 @@ export class UrlbarResult {
       testForceNewContent: this.#testForceNewContent,
       payload: this.#payload,
       highlights: this.#highlights,
+      id: this.id,
       rowIndex: this.rowIndex,
-      viewTemplate: this.viewTemplate,
       commands: this.commands,
+      isSERP: this.isSERP,
     };
   }
 
@@ -518,16 +534,35 @@ export class UrlbarResult {
    * Reconstructs a UrlbarResult from the plain object produced by toWire(),
    * e.g. after it has crossed the Urlbar actor boundary.
    *
+   * Structured clone strips data that doesn't survive it (e.g. a Rust
+   * suggestion's UniFFI `Suggestion` class), so a reconstruction is a lossy
+   * object distinct from the one that was serialized. Where the originals are
+   * still around -- the parent's own query results -- pass them as
+   * `liveResults` to get the original back instead, carrying over the
+   * view-assigned `rowIndex` the wire preserves (the original never went
+   * through a view).
+   *
    * @param {object} wire The wire representation from toWire().
-   * @returns {UrlbarResult} The reconstructed result.
+   * @param {?UrlbarResult[]} [liveResults] Results to match `wire` against by id.
+   * @returns {UrlbarResult} The matching result from `liveResults`, else the
+   *   reconstruction.
    */
-  static fromWire(wire) {
+  static fromWire(wire, liveResults = null) {
+    let liveResult = liveResults?.find(r => r.id === wire.id);
+    if (liveResult) {
+      if (wire.rowIndex != null) {
+        liveResult.rowIndex = wire.rowIndex;
+      }
+      return liveResult;
+    }
+
     let result = new UrlbarResult({ ...wire, skipPayloadValidation: true });
-    // providerType and rowIndex aren't constructor parameters, so re-apply them.
+    // The following aren't constructor parameters, so re-apply them.
     result.providerType = wire.providerType;
+    result.id = wire.id;
     result.rowIndex = wire.rowIndex;
-    result.viewTemplate = wire.viewTemplate;
     result.commands = wire.commands;
+    result.isSERP = wire.isSERP;
     return result;
   }
 
@@ -554,4 +589,15 @@ export class UrlbarResult {
   #highlights;
   #displayValuesCache;
   #testForceNewContent;
+}
+
+// In chrome window globals, we re-export the UrlbarResult from the system
+// global. Otherwise, UrlbarResults created in a window global but cached in
+// the system global would leak the window.
+if (typeof ChromeUtils != "undefined" && typeof window != "undefined") {
+  // @ts-ignore
+  // eslint-disable-next-line no-class-assign
+  ({ UrlbarResult } = ChromeUtils.importESModule(
+    "chrome://browser/content/urlbar/UrlbarResult.mjs"
+  ));
 }

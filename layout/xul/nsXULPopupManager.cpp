@@ -36,8 +36,10 @@
 #include "mozilla/dom/XULMenuBarElement.h"
 #include "mozilla/dom/XULMenuElement.h"
 #include "mozilla/dom/XULPopupElement.h"
+#include "mozilla/widget/NativeMenu.h"
 #include "mozilla/widget/NativeMenuSupport.h"
 #include "mozilla/widget/nsAutoRollup.h"
+#include "nsCRT.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsCaret.h"
 #include "nsContentUtils.h"
@@ -295,10 +297,6 @@ nsXULPopupManager::nsXULPopupManager()
 
 nsXULPopupManager::~nsXULPopupManager() {
   NS_ASSERTION(!mPopups, "XUL popups still open");
-
-  if (mNativeMenu) {
-    mNativeMenu->RemoveObserver(this);
-  }
 }
 
 void nsXULPopupManager::Init() {
@@ -804,7 +802,6 @@ bool nsXULPopupManager::ShowNativeMenuInternal(
     NS_WARNING("Native menu still open when trying to open another");
     RefPtr<NativeMenu> menu = mNativeMenu;
     (void)menu->Close();
-    menu->RemoveObserver(this);
     mNativeMenu = nullptr;
   }
 
@@ -846,7 +843,6 @@ bool nsXULPopupManager::ShowNativeMenuInternal(
     }
 
     mNativeMenu = menu;
-    mNativeMenu->AddObserver(this);
 
     if (!aClickedFrame) {
       aClickedFrame =
@@ -973,8 +969,8 @@ bool nsXULPopupManager::ShowPopupAtScreenAsNativeMenu(Element* aPopup,
       });
 }
 
-void nsXULPopupManager::OnNativeMenuOpened() {
-  if (!mNativeMenu) {
+void nsXULPopupManager::OnNativeMenuOpened(NativeMenu* aMenu) {
+  if (mNativeMenu != aMenu) {
     return;
   }
 
@@ -1002,8 +998,8 @@ void nsXULPopupManager::OnNativeMenuOpened() {
   PresShell::ReleaseCapturingContent();
 }
 
-void nsXULPopupManager::OnNativeMenuClosed() {
-  if (!mNativeMenu) {
+void nsXULPopupManager::OnNativeMenuClosed(NativeMenu* aMenu) {
+  if (NS_WARN_IF(mNativeMenu != aMenu)) {
     return;
   }
 
@@ -1022,7 +1018,6 @@ void nsXULPopupManager::OnNativeMenuClosed() {
     popupFrame->ClearAnchorContent();
     popupFrame->SetPopupState(ePopupClosed);
   }
-  mNativeMenu->RemoveObserver(this);
   mNativeMenu = nullptr;
   mNativeMenuActivatedItemCloseMenuMode = Nothing();
   mNativeMenuSubmenuStates.Clear();
@@ -1043,24 +1038,33 @@ void nsXULPopupManager::OnNativeMenuClosed() {
   }
 }
 
-void nsXULPopupManager::OnNativeSubMenuWillOpen(
-    mozilla::dom::Element* aPopupElement) {
+void nsXULPopupManager::OnNativeSubMenuWillOpen(NativeMenu* aMenu,
+                                                Element* aPopupElement) {
+  if (NS_WARN_IF(mNativeMenu != aMenu)) {
+    return;
+  }
   mNativeMenuSubmenuStates.InsertOrUpdate(aPopupElement, ePopupShowing);
 }
 
-void nsXULPopupManager::OnNativeSubMenuDidOpen(
-    mozilla::dom::Element* aPopupElement) {
+void nsXULPopupManager::OnNativeSubMenuDidOpen(NativeMenu* aMenu,
+                                               Element* aPopupElement) {
+  if (NS_WARN_IF(mNativeMenu != aMenu)) {
+    return;
+  }
   mNativeMenuSubmenuStates.InsertOrUpdate(aPopupElement, ePopupShown);
 }
 
-void nsXULPopupManager::OnNativeSubMenuClosed(
-    mozilla::dom::Element* aPopupElement) {
+void nsXULPopupManager::OnNativeSubMenuClosed(NativeMenu* aMenu,
+                                              Element* aPopupElement) {
+  if (NS_WARN_IF(mNativeMenu != aMenu)) {
+    return;
+  }
   mNativeMenuSubmenuStates.Remove(aPopupElement);
 }
 
 void nsXULPopupManager::OnNativeMenuWillActivateItem(
-    mozilla::dom::Element* aMenuItemElement) {
-  if (!mNativeMenu) {
+    NativeMenu* aMenu, Element* aMenuItemElement) {
+  if (NS_WARN_IF(mNativeMenu != aMenu)) {
     return;
   }
 
@@ -1531,19 +1535,10 @@ void nsXULPopupManager::HidePopupsInList(
     const nsTArray<nsMenuPopupFrame*>& aFrames) {
   // Create a weak frame list. This is done in a separate array with the
   // right capacity predetermined to avoid multiple allocations.
-  nsTArray<WeakFrame> weakPopups(aFrames.Length());
-  uint32_t f;
-  for (f = 0; f < aFrames.Length(); f++) {
-    WeakFrame* wframe = weakPopups.AppendElement();
-    if (wframe) {
-      *wframe = aFrames[f];
-    }
-  }
-
-  for (f = 0; f < weakPopups.Length(); f++) {
+  for (auto& f : ToTArray<AutoTArray<WeakFrame, 32>>(aFrames)) {
     // check to ensure that the frame is still alive before hiding it.
-    if (weakPopups[f].IsAlive()) {
-      auto* frame = static_cast<nsMenuPopupFrame*>(weakPopups[f].GetFrame());
+    if (f.IsAlive()) {
+      auto* frame = static_cast<nsMenuPopupFrame*>(f.GetFrame());
       frame->HidePopup(true, ePopupInvisible);
     }
   }
@@ -1606,9 +1601,11 @@ void nsXULPopupManager::PaintPopups(nsRefreshDriver* aRefreshDriver) {
   AutoTArray<std::pair<RefPtr<nsIWidget>, WeakFrame>, 32> popupsToPaint;
   for (nsMenuChainItem* item = mPopups.get(); item; item = item->GetParent()) {
     nsMenuPopupFrame* frame = item->Frame();
-    if (!frame->IsVisibleOrHiding() ||
-        frame->PresContext()->GetRootPresContext()->RefreshDriver() !=
-            aRefreshDriver) {
+    if (!frame->IsVisibleOrHiding()) {
+      continue;
+    }
+    nsPresContext* rootPc = frame->PresContext()->GetRootPresContext();
+    if (!rootPc || rootPc->RefreshDriver() != aRefreshDriver) {
       continue;
     }
     if (nsIWidget* widget = frame->GetWidget()) {
@@ -1654,6 +1651,9 @@ void nsXULPopupManager::PaintPopups(nsRefreshDriver* aRefreshDriver) {
     nsAutoScriptBlocker scriptBlocker;
     RefPtr<PresShell> ps = frame->PresShell();
     RefPtr<WindowRenderer> renderer = widget->GetWindowRenderer();
+    if (!renderer) {
+      continue;
+    }
     if (renderer->AsFallback()) {
       // FIXME: A bit of a hack. This matches what PaintAndRequestComposite
       // does for views (eventually).

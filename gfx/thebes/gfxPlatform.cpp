@@ -43,6 +43,7 @@
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/glean/GfxMetrics.h"
 #include "mozilla/image/ImageMemoryReporter.h"
+#include "mozilla/layers/CompositeProcessFencesHolderMap.h"
 #include "mozilla/layers/CompositorBridgeChild.h"
 #include "mozilla/layers/CompositorManagerChild.h"
 #include "mozilla/layers/CompositorThread.h"
@@ -72,7 +73,6 @@
 
 #if defined(XP_WIN)
 #  include "gfxWindowsPlatform.h"
-#  include "mozilla/layers/CompositeProcessD3D11FencesHolderMap.h"
 #  include "mozilla/widget/WinWindowOcclusionTracker.h"
 #elif defined(XP_DARWIN)
 #  include "gfxPlatformMac.h"
@@ -402,8 +402,6 @@ void CrashStatsLogForwarder::CrashAction(LogReason aReason) {
 #  define GFX_PREF_CORETEXT_SHAPING "gfx.font_rendering.coretext.enabled"
 #endif
 
-#define FONT_VARIATIONS_PREF "layout.css.font-variations.enabled"
-
 static const char* kObservedPrefs[] = {"gfx.downloadable_fonts.",
                                        "gfx.font_rendering.", nullptr};
 
@@ -563,12 +561,11 @@ static void WebRenderDebugPrefChangeCallback(const char* aPrefName, void*) {
                       wr::DebugFlags::EXTERNAL_COMPOSITE_BORDERS)
   GFX_WEBRENDER_DEBUG(".dl.dump-spatial-tree",
                       wr::DebugFlags::DUMP_SPATIAL_TREE)
+  GFX_WEBRENDER_DEBUG(".color-target-init", wr::DebugFlags::COLOR_TARGET_INIT)
 #undef GFX_WEBRENDER_DEBUG
   gfx::gfxVars::SetWebRenderDebugFlags(flags._0);
 
-  uint32_t threshold = Preferences::GetFloat(
-      StaticPrefs::GetPrefName_gfx_webrender_debug_slow_cpu_frame_threshold(),
-      10.0);
+  float threshold = StaticPrefs::gfx_webrender_debug_slow_cpu_frame_threshold();
   gfx::gfxVars::SetWebRenderSlowCpuFrameThreshold(threshold);
 }
 
@@ -577,25 +574,19 @@ static void WebRenderQualityPrefChangeCallback(const char* aPref, void*) {
 }
 
 static void WebRenderBatchingPrefChangeCallback(const char* aPrefName, void*) {
-  uint32_t count = Preferences::GetUint(
-      StaticPrefs::GetPrefName_gfx_webrender_batching_lookback(), 10);
-
+  uint32_t count = StaticPrefs::gfx_webrender_batching_lookback();
   gfx::gfxVars::SetWebRenderBatchingLookback(count);
 }
 
 static void WebRenderBlobTileSizePrefChangeCallback(const char* aPrefName,
                                                     void*) {
-  uint32_t tileSize = Preferences::GetUint(
-      StaticPrefs::GetPrefName_gfx_webrender_blob_tile_size(), 256);
+  uint32_t tileSize = StaticPrefs::gfx_webrender_blob_tile_size();
   gfx::gfxVars::SetWebRenderBlobTileSize(tileSize);
 }
 
 static void WebRenderUploadThresholdPrefChangeCallback(const char* aPrefName,
                                                        void*) {
-  int value = Preferences::GetInt(
-      StaticPrefs::GetPrefName_gfx_webrender_batched_upload_threshold(),
-      512 * 512);
-
+  int value = StaticPrefs::gfx_webrender_batched_upload_threshold();
   gfxVars::SetWebRenderBatchedUploadThreshold(value);
 }
 
@@ -940,10 +931,15 @@ void gfxPlatform::Init() {
   if (XRE_IsParentProcess()) {
     // Monitor for sanity test changes.
     Preferences::RegisterCallbackAndCall(
-        VideoDecodingFailedChangedCallback,
+        HardwareVideoFailedChangedCallback,
         "media.hardware-video-decoding.failed");
+    Preferences::RegisterCallbackAndCall(
+        HardwareVideoFailedChangedCallback,
+        "media.hardware-video-encoding.failed");
     Preferences::RegisterCallbackAndCall(HWDRMFailedChangedCallback,
                                          "media.eme.hwdrm.failed");
+    Preferences::RegisterCallback(HWDRMFailedChangedCallback,
+                                  "media.wmf.media-engine.enabled");
   }
 
 #if defined(XP_WIN)
@@ -1049,16 +1045,6 @@ void gfxPlatform::Init() {
 
   InitNullMetadata();
   InitOpenGLConfig();
-
-  if (XRE_IsParentProcess()) {
-    Preferences::Unlock(FONT_VARIATIONS_PREF);
-    if (!gfxPlatform::HasVariationFontSupport()) {
-      // Ensure variation fonts are disabled and the pref is locked.
-      Preferences::SetBool(FONT_VARIATIONS_PREF, false, PrefValueKind::Default);
-      Preferences::SetBool(FONT_VARIATIONS_PREF, false);
-      Preferences::Lock(FONT_VARIATIONS_PREF);
-    }
-  }
 
   if (XRE_IsParentProcess()) {
     ReportTelemetry();
@@ -1360,8 +1346,8 @@ void gfxPlatform::InitLayersIPC() {
     }
 #endif
     if (!gfxConfig::IsEnabled(Feature::GPU_PROCESS)) {
-#if defined(XP_WIN)
-      CompositeProcessD3D11FencesHolderMap::Init();
+#if defined(XP_WIN) || defined(XP_MACOSX)
+      CompositeProcessFencesHolderMap::Init();
 #endif
       RemoteTextureMap::Init();
       wr::RenderThread::Start(GPUProcessManager::Get()->AllocateNamespace());
@@ -1417,8 +1403,12 @@ void gfxPlatform::ShutdownLayersIPC() {
           nsDependentCString(
               StaticPrefs::GetPrefName_gfx_webrender_blob_tile_size()));
     }
+
+#if defined(XP_WIN) || defined(XP_MACOSX)
+    CompositeProcessFencesHolderMap::Shutdown();
+#endif
+
 #if defined(XP_WIN)
-    CompositeProcessD3D11FencesHolderMap::Shutdown();
     widget::WinWindowOcclusionTracker::ShutDown();
 #endif
   } else {
@@ -1901,15 +1891,6 @@ bool gfxPlatform::IsFontFormatSupported(
   if (!StaticPrefs::gfx_downloadable_fonts_keep_color_bitmaps()) {
     unsupportedTechnologies |= StyleFontFaceSourceTechFlags::COLOR_CBDT;
   }
-  if (!StaticPrefs::gfx_font_rendering_colr_v1_enabled()) {
-    unsupportedTechnologies |= StyleFontFaceSourceTechFlags::COLOR_COLRV1;
-  }
-  if (!StaticPrefs::layout_css_font_palette_enabled()) {
-    unsupportedTechnologies |= StyleFontFaceSourceTechFlags::PALETTES;
-  }
-  if (!StaticPrefs::layout_css_font_variations_enabled()) {
-    unsupportedTechnologies |= StyleFontFaceSourceTechFlags::VARIATIONS;
-  }
   if (aTechFlags & unsupportedTechnologies) {
     return false;
   }
@@ -1924,20 +1905,18 @@ bool gfxPlatform::IsKnownIconFontFamily(const nsAtom* aFamilyName) const {
 already_AddRefed<gfxFontEntry> gfxPlatform::LookupLocalFont(
     FontVisibilityProvider* aFontVisibilityProvider,
     const nsACString& aFontName, const WeightRange& aWeightForEntry,
-    const StretchRange& aStretchForEntry,
-    const SlantStyleRange& aStyleForEntry) {
+    const WidthRange& aWidthForEntry, const SlantStyleRange& aStyleForEntry) {
   return gfxPlatformFontList::PlatformFontList()->LookupLocalFont(
-      aFontVisibilityProvider, aFontName, aWeightForEntry, aStretchForEntry,
+      aFontVisibilityProvider, aFontName, aWeightForEntry, aWidthForEntry,
       aStyleForEntry);
 }
 
 already_AddRefed<gfxFontEntry> gfxPlatform::MakePlatformFont(
     const nsACString& aFontName, const WeightRange& aWeightForEntry,
-    const StretchRange& aStretchForEntry, const SlantStyleRange& aStyleForEntry,
-    const uint8_t* aFontData, uint32_t aLength) {
+    const WidthRange& aWidthForEntry, const SlantStyleRange& aStyleForEntry,
+    FontData* aFontData) {
   return gfxPlatformFontList::PlatformFontList()->MakePlatformFont(
-      aFontName, aWeightForEntry, aStretchForEntry, aStyleForEntry, aFontData,
-      aLength);
+      aFontName, aWeightForEntry, aWidthForEntry, aStyleForEntry, aFontData);
 }
 
 BackendPrefsData gfxPlatform::GetBackendPrefs() const {
@@ -2093,7 +2072,7 @@ DeviceColor gfxPlatform::TransformPixel(const sRGBColor& in,
 
 nsTArray<uint8_t> gfxPlatform::GetPrefCMSOutputProfileData() {
   const auto mirror = StaticPrefs::gfx_color_management_display_profile();
-  const auto fname = *mirror;
+  const auto& fname = *mirror;
   if (fname == "") {
     return nsTArray<uint8_t>();
   }
@@ -2431,7 +2410,7 @@ gfxImageFormat gfxPlatform::OptimalFormatForContent(gfxContentType aContent) {
 static mozilla::Atomic<bool> sLayersAccelerationPrefsInitialized(false);
 
 /* static */
-void gfxPlatform::VideoDecodingFailedChangedCallback(const char* aPref, void*) {
+void gfxPlatform::HardwareVideoFailedChangedCallback(const char* aPref, void*) {
   MOZ_ASSERT(XRE_IsParentProcess());
   if (gPlatform) {
     gPlatform->InitHardwareVideoConfig();
@@ -2442,7 +2421,7 @@ void gfxPlatform::VideoDecodingFailedChangedCallback(const char* aPref, void*) {
 void gfxPlatform::HWDRMFailedChangedCallback(const char* aPref, void*) {
   MOZ_ASSERT(XRE_IsParentProcess());
   if (gPlatform) {
-    gPlatform->InitPlatformHardwarDRMConfig();
+    gPlatform->InitPlatformHardwareDRMConfig();
   }
 }
 
@@ -2900,16 +2879,14 @@ void gfxPlatform::InitWebRenderConfig() {
     gfxVars::SetReuseDecoderDevice(true);
   }
 
-  if (Preferences::GetBool("gfx.webrender.flip-sequential", false)) {
-    if (gfxVars::UseWebRenderANGLE()) {
-      gfxVars::SetUseWebRenderFlipSequentialWin(true);
-    }
+  if (StaticPrefs::gfx_webrender_flip_sequential_AtStartup() &&
+      gfxVars::UseWebRenderANGLE()) {
+    gfxVars::SetUseWebRenderFlipSequentialWin(true);
   }
-  if (Preferences::GetBool("gfx.webrender.triple-buffering.enabled", false)) {
-    if (gfxVars::UseWebRenderDCompWin() ||
-        gfxVars::UseWebRenderFlipSequentialWin()) {
-      gfxVars::SetUseWebRenderTripleBufferingWin(true);
-    }
+  if (StaticPrefs::gfx_webrender_triple_buffering_enabled_AtStartup() &&
+      (gfxVars::UseWebRenderDCompWin() ||
+       gfxVars::UseWebRenderFlipSequentialWin())) {
+    gfxVars::SetUseWebRenderTripleBufferingWin(true);
   }
 
   if (StaticPrefs::
@@ -3009,6 +2986,45 @@ void gfxPlatform::InitHardwareVideoConfig() {
   // Collect the gfxVar updates into a single message.
   gfxVarsCollectUpdates collect;
 
+  nsCOMPtr<nsIGfxInfo> gfxInfo = components::GfxInfo::Service();
+  nsCString failureId;
+
+#ifdef MOZ_WIDGET_GTK
+  int32_t statusVulkan = nsIGfxInfo::FEATURE_STATUS_UNKNOWN;
+  FeatureState& featureVulkanDec =
+      gfxConfig::GetFeature(Feature::HARDWARE_VIDEO_DECODING_VULKAN);
+  featureVulkanDec.Reset();
+  featureVulkanDec.EnableByDefault();
+
+  if (!StaticPrefs::media_hardware_video_decoding_vulkan_enabled_AtStartup()) {
+    featureVulkanDec.UserDisable(
+        "User disabled via media.hardware-video-decoding-vulkan.enabled pref",
+        "FEATURE_HARDWARE_VIDEO_DECODING_VULKAN_PREF_DISABLED"_ns);
+  } else if (
+      StaticPrefs::
+          media_hardware_video_decoding_vulkan_force_enabled_AtStartup()) {
+    featureVulkanDec.UserForceEnable("Force enabled by pref");
+  }
+
+  if (NS_FAILED(gfxInfo->GetFeatureStatus(
+          nsIGfxInfo::FEATURE_HARDWARE_VIDEO_DECODING_VULKAN, failureId,
+          &statusVulkan))) {
+    featureVulkanDec.Disable(FeatureStatus::BlockedNoGfxInfo,
+                             "gfxInfo is broken",
+                             "FEATURE_FAILURE_NO_GFX_INFO"_ns);
+  } else if (statusVulkan != nsIGfxInfo::FEATURE_STATUS_OK) {
+    featureVulkanDec.Disable(FeatureStatus::Blocklisted,
+                             "Blocklisted by gfxInfo", failureId);
+  }
+
+  if (statusVulkan == nsIGfxInfo::FEATURE_BLOCKED_PLATFORM_TEST) {
+    featureVulkanDec.ForceDisable(FeatureStatus::Unavailable,
+                                  "Force disabled by gfxInfo", failureId);
+  }
+
+  gfxVars::SetCanUseVulkanHardwareVideoDecoding(featureVulkanDec.IsEnabled());
+#endif
+
   FeatureState& featureDec =
       gfxConfig::GetFeature(Feature::HARDWARE_VIDEO_DECODING);
   featureDec.Reset();
@@ -3032,15 +3048,20 @@ void gfxPlatform::InitHardwareVideoConfig() {
   }
 
   int32_t status = nsIGfxInfo::FEATURE_STATUS_UNKNOWN;
-  nsCOMPtr<nsIGfxInfo> gfxInfo = components::GfxInfo::Service();
-  nsCString failureId;
-  if (NS_FAILED(gfxInfo->GetFeatureStatus(
-          nsIGfxInfo::FEATURE_HARDWARE_VIDEO_DECODING, failureId, &status))) {
-    featureDec.Disable(FeatureStatus::BlockedNoGfxInfo, "gfxInfo is broken",
-                       "FEATURE_FAILURE_NO_GFX_INFO"_ns);
-  } else if (status != nsIGfxInfo::FEATURE_STATUS_OK) {
-    featureDec.Disable(FeatureStatus::Blocklisted, "Blocklisted by gfxInfo",
-                       failureId);
+  // If FEATURE_HARDWARE_VIDEO_DECODING_VULKAN is enabled,
+  // just mirror the state to FEATURE_HARDWARE_VIDEO_DECODING
+  // to have one single point of check for HW decoding status.
+  if (gfxVars::CanUseVulkanHardwareVideoDecoding()) {
+    status = nsIGfxInfo::FEATURE_STATUS_OK;
+  } else {
+    if (NS_FAILED(gfxInfo->GetFeatureStatus(
+            nsIGfxInfo::FEATURE_HARDWARE_VIDEO_DECODING, failureId, &status))) {
+      featureDec.Disable(FeatureStatus::BlockedNoGfxInfo, "gfxInfo is broken",
+                         "FEATURE_FAILURE_NO_GFX_INFO"_ns);
+    } else if (status != nsIGfxInfo::FEATURE_STATUS_OK) {
+      featureDec.Disable(FeatureStatus::Blocklisted, "Blocklisted by gfxInfo",
+                         failureId);
+    }
   }
 
   if (status == nsIGfxInfo::FEATURE_BLOCKED_PLATFORM_TEST) {
@@ -3066,13 +3087,13 @@ void gfxPlatform::InitHardwareVideoConfig() {
   featureEnc.EnableByDefault();
 
   if (!StaticPrefs::media_hardware_video_encoding_enabled_AtStartup()) {
-    featureDec.UserDisable(
+    featureEnc.UserDisable(
         "User disabled via media.hardware-video-encoding.enabled pref",
         "FEATURE_HARDWARE_VIDEO_ENCODING_PREF_1_DISABLED"_ns);
   }
 #ifdef XP_WIN
   else if (!StaticPrefs::media_wmf_dxva_d3d11_enabled()) {
-    featureDec.UserDisable(
+    featureEnc.UserDisable(
         "User disabled via media.wmf.dxva.d3d11.enabled pref",
         "FEATURE_HARDWARE_VIDEO_ENCODING_PREF_2_DISABLED"_ns);
   }
@@ -3097,9 +3118,16 @@ void gfxPlatform::InitHardwareVideoConfig() {
                             "Force disabled by gfxInfo", failureId);
   } else if (Preferences::GetBool("media.hardware-video-decoding.failed",
                                   false)) {
+    // Decoding is better exercised than encoding. If it is broken on this
+    // configuration, encoding is unlikely to be sane either.
     featureEnc.ForceDisable(FeatureStatus::Unavailable,
                             "Force disabled by failed sanity test",
                             "FEATURE_FAILURE_SANITY_TEST_FAILED"_ns);
+  } else if (Preferences::GetBool("media.hardware-video-encoding.failed",
+                                  false)) {
+    featureEnc.ForceDisable(FeatureStatus::Unavailable,
+                            "Force disabled by failed encode sanity test",
+                            "FEATURE_FAILURE_SANITY_TEST_ENCODE_FAILED"_ns);
   }
 #ifdef XP_MACOSX
   else if (isXpcshell) {
@@ -3123,39 +3151,10 @@ void gfxPlatform::InitHardwareVideoConfig() {
   gfxVars::SetVideoHDR(featureHdr.IsEnabled());
 
   InitPlatformHardwareVideoConfig();
-  InitPlatformHardwarDRMConfig();
-
-  FeatureState& featureVulkanDec =
-      gfxConfig::GetFeature(Feature::HARDWARE_VIDEO_DECODING_VULKAN);
-  featureVulkanDec.Reset();
-  featureVulkanDec.EnableByDefault();
-  if (!StaticPrefs::media_hardware_video_decoding_vulkan_enabled_AtStartup()) {
-    featureVulkanDec.UserDisable(
-        "User disabled via media.hardware-video-decoding-vulkan.enabled pref",
-        "FEATURE_HARDWARE_VIDEO_DECODING_VULKAN_PREF_DISABLED"_ns);
-  }
-#ifdef XP_MACOSX
-  if (isXpcshell) {
-    featureVulkanDec.ForceDisable(FeatureStatus::Unavailable,
-                                  "Force disabled in xpcshell due to signing",
-                                  "FEATURE_FAILURE_OSX_XPCSHELL_SIGNING"_ns);
-  }
-#endif
-
-  bool canUseVulkanDecode = false;
-  int32_t vulkanDecStatus = nsIGfxInfo::FEATURE_STATUS_UNKNOWN;
-  nsCString vulkanDecFailureId;
-  if (featureVulkanDec.IsEnabled() &&
-      NS_SUCCEEDED(gfxInfo->GetFeatureStatus(
-          nsIGfxInfo::FEATURE_HARDWARE_VIDEO_DECODING_VULKAN,
-          vulkanDecFailureId, &vulkanDecStatus)) &&
-      vulkanDecStatus == nsIGfxInfo::FEATURE_STATUS_OK) {
-    canUseVulkanDecode = true;
-  }
+  InitPlatformHardwareDRMConfig();
 
   nsCString message;
-  gfxVars::SetCanUseHardwareVideoDecoding(featureDec.IsEnabled() ||
-                                          canUseVulkanDecode);
+  gfxVars::SetCanUseHardwareVideoDecoding(featureDec.IsEnabled());
   gfxVars::SetCanUseHardwareVideoEncoding(featureEnc.IsEnabled());
 
 #ifdef MOZ_WIDGET_ANDROID
@@ -3173,7 +3172,7 @@ void gfxPlatform::InitHardwareVideoConfig() {
   FeatureState& featureDec##name =                                             \
       gfxConfig::GetFeature(Feature::name##_HW_DECODE);                        \
   featureDec##name.Reset();                                                    \
-  if (featureDec.IsEnabled() || canUseVulkanDecode) {                          \
+  if (featureDec.IsEnabled()) {                                                \
     CODEC_HW_FEATURE_SETUP_PLATFORM(name, Dec, false)                          \
     if (!IsGfxInfoStatusOkay(nsIGfxInfo::FEATURE_##name##_HW_DECODE, &message, \
                              failureId)) {                                     \
@@ -3819,6 +3818,12 @@ void gfxPlatform::GetFrameStats(mozilla::widget::InfoObject& aObj) {
 }
 
 void gfxPlatform::GetCMSSupportInfo(mozilla::widget::InfoObject& aObj) {
+  const bool forcedSRGB = StaticPrefs::gfx_color_management_native_srgb() ||
+                          StaticPrefs::gfx_color_management_force_srgb();
+  aObj.DefineProperty("CMSOutputProfileInUse",
+                      forcedSRGB ? "sRGB (overridden by native_srgb/force_srgb)"
+                                 : "configured CMSOutputProfile");
+
   nsTArray<uint8_t> outputProfileData =
       gfxPlatform::GetPlatform()->GetPlatformCMSOutputProfileData();
   if (outputProfileData.IsEmpty()) {
@@ -3857,13 +3862,24 @@ void gfxPlatform::GetDisplayInfo(mozilla::widget::InfoObject& aObj) {
   size_t i = 0;
   for (auto& screen : screens) {
     const LayoutDeviceIntRect rect = screen->GetRect();
-    nsPrintfCString value(
-        "%dx%d@%dHz scales:%f|%f %s", rect.width, rect.height,
-        screen->GetRefreshRate(), screen->GetContentsScaleFactor(),
-        screen->GetDefaultCSSScaleFactor(), screen->GetIsHDR() ? "HDR" : "SDR");
+    if (screen->GetIsHDR()) {
+      nsPrintfCString value(
+          "%dx%d@%dHz scales:%f|%f HDR %.0f/%.0f nits", rect.width, rect.height,
+          screen->GetRefreshRate(), screen->GetContentsScaleFactor(),
+          screen->GetDefaultCSSScaleFactor(), screen->GetSDRContentBrightness(),
+          screen->GetHDRPeakBrightness());
 
-    aObj.DefineProperty(nsPrintfCString("Display%zu", i++).get(),
-                        NS_ConvertUTF8toUTF16(value));
+      aObj.DefineProperty(nsPrintfCString("Display%zu", i++).get(),
+                          NS_ConvertUTF8toUTF16(value));
+    } else {
+      nsPrintfCString value("%dx%d@%dHz scales:%f|%f SDR", rect.width,
+                            rect.height, screen->GetRefreshRate(),
+                            screen->GetContentsScaleFactor(),
+                            screen->GetDefaultCSSScaleFactor());
+
+      aObj.DefineProperty(nsPrintfCString("Display%zu", i++).get(),
+                          NS_ConvertUTF8toUTF16(value));
+    }
   }
 
   // Platform display info is only currently used for about:support and getting
@@ -4216,8 +4232,8 @@ void gfxPlatform::DisableGPUProcess() {
       "Disabled by fallback to GPU Process disabled",
       "FEATURE_FAILURE_DISABLED_BY_FALLBACK_GPU_PROCESS_DISABLED"_ns);
 
-#if defined(XP_WIN)
-  CompositeProcessD3D11FencesHolderMap::Init();
+#if defined(XP_WIN) || defined(XP_MACOSX)
+  CompositeProcessFencesHolderMap::Init();
 #endif
   RemoteTextureMap::Init();
   // We need to initialize the parent process to prepare for WebRender if we

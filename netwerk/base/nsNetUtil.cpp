@@ -27,7 +27,9 @@
 #include "mozilla/StoragePrincipalHelper.h"
 #include "mozilla/TaskQueue.h"
 #include "mozilla/dom/BlobURLProtocolHandler.h"
+#include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/Document.h"
+#include "mozilla/dom/PolicyContainer.h"
 #include "mozilla/dom/nsCSPUtils.h"
 #include "mozilla/dom/nsHTTPSOnlyUtils.h"
 #include "mozilla/dom/nsMixedContentBlocker.h"
@@ -56,6 +58,7 @@
 #include "nsIClassifiedChannel.h"
 #include "nsIContentSniffer.h"
 #include "nsIDownloader.h"
+#include "nsIEnterprisePolicies.h"
 #include "nsIFileProtocolHandler.h"
 #include "nsIFileStreams.h"
 #include "nsIFileURL.h"
@@ -1274,7 +1277,7 @@ nsresult NS_ParseRequestContentType(const nsACString& rawContentType,
   bool hadCharset;
   rv = util->ParseRequestContentType(rawContentType, charset, &hadCharset,
                                      contentType);
-  if (NS_SUCCEEDED(rv) && hadCharset) contentCharset = charset;
+  if (NS_SUCCEEDED(rv) && hadCharset) contentCharset = std::move(charset);
   return rv;
 }
 
@@ -1289,7 +1292,7 @@ nsresult NS_ParseResponseContentType(const nsACString& rawContentType,
   bool hadCharset;
   rv = util->ParseResponseContentType(rawContentType, charset, &hadCharset,
                                       contentType);
-  if (NS_SUCCEEDED(rv) && hadCharset) contentCharset = charset;
+  if (NS_SUCCEEDED(rv) && hadCharset) contentCharset = std::move(charset);
   return rv;
 }
 
@@ -2149,6 +2152,31 @@ nsresult NS_GetSanitizedURIStringFromURI(nsIURI* aUri,
   return rv;
 }
 
+void NS_GetSanitizedSpecFromSpec(const nsACString& aSpec,
+                                 nsACString& aSanitizedSpec) {
+  aSanitizedSpec.Assign(aSpec);
+
+  // A password only ever reaches nsIURI through a userinfo component, and every
+  // nsIURI implementation that can report a non-empty password parses that
+  // component out of a literal '@' in the spec. Parsing a URI is far more
+  // expensive than scanning for that byte, so reject the common case first.
+  if (!aSpec.Contains('@')) {
+    return;
+  }
+
+  nsCOMPtr<nsIURI> uri;
+  nsAutoCString password;
+  if (NS_FAILED(NS_NewURI(getter_AddRefs(uri), aSpec)) ||
+      NS_FAILED(uri->GetPassword(password)) || password.IsEmpty()) {
+    return;
+  }
+
+  // The spec is known to carry a password, so never fall back to it.
+  if (NS_FAILED(NS_GetSanitizedURIStringFromURI(uri, aSanitizedSpec))) {
+    aSanitizedSpec.Truncate();
+  }
+}
+
 nsresult NS_LoadPersistentPropertiesFromURISpec(
     nsIPersistentProperties** outResult, const nsACString& aSpec) {
   nsCOMPtr<nsIURI> uri;
@@ -2948,8 +2976,9 @@ bool handleResultFunc(bool aAllowSTS, bool aIsStsHost) {
   return false;
 };
 // That function is a helper function of NS_ShouldSecureUpgrade to check if
-// CSP upgrade-insecure-requests, Mixed content auto upgrading or HTTPs-Only/-
-// First should upgrade the given request.
+// CSP upgrade-insecure-requests, Mixed content auto upgrading, HTTPs-Only/-
+// First, or an enterprise HttpsOnly site policy should upgrade the given
+// request.
 static bool ShouldSecureUpgradeNoHSTS(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
   // 2. CSP upgrade-insecure-requests
   if (aLoadInfo->GetUpgradeInsecureRequests()) {
@@ -2960,7 +2989,8 @@ static bool ShouldSecureUpgradeNoHSTS(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
     scheme.AppendLiteral("s");
     NS_ConvertUTF8toUTF16 reportSpec(aURI->GetSpecOrDefault());
     NS_ConvertUTF8toUTF16 reportScheme(scheme);
-    AutoTArray<nsString, 2> params = {reportSpec, reportScheme};
+    AutoTArray<nsString, 2> params = {std::move(reportSpec),
+                                      std::move(reportScheme)};
     uint64_t innerWindowId = aLoadInfo->GetInnerWindowID();
     CSP_LogLocalizedStr("upgradeInsecureRequest", params,
                         ""_ns,   // aSourceFile
@@ -2982,7 +3012,8 @@ static bool ShouldSecureUpgradeNoHSTS(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
     scheme.AppendLiteral("s");
     NS_ConvertUTF8toUTF16 reportSpec(aURI->GetSpecOrDefault());
     NS_ConvertUTF8toUTF16 reportScheme(scheme);
-    AutoTArray<nsString, 2> params = {reportSpec, reportScheme};
+    AutoTArray<nsString, 2> params = {std::move(reportSpec),
+                                      std::move(reportScheme)};
 
     nsAutoString localizedMsg;
     nsContentUtils::FormatLocalizedString(PropertiesFile::SECURITY_PROPERTIES,
@@ -3021,6 +3052,48 @@ static bool ShouldSecureUpgradeNoHSTS(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
     }
     return true;
   }
+
+  // 5. Enterprise policy HttpsOnly site policy.
+  // Use the top-level document URI so that subresources inherit the same
+  // HTTPS policy as their containing page rather than being checked
+  // independently.
+  const bool isHttpsOnlyByPolicy = [&]() {
+    nsCOMPtr<nsIEnterprisePolicies> policyService =
+        do_GetService("@mozilla.org/enterprisepolicies;1");
+    if (!policyService) {
+      return false;
+    }
+
+    int16_t status;
+    if (NS_FAILED(policyService->GetStatus(&status)) ||
+        status != nsIEnterprisePolicies::ACTIVE) {
+      return false;
+    }
+
+    nsCOMPtr<nsIURI> policyCheckURI;
+    nsCOMPtr<nsIPrincipal> topLevelPrincipal =
+        aLoadInfo->GetTopLevelPrincipal();
+
+    if (topLevelPrincipal) {
+      nsAutoCString siteOrigin;
+      if (NS_FAILED(topLevelPrincipal->GetSiteOriginNoSuffix(siteOrigin)) ||
+          NS_FAILED(NS_NewURI(getter_AddRefs(policyCheckURI), siteOrigin))) {
+        return false;
+      }
+    } else {
+      policyCheckURI = aURI;
+    }
+
+    bool isHttpAllowed = true;
+    return NS_SUCCEEDED(policyService->IsAllowedForURI(
+               "http"_ns, policyCheckURI, &isHttpAllowed)) &&
+           !isHttpAllowed;
+  }();
+
+  if (isHttpsOnlyByPolicy) {
+    return true;
+  }
+
   return false;
 }
 
@@ -3029,7 +3102,8 @@ static bool ShouldSecureUpgradeNoHSTS(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
 // 2. CSP upgrade-insecure-requests
 // 3. Mixed content auto upgrading
 // 4. Https-Only / first
-// (5. Https RR - will be checked in nsHttpChannel)
+// 5. Enterprise policy HttpsOnly
+// (6. Https RR - will be checked in nsHttpChannel)
 nsresult NS_ShouldSecureUpgrade(
     nsIURI* aURI, nsILoadInfo* aLoadInfo, nsIPrincipal* aChannelResultPrincipal,
     bool aAllowSTS, const OriginAttributes& aOriginAttributes,
@@ -3235,10 +3309,12 @@ nsresult NS_CompareLoadInfoAndLoadContext(nsIChannel* aChannel) {
        originAttrsLoadContext.mUserContextId,
        originAttrsLoadContext.mPrivateBrowsingId, aChannel));
 
-  MOZ_ASSERT(originAttrsLoadInfo.mUserContextId ==
-                 originAttrsLoadContext.mUserContextId,
+  MOZ_ASSERT(loadInfo->GetExternalContentPolicyType() ==
+                     ExtContentPolicy::TYPE_DOCUMENT ||
+                 originAttrsLoadInfo.mUserContextId ==
+                     originAttrsLoadContext.mUserContextId,
              "The value of mUserContextId in the loadContext and in the "
-             "loadInfo are not the same!");
+             "loadInfo are not the same for a non-document load!");
 
   MOZ_ASSERT(originAttrsLoadInfo.mPrivateBrowsingId ==
                  originAttrsLoadContext.mPrivateBrowsingId,
@@ -3539,7 +3615,7 @@ static bool Decode5987Format(nsAString& aEncoded) {
   rv = mimehdrpar->DecodeRFC5987Param(asciiValue, language, decoded);
   if (NS_FAILED(rv)) return false;
 
-  aEncoded = decoded;
+  aEncoded = std::move(decoded);
   return true;
 }
 
@@ -3738,7 +3814,7 @@ nsTArray<LinkHeader> ParseLinkHeader(const nsAString& aLinkData) {
             nsAutoString tmp;
             tmp = value;
             if (Decode5987Format(tmp)) {
-              titleStar = tmp;
+              titleStar = std::move(tmp);
               titleStar.CompressWhitespace();
             } else {
               // header value did not parse, throw it away
@@ -3776,9 +3852,9 @@ nsTArray<LinkHeader> ParseLinkHeader(const nsAString& aLinkData) {
   if (!header.mHref.IsEmpty() && !header.mRel.IsEmpty()) {
     if (!titleStar.IsEmpty()) {
       // prefer RFC 5987 variant over non-I18zed version
-      header.mTitle = titleStar;
+      header.mTitle = std::move(titleStar);
     }
-    linkHeaders.AppendElement(header);
+    linkHeaders.AppendElement(std::move(header));
   }
 
   return linkHeaders;
@@ -4089,17 +4165,11 @@ nsresult HasRootDomain(const nsACString& aInput, const nsACString& aHost,
     return NS_OK;
   }
 
-  // If aHost is not found, we know we do not have it as a root domain.
-  int32_t index = nsAutoCString(aInput).Find(aHost);
-  if (index == kNotFound) {
-    return NS_OK;
-  }
-
-  // Otherwise, we have aHost as our root domain iff the index of aHost is
-  // aHost.length subtracted from our length and (since we do not have an
-  // exact match) the character before the index is a dot or slash.
-  *aResult = index > 0 && (uint32_t)index == aInput.Length() - aHost.Length() &&
-             (aInput[index - 1] == '.' || aInput[index - 1] == '/');
+  // Otherwise, we have aHost as our root domain iff aInput ends in
+  // aHost, and the character before aHost is a dot
+  *aResult = !aHost.IsEmpty() && aInput.Length() > aHost.Length() &&
+             StringEndsWith(aInput, aHost) &&
+             aInput[aInput.Length() - aHost.Length() - 1] == '.';
   return NS_OK;
 }
 
@@ -4109,7 +4179,8 @@ void CheckForBrokenChromeURL(nsILoadInfo* aLoadInfo, nsIURI* aURI) {
   }
   nsAutoCString scheme;
   aURI->GetScheme(scheme);
-  if (!scheme.EqualsLiteral("chrome") && !scheme.EqualsLiteral("resource")) {
+  if (!scheme.EqualsLiteral("chrome") && !scheme.EqualsLiteral("resource") &&
+      !scheme.EqualsLiteral("moz-src")) {
     return;
   }
   nsAutoCString host;
@@ -4152,6 +4223,9 @@ void CheckForBrokenChromeURL(nsILoadInfo* aLoadInfo, nsIURI* aURI) {
   // info-pages.css and aboutLicense.css are not - bug 1808987
   if (StringEndsWith(spec, "info-pages.css"_ns) ||
       StringEndsWith(spec, "aboutLicense.css"_ns) ||
+      // about:certificates is missing styles: bug 2055889
+      StringEndsWith(spec, "in-content/common.css"_ns) ||
+      StringEndsWith(spec, "text-and-typography.css"_ns) ||
       // Error page CSS is also missing: bug 1810039
       StringEndsWith(spec, "aboutNetError.css"_ns) ||
       StringEndsWith(spec, "aboutHttpsOnlyError.css"_ns) ||
@@ -4160,6 +4234,12 @@ void CheckForBrokenChromeURL(nsILoadInfo* aLoadInfo, nsIURI* aURI) {
       StringEndsWith(spec, "/popup.css"_ns) ||
       // Used by an extension installation test - bug 1809650
       StringBeginsWith(spec, "resource://android/assets/web_extensions/"_ns)) {
+    return;
+  }
+
+  // browser/ is not built for GeckoView, so toolkit code that references it
+  // can never resolve these here.
+  if (StringBeginsWith(spec, "moz-src:///browser/"_ns)) {
     return;
   }
 #endif
@@ -4173,13 +4253,6 @@ void CheckForBrokenChromeURL(nsILoadInfo* aLoadInfo, nsIURI* aURI) {
   // command line, which is then looked up in both app-specific and toolkit-wide
   // locations.
   if (spec.Find("backgroundtasks") != kNotFound) {
-    return;
-  }
-
-  // SessionStoreFunctions.sys.mjs may be missing at runtime in xpcshell tests:
-  // https://bugzilla.mozilla.org/show_bug.cgi?id=2018078#c3
-  if (spec.EqualsLiteral(
-          "resource:///modules/sessionstore/SessionStoreFunctions.sys.mjs")) {
     return;
   }
 
@@ -4230,6 +4303,31 @@ nsresult AddExtraHeaders(nsIHttpChannel* aHttpChannel,
     NS_ENSURE_SUCCESS(rv, rv);
   }
   return NS_OK;
+}
+
+nsILoadInfo::IPAddressSpace GetParentIPAddressSpace(nsILoadInfo* aLoadInfo) {
+  MOZ_ASSERT(aLoadInfo);
+
+  RefPtr<mozilla::dom::BrowsingContext> bc;
+  aLoadInfo->GetBrowsingContext(getter_AddRefs(bc));
+  if (bc) {
+    return bc->GetCurrentIPAddressSpace();
+  }
+
+  // Loads that are not tied to a browsing context (worker requests, and
+  // notification icon loads which have no requesting node) read the address
+  // space from the policy container propagated from the parent document.
+  nsCOMPtr<nsIPolicyContainer> policyContainer =
+      aLoadInfo->GetPolicyContainer();
+  if (policyContainer) {
+    nsILoadInfo::IPAddressSpace addressSpace =
+        PolicyContainer::Cast(policyContainer)->GetIPAddressSpace();
+    if (addressSpace != nsILoadInfo::Unknown) {
+      return addressSpace;
+    }
+  }
+
+  return aLoadInfo->GetParentIpAddressSpace();
 }
 
 bool IsLocalHostAccess(

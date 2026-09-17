@@ -3002,7 +3002,6 @@ static inline bool NeedNegativeZeroCheck(MDefinition* def) {
         break;
       case MDefinition::Opcode::StoreElementHole:
       case MDefinition::Opcode::StoreTypedArrayElementHole:
-      case MDefinition::Opcode::PostWriteElementBarrier:
         // Only allowed to remove check when definition is the third operand.
         for (size_t i = 0, e = use_def->numOperands(); i < e; i++) {
           if (i == 2) {
@@ -4926,6 +4925,26 @@ MDefinition* MToFloat16::foldsTo(TempAllocator& alloc) {
   return this;
 }
 
+MDefinition* MUnsignedToDouble::foldsTo(TempAllocator& alloc) {
+  if (input()->isConstant()) {
+    return MConstant::NewDouble(alloc,
+                                uint32_t(input()->toConstant()->toInt32()));
+  }
+
+  return this;
+}
+
+MDefinition* MUnsignedToFloat32::foldsTo(TempAllocator& alloc) {
+  if (input()->isConstant()) {
+    double dval = double(uint32_t(input()->toConstant()->toInt32()));
+    if (IsFloat32Representable(dval)) {
+      return MConstant::NewFloat32(alloc, float(dval));
+    }
+  }
+
+  return this;
+}
+
 MDefinition* MToString::foldsTo(TempAllocator& alloc) {
   MDefinition* in = input();
   if (in->isBox()) {
@@ -6229,6 +6248,29 @@ MDefinition* MStrictConstantCompareBoolean::foldsTo(TempAllocator& alloc) {
   return MConstant::NewBoolean(alloc, jsop() == JSOp::StrictNe);
 }
 
+MDefinition* MStrictConstantCompareString::foldsTo(TempAllocator& alloc) {
+  if (!value()->isBox()) {
+    return this;
+  }
+  MDefinition* unboxed = value()->toBox()->input();
+
+  if (unboxed->type() == MIRType::String) {
+    if (unboxed->isConstant()) {
+      int32_t comp =
+          CompareStrings(unboxed->toConstant()->toString(), constant());
+      bool result = FoldComparison(jsop(), comp, 0);
+      return MConstant::NewBoolean(alloc, result);
+    }
+
+    auto* cst = MConstant::NewString(alloc, constant()->unwrap());
+    block()->insertBefore(this, cst);
+
+    return MCompare::New(alloc, unboxed, cst, jsop(), MCompare::Compare_String);
+  }
+
+  return MConstant::NewBoolean(alloc, jsop() == JSOp::StrictNe);
+}
+
 MDefinition* MSameValue::foldsTo(TempAllocator& alloc) {
   MDefinition* lhs = left();
   if (lhs->isBox()) {
@@ -6421,6 +6463,8 @@ JSObject* MObjectState::templateObjectOf(MDefinition* obj) {
     return obj->toNewCallObject()->templateObject();
   } else if (obj->isNewIterator()) {
     return obj->toNewIterator()->templateObject();
+  } else if (obj->isNewBoundFunction()) {
+    return obj->toNewBoundFunction()->templateObj();
   }
 
   MOZ_CRASH("unreachable");
@@ -6693,6 +6737,10 @@ MDefinition* MFunctionEnvironment::foldsTo(TempAllocator& alloc) {
 }
 
 static bool AddIsANonZeroAdditionOf(MAdd* add, MDefinition* ins) {
+  if (add->type() != MIRType::Int32 && add->type() != MIRType::Double) {
+    return false;
+  }
+
   if (add->lhs() != ins && add->rhs() != ins) {
     return false;
   }
@@ -7437,6 +7485,7 @@ MDefinition* MGuardIsNotArrayBufferMaybeShared::foldsTo(TempAllocator& alloc) {
     case KnownClass::Array:
     case KnownClass::Function:
     case KnownClass::RegExp:
+    case KnownClass::Date:
     case KnownClass::ArrayIterator:
     case KnownClass::StringIterator:
     case KnownClass::RegExpStringIterator: {
@@ -7902,31 +7951,34 @@ MDefinition* MTimeClip::foldsTo(TempAllocator& alloc) {
   return MConstant::NewDouble(alloc, JS::CanonicalizeNaN(clipped.toDouble()));
 }
 
-// Returns `false` if it can be proven that (1) both `mtyA` and `mtyB` are
-// struct types and (2) they are not related by inheritance.  Returns `true` in
-// all other cases.  `true` is the safe-but-possibly-suboptimal return value.
-static bool StructTypesMightBeRelatedByInheritance(wasm::MaybeRefType mtyA,
-                                                   wasm::MaybeRefType mtyB) {
-  if (!mtyA.isSome() || !mtyB.isSome()) {
-    // The "Track Wasm ref types" pass couldn't establish that both `mtyA` and
-    // `mtyB` are ref types.  Give up.
-    return true;
-  }
+JSOp MBinaryCache::jsop() const { return JSOp(*resumePoint()->pc()); }
 
-  wasm::RefType tyA = mtyA.value();
-  wasm::RefType tyB = mtyB.value();
-  if (!tyA.isTypeRef() || !tyA.typeDef()->isStructType() || !tyB.isTypeRef() ||
-      !tyB.typeDef()->isStructType()) {
-    // They aren't both struct types.  Give up.
-    return true;
+template <typename T>
+static wasm::MaybeRefType GetBaseRefTypeForWasmLoadOrStore(T ins) {
+  const MDefinition* structObject;
+  if (ins->base()->type() == MIRType::WasmStructData &&
+      ins->base()->isWasmLoadField()) {
+    // Struct data pointers have no ref type, but always come from some struct
+    // object, so go back to that base object if possible. (We cannot do this
+    // 100% of the time because of phis.)
+    structObject = ins->base()->toWasmLoadField()->base();
+  } else {
+    structObject = ins->base();
   }
-
-  // They are both struct types.  So they are related by inheritance if one is
-  // a subtype of the other.  (Which is also the case if they are the same
-  // type.)
-  return wasm::RefType::valuesMightAlias(tyA, tyB);
+  return structObject->wasmRefType().asNonNullable();
 }
 
+// Wasm loads and stores can be proven not to alias if their offsets are
+// different or their ref types are known and disjoint. (Disjoint alias sets
+// also mean no aliasing, but this is obvious because that's just what alias
+// sets already do.)
+//
+// Different offsets -> NoAlias is true because each field (whether GC data or
+// internal data) has one and only one offset that is used to access it.
+// Disjoint types -> NoAlias is true because, well, types. When considering
+// types here, we exclude null because null loads and stores will trap anyway.
+//
+// For more rationale, see bug 2061530.
 MDefinition::AliasType MWasmLoadField::mightAlias(
     const MDefinition* ins) const {
   if (!(getAliasSet().flags() & ins->getAliasSet().flags())) {
@@ -7934,25 +7986,27 @@ MDefinition::AliasType MWasmLoadField::mightAlias(
   }
   MOZ_ASSERT(!isEffectful() && ins->isEffectful());
 
-  // Pick off cases where we can easily prove non-aliasing.  The idea is that
-  // two struct field accesses can't alias if either they are at different
-  // offsets, or the struct types are unrelated (which implies that the struct
-  // base pointer for one of the accesses could not validly be handed to the
-  // other access).
+  wasm::MaybeRefType insType;
+  uint32_t insOffset;
   if (ins->isWasmStoreField()) {
     const MWasmStoreField* store = ins->toWasmStoreField();
-    if (offset() != store->offset() ||
-        !StructTypesMightBeRelatedByInheritance(base()->wasmRefType(),
-                                                store->base()->wasmRefType())) {
-      return AliasType::NoAlias;
-    }
+    insType = GetBaseRefTypeForWasmLoadOrStore(store);
+    insOffset = store->offset();
   } else if (ins->isWasmStoreFieldRef()) {
     const MWasmStoreFieldRef* store = ins->toWasmStoreFieldRef();
-    if (offset() != store->offset() ||
-        !StructTypesMightBeRelatedByInheritance(base()->wasmRefType(),
-                                                store->base()->wasmRefType())) {
-      return AliasType::NoAlias;
-    }
+    insType = GetBaseRefTypeForWasmLoadOrStore(store);
+    insOffset = store->offset();
+  } else {
+    // Safe default, but any other type of store that can operate on the same
+    // values as a (performance-sensitive) MWasmLoadField should probably be
+    // added above.
+    return AliasType::MayAlias;
+  }
+
+  wasm::MaybeRefType thisType = GetBaseRefTypeForWasmLoadOrStore(this);
+  if (offset() != insOffset ||
+      !wasm::MaybeRefType::mayHaveValuesInCommon(thisType, insType)) {
+    return AliasType::NoAlias;
   }
 
   return AliasType::MayAlias;

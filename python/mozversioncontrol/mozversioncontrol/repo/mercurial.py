@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this,
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import annotations
+
 import errno
 import os
 import re
@@ -213,12 +215,12 @@ class HgRepository(Repository):
 
         paths = [str(path) for path in paths]
 
-        args = ["addremove"] + paths
+        args = ["addremove"]
         m = re.search(r"\d+\.\d+", self.tool_version)
         simplified_version = float(m.group(0)) if m else 0
         if simplified_version >= 3.9:
             args = ["--config", "extensions.automv="] + args
-        self._run(*args)
+        self._run_batched(*args, paths=paths)
 
     def forget_add_remove_files(self, *paths: Union[str, Path]):
         if not paths:
@@ -226,7 +228,7 @@ class HgRepository(Repository):
 
         paths = [str(path) for path in paths]
 
-        self._run("forget", *paths)
+        self._run_batched("forget", paths=paths)
 
     def get_tracked_files_finder(self, path=None):
         # Can return backslashes on Windows. Normalize to forward slashes.

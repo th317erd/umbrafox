@@ -38,7 +38,9 @@ targeting, use separate messages instead.
 ## Available trigger actions
 
 - [`openArticleURL`](#openarticleurl)
+- [`bookmarkAdded`](#bookmarkadded)
 - [`openBookmarkedURL`](#openbookmarkedurl)
+- [`visitBookmarkedURL`](#visitbookmarkedurl)
 - [`userBookmarkFolderActivity`](#userbookmarkfolderactivity)
 - [`frequentVisits`](#frequentvisits)
 - [`openURL`](#openurl)
@@ -58,8 +60,6 @@ targeting, use separate messages instead.
 - [`tabGroupSaved`](#tabgroupsaved)
 - [`tabGroupCollapsed`](#tabgroupcollapsed)
 - [`activityAfterIdle`](#activityafteridle)
-- [`cookieBannerDetected`](#cookiebannerdetected)
-- [`cookieBannerHandled`](#cookiebannerhandled)
 - [`messagesLoaded`](#messagesloaded)
 - [`pageActionInUrlbar`](#pageactioninurlbar)
 - [`onSearch`](#onsearch)
@@ -71,6 +71,7 @@ targeting, use separate messages instead.
 - [`selectableProfilesUpdated`](#selectableprofilesupdated)
 - [`smartWindowNewTab`](#smartwindownewtab)
 - [`nimbusUpdate`](#nimbusupdate)
+- [`lastWindowClose`](#lastwindowclose)
 
 ### `openArticleURL`
 
@@ -114,11 +115,27 @@ let regexPatterns: string[];
 }
 ```
 
+### `bookmarkAdded`
+
+Fires when the user adds a bookmark through any UI path, including the URL bar
+star icon, the Bookmarks menu, the keyboard shortcut, the "Bookmark Link" and
+"Bookmark All Tabs" commands, and the Library window.
+
+Bulk and non-interactive sources (import, restore, sync) and tag operations are
+ignored, so mass operations such as an add-on importing or syncing bookmarks do
+not fire the trigger. It fires at most once per operation and does not fire in
+private windows.
+
 ### `openBookmarkedURL`
 
 Happens when the user bookmarks or navigates to a bookmarked URL.
 
 Does not filter by host or patterns.
+
+### `visitBookmarkedURL`
+
+Fires when the user navigates to a URL that is already bookmarked. This does not fire when the user creates a bookmark, only when they open one. Does not
+fire in private windows.
 
 ### `userBookmarkFolderActivity`
 
@@ -197,6 +214,21 @@ During a browsing session it keeps track of visits to unique urls that can be us
 visitsCount >= 3
 ```
 
+`isAddressBarUrlNavigation` is true when the navigation was a direct
+navigation to a URL via the address bar — typed, pasted, autofilled, or picked
+from the dropdown as a bookmark/history/top-site match — as opposed to a
+search query submitted through the address bar, a synced-device (remote tab)
+pick, a link click, a redirect, or other programmatic navigation. This is
+only known for the
+navigation immediately following an address bar interaction; it's `false` for
+navigations that happen any other way, including ones that just look similar
+(e.g. a search redirecting to a URL that was also separately bookmarked).
+
+```javascript
+// Only match when the address bar resolved directly to a URL, not a search
+isAddressBarUrlNavigation
+```
+
 Supports filtering with `params`, [`patterns`](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Match_patterns), and `regexPatterns`.
 
 ```javascript
@@ -234,6 +266,27 @@ let regexPatterns: string[];
   ...
 }
 ```
+
+The trigger context exposes two counters. `visitsCount` is per unique URL, so
+it only grows when the same URL is loaded again. `totalVisitsCount` counts
+every matched visit, so it grows on each matching page load regardless of the
+URL. Pair `totalVisitsCount` with a broad pattern to count all page loads:
+
+```javascript
+{
+  ...
+  trigger: { id: "openURL", patterns: ["*://*/*"] },
+  // Show the message on the third page load of the session.
+  targeting: "totalVisitsCount >= 3"
+  ...
+}
+```
+
+Note that the `openURL` listener is shared by every active `openURL` message,
+and `totalVisitsCount` counts matches against the combined `params`,
+`patterns`, and `regexPatterns` of all of them, not just those of the message
+being evaluated. Only use it with a trigger broad enough that the distinction
+does not matter; prefer `visitsCount` for narrowly scoped triggers.
 
 ### `newSavedLogin`
 
@@ -473,23 +526,6 @@ No params or patterns. The `idleForMilliseconds` context variable is available i
 }
 ```
 
-### `cookieBannerDetected`
-
-Happens when the `cookiebannerdetected` window event is dispatched. This event is dispatched when the following conditions are true:
-
-1. The user is presented with a cookie consent banner on the webpage they're viewing,
-2. The domain has a valid ruleset for automatically engaging with the consent banner, and
-3. The user has not explicitly opted in or out of the Cookie Banner Handling feature.
-
-### `cookieBannerHandled`
-
-Happens when the `cookiebannerhandled` window event is dispatched. This event is dispatched when the following conditions are true:
-
-1. The user is presented with a cookie consent banner on the webpage they're viewing,
-2. The domain has a valid ruleset for automatically engaging with the consent banner, and
-3. The user is opted into the Cookie Banner Handling feature (this is by default in private windows), and
-4. Firefox succeeds in automatically engaging with the consent banner.
-
 ### `messagesLoaded`
 
 Happens as soon as a message is loaded. This trigger does not require any user interaction, and may happen potentially as early as app launch, or at some time after experiment enrollment. Generally intended for use in reach experiments, because most messages cannot be routed unless the surfaces they display in are instantiated in a tabbed browser window (a reach message will not be displayed but its trigger will still be recorded). However, it is still possible to safely use this trigger for a normal message, with some caveats. This is potentially relevant on macOS, where the app can be running with no browser windows open, or even on Windows, where closing all browser windows but leaving open a non-browser window (e.g. the Library) causes the app to remain running.
@@ -663,3 +699,57 @@ via Nimbus experiments. It replaces the deprecated `momentsUpdate` pseudo-trigge
 ```
 
 Does not filter by host, patterns, or params.
+
+### `lastWindowClose`
+
+Fires when the user closes the last open browser window. Popup windows (opened
+with `toolbar=no`) do not trigger it, and it's skipped if closing the window
+would show (or just showed) the "closing multiple tabs" warning, so the two
+don't stack.
+
+Closing the window is delayed until the matched message resolves. Closing the window is
+cancelled, the message shows, and the close is re-requested once it's done.
+Only the `spotlight` template currently supports this trigger. If a button's action needs to finish
+before the window actually closes, set`needsAwait: true` on that action.
+
+```js
+{
+  trigger: { id: "lastWindowClose" },
+  template: "spotlight",
+  content: {
+    template: "multistage",
+    modal: "window",
+    screens: [
+      {
+        content: {
+          primary_button: {
+            action: { type: "SOME_ACTION", needsAwait: true, dismiss: true }
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+### `splitViewUsed`
+
+Fires after a configurable delay (default 15 seconds, `browser.tabs.splitview.trigger.delay_ms`)
+of continuous use of Split View. Leaving Split View before the delay elapses cancels the
+countdown; returning starts a fresh one.
+
+```js
+{
+  trigger: { id: "splitViewUsed" }
+}
+```
+```js
+// The trigger also tracks the number of distinct Split Views the user has
+// created (not re-entries into an existing one), via the splitViewCreateCount
+// context variable. Here, the message is excluded for a user's first-ever
+// Split View.
+{
+  trigger: { id: "splitViewUsed" },
+  targeting: "splitViewCreateCount > 1"
+}
+```

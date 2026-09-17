@@ -16,7 +16,7 @@
 #include "mozilla/gfx/DeviceManagerDx.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/gfxVars.h"
-#include "mozilla/layers/CompositeProcessD3D11FencesHolderMap.h"
+#include "mozilla/layers/CompositeProcessFencesHolderMap.h"
 #include "mozilla/layers/FenceD3D11.h"
 #include "mozilla/layers/GpuProcessD3D11TextureMap.h"
 #include "mozilla/layers/TextureD3D11.h"
@@ -211,6 +211,8 @@ size_t RenderDXGITextureHost::GetPlaneCount() const {
     case gfx::SurfaceFormat::HSV:
     case gfx::SurfaceFormat::Lab:
     case gfx::SurfaceFormat::Depth:
+    case gfx::SurfaceFormat::CMYK:
+    case gfx::SurfaceFormat::InvertedCMYK:
     case gfx::SurfaceFormat::UNKNOWN:
       return 1;
   }
@@ -519,8 +521,7 @@ bool RenderDXGITextureHost::LockInternal() {
 
   if (!mLocked) {
     if (mFencesHolderId.isSome()) {
-      auto* fencesHolderMap =
-          layers::CompositeProcessD3D11FencesHolderMap::Get();
+      auto* fencesHolderMap = layers::CompositeProcessFencesHolderMap::Get();
       if (!fencesHolderMap) {
         MOZ_ASSERT_UNREACHABLE("unexpected to be called");
         return false;
@@ -528,7 +529,8 @@ bool RenderDXGITextureHost::LockInternal() {
       RefPtr<ID3D11Device> device;
       mTexture->GetDevice(getter_AddRefs(device));
 
-      if (!fencesHolderMap->WaitWriteFence(mFencesHolderId.ref(), device)) {
+      auto fence = fencesHolderMap->GetWriteFence(mFencesHolderId.ref());
+      if (!layers::FenceD3D11::WaitD3D11Fence(fence, device)) {
         return false;
       }
     }
@@ -582,8 +584,8 @@ void RenderDXGITextureHost::DeleteTextureHandle() {
     }
   }
 
-  for (int i = 0; i < 2; ++i) {
-    mTextureHandle[i] = 0;
+  for (unsigned int& i : mTextureHandle) {
+    i = 0;
   }
 
   mTexture = nullptr;
@@ -813,12 +815,13 @@ bool RenderDXGIYCbCrTextureHost::EnsureD3D11Texture2D(ID3D11Device* aDevice) {
 
 bool RenderDXGIYCbCrTextureHost::LockInternal() {
   if (!mLocked) {
-    auto* fencesHolderMap = layers::CompositeProcessD3D11FencesHolderMap::Get();
+    auto* fencesHolderMap = layers::CompositeProcessFencesHolderMap::Get();
     if (!fencesHolderMap) {
       MOZ_ASSERT_UNREACHABLE("unexpected to be called");
       return false;
     }
-    if (!fencesHolderMap->WaitWriteFence(mFencesHolderId, mDevice)) {
+    auto fence = fencesHolderMap->GetWriteFence(mFencesHolderId);
+    if (!layers::FenceD3D11::WaitD3D11Fence(fence, mDevice)) {
       return false;
     }
     mLocked = true;

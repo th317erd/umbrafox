@@ -26,6 +26,7 @@ ChromeUtils.defineESModuleGetters(this, {
   FxAccounts: "resource://gre/modules/FxAccounts.sys.mjs",
   MenuMessage: "resource:///modules/asrouter/MenuMessage.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+  Referrals: "resource:///modules/referrals/Referrals.sys.mjs",
   SyncedTabs: "resource://services-sync/SyncedTabs.sys.mjs",
   SyncedTabsManagement: "resource://services-sync/SyncedTabs.sys.mjs",
   Weave: "resource://services-sync/main.sys.mjs",
@@ -36,6 +37,23 @@ var { DEVICE_TYPE_MOBILE, DEVICE_TYPE_TABLET } = ChromeUtils.importESModule(
 );
 
 const MIN_STATUS_ANIMATION_DURATION = 1600;
+
+// Campaign params shared by every product CTA in the Mozilla account toolbar
+// panel. The per-variant utm_content is added by gSync._ctaURL.
+const FXA_CTA_UTM_PARAMS = {
+  utm_medium: "referral",
+  utm_source: "firefox-desktop",
+  utm_campaign: "toolbar",
+};
+
+// Locales are intentionally omitted: all three sites redirect to the visitor's
+// locale, and hardcoding one would send non-English users to English pages.
+const MONITOR_NEW_USER_URL = "https://monitor.mozilla.org/";
+const MONITOR_EXISTING_USER_URL = "https://monitor.mozilla.org/user/dashboard/";
+const RELAY_NEW_USER_URL = "https://relay.firefox.com/";
+const RELAY_EXISTING_USER_URL = "https://relay.firefox.com/accounts/profile/";
+const VPN_NEW_USER_URL = "https://www.mozilla.org/products/vpn/";
+const VPN_EXISTING_USER_URL = "https://www.mozilla.org/products/vpn/download/";
 
 this.SyncedTabsPanelList = class SyncedTabsPanelList {
   static sRemoteTabsDeckIndices = {
@@ -336,7 +354,7 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
   }
 
   _createSyncedTabElement(tabInfo, index, device, canCloseTabs) {
-    let tabContainer = document.createXULElement("hbox");
+    let tabContainer = document.createXULElement("toolbaritem");
     tabContainer.setAttribute(
       "class",
       "PanelUI-tabitem-container all-tabs-item"
@@ -345,6 +363,7 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
     let item = document.createXULElement("toolbarbutton");
     let tooltipText = (tabInfo.title ? tabInfo.title + "\n" : "") + tabInfo.url;
     item.setAttribute("itemtype", "tab");
+    item.setAttribute("flex", "1");
     item.classList.add(
       "all-tabs-button",
       "subviewbutton",
@@ -474,6 +493,9 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
 this.FxAMenuDeviceList = class FxAMenuDeviceList {
   static MAX_RECENT_TABS = 5;
   static MAX_DEVICES = 3;
+  // How long a closed tab's row sticks around offering Undo before it's
+  // removed from the list.
+  static TAB_REMOVAL_DELAY_MS = 5000;
 
   constructor(devicesList) {
     this.QueryInterface = ChromeUtils.generateQI([
@@ -484,8 +506,14 @@ this.FxAMenuDeviceList = class FxAMenuDeviceList {
     Services.obs.addObserver(this, SyncedTabs.TOPIC_TABS_CHANGED, true);
     this.devicesList = devicesList;
     this._updateDevicesPromise = Promise.resolve();
+    this._removalTimers = new Set();
 
     this._initDeviceList();
+
+    // Refresh the FxA devices list.  This won't affect the current menu items,
+    // but it helps ensure the menu is up-to-date the next time the menu loads.
+    // This can help the user get unstuck when the device list is stale (#1664954)
+    gSync.refreshFxaDevices();
   }
 
   observe(subject, topic) {
@@ -499,10 +527,8 @@ this.FxAMenuDeviceList = class FxAMenuDeviceList {
       SyncedTabs.syncTabs().catch(ex => {
         console.error(ex);
       });
-      this._updateDeviceList();
-    } else {
-      this.devicesList.hidden = true;
     }
+    this._updateDeviceList();
   }
 
   _updateDeviceList() {
@@ -519,7 +545,7 @@ this.FxAMenuDeviceList = class FxAMenuDeviceList {
 
     let clients;
     try {
-      clients = await SyncedTabs.getTabClients();
+      clients = await this._getMergedDeviceList();
     } catch (err) {
       console.error(err);
       return;
@@ -577,13 +603,80 @@ this.FxAMenuDeviceList = class FxAMenuDeviceList {
   }
 
   _getDeviceForClient(client) {
-    return (
-      fxAccounts.device.recentDeviceList &&
-      fxAccounts.device.recentDeviceList.find(
-        d =>
-          d.id === Weave.Service.clientsEngine.getClientFxaDeviceId(client.id)
-      )
-    );
+    let devices = fxAccounts.device.recentDeviceList;
+    if (!devices) {
+      return undefined;
+    }
+    // Real Sync clients are keyed by a Sync client id that maps to an FxA
+    // device id; the synthesized stand-ins built by _getMergedDeviceList are
+    // already keyed by the FxA device id, in which case getClientFxaDeviceId
+    // returns nothing and we fall back to the client id itself.
+    let fxaDeviceId =
+      Weave.Service.clientsEngine.getClientFxaDeviceId(client.id) || client.id;
+    return devices.find(d => d.id === fxaDeviceId);
+  }
+
+  /**
+   * Builds the list of devices to display. It is based on the full FxA account
+   * device list (`fxAccounts.device.recentDeviceList`). A device is shown when
+   * it either has a Sync tab-client record (so it can show recent tabs) or is
+   * compatible with Send Tab (so the user can still send a tab to it); devices
+   * with neither are omitted, as there is nothing to show or do for them.
+   * Devices that have a Sync tab-client record reuse it (and therefore keep
+   * their recent tabs); Send Tab-only devices get a lightweight stand-in with
+   * an empty tab list. Any Sync client that doesn't map to a current account
+   * device is still appended so the list never shows fewer devices than the
+   * tabs engine knows about (e.g. when the cached device list is stale or not
+   * yet fetched).
+   *
+   * The current device gets excluded.
+   */
+  async _getMergedDeviceList() {
+    let clients = await SyncedTabs.getTabClients();
+    let devices = fxAccounts.device.recentDeviceList;
+    if (!devices) {
+      return clients;
+    }
+
+    let clientByFxaId = new Map();
+    for (let client of clients) {
+      let fxaDeviceId = Weave.Service.clientsEngine.getClientFxaDeviceId(
+        client.id
+      );
+      if (fxaDeviceId) {
+        clientByFxaId.set(fxaDeviceId, client);
+      }
+    }
+
+    let merged = [];
+    let matchedClients = new Set();
+    for (let device of devices) {
+      let client = clientByFxaId.get(device.id);
+      if (client) {
+        // Record the client even when the device is skipped below, so the pass
+        // over unmatched clients doesn't add it back.
+        matchedClients.add(client);
+      }
+      if (device.isCurrentDevice) {
+        continue;
+      }
+      if (client) {
+        merged.push(client);
+      } else if (fxAccounts.commands.sendTab.isDeviceCompatible(device)) {
+        merged.push({
+          id: device.id,
+          name: device.name,
+          lastModified: device.lastAccessTime,
+          tabs: [],
+        });
+      }
+    }
+    for (let client of clients) {
+      if (!matchedClients.has(client)) {
+        merged.push(client);
+      }
+    }
+    return merged;
   }
 
   _createAllDevicesButton(clients) {
@@ -624,6 +717,13 @@ this.FxAMenuDeviceList = class FxAMenuDeviceList {
     return "desktop";
   }
 
+  _getTelemetryDeviceType(device) {
+    const isMobile =
+      device?.type === DEVICE_TYPE_MOBILE ||
+      device?.type === DEVICE_TYPE_TABLET;
+    return isMobile ? "mobile" : "desktop";
+  }
+
   _createDeviceEntry(client, device) {
     let btn = document.createXULElement("toolbarbutton");
     btn.classList.add(
@@ -642,7 +742,19 @@ this.FxAMenuDeviceList = class FxAMenuDeviceList {
       })
     );
     btn.addEventListener("click", e => {
-      this._showDeviceRecentTabs(client, device, btn, e);
+      // Re-resolve the device at click time: the FxA device list is refreshed
+      // asynchronously, so it may not have been populated yet when this entry
+      // was created (e.g. on the first menu open after signing in). Resolving
+      // it now ensures the "Send Current Page to This Device" button is shown
+      // when the device is sendTab-capable, instead of only on a later open.
+      const resolvedDevice = this._getDeviceForClient(client) ?? device;
+
+      gSync.emitFxaToolbarTelemetry("synced_device_submenu", btn, {
+        device_type: this._getTelemetryDeviceType(resolvedDevice),
+        device_count: String(gSync.getSendTabTargets().length),
+      });
+
+      this._showDeviceRecentTabs(client, resolvedDevice, btn, e);
     });
     return btn;
   }
@@ -662,28 +774,28 @@ this.FxAMenuDeviceList = class FxAMenuDeviceList {
       device && fxAccounts.commands.closeTab.isDeviceCompatible(device);
 
     for (let [index, tab] of recentTabs.entries()) {
-      let tabItem = this._createSyncedTabElement(tab, index, device);
-      tabsList.appendChild(tabItem);
-      // Force render() now (before adding close/undo children) so that
-      // toolbarbutton-icon and toolbarbutton-text are created even when the
-      // panelview is still in the template DocumentFragment and
-      // connectedCallback has not yet fired against the live document.
-      tabItem.render();
+      let tabContainer = this._createSyncedTabElement(tab, index, device);
+      tabsList.appendChild(tabContainer);
+      let item = tabContainer.querySelector(".all-tabs-button");
+      // Force render() now so that toolbarbutton-icon and toolbarbutton-text are
+      // created even when the panelview is still in the template DocumentFragment
+      // and connectedCallback has not yet fired against the live document.
+      item.render();
       if (canCloseTabs) {
         let closeBtn = this._createCloseTabElement(tab.url, device);
-        closeBtn.tab = tabItem;
+        closeBtn.tab = item;
         let undoBtn = this._createUndoCloseTabElement(tab.url, device);
-        undoBtn.tab = tabItem;
-        tabItem.append(closeBtn, undoBtn);
+        undoBtn.tab = item;
+        tabContainer.append(closeBtn, undoBtn);
       }
     }
   }
 
-  _configureViewAllTabsButton(viewAllBtn, client) {
+  _configureViewAllTabsButton(viewAllBtn, tabCount) {
     let [viewAllMessage] = gSync.fluentStrings.formatMessagesSync([
       {
         id: "fxa-menu-device-view-all-synced-tabs",
-        args: { tabCount: client.tabs.length },
+        args: { tabCount },
       },
     ]);
     viewAllBtn.setAttribute(
@@ -769,16 +881,31 @@ this.FxAMenuDeviceList = class FxAMenuDeviceList {
       "#PanelUI-fxa-device-view-all-tabs"
     );
 
-    tabsList.hidden = !hasTabs;
-    noTabsLabel.hidden = hasTabs;
-    footerSeparator.hidden = !hasTabs;
-    viewAllBtn.hidden = !hasTabs;
-    this._configureViewAllTabsButton(viewAllBtn, client);
-
     let sendPageBtn = panelNode.querySelector(
       "#PanelUI-fxa-device-send-current-page"
     );
     let canSendTab = this._canSendTabToDevice(device);
+
+    tabsList.hidden = !hasTabs;
+    noTabsLabel.hidden = hasTabs;
+    viewAllBtn.hidden = !hasTabs;
+    this._configureViewAllTabsButton(viewAllBtn, client.tabs.length);
+    // The separator sits above the footer buttons, so keep it whenever the
+    // footer has a button below it - either the "view all" button (when there
+    // are tabs) or the "send current page" button (when we can send a tab).
+    footerSeparator.hidden = !hasTabs && !canSendTab;
+
+    this._trackTabCount(tabsList, client.tabs.length, remaining => {
+      if (remaining) {
+        this._configureViewAllTabsButton(viewAllBtn, remaining);
+        return;
+      }
+      tabsList.hidden = true;
+      noTabsLabel.hidden = false;
+      viewAllBtn.hidden = true;
+      footerSeparator.hidden = !canSendTab;
+    });
+
     sendPageBtn.hidden = !canSendTab;
     if (canSendTab) {
       this._configureSendPageButton(sendPageBtn, device, anchor);
@@ -808,30 +935,43 @@ this.FxAMenuDeviceList = class FxAMenuDeviceList {
     list.appendChild(header);
 
     let recentTabs = this._getRecentTabs(client);
+    let noTabsLabel = document.createXULElement("label");
+    noTabsLabel.classList.add("PanelUI-remotetabs-notabsforclient-label");
+    noTabsLabel.setAttribute(
+      "value",
+      gSync.fluentStrings.formatValueSync("appmenu-remote-tabs-notabs")
+    );
+
     if (recentTabs.length) {
       let tabsList = document.createXULElement("vbox");
       tabsList.classList.add("PanelUI-fxa-menu-device-tabs-list");
       this._populateRecentTabs(tabsList, recentTabs, device);
-      list.appendChild(tabsList);
+      // The label is only revealed if every tab ends up being closed.
+      noTabsLabel.hidden = true;
+      list.append(tabsList, noTabsLabel);
 
       let viewAllBtn = document.createXULElement("toolbarbutton");
-      viewAllBtn.classList.add("subviewbutton", "panel-subview-footer-button");
+      viewAllBtn.classList.add("subviewbutton");
       viewAllBtn.setAttribute("closemenu", "none");
-      this._configureViewAllTabsButton(viewAllBtn, client);
+      this._configureViewAllTabsButton(viewAllBtn, client.tabs.length);
       list.appendChild(viewAllBtn);
+
+      this._trackTabCount(tabsList, client.tabs.length, remaining => {
+        if (remaining) {
+          this._configureViewAllTabsButton(viewAllBtn, remaining);
+          return;
+        }
+        tabsList.hidden = true;
+        noTabsLabel.hidden = false;
+        viewAllBtn.hidden = true;
+      });
     } else {
-      let noTabsLabel = document.createXULElement("label");
-      noTabsLabel.classList.add("PanelUI-remotetabs-notabsforclient-label");
-      noTabsLabel.setAttribute(
-        "value",
-        gSync.fluentStrings.formatValueSync("appmenu-remote-tabs-notabs")
-      );
       list.appendChild(noTabsLabel);
     }
 
     if (this._canSendTabToDevice(device)) {
       let sendPageBtn = document.createXULElement("toolbarbutton");
-      sendPageBtn.classList.add("subviewbutton", "panel-subview-footer-button");
+      sendPageBtn.classList.add("subviewbutton");
       sendPageBtn.setAttribute(
         "data-l10n-id",
         "fxa-menu-device-send-current-page"
@@ -866,14 +1006,14 @@ this.FxAMenuDeviceList = class FxAMenuDeviceList {
 
   _createSyncedTabElement(tabInfo, index, _device) {
     let tooltipText = (tabInfo.title ? tabInfo.title + "\n" : "") + tabInfo.url;
+    let tabContainer = document.createXULElement("toolbaritem");
+    tabContainer.setAttribute(
+      "class",
+      "PanelUI-tabitem-container all-tabs-item"
+    );
+
     let item = this._createTabToolbarButton(
-      [
-        "all-tabs-button",
-        "subviewbutton",
-        "subviewbutton-iconic",
-        "PanelUI-tabitem-container",
-        "all-tabs-item",
-      ],
+      ["all-tabs-button", "subviewbutton", "subviewbutton-iconic"],
       e => {
         let object = window.gSync._getEntryPointForElement(e.currentTarget);
         SyncedTabs.recordSyncedTabsTelemetry(object, "click", {
@@ -892,6 +1032,7 @@ this.FxAMenuDeviceList = class FxAMenuDeviceList {
       }
     );
     item.setAttribute("itemtype", "tab");
+    item.setAttribute("flex", "1");
     item.setAttribute("targetURI", tabInfo.url);
     item.setAttribute(
       "label",
@@ -901,7 +1042,8 @@ this.FxAMenuDeviceList = class FxAMenuDeviceList {
       item.setAttribute("image", tabInfo.icon);
     }
     item.setAttribute("tooltiptext", tooltipText);
-    return item;
+    tabContainer.appendChild(item);
+    return tabContainer;
   }
 
   _createCloseTabElement(url, device) {
@@ -910,27 +1052,19 @@ this.FxAMenuDeviceList = class FxAMenuDeviceList {
       e => {
         e.stopPropagation();
 
-        let tabBtn = closeBtn.parentNode;
-        let tabList = tabBtn.parentNode;
+        let tabContainer = closeBtn.parentNode;
+        let undoBtn = tabContainer.querySelector(".remote-tabs-undo-button");
 
-        let undoBtn = tabBtn.querySelector(".remote-tabs-undo-button");
-
-        let prevClose = tabList.querySelector(
-          ".remote-tabs-undo-button:not([hidden])"
-        );
-        if (prevClose) {
-          let prevTabBtn = prevClose.parentNode;
-          prevTabBtn.classList.add("tabitem-removed");
-          prevTabBtn.addEventListener("transitionend", () => {
-            prevTabBtn.remove();
-          });
-        }
         closeBtn.hidden = true;
         undoBtn.hidden = false;
+        // The Undo button is a sibling of the tab button, so disabling the tab
+        // button no longer prunes Undo from the keyboard walker or the
+        // accessibility tree.
         if (closeBtn.tab) {
           closeBtn.tab.disabled = true;
         }
         SyncedTabsManagement.enqueueTabToClose(device.id, url);
+        this._scheduleTabRowRemoval(tabContainer);
       },
       { closemenu: true }
     );
@@ -949,10 +1083,11 @@ this.FxAMenuDeviceList = class FxAMenuDeviceList {
       e => {
         e.stopPropagation();
 
+        let tabContainer = undoBtn.parentNode;
+        this._cancelTabRowRemoval(tabContainer);
+
         undoBtn.hidden = true;
-        let closeBtn = undoBtn.parentNode.querySelector(
-          ".all-tabs-close-button"
-        );
+        let closeBtn = tabContainer.querySelector(".all-tabs-close-button");
         closeBtn.hidden = false;
         if (undoBtn.tab) {
           undoBtn.tab.disabled = false;
@@ -967,11 +1102,85 @@ this.FxAMenuDeviceList = class FxAMenuDeviceList {
     return undoBtn;
   }
 
+  /**
+   * Remembers how many synced tabs a device has left, so that removing a closed
+   * tab's row can bring the surrounding UI up to date. `applyTabCount` is called
+   * with the new total each time a row goes away; the two menu layouts word the
+   * "no tabs left" state differently, so each supplies its own.
+   */
+  _trackTabCount(tabsList, tabCount, applyTabCount) {
+    tabsList.tabCount = tabCount;
+    tabsList.applyTabCount = applyTabCount;
+  }
+
+  /**
+   * Fades out a closed tab's row and drops it from the list once its undo
+   * window has elapsed. The timer is tracked on the row so Undo can cancel it,
+   * and on the instance so tearing the panel down doesn't leave it running.
+   */
+  _scheduleTabRowRemoval(tabContainer) {
+    let tabsList = tabContainer.parentNode;
+    let timer = setTimeout(() => {
+      this._removalTimers.delete(timer);
+      tabContainer.removalTimer = null;
+      tabContainer.classList.add("tabitem-removed");
+      // The surrounding UI is updated only once the row is really gone: hiding
+      // the list while it is still fading out would cut the transition short,
+      // and transitionend is what takes the row out of the list.
+      tabContainer.addEventListener(
+        "transitionend",
+        () => {
+          tabContainer.remove();
+          if (tabsList.applyTabCount) {
+            tabsList.tabCount = Math.max(0, tabsList.tabCount - 1);
+            tabsList.applyTabCount(tabsList.tabCount);
+          }
+        },
+        { once: true }
+      );
+    }, FxAMenuDeviceList.TAB_REMOVAL_DELAY_MS);
+    this._removalTimers.add(timer);
+    tabContainer.removalTimer = timer;
+  }
+
+  _cancelTabRowRemoval(tabContainer) {
+    clearTimeout(tabContainer.removalTimer);
+    this._removalTimers.delete(tabContainer.removalTimer);
+    tabContainer.removalTimer = null;
+  }
+
   destroy() {
+    for (let timer of this._removalTimers) {
+      clearTimeout(timer);
+    }
+    this._removalTimers.clear();
     Services.obs.removeObserver(this, SyncedTabs.TOPIC_TABS_CHANGED);
     this.devicesList = null;
   }
 };
+
+// Profiles submenu telemetry events, which record the `profile_count` extra
+// key on top of the extras shared by the fxa_avatar_menu category.
+const AVATAR_MENU_ONLY_PROFILES_COUNT_EVENT_TYPES = new Set([
+  "copy_primary_profile",
+  "create_new_profile_cta_button",
+  "create_new_profile_cta_label",
+  "edit_primary_profile",
+  "launch_secondary_profile_all_profiles",
+  "manage_all_profiles",
+  "manage_profiles",
+  "view_all_profiles",
+  "what_are_profiles",
+]);
+
+const AVATAR_MENU_ONLY_PROFILES_EVENT_TYPES = new Set([
+  ...AVATAR_MENU_ONLY_PROFILES_COUNT_EVENT_TYPES,
+  "create_new_profile_submenu",
+  "get_firefox_for_mobile_cta",
+  "launch_secondary_profile",
+  "manage_primary_profile",
+  "sync_your_data_cta",
+]);
 
 var gSync = {
   _initialized: false,
@@ -983,6 +1192,17 @@ var gSync = {
   _obs: ["weave:engine:sync:finish", "quit-application", UIState.ON_UPDATE],
   // Track whether send tab exposure events have been recorded for current context menu session
   _sendTabExposureRecorded: new Set(),
+
+  // FxA menu telemetry types that already name their Glean metric in full.
+  // Every other type names only the `<object>` half of a legacy
+  // `fxa_*_menu.click#<object>` event and gets a `click` prefix added.
+  // See emitFxaToolbarTelemetry.
+  NONPREFIXED_EVENT_TYPES: new Set([
+    "send_tab_exposed",
+    "send_tab_opened",
+    "synced_device_submenu",
+    ...AVATAR_MENU_ONLY_PROFILES_EVENT_TYPES,
+  ]),
 
   get log() {
     if (!this._log) {
@@ -1043,8 +1263,8 @@ var gSync = {
 
   // Returns the call to action ("signin", "turnonsync", or "connectdevice") for
   // showing the remote tabs promo, or null when the promo should be hidden.
-  // `requiredEngines` are the sync engines that must be disabled to show the promo ["tabs"]
-  getSyncPromoState(requiredEngines) {
+  // Disabled `requiredEngines` also select "turnonsync" when provided.
+  getSyncPromoState(requiredEngines = []) {
     if (!this.FXA_ENABLED) {
       return null;
     }
@@ -1077,6 +1297,23 @@ var gSync = {
     }
   },
 
+  // Performs the state-specific action for a sync promo (see getSyncPromoState).
+  // `action` is one of the promo states, `entryPoint` identifies the surface for
+  // FxA telemetry/URL building.
+  handleSyncPromoAction(action, entryPoint) {
+    switch (action) {
+      case "signin":
+        this.openFxAEmailFirstPage(entryPoint);
+        break;
+      case "turnonsync":
+        this.openSyncSetupForEntryPoint(entryPoint);
+        break;
+      case "connectdevice":
+        this.openConnectAnotherDevice(entryPoint);
+        break;
+    }
+  },
+
   shouldHideSendContextMenuItems(enabled) {
     return !enabled || !this.FXA_ENABLED;
   },
@@ -1101,6 +1338,16 @@ var gSync = {
       }
     }
     return targets.sort((a, b) => b.lastAccessTime - a.lastAccessTime);
+  },
+
+  // Returns the clientType attribute value used for device icons for a send
+  // tab to device target, preferring the Sync client record when available.
+  getTargetClientType(target) {
+    if (target.clientRecord) {
+      return Weave.Service.clientsEngine.getClientType(target.clientRecord.id);
+    }
+    // For phones, FxA uses "mobile" and Sync clients uses "phone".
+    return target.type == "mobile" ? "phone" : target.type;
   },
 
   hasOnlyMobileSendTabTargets(targets = this.getSendTabTargets()) {
@@ -1131,8 +1378,12 @@ var gSync = {
     if (UIState.isReady()) {
       const state = UIState.get();
       // If we are not configured, the UI is already in the right state when
-      // we open the window. We can avoid a repaint.
-      if (state.status != UIState.STATUS_NOT_CONFIGURED) {
+      // we open the window. We can avoid a repaint. A user who signed out is
+      // the exception, since the markup defaults to never having signed in.
+      if (
+        state.status != UIState.STATUS_NOT_CONFIGURED ||
+        this._hasSignedOutOfSync
+      ) {
         this.updateAllUI(state);
       }
     }
@@ -1208,6 +1459,22 @@ var gSync = {
       novaFxaLabel.label = novaSignIn;
     }
 
+    // The signed-out row's copy comes from sync.ftl, which is only inserted
+    // once we know accounts are enabled, so its ids can't live in the markup.
+    for (const [id, l10nId] of [
+      ["appMenu-fxa-signed-out-title", "fxa-menu-signed-out-title"],
+      ["appMenu-fxa-signed-out-message", "fxa-menu-signed-out-description"],
+      [
+        "appMenu-fxa-signed-out-sign-in-button",
+        "fxa-menu-signed-out-sign-in-button",
+      ],
+    ]) {
+      document.l10n.setAttributes(
+        PanelMultiView.getViewNode(document, id),
+        l10nId
+      );
+    }
+
     for (let topic of this._obs) {
       Services.obs.addObserver(this, topic, true);
     }
@@ -1216,10 +1483,30 @@ var gSync = {
 
     EnsureFxAccountsWebChannel();
 
+    // Sign-in promo shown in the app menu (main view) when signed out.
+    PanelMultiView.getViewNode(
+      document,
+      "appMenu-fxa-sign-in-promo-button"
+    ).addEventListener("click", this);
+
+    // Sign-in button shown in the app menu (main view) after signing out.
+    PanelMultiView.getViewNode(
+      document,
+      "appMenu-fxa-signed-out-sign-in-button"
+    ).addEventListener("click", this);
+
     let fxaPanelView = PanelMultiView.getViewNode(document, "PanelUI-fxa");
     fxaPanelView.addEventListener("ViewShowing", this);
     fxaPanelView.addEventListener("ViewHiding", this);
     fxaPanelView.addEventListener("command", this);
+    PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-sign-in-promo-button"
+    ).addEventListener("click", this);
+    PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-signed-out-sign-in-button"
+    ).addEventListener("click", this);
     PanelMultiView.getViewNode(
       document,
       "PanelUI-fxa-menu-sendtab-sign-in-button"
@@ -1250,9 +1537,12 @@ var gSync = {
     PanelMultiView.getViewNode(
       document,
       "PanelUI-fxa-menu-sync-status-off-button"
-    ).addEventListener("click", e =>
-      this.openPrefsFromFxaMenu("sync_settings", e.currentTarget)
-    );
+    ).addEventListener("click", e => {
+      // We can't use the onCommand handler as we need to be able to pass in
+      // the event currentTarget.
+      this.openPrefsFromFxaMenu("sync_settings", e.currentTarget);
+      CustomizableUI.hidePanelForNode(e.currentTarget);
+    });
     PanelMultiView.getViewNode(
       document,
       "PanelUI-fxa-menu-secure-sync-subpanel"
@@ -1362,9 +1652,30 @@ var gSync = {
     );
     signOutButtonEl.hidden = !this.isSignedIn;
 
-    panelview.syncedTabsPanelList = new FxAMenuDeviceList(
-      PanelMultiView.getViewNode(document, "PanelUI-fxa-menu-devices-list")
+    const devicesListEl = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-devices-list"
     );
+    const signOutSeparatorEl = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-sign-out-separator"
+    );
+
+    // The FxA panelview is shared between the account (toolbar) menu and the
+    // app (hamburger) menu, so the sign-out button's position is set per show.
+    // In the app menu the sign-out button sits directly below the sync status
+    // section and above the connected devices list, with a separator either
+    // side. In the account menu it stays at the bottom, below the devices list.
+    const inAppMenu = document
+      .getElementById("appMenu-popup")
+      ?.contains(devicesListEl);
+    if (inAppMenu) {
+      signOutButtonEl.after(devicesListEl);
+    } else {
+      signOutSeparatorEl.before(devicesListEl);
+    }
+
+    panelview.syncedTabsPanelList = new FxAMenuDeviceList(devicesListEl);
 
     // Any variant on the CTA will have been applied inside of updateFxAPanel,
     // but now that the panel is showing, we record exposure.
@@ -1382,18 +1693,47 @@ var gSync = {
   },
 
   _showSecureSyncSubpanel(anchor, event) {
-    const deviceName = fxAccounts.device.getLocalName();
+    this._updateSecureSyncNowLabel();
+    PanelUI.showSubView("PanelUI-fxa-menu-secure-sync-subpanel", anchor, event);
+  },
+
+  // Updates the secure sync subpanel's "Sync now" button label. While a sync is
+  // in progress it reads "Syncing…"; otherwise it reads "Sync <device> Now".
+  // The spinning sync icon is shown separately via the "syncstatus" attribute
+  // and CSS, and only when animations are enabled.
+  _updateSecureSyncNowLabel() {
     const labelEl = PanelMultiView.getViewNode(
       document,
       "PanelUI-fxa-menu-secure-sync-now-label"
     );
-    labelEl.setAttribute(
-      "value",
-      this.fluentStrings.formatValueSync("fxa-menu-sync-device-now", {
-        deviceName,
-      })
-    );
-    PanelUI.showSubView("PanelUI-fxa-menu-secure-sync-subpanel", anchor, event);
+    if (!labelEl) {
+      return;
+    }
+    if (this._isCurrentlySyncing) {
+      labelEl.setAttribute(
+        "value",
+        this.fluentStrings.formatValueSync("fxa-toolbar-sync-syncing2")
+      );
+    } else {
+      const deviceName = fxAccounts.device.getLocalName();
+      labelEl.setAttribute(
+        "value",
+        this.fluentStrings.formatValueSync("fxa-menu-sync-device-now", {
+          deviceName,
+        })
+      );
+    }
+  },
+
+  /**
+   * Whether the user signed out of an account on this profile, as opposed to
+   * never having signed in - FxA reports the same "not configured" status for
+   * both, and only remembers the previous account as a hashed UID. Sync gives
+   * this pref a user value when it starts over, which every sign-out path goes
+   * through. See bug 1784055.
+   */
+  get _hasSignedOutOfSync() {
+    return Services.prefs.prefHasUserValue("services.sync.lastversion");
   },
 
   /**
@@ -1403,6 +1743,8 @@ var gSync = {
    *    and opens the secure sync subpanel.
    *  - signed in with sync off: "Sync is Off" with an error-colored
    *    "Your data isn't syncing" and opens sync preferences.
+   *  - never signed in: "Sync Your Data" with no description and opens the
+   *    sign-in page.
    *  - signed out, or signed in but needing (re-)authentication: "Sync is Off"
    *    with an error-colored "Sign in to sync" and opens the sign-in page.
    */
@@ -1431,6 +1773,14 @@ var gSync = {
       document,
       "PanelUI-fxa-menu-sync-status-off-description"
     );
+    const onButtonEl = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-sync-status-off-button"
+    );
+    const mobileBtn = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-get-firefox-mobile"
+    );
 
     const syncOn =
       state.status == UIState.STATUS_SIGNED_IN && state.syncEnabled;
@@ -1441,25 +1791,41 @@ var gSync = {
 
     offCard.hidden = !syncOffCard;
     if (syncOffCard) {
+      const offTitle = this.fluentStrings.formatValueSync(
+        "fxa-menu-sync-status-off"
+      );
+      const offDesc = this.fluentStrings.formatValueSync(
+        "fxa-menu-sync-off-data-description"
+      );
+      const onText = this.fluentStrings.formatValueSync(
+        "fxa-menu-sync-status-turn-on-button-aria-label"
+      );
       btn.hidden = true;
-      offTitleEl.setAttribute(
-        "value",
-        this.fluentStrings.formatValueSync("fxa-menu-sync-status-off")
+      offTitleEl.setAttribute("value", offTitle);
+      offDescEl.setAttribute("value", offDesc);
+      onButtonEl.setAttribute(
+        "aria-label",
+        [offTitle, offDesc, onText].join(", ")
       );
-      offDescEl.setAttribute(
-        "value",
-        this.fluentStrings.formatValueSync("fxa-menu-sync-off-data-description")
-      );
+      offCard.after(mobileBtn);
+      mobileBtn.hidden = false;
       return;
     }
+
+    // A user who has never signed in gets a call-to-action title with no
+    // description instead of the "Sync is Off" / "Sign in to sync" copy.
+    const neverSignedIn =
+      state.status == UIState.STATUS_NOT_CONFIGURED &&
+      !this._hasSignedOutOfSync;
 
     // The chevron is only meaningful when the button navigates to the secure
     // sync subpanel (sync on).
     btn.classList.toggle("subviewbutton-nav", syncOn);
 
-    let titleId = syncOn
-      ? "fxa-menu-sync-status-on"
+    let syncOffTitleId = neverSignedIn
+      ? "fxa-menu-sync-your-data"
       : "fxa-menu-sync-status-off";
+    let titleId = syncOn ? "fxa-menu-sync-status-on" : syncOffTitleId;
     titleEl.setAttribute("value", this.fluentStrings.formatValueSync(titleId));
 
     if (syncOn) {
@@ -1475,6 +1841,9 @@ var gSync = {
       } else {
         descEl.removeAttribute("value");
       }
+    } else if (neverSignedIn) {
+      descEl.classList.remove("fxa-menu-sync-status-description-error");
+      descEl.removeAttribute("value");
     } else {
       descEl.classList.add("fxa-menu-sync-status-description-error");
       descEl.setAttribute(
@@ -1485,19 +1854,31 @@ var gSync = {
       );
     }
 
+    // Don't render the description label when there's nothing to show.
+    descEl.hidden = !descEl.hasAttribute("value");
+
     btn.hidden = false;
+
+    // "Get Firefox for mobile" sits directly under the sync status button and
+    // is only offered while sync is off.
+    btn.after(mobileBtn);
+    mobileBtn.hidden = syncOn;
   },
 
   _onSyncStatusButtonClick(anchor, event) {
     const state = UIState.get();
     if (state.status == UIState.STATUS_SIGNED_IN && state.syncEnabled) {
       this._showSecureSyncSubpanel(anchor, event);
-    } else if (state.status == UIState.STATUS_SIGNED_IN) {
-      // Signed in with sync off: open preferences to turn sync on.
-      this.openPrefsFromFxaMenu("sync_settings", anchor);
     } else {
-      // Needs (re-)authentication: open the sign-in page.
-      this.openFxAEmailFirstPageFromFxaMenu(anchor);
+      if (state.status == UIState.STATUS_SIGNED_IN) {
+        // Signed in with sync off: open preferences to turn sync on.
+        this.openPrefsFromFxaMenu("sync_settings", anchor);
+      } else {
+        // Needs (re-)authentication: open the sign-in page.
+        this.emitFxaToolbarTelemetry("sync_your_data_cta", anchor);
+        this.openFxAEmailFirstPageFromFxaMenu(anchor);
+      }
+      CustomizableUI.hidePanelForNode(anchor);
     }
   },
 
@@ -1507,6 +1888,7 @@ var gSync = {
         this.openSyncSetup("sync_settings", button);
         break;
       case "PanelUI-fxa-menu-get-firefox-mobile":
+        this.emitFxaToolbarTelemetry("get_firefox_for_mobile_cta", button);
         this.openGetFirefoxMobile();
         break;
 
@@ -1532,8 +1914,18 @@ var gSync = {
         this.openPrefsFromFxaMenu("sync_settings", button);
         break;
 
-      case "fxa-manage-account-button":
+      case "PanelUI-fxa-menu-signed-out-sign-in-button":
+      case "PanelUI-fxa-menu-manage-account-button":
         this.clickFxAMenuHeaderButton(button);
+        break;
+      case "PanelUI-fxa-menu-sign-in-promo-button":
+        this.openFxAEmailFirstPageFromFxaMenu(button);
+        break;
+      case "appMenu-fxa-sign-in-promo-button":
+      case "appMenu-fxa-signed-out-sign-in-button":
+        // Sign-in from the app menu: go to the sign-in page, close the menu.
+        this.openFxAEmailFirstPageFromFxaMenu(button);
+        PanelUI.hide();
         break;
       case "PanelUI-fxa-menu-account-signout-button":
         this.disconnect();
@@ -1541,12 +1933,14 @@ var gSync = {
       case "PanelUI-fxa-menu-monitor-button":
         this.openMonitorLink(button);
         break;
-      case "PanelUI-services-menu-relay-button":
       case "PanelUI-fxa-menu-relay-button":
         this.openRelayLink(button);
         break;
       case "PanelUI-fxa-menu-vpn-button":
         this.openVPNLink(button);
+        break;
+      case "PanelUI-fxa-menu-share-firefox":
+        this.openShareFirefoxLink();
         break;
       case "PanelUI-fxa-menu-sendtab-sign-in-button":
         this.signInToSync(button);
@@ -1767,9 +2161,21 @@ var gSync = {
       document,
       "fxa-menu-header-description"
     );
-    const fxaMenuAccountButtonEl = PanelMultiView.getViewNode(
+    const manageAccountButtonEl = PanelMultiView.getViewNode(
       document,
-      "fxa-manage-account-button"
+      "PanelUI-fxa-menu-manage-account-button"
+    );
+    const signInPromoEl = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-sign-in-promo"
+    );
+    const signedOutCardEl = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-signed-out-card"
+    );
+    const signedOutSeparatorEl = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-signed-out-separator"
     );
     const signedInContainer = PanelMultiView.getViewNode(
       document,
@@ -1779,25 +2185,9 @@ var gSync = {
       document,
       "PanelUI-sign-out-separator"
     );
-    const profilesHeaderSeparator = PanelMultiView.getViewNode(
+    const manageAccountSeparator = PanelMultiView.getViewNode(
       document,
-      "PanelUI-fxa-menu-profiles-header-separator"
-    );
-    const profilesHeaderLabel = PanelMultiView.getViewNode(
-      document,
-      "PanelUI-fxa-menu-profiles-header-label"
-    );
-    const profileButtonsContainer = PanelMultiView.getViewNode(
-      document,
-      "PanelUI-fxa-menu-profile-buttons"
-    );
-    const profilesSeparator = PanelMultiView.getViewNode(
-      document,
-      "PanelUI-fxa-menu-profiles-separator"
-    );
-    const secureSyncHeader = PanelMultiView.getViewNode(
-      document,
-      "PanelUI-fxa-menu-secure-sync-header"
+      "PanelUI-fxa-menu-manage-account-separator"
     );
     const syncSetupEl = PanelMultiView.getViewNode(
       document,
@@ -1822,8 +2212,11 @@ var gSync = {
     signedInContainer.prepend(syncStatusBtn);
     syncSetupEl.setAttribute("hidden", "true");
     signedInContainer.hidden = false;
-    fxaMenuAccountButtonEl.classList.remove("subviewbutton-nav");
-    fxaMenuAccountButtonEl.removeAttribute("closemenu");
+    manageAccountButtonEl.hidden = true;
+    manageAccountSeparator.hidden = true;
+    signInPromoEl.hidden = true;
+    signedOutCardEl.hidden = true;
+    signedOutSeparatorEl.hidden = true;
     menuHeaderDescriptionEl.hidden = false;
 
     // Expanded sign in copy experiment is only for signed out users
@@ -1866,6 +2259,15 @@ var gSync = {
       case UIState.STATUS_NOT_CONFIGURED:
         signOutSeparator.hidden = true;
         mainWindowEl.style.removeProperty("--avatar-image-url");
+
+        // A user who signed out gets the signed-out card, which offers a way
+        // back in; one who never signed in gets the sign-in promo instead.
+        if (this._hasSignedOutOfSync) {
+          this._showFxASignedOutCard(signedOutCardEl, state);
+        } else {
+          signInPromoEl.hidden = false;
+        }
+
         headerTitleL10nId = this.FXA_CTA_MENU_ENABLED
           ? "synced-tabs-fxa-sign-in"
           : "appmenuitem-sign-in-account";
@@ -1882,23 +2284,7 @@ var gSync = {
           }
         }
 
-        // Reposition profiles elements
-        profilesHeaderSeparator.remove();
-        profilesHeaderLabel.remove();
-        profileButtonsContainer.remove();
-        profilesSeparator.remove();
-        secureSyncHeader.remove();
-
-        profilesSeparator.hidden = false;
-        secureSyncHeader.hidden = false;
-
-        signedInContainer.after(secureSyncHeader);
-        signedInContainer.after(profilesSeparator);
-        signedInContainer.after(profileButtonsContainer);
-        signedInContainer.after(profilesHeaderLabel);
-        signedInContainer.after(profilesHeaderSeparator);
-
-        secureSyncHeader.after(syncStatusBtn);
+        this._positionSecureSyncSection(signedInContainer);
 
         break;
 
@@ -1908,6 +2294,8 @@ var gSync = {
         headerTitleL10nId = "account-disconnected2";
         headerDescription = state.displayName || state.email;
         mainWindowEl.style.removeProperty("--avatar-image-url");
+        this._showFxASignedOutCard(signedOutCardEl, state);
+        this._positionSecureSyncSection(signedInContainer);
         break;
 
       case UIState.STATUS_NOT_VERIFIED:
@@ -1915,6 +2303,8 @@ var gSync = {
         stateValue = "unverified";
         headerTitleL10nId = "account-finish-account-setup";
         headerDescription = state.displayName || state.email;
+        this._showFxASignedOutCard(signedOutCardEl, state);
+        this._positionSecureSyncSection(signedInContainer);
         break;
 
       case UIState.STATUS_SIGNED_IN:
@@ -1926,29 +2316,32 @@ var gSync = {
           state.avatarURL,
           state.avatarIsDefault
         );
+        // Show the signed-in account button with the avatar, the account email
+        // and a "Manage account" affordance.
+        PanelMultiView.getViewNode(
+          document,
+          "PanelUI-fxa-menu-manage-account-email"
+        ).value = state.displayName || state.email;
+        manageAccountButtonEl.hidden = false;
         signOutSeparator.hidden = false;
         signedInContainer.hidden = false;
         syncSetupSeparator.setAttribute("hidden", "true");
 
         // Reposition profiles elements
-        profilesHeaderSeparator.remove();
-        profilesHeaderLabel.remove();
-        profileButtonsContainer.remove();
-        profilesSeparator.remove();
-        secureSyncHeader.remove();
-
-        profilesSeparator.hidden = false;
-        secureSyncHeader.hidden = false;
-
-        fxaMenuAccountButtonEl.after(secureSyncHeader);
-        fxaMenuAccountButtonEl.after(profilesSeparator);
-        fxaMenuAccountButtonEl.after(profileButtonsContainer);
-        fxaMenuAccountButtonEl.after(profilesHeaderLabel);
-        fxaMenuAccountButtonEl.after(profilesHeaderSeparator);
+        manageAccountSeparator.remove();
+        this._positionSecureSyncSection(manageAccountButtonEl);
+        // Single separator below the manage account button, above whichever
+        // section comes next (profiles when shown, otherwise secure sync).
+        manageAccountSeparator.hidden = false;
+        // Inserted last so it lands directly below the manage account button,
+        // separating it from the profiles section.
+        manageAccountButtonEl.after(manageAccountSeparator);
 
         break;
 
       default:
+        // Unknown/empty state: fall back to the signed-out promo.
+        signInPromoEl.hidden = false;
         headerTitleL10nId = this.FXA_CTA_MENU_ENABLED
           ? "synced-tabs-fxa-sign-in"
           : "appmenuitem-sign-in-account";
@@ -1972,6 +2365,84 @@ var gSync = {
     // around in the DOM.
     menuHeaderTitleEl.removeAttribute("data-l10n-id");
     menuHeaderDescriptionEl.removeAttribute("data-l10n-id");
+  },
+
+  // Moves the Profiles and Secure sync sections directly below the header
+  // anchored by anchorEl, so the visible sync status button lands under the
+  // "Secure sync" header instead of above the Profiles section.
+  _positionSecureSyncSection(anchorEl) {
+    const profilesHeaderLabel = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-profiles-header-label"
+    );
+    const profileButtonsContainer = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-profile-buttons"
+    );
+    const profilesSeparator = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-profiles-separator"
+    );
+    const secureSyncHeader = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-secure-sync-header"
+    );
+    const syncStatusBtn = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-sync-status-button"
+    );
+
+    profilesHeaderLabel.remove();
+    profileButtonsContainer.remove();
+    profilesSeparator.remove();
+    secureSyncHeader.remove();
+
+    secureSyncHeader.hidden = false;
+
+    anchorEl.after(secureSyncHeader);
+    anchorEl.after(profilesSeparator);
+    anchorEl.after(profileButtonsContainer);
+    anchorEl.after(profilesHeaderLabel);
+
+    secureSyncHeader.after(syncStatusBtn);
+  },
+
+  // Shows a card with a status-specific reason and a button to sign back in.
+  // The remembered account's email leads the card where we know it; a user who
+  // signed out gets standalone copy instead.
+  _showFxASignedOutCard(cardEl, state) {
+    const emailEl = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-signed-out-email"
+    );
+    const messageEl = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-signed-out-message"
+    );
+    const separatorEl = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-signed-out-separator"
+    );
+
+    if (state.status === UIState.STATUS_NOT_CONFIGURED) {
+      // A signed-out account is only remembered as a hashed UID, so there's no
+      // email to show and the copy stands on its own.
+      emailEl.value = this.fluentStrings.formatValueSync(
+        "fxa-menu-signed-out-title"
+      );
+      document.l10n.setAttributes(messageEl, "fxa-menu-signed-out-description");
+    } else {
+      emailEl.value = state.email ?? "";
+      document.l10n.setAttributes(
+        messageEl,
+        state.status === UIState.STATUS_NOT_VERIFIED
+          ? "fxa-menu-signed-out-message-unverified"
+          : "fxa-menu-signed-out-message-login-failed"
+      );
+    }
+
+    cardEl.hidden = false;
+    separatorEl.hidden = false;
   },
 
   updateAvatarURL(mainWindowEl, avatarURL, avatarIsDefault) {
@@ -2007,6 +2478,15 @@ var gSync = {
       return;
     }
     const entryPoint = this._getEntryPointForElement(sourceElement);
+    if (
+      AVATAR_MENU_ONLY_PROFILES_EVENT_TYPES.has(type) &&
+      entryPoint !== "fxa_avatar_menu"
+    ) {
+      // There are some events we only care to track if triggered through the avatar menu.
+      // If an equivalent action was taken through the app menu, drop it immediately.
+      return;
+    }
+
     let category = null;
     if (entryPoint == "fxa_avatar_menu") {
       category = "fxaAvatarMenu";
@@ -2025,12 +2505,19 @@ var gSync = {
       ...extraOpts,
     };
 
-    // send_tab_exposed -> sendTabExposed, send_tab_opened -> sendTabOpened.
-    // All other types are legacy click events: sync_now -> clickSyncNow,
-    // send_tab -> clickSendTab, etc.
+    if (AVATAR_MENU_ONLY_PROFILES_COUNT_EVENT_TYPES.has(type)) {
+      // If there is no cached profile count, the user has no profile
+      // group yet.
+      extraOptions.profile_count =
+        SelectableProfileService?.getCachedProfileCount() ?? 0;
+    }
+
+    // Types listed in NONPREFIXED_EVENT_TYPES map straight to their camelCased
+    // Glean metric (send_tab_opened -> sendTabOpened). Everything else is a
+    // legacy click event and gets the prefix: sync_now -> clickSyncNow.
     const cap = w => w[0].toUpperCase() + w.slice(1);
     const parts = type.split("_");
-    const methodName = type.startsWith("send_tab_")
+    const methodName = gSync.NONPREFIXED_EVENT_TYPES.has(type)
       ? parts[0] + parts.slice(1).map(cap).join("")
       : "click" + parts.map(cap).join("");
 
@@ -2058,6 +2545,10 @@ var gSync = {
       document,
       "appMenu-header-description"
     );
+    const appMenuSignedOutRow = PanelMultiView.getViewNode(
+      document,
+      "appMenu-fxa-signed-out-row"
+    );
     const fxaPanelView = PanelMultiView.getViewNode(document, "PanelUI-fxa");
 
     let defaultLabel = this.fluentStrings.formatValueSync(
@@ -2066,12 +2557,31 @@ var gSync = {
     // Reset the status bar to its original state.
     appMenuLabel.setAttribute("label", defaultLabel);
     appMenuLabel.removeAttribute("aria-labelledby");
+    appMenuLabel.hidden = false;
+    appMenuSignedOutRow.hidden = true;
     appMenuStatus.removeAttribute("fxastatus");
 
+    // The app menu's sign-in promo is for users who never signed in; one who
+    // signed out keeps the compact sign-in row instead, which tells them so.
+    // The promo is swapped in by CSS, which keys off this attribute. See bug
+    // 1784055.
+    const signedOut =
+      status == UIState.STATUS_NOT_CONFIGURED && this._hasSignedOutOfSync;
+    document.documentElement.toggleAttribute("fxasignedout", signedOut);
+
     if (status == UIState.STATUS_NOT_CONFIGURED) {
-      appMenuHeaderText.hidden = false;
       appMenuStatus.classList.add("toolbaritem-combined-buttons");
       appMenuLabel.classList.remove("subviewbutton-nav");
+
+      if (signedOut) {
+        appMenuStatus.setAttribute("fxastatus", "signed-out");
+        appMenuHeaderText.hidden = true;
+        appMenuLabel.hidden = true;
+        appMenuSignedOutRow.hidden = false;
+        return;
+      }
+
+      appMenuHeaderText.hidden = false;
       appMenuHeaderTitle.hidden = true;
       appMenuHeaderDescription.value = defaultLabel;
       return;
@@ -2188,7 +2698,10 @@ var gSync = {
     if (!(await FxAccounts.canConnectAccount())) {
       return;
     }
-    const url = await FxAccounts.config.promiseConnectAccountURI(entryPoint);
+    const url = await FxAccounts.config.promiseConnectAccountURI(
+      "sync",
+      entryPoint
+    );
     switchToTabHavingURI(url, true, {
       replaceQueryString: true,
       triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
@@ -2204,7 +2717,10 @@ var gSync = {
   },
 
   async openConnectAnotherDevice(entryPoint) {
-    const url = await FxAccounts.config.promiseConnectDeviceURI(entryPoint);
+    const url = await FxAccounts.config.promiseConnectDeviceURI(
+      "sync",
+      entryPoint
+    );
     openTrustedLinkIn(url, "tab");
   },
 
@@ -2264,7 +2780,12 @@ var gSync = {
     }
     // ... or is in the panel shown by that button (PanelUI-fxa-menu) or one
     // of its sibling Send Tab panelviews (PanelUI-fxa-menu-sendtab-*).
-    if (sourceElement.closest?.('[id^="PanelUI-fxa-menu"]')) {
+    // PanelUI-profiles is also found in the app menu, but reaching it here
+    // means it came from the avatar menu. Profile actions taken in the app menu
+    // would have already returned "fxa_app_menu" above.
+    if (
+      sourceElement.closest?.('[id^="PanelUI-fxa-menu"], #PanelUI-profiles')
+    ) {
       return "fxa_avatar_menu";
     }
     return "fxa_discoverability_native";
@@ -2275,6 +2796,7 @@ var gSync = {
       return;
     }
     const url = await FxAccounts.config.promiseConnectAccountURI(
+      "sync",
       entryPoint,
       extraParams
     );
@@ -2465,6 +2987,11 @@ var gSync = {
     }
 
     devicesPopup.appendChild(fragment);
+
+    // Refresh the FxA devices list.  This won't affect the current menu items,
+    // but it helps ensure the menu is up-to-date the next time the menu loads.
+    // This can help the user get unstuck when the device list is stale (#1664954)
+    this.refreshFxaDevices();
   },
 
   _appendSendTabDeviceList(
@@ -2534,15 +3061,11 @@ var gSync = {
     }
 
     for (let target of targets) {
-      let type, lastModified;
+      let type = this.getTargetClientType(target);
+      let lastModified;
       if (target.clientRecord) {
-        type = Weave.Service.clientsEngine.getClientType(
-          target.clientRecord.id
-        );
         lastModified = new Date(target.clientRecord.serverLastModified * 1000);
       } else {
-        // For phones, FxA uses "mobile" and Sync clients uses "phone".
-        type = target.type == "mobile" ? "phone" : target.type;
         lastModified = target.lastAccessTime
           ? new Date(target.lastAccessTime)
           : null;
@@ -2984,6 +3507,8 @@ var gSync = {
       .forEach(el => {
         el.setAttribute("syncstatus", "active");
       });
+
+    this._updateSecureSyncNowLabel();
   },
 
   _onActivityStop() {
@@ -3007,6 +3532,8 @@ var gSync = {
       .forEach(el => {
         el.removeAttribute("syncstatus");
       });
+
+    this._updateSecureSyncNowLabel();
 
     Services.obs.notifyObservers(null, "test:browser-sync:activity-stop");
   },
@@ -3178,7 +3705,7 @@ var gSync = {
   },
 
   openPrefs(entryPoint = "syncbutton", origin = undefined, urlParams = {}) {
-    window.openPreferences("paneSync", {
+    window.openPreferences("paneSync-sync", {
       origin,
       urlParams: { ...urlParams, entrypoint: entryPoint },
     });
@@ -3235,19 +3762,25 @@ var gSync = {
       this._getEntryPointForElement(sourceElement) === "fxa_app_menu"
         ? "send-tab-app-menu"
         : "send-tab-account-menu";
-    var url = await FxAccounts.config.promiseConnectAccountURI(entryPoint, {});
+    var url = await FxAccounts.config.promiseConnectAccountURI(
+      "sync",
+      entryPoint,
+      {}
+    );
     switchToTabHavingURI(url, true, {});
   },
 
   enableSync() {
-    openTrustedLinkIn("about:preferences#sync", "tab");
+    openTrustedLinkIn("about:preferences#sync-sync", "tab");
   },
 
-  async openPairDevice(sourceElement) {
-    const entryPoint =
-      this._getEntryPointForElement(sourceElement) === "fxa_app_menu"
-        ? "send-tab-app-menu"
-        : "send-tab-account-menu";
+  async openPairDevice(sourceElement, entryPoint) {
+    if (!entryPoint) {
+      entryPoint =
+        this._getEntryPointForElement(sourceElement) === "fxa_app_menu"
+          ? "send-tab-app-menu"
+          : "send-tab-account-menu";
+    }
     const url = await FxAccounts.config.promisePairingURI({
       entrypoint: entryPoint,
     });
@@ -3274,9 +3807,13 @@ var gSync = {
   },
 
   openGetFirefoxMobile() {
-    switchToTabHavingURI("https://www.firefox.com/en-US/mobile/", true, {
-      replaceQueryString: true,
-    });
+    switchToTabHavingURI(
+      "https://www.firefox.com/mobile/?utm_medium=firefox-desktop&utm_source=toolbar&utm_campaign=desktop-account-menu",
+      true,
+      {
+        replaceQueryString: true,
+      }
+    );
   },
 
   openSyncedTabsPanel() {
@@ -3442,7 +3979,15 @@ var gSync = {
       "identity.fxaccounts.toolbar.pxiToolbarEnabled.monitorEnabled",
       false
     );
-    monitorPanelEl.hidden = !monitorEnabled;
+    let monitorInUse =
+      this.isSignedIn && this.hasClientForId(FX_MONITOR_OAUTH_CLIENT_ID);
+    monitorPanelEl.hidden = !(monitorEnabled || monitorInUse);
+    this.updateCTAButtonStrings(monitorPanelEl, {
+      inUse: monitorInUse,
+      titleId: "appmenuitem-monitor-title2",
+      inUseTitleId: "appmenuitem-monitor-title-signed-in",
+      descriptionId: "appmenuitem-monitor-description2",
+    });
 
     // Relay checks
     let relayPanelEl = PanelMultiView.getViewNode(
@@ -3455,26 +4000,15 @@ var gSync = {
         "identity.fxaccounts.toolbar.pxiToolbarEnabled.relayEnabled",
         false
       );
-    let myServicesRelayPanelEl = PanelMultiView.getViewNode(
-      document,
-      "PanelUI-services-menu-relay-button"
-    );
-    let servicesContainerEl = PanelMultiView.getViewNode(
-      document,
-      "PanelUI-fxa-menu-services"
-    );
-    if (this.isSignedIn) {
-      const hasRelayClient = this.hasClientForId(FX_RELAY_OAUTH_CLIENT_ID);
-      relayPanelEl.hidden = hasRelayClient;
-      // Right now only relay is under "my services" so if we don't have, we turn it off
-      myServicesRelayPanelEl.hidden = !hasRelayClient;
-      servicesContainerEl.hidden = !hasRelayClient;
-    } else {
-      relayPanelEl.hidden = !relayEnabled;
-      // We'll never show my services when signed out
-      myServicesRelayPanelEl.hidden = true;
-      servicesContainerEl.hidden = true;
-    }
+    let relayInUse =
+      this.isSignedIn && this.hasClientForId(FX_RELAY_OAUTH_CLIENT_ID);
+    relayPanelEl.hidden = !(relayEnabled || relayInUse);
+    this.updateCTAButtonStrings(relayPanelEl, {
+      inUse: relayInUse,
+      titleId: "appmenuitem-relay-title2",
+      inUseTitleId: "appmenuitem-relay-title-signed-in",
+      descriptionId: "appmenuitem-relay-description2",
+    });
 
     // VPN checks
     let VpnPanelEl = PanelMultiView.getViewNode(
@@ -3487,69 +4021,130 @@ var gSync = {
         "identity.fxaccounts.toolbar.pxiToolbarEnabled.vpnEnabled",
         false
       );
-    VpnPanelEl.hidden = !vpnEnabled;
+    let vpnInUse = this.isSignedIn && this.hasClientForId(VPN_OAUTH_CLIENT_ID);
+    VpnPanelEl.hidden = !(vpnEnabled || vpnInUse);
+    this.updateCTAButtonStrings(VpnPanelEl, {
+      inUse: vpnInUse,
+      titleId: "appmenuitem-vpn-title2",
+      inUseTitleId: "appmenuitem-vpn-title-signed-in1",
+      descriptionId: "appmenuitem-vpn-description5",
+    });
 
-    // The services section carries its own leading separator, so only show the
-    // privacy tools separator when that section is hidden (e.g. when signed
-    // out) to keep the header visually separated from the section above.
+    // Share Firefox checks
+    let shareFirefoxPanelEl = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-share-firefox"
+    );
+    shareFirefoxPanelEl.hidden = !Services.prefs.getBoolPref(
+      "browser.referrals.enabled",
+      false
+    );
+
     let privacyToolsSeparatorEl = PanelMultiView.getViewNode(
       document,
       "PanelUI-fxa-menu-privacy-tools-separator"
     );
-    privacyToolsSeparatorEl.hidden = !servicesContainerEl.hidden;
+    privacyToolsSeparatorEl.hidden = false;
 
     mainPanelEl.hidden = false;
   },
 
-  async openMonitorLink(sourceElement) {
-    this.emitFxaToolbarTelemetry("monitor_cta", sourceElement);
-    await this.openCtaLink(
-      FX_MONITOR_OAUTH_CLIENT_ID,
-      new URL("https://monitor.firefox.com"),
-      new URL("https://monitor.firefox.com/user/breaches")
-    );
-  },
-
-  async openRelayLink(sourceElement) {
-    this.emitFxaToolbarTelemetry("relay_cta", sourceElement);
-    await this.openCtaLink(
-      FX_RELAY_OAUTH_CLIENT_ID,
-      new URL("https://relay.firefox.com"),
-      new URL("https://relay.firefox.com/accounts/profile")
-    );
-  },
-
-  async openVPNLink(sourceElement) {
-    this.emitFxaToolbarTelemetry("vpn_cta", sourceElement);
-    await this.openCtaLink(
-      VPN_OAUTH_CLIENT_ID,
-      new URL("https://www.mozilla.org/en-US/products/vpn/"),
-      new URL("https://www.mozilla.org/en-US/products/vpn/")
-    );
-  },
-
-  // A generic opening based on
-  async openCtaLink(clientId, defaultUrl, signedInUrl) {
-    const params = {
-      utm_medium: "firefox-desktop",
-      utm_source: "toolbar",
-      utm_campaign: "discovery",
-    };
-    const searchParams = new URLSearchParams(params);
-
-    if (!this.isSignedIn) {
-      // Add the base params + not signed in
-      defaultUrl.search = searchParams.toString();
-      defaultUrl.searchParams.append("utm_content", "notsignedin");
-      this.openLink(defaultUrl);
-      PanelUI.hide();
-      return;
+  /**
+   * Updates the title and description of a privacy tools CTA button depending
+   * on whether the associated tool is already in use by the signed-in account.
+   * When the tool is in use we swap in a shorter, action-oriented title and
+   * hide the description.
+   *
+   * @param {Element} buttonEl
+   *   The CTA toolbarbutton to update.
+   * @param {object} options
+   * @param {boolean} options.inUse
+   *   Whether the account has already signed up for this tool.
+   * @param {string} options.titleId
+   *   Fluent id for the default (promo) title.
+   * @param {string} options.inUseTitleId
+   *   Fluent id for the title shown when the tool is in use.
+   * @param {string} options.descriptionId
+   *   Fluent id for the default (promo) description.
+   */
+  updateCTAButtonStrings(
+    buttonEl,
+    { inUse, titleId, inUseTitleId, descriptionId }
+  ) {
+    let titleEl = buttonEl.querySelector(".cta-menu-title");
+    let descriptionEl = buttonEl.querySelector(".cta-menu-description");
+    document.l10n.setAttributes(titleEl, inUse ? inUseTitleId : titleId);
+    descriptionEl.hidden = inUse;
+    if (!inUse) {
+      document.l10n.setAttributes(descriptionEl, descriptionId);
     }
+  },
 
-    const url = this.hasClientForId(clientId) ? signedInUrl : defaultUrl;
-    // Add base params + signed in
-    url.search = searchParams.toString();
-    url.searchParams.append("utm_content", "signedIn");
+  openMonitorLink(sourceElement) {
+    this.emitFxaToolbarTelemetry("monitor_cta", sourceElement);
+    this.openCtaLink(
+      FX_MONITOR_OAUTH_CLIENT_ID,
+      this._ctaURL(MONITOR_NEW_USER_URL, "new-user-global"),
+      this._ctaURL(MONITOR_EXISTING_USER_URL, "existing-user-global")
+    );
+  },
+
+  openRelayLink(sourceElement) {
+    this.emitFxaToolbarTelemetry("relay_cta", sourceElement);
+    this.openCtaLink(
+      FX_RELAY_OAUTH_CLIENT_ID,
+      this._ctaURL(RELAY_NEW_USER_URL, "new-user-global"),
+      this._ctaURL(RELAY_EXISTING_USER_URL, "existing-user-global")
+    );
+  },
+
+  openVPNLink(sourceElement) {
+    this.emitFxaToolbarTelemetry("vpn_cta", sourceElement);
+    this.openCtaLink(
+      VPN_OAUTH_CLIENT_ID,
+      this._ctaURL(VPN_NEW_USER_URL, "new-user-global"),
+      this._ctaURL(VPN_EXISTING_USER_URL, "existing-user-global")
+    );
+  },
+
+  openShareFirefoxLink() {
+    Referrals.openReferralsTab(window, "accounts_menu");
+    PanelUI.hide();
+  },
+
+  /**
+   * Builds a product CTA URL, attaching the shared campaign params plus a
+   * variant-specific utm_content.
+   *
+   * @param {string} baseUrl
+   * @param {string} utmContent
+   *   Identifies which CTA variant the user saw, e.g. "new-user-global".
+   * @returns {URL}
+   */
+  _ctaURL(baseUrl, utmContent) {
+    const url = new URL(baseUrl);
+    for (const [key, value] of Object.entries(FXA_CTA_UTM_PARAMS)) {
+      url.searchParams.set(key, value);
+    }
+    url.searchParams.set("utm_content", utmContent);
+    return url;
+  },
+
+  /**
+   * Opens a product CTA, deep-linking users who already have the service
+   * attached to their Mozilla account and sending everyone else to the
+   * product's landing page.
+   *
+   * @param {string} clientId
+   *   The FxA OAuth client Id for the product being opened.
+   * @param {URL} defaultUrl
+   * @param {URL} signedInUrl
+   */
+  openCtaLink(clientId, defaultUrl, signedInUrl) {
+    const url =
+      this.isSignedIn && this.hasClientForId(clientId)
+        ? signedInUrl
+        : defaultUrl;
 
     this.openLink(url);
     PanelUI.hide();

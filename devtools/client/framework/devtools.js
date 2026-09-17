@@ -531,7 +531,8 @@ class DevTools extends EventEmitter {
    *        Whether we need to raise the toolbox or not.
    *
    * @return {Toolbox} toolbox
-   *        The toolbox that was opened
+   *        The toolbox that was opened, or null if the toolbox was destroyed
+   *        while it was still initializing.
    */
   async showToolbox(
     commands,
@@ -578,6 +579,12 @@ class DevTools extends EventEmitter {
       this.#creatingToolboxes.set(commands, toolboxPromise);
       toolbox = await toolboxPromise;
       this.#creatingToolboxes.delete(commands);
+
+      // Return early if the toolbox already started destroying, e.g. if the
+      // user closed the window during initialization (Bug 2044027).
+      if (toolbox.isDestroying()) {
+        return null;
+      }
 
       if (startTime) {
         this.logToolboxOpenTime(toolbox, startTime);
@@ -830,8 +837,22 @@ class DevTools extends EventEmitter {
   }
 
   /**
+   * Closes all toolboxes (fire and forget)
+   *
+   * @return {Promise} Returns a promise that resolves
+   *                   after all toolbox destroyal completed
+   */
+  closeAllToolboxes() {
+    for (const [, toolbox] of this.#toolboxesPerCommands) {
+      toolbox.closeToolbox();
+      toolbox.destroy();
+    }
+  }
+
+  /**
    * Compatibility layer for web-extensions. Used by DevToolsShim for
-   * browser/components/extensions/ext-devtools.js
+   * browser/components/extensions/parent/ext-devtools-inspectedWindow.js and
+   * browser/components/extensions/parent/ext-devtools-panels.js
    *
    * web-extensions need to use dedicated instances of Commands and cannot reuse the
    * cached instances managed by DevTools.
@@ -843,18 +864,7 @@ class DevTools extends EventEmitter {
   }
 
   /**
-   * Compatibility layer for web-extensions. Used by DevToolsShim for
-   * toolkit/components/extensions/ext-c-toolkit.js
-   */
-  openBrowserConsole() {
-    const {
-      BrowserConsoleManager,
-    } = require("resource://devtools/client/webconsole/browser-console-manager.js");
-    BrowserConsoleManager.openBrowserConsoleOrFocus();
-  }
-
-  /**
-   * Called from the DevToolsShim, used by nsContextMenu.js.
+   * Called from the DevToolsShim, used by nsContextMenu.sys.mjs.
    *
    * @param {XULTab} tab
    *        The browser tab on which inspect node was used.
@@ -911,7 +921,7 @@ class DevTools extends EventEmitter {
   }
 
   /**
-   * Called from the DevToolsShim, used by nsContextMenu.js.
+   * Called from the DevToolsShim, used by nsContextMenu.sys.mjs.
    *
    * @param {XULTab} tab
    *        The browser tab on which inspect accessibility was used.
@@ -955,9 +965,7 @@ class DevTools extends EventEmitter {
   destroy({ shuttingDown }) {
     // Do not cleanup everything during firefox shutdown.
     if (!shuttingDown) {
-      for (const [, toolbox] of this.#toolboxesPerCommands) {
-        toolbox.destroy();
-      }
+      gDevTools.closeAllToolboxes();
     }
 
     for (const [key] of this.getToolDefinitionMap()) {

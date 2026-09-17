@@ -31,12 +31,11 @@ plugins {
     id 'ApkSizePlugin'
     id "mozac.ConfigPlugin"
     id 'org.mozilla.conventions.mach-tasks'
+    id 'com.diffplug.spotless'
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.dependency.analysis)
-    alias(libs.plugins.detekt)
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.ksp)
-    alias(libs.plugins.spotless)
 }
 
 def tryInt = { string ->
@@ -304,7 +303,7 @@ afterEvaluate {
 
 subprojects { project ->
     // Perform spotless lint in GeckoView projects only.
-    // Sync with spotless_projects in mobile/android/geckoview/gradle.configure.
+    // Sync with spotless_projects in mobile/android/gradle.configure.
     def projectName = project.getName()
     if (projectName.startsWith('geckoview')
             || projectName == 'annotations'
@@ -313,6 +312,9 @@ subprojects { project ->
             || projectName == 'test_runner'
     ) {
         apply plugin: "com.diffplug.spotless"
+        mozilla {
+            ktfmtSourcePaths = ["**/*.kt", "!**/thirdparty/**"]
+        }
 
         spotless {
             lineEndings = com.diffplug.spotless.LineEnding.UNIX
@@ -322,13 +324,6 @@ subprojects { project ->
                     exclude '**/thirdparty/**'
                 }
                 googleJavaFormat(libs.versions.google.java.format.get())
-            }
-            kotlin {
-                target project.fileTree(project.projectDir) {
-                    include '**/*.kt'
-                    exclude '**/thirdparty/**'
-                }
-                ktlint("${libs.versions.ktlint.get()}").setEditorConfigPath("${topsrcdir}/mobile/android/geckoview/.editorconfig")
             }
         }
 
@@ -388,18 +383,18 @@ tasks.register("lint") {
     description = "Runs lint on all mobile projects."
     mobileProjects.each { dependsOn "${it}:lint" }
 }
-tasks.named("ktlint").configure {
+tasks.named("ktfmtCheck").configure {
     group = "verification"
-    description = "Runs ktlint on all mobile projects."
-    mobileProjects.each { dependsOn "${it}:ktlint" }
+    description = "Runs ktfmtCheck on all mobile projects."
+    mobileProjects.each { dependsOn "${it}:ktfmtCheck" }
 }
-tasks.named("ktlintFormat").configure {
+tasks.named("ktfmtFormat").configure {
     group = "formatting"
-    description = "Runs ktlintFormat on all mobile projects."
-    mobileProjects.each { dependsOn "${it}:ktlintFormat" }
+    description = "Runs ktfmtFormat on all mobile projects."
+    mobileProjects.each { dependsOn "${it}:ktfmtFormat" }
 }
 tasks.named("detekt").configure {
-    // NOTE: We are replacing the default 'detekt' task.
+    group = "verification"
     description = "Runs detekt on all mobile projects."
     mobileProjects.each { dependsOn "${it}:detekt" }
 }

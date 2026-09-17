@@ -119,6 +119,12 @@ fail-if = [
 ["browser_styleeditor_filesave.js"]
 skip-if = [
   "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+  "a11y_checks", # Bug 1849028 clicked element may not be focusable and/or labeled
+]
+
+["browser_styleeditor_filesave_original.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
 ]
 
 ["browser_styleeditor_filter.js"]
@@ -218,6 +224,8 @@ fail-if = [
   "a11y_checks", # Bug 1849028 clicked element may not be focusable and/or labeled
 ]
 
+["browser_styleeditor_stylesheets.js"]
+
 ["browser_styleeditor_sv_keynav.js"]
 fail-if = [
   "a11y_checks", # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -236,6 +244,8 @@ fail-if = [
 ["browser_styleeditor_syncEditSelector.js"]
 
 ["browser_styleeditor_syncIntoRuleView.js"]
+
+["browser_styleeditor_telemetry.js"]
 
 ["browser_styleeditor_transition_rule.js"]
 fail-if = [

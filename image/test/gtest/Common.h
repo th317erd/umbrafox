@@ -596,15 +596,19 @@ ImageTestCase GreenJXLTestCase();
 ImageTestCase ProgressiveJXLTestCase();
 ImageTestCase DownscaledJXLTestCase();
 ImageTestCase LargeJXLTestCase();
+ImageTestCase LargeJXLReferenceWebPTestCase();
 ImageTestCase TransparentJXLTestCase();
 ImageTestCase CorruptJXLTestCase();
 ImageTestCase PerfRgbLosslessJXLTestCase();
 ImageTestCase PerfRgbAlphaLosslessJXLTestCase();
 ImageTestCase PerfRgbLossyJXLTestCase();
 ImageTestCase PerfRgbAlphaLossyJXLTestCase();
+ImageTestCase ProgressiveAlphaMultiGroupJXLTestCase();
 #endif
 
 ImageTestCase ExifResolutionTestCase();
+
+ImageTestCase ExifOrientationDownscaleJPGTestCase();
 
 RefPtr<Image> TestCaseToDecodedImage(const ImageTestCase&);
 

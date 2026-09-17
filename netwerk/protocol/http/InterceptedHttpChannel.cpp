@@ -110,7 +110,8 @@ void InterceptedHttpChannel::AsyncOpenInternal() {
         mURI, requestMethod, mPriority, mChannelId, NetworkLoadType::LOAD_START,
         mChannelCreationTimestamp, mLastStatusReported, 0, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
-        mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(), this, mStatus);
+        mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(), this, mStatus,
+        GetSecPurpose(), mLoadInfo->GetActivatedFromNavigationalPrefetch());
   }
 
   // If an error occurs in this file we must ensure mListener callbacks are
@@ -208,7 +209,7 @@ nsresult InterceptedHttpChannel::FollowSyntheticRedirect() {
   nsAutoCString locationBuf;
   if (NS_EscapeURL(location.get(), -1, esc_OnlyNonASCII | esc_Spaces,
                    locationBuf)) {
-    location = locationBuf;
+    location = std::move(locationBuf);
   }
 
   nsCOMPtr<nsIURI> redirectURI;
@@ -548,6 +549,7 @@ InterceptedHttpChannel::Cancel(nsresult aStatus) {
         mLastStatusReported, TimeStamp::Now(), size, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(), this, mStatus,
+        GetSecPurpose(), mLoadInfo->GetActivatedFromNavigationalPrefetch(),
         &mTransactionTimings, std::move(mSource));
   }
 
@@ -784,6 +786,7 @@ InterceptedHttpChannel::ResetInterception(bool aBypass) {
         NetworkLoadType::LOAD_REDIRECT, mLastStatusReported, TimeStamp::Now(),
         size, kCacheUnknown, mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(), this, mStatus,
+        GetSecPurpose(), mLoadInfo->GetActivatedFromNavigationalPrefetch(),
         &mTransactionTimings, std::move(mSource), httpVersion, responseStatus,
         Some(nsDependentCString(contentType.get())), mURI, flags,
         newBaseChannel->ChannelId());
@@ -914,6 +917,10 @@ InterceptedHttpChannel::StartSynthesizedResponse(
   }
 
   mResponseHead = std::move(mSynthesizedResponseHead);
+
+  if (mLoadInfo->GetTainting() == LoadTainting::Opaque) {
+    StoreAllRedirectsSameOriginIgnoringInternal(false);
+  }
 
   if (ShouldRedirect()) {
     rv = FollowSyntheticRedirect();
@@ -1235,6 +1242,7 @@ InterceptedHttpChannel::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
         mLastStatusReported, TimeStamp::Now(), size, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(), this, mStatus,
+        GetSecPurpose(), mLoadInfo->GetActivatedFromNavigationalPrefetch(),
         &mTransactionTimings, std::move(mSource), httpVersion, responseStatus,
         Some(nsDependentCString(contentType.get())));
   }

@@ -39,7 +39,7 @@ export var UnitTestObjs = {
 export function createAutofillKey() {
    
 const result = UniFFIScaffolding.callSync(
-    15, // uniffi_autofill_fn_func_create_autofill_key
+    0, // uniffi_autofill_fn_func_create_autofill_key
 )
 return handleRustResult(
     result,
@@ -62,7 +62,7 @@ export function decryptString(
 FfiConverterString.checkType(key);
 FfiConverterString.checkType(ciphertext);
 const result = UniFFIScaffolding.callSync(
-    16, // uniffi_autofill_fn_func_decrypt_string
+    1, // uniffi_autofill_fn_func_decrypt_string
     FfiConverterString.lower(key),
     FfiConverterString.lower(ciphertext),
 )
@@ -86,7 +86,7 @@ export function encryptString(
 FfiConverterString.checkType(key);
 FfiConverterString.checkType(cleartext);
 const result = UniFFIScaffolding.callSync(
-    17, // uniffi_autofill_fn_func_encrypt_string
+    2, // uniffi_autofill_fn_func_encrypt_string
     FfiConverterString.lower(key),
     FfiConverterString.lower(cleartext),
 )
@@ -96,6 +96,7 @@ return handleRustResult(
     FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
 )
 }
+
 
 
 
@@ -567,6 +568,295 @@ export class FfiConverterTypeAddress extends FfiConverterArrayBuffer {
     }
 }
 /**
+ * Metadata fields managed internally by the library: the guid, timestamps and
+ * local sync state. These are automatically set on `add_address` and updated on
+ * operations like `touch` and `update_address`. Not included in
+ * `UpdatableAddressFields`; use `add_address_with_meta` when importing records
+ * that already have metadata.
+ */
+export class AddressMeta {
+    constructor(
+        {
+            guid, 
+            timeCreated, 
+            timeLastUsed, 
+            timeLastModified, 
+            timesUsed, 
+            syncChangeCounter
+        } = {
+            guid: undefined, 
+            timeCreated: undefined, 
+            timeLastUsed: undefined, 
+            timeLastModified: undefined, 
+            timesUsed: undefined, 
+            syncChangeCounter: undefined
+        }
+    ) {
+        try {
+            FfiConverterString.checkType(guid)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("guid");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(timeCreated)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("timeCreated");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalInt64.checkType(timeLastUsed)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("timeLastUsed");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(timeLastModified)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("timeLastModified");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(timesUsed)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("timesUsed");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(syncChangeCounter)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("syncChangeCounter");
+            }
+            throw e;
+        }
+        /**
+         * @type {string}
+         */
+        this.guid = guid;
+        /**
+         * @type {number}
+         */
+        this.timeCreated = timeCreated;
+        /**
+         * @type {?number}
+         */
+        this.timeLastUsed = timeLastUsed;
+        /**
+         * @type {number}
+         */
+        this.timeLastModified = timeLastModified;
+        /**
+         * @type {number}
+         */
+        this.timesUsed = timesUsed;
+        /**
+         * @type {number}
+         */
+        this.syncChangeCounter = syncChangeCounter;
+    }
+
+    equals(other) {
+        return (
+            this.guid == other.guid
+            && this.timeCreated == other.timeCreated
+            && this.timeLastUsed == other.timeLastUsed
+            && this.timeLastModified == other.timeLastModified
+            && this.timesUsed == other.timesUsed
+            && this.syncChangeCounter == other.syncChangeCounter
+        )
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeAddressMeta extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        return new AddressMeta({
+            guid: FfiConverterString.read(dataStream),
+            timeCreated: FfiConverterInt64.read(dataStream),
+            timeLastUsed: FfiConverterOptionalInt64.read(dataStream),
+            timeLastModified: FfiConverterInt64.read(dataStream),
+            timesUsed: FfiConverterInt64.read(dataStream),
+            syncChangeCounter: FfiConverterInt64.read(dataStream),
+        });
+    }
+    static write(dataStream, value) {
+        FfiConverterString.write(dataStream, value.guid);
+        FfiConverterInt64.write(dataStream, value.timeCreated);
+        FfiConverterOptionalInt64.write(dataStream, value.timeLastUsed);
+        FfiConverterInt64.write(dataStream, value.timeLastModified);
+        FfiConverterInt64.write(dataStream, value.timesUsed);
+        FfiConverterInt64.write(dataStream, value.syncChangeCounter);
+    }
+
+    static computeSize(value) {
+        let totalSize = 0;
+        totalSize += FfiConverterString.computeSize(value.guid);
+        totalSize += FfiConverterInt64.computeSize(value.timeCreated);
+        totalSize += FfiConverterOptionalInt64.computeSize(value.timeLastUsed);
+        totalSize += FfiConverterInt64.computeSize(value.timeLastModified);
+        totalSize += FfiConverterInt64.computeSize(value.timesUsed);
+        totalSize += FfiConverterInt64.computeSize(value.syncChangeCounter);
+        return totalSize
+    }
+
+    static checkType(value) {
+        super.checkType(value);
+        if (!(value instanceof AddressMeta)) {
+            throw new UniFFITypeError(`Expected 'AddressMeta', found '${typeof value}'`);
+        }
+        try {
+            FfiConverterString.checkType(value.guid);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".guid");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(value.timeCreated);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".timeCreated");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalInt64.checkType(value.timeLastUsed);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".timeLastUsed");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(value.timeLastModified);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".timeLastModified");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(value.timesUsed);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".timesUsed");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(value.syncChangeCounter);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".syncChangeCounter");
+            }
+            throw e;
+        }
+    }
+}
+/**
+ * A tombstone for a record deleted locally but not yet uploaded, supplied to
+ * `add_many_address_tombstones` when migrating from another store.
+ */
+export class AddressTombstone {
+    constructor(
+        {
+            guid, 
+            timeDeleted
+        } = {
+            guid: undefined, 
+            timeDeleted: undefined
+        }
+    ) {
+        try {
+            FfiConverterString.checkType(guid)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("guid");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(timeDeleted)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("timeDeleted");
+            }
+            throw e;
+        }
+        /**
+         * @type {string}
+         */
+        this.guid = guid;
+        /**
+         * @type {number}
+         */
+        this.timeDeleted = timeDeleted;
+    }
+
+    equals(other) {
+        return (
+            this.guid == other.guid
+            && this.timeDeleted == other.timeDeleted
+        )
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeAddressTombstone extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        return new AddressTombstone({
+            guid: FfiConverterString.read(dataStream),
+            timeDeleted: FfiConverterInt64.read(dataStream),
+        });
+    }
+    static write(dataStream, value) {
+        FfiConverterString.write(dataStream, value.guid);
+        FfiConverterInt64.write(dataStream, value.timeDeleted);
+    }
+
+    static computeSize(value) {
+        let totalSize = 0;
+        totalSize += FfiConverterString.computeSize(value.guid);
+        totalSize += FfiConverterInt64.computeSize(value.timeDeleted);
+        return totalSize
+    }
+
+    static checkType(value) {
+        super.checkType(value);
+        if (!(value instanceof AddressTombstone)) {
+            throw new UniFFITypeError(`Expected 'AddressTombstone', found '${typeof value}'`);
+        }
+        try {
+            FfiConverterString.checkType(value.guid);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".guid");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(value.timeDeleted);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".timeDeleted");
+            }
+            throw e;
+        }
+    }
+}
+/**
  * What you get back as a credit-card.
  */
 export class CreditCard {
@@ -885,6 +1175,295 @@ export class FfiConverterTypeCreditCard extends FfiConverterArrayBuffer {
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart(".timesUsed");
+            }
+            throw e;
+        }
+    }
+}
+/**
+ * Metadata fields managed internally by the library: the guid, timestamps and
+ * local sync state. These are automatically set on `add_credit_card` and
+ * updated on operations like `touch` and `update_credit_card`. Not included in
+ * `UpdatableCreditCardFields`; use `add_credit_card_with_meta` when importing
+ * records that already have metadata.
+ */
+export class CreditCardMeta {
+    constructor(
+        {
+            guid, 
+            timeCreated, 
+            timeLastUsed, 
+            timeLastModified, 
+            timesUsed, 
+            syncChangeCounter
+        } = {
+            guid: undefined, 
+            timeCreated: undefined, 
+            timeLastUsed: undefined, 
+            timeLastModified: undefined, 
+            timesUsed: undefined, 
+            syncChangeCounter: undefined
+        }
+    ) {
+        try {
+            FfiConverterString.checkType(guid)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("guid");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(timeCreated)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("timeCreated");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalInt64.checkType(timeLastUsed)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("timeLastUsed");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(timeLastModified)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("timeLastModified");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(timesUsed)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("timesUsed");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(syncChangeCounter)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("syncChangeCounter");
+            }
+            throw e;
+        }
+        /**
+         * @type {string}
+         */
+        this.guid = guid;
+        /**
+         * @type {number}
+         */
+        this.timeCreated = timeCreated;
+        /**
+         * @type {?number}
+         */
+        this.timeLastUsed = timeLastUsed;
+        /**
+         * @type {number}
+         */
+        this.timeLastModified = timeLastModified;
+        /**
+         * @type {number}
+         */
+        this.timesUsed = timesUsed;
+        /**
+         * @type {number}
+         */
+        this.syncChangeCounter = syncChangeCounter;
+    }
+
+    equals(other) {
+        return (
+            this.guid == other.guid
+            && this.timeCreated == other.timeCreated
+            && this.timeLastUsed == other.timeLastUsed
+            && this.timeLastModified == other.timeLastModified
+            && this.timesUsed == other.timesUsed
+            && this.syncChangeCounter == other.syncChangeCounter
+        )
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeCreditCardMeta extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        return new CreditCardMeta({
+            guid: FfiConverterString.read(dataStream),
+            timeCreated: FfiConverterInt64.read(dataStream),
+            timeLastUsed: FfiConverterOptionalInt64.read(dataStream),
+            timeLastModified: FfiConverterInt64.read(dataStream),
+            timesUsed: FfiConverterInt64.read(dataStream),
+            syncChangeCounter: FfiConverterInt64.read(dataStream),
+        });
+    }
+    static write(dataStream, value) {
+        FfiConverterString.write(dataStream, value.guid);
+        FfiConverterInt64.write(dataStream, value.timeCreated);
+        FfiConverterOptionalInt64.write(dataStream, value.timeLastUsed);
+        FfiConverterInt64.write(dataStream, value.timeLastModified);
+        FfiConverterInt64.write(dataStream, value.timesUsed);
+        FfiConverterInt64.write(dataStream, value.syncChangeCounter);
+    }
+
+    static computeSize(value) {
+        let totalSize = 0;
+        totalSize += FfiConverterString.computeSize(value.guid);
+        totalSize += FfiConverterInt64.computeSize(value.timeCreated);
+        totalSize += FfiConverterOptionalInt64.computeSize(value.timeLastUsed);
+        totalSize += FfiConverterInt64.computeSize(value.timeLastModified);
+        totalSize += FfiConverterInt64.computeSize(value.timesUsed);
+        totalSize += FfiConverterInt64.computeSize(value.syncChangeCounter);
+        return totalSize
+    }
+
+    static checkType(value) {
+        super.checkType(value);
+        if (!(value instanceof CreditCardMeta)) {
+            throw new UniFFITypeError(`Expected 'CreditCardMeta', found '${typeof value}'`);
+        }
+        try {
+            FfiConverterString.checkType(value.guid);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".guid");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(value.timeCreated);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".timeCreated");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterOptionalInt64.checkType(value.timeLastUsed);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".timeLastUsed");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(value.timeLastModified);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".timeLastModified");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(value.timesUsed);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".timesUsed");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(value.syncChangeCounter);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".syncChangeCounter");
+            }
+            throw e;
+        }
+    }
+}
+/**
+ * A tombstone for a record deleted locally but not yet uploaded, supplied to
+ * `add_many_credit_card_tombstones` when migrating from another store.
+ */
+export class CreditCardTombstone {
+    constructor(
+        {
+            guid, 
+            timeDeleted
+        } = {
+            guid: undefined, 
+            timeDeleted: undefined
+        }
+    ) {
+        try {
+            FfiConverterString.checkType(guid)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("guid");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(timeDeleted)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("timeDeleted");
+            }
+            throw e;
+        }
+        /**
+         * @type {string}
+         */
+        this.guid = guid;
+        /**
+         * @type {number}
+         */
+        this.timeDeleted = timeDeleted;
+    }
+
+    equals(other) {
+        return (
+            this.guid == other.guid
+            && this.timeDeleted == other.timeDeleted
+        )
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeCreditCardTombstone extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        return new CreditCardTombstone({
+            guid: FfiConverterString.read(dataStream),
+            timeDeleted: FfiConverterInt64.read(dataStream),
+        });
+    }
+    static write(dataStream, value) {
+        FfiConverterString.write(dataStream, value.guid);
+        FfiConverterInt64.write(dataStream, value.timeDeleted);
+    }
+
+    static computeSize(value) {
+        let totalSize = 0;
+        totalSize += FfiConverterString.computeSize(value.guid);
+        totalSize += FfiConverterInt64.computeSize(value.timeDeleted);
+        return totalSize
+    }
+
+    static checkType(value) {
+        super.checkType(value);
+        if (!(value instanceof CreditCardTombstone)) {
+            throw new UniFFITypeError(`Expected 'CreditCardTombstone', found '${typeof value}'`);
+        }
+        try {
+            FfiConverterString.checkType(value.guid);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".guid");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterInt64.checkType(value.timeDeleted);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".timeDeleted");
             }
             throw e;
         }
@@ -1657,6 +2236,97 @@ export class FfiConverterTypeUpdatableAddressFields extends FfiConverterArrayBuf
     }
 }
 /**
+ * An address together with its metadata, passed to `add_address_with_meta` and
+ * `update_address_with_meta` when importing a record from another store.
+ */
+export class UpdatableAddressFieldsWithMeta {
+    constructor(
+        {
+            fields, 
+            meta
+        } = {
+            fields: undefined, 
+            meta: undefined
+        }
+    ) {
+        try {
+            FfiConverterTypeUpdatableAddressFields.checkType(fields)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("fields");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterTypeAddressMeta.checkType(meta)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("meta");
+            }
+            throw e;
+        }
+        /**
+         * @type {UpdatableAddressFields}
+         */
+        this.fields = fields;
+        /**
+         * @type {AddressMeta}
+         */
+        this.meta = meta;
+    }
+
+    equals(other) {
+        return (
+            this.fields.equals(other.fields)
+            && this.meta.equals(other.meta)
+        )
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeUpdatableAddressFieldsWithMeta extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        return new UpdatableAddressFieldsWithMeta({
+            fields: FfiConverterTypeUpdatableAddressFields.read(dataStream),
+            meta: FfiConverterTypeAddressMeta.read(dataStream),
+        });
+    }
+    static write(dataStream, value) {
+        FfiConverterTypeUpdatableAddressFields.write(dataStream, value.fields);
+        FfiConverterTypeAddressMeta.write(dataStream, value.meta);
+    }
+
+    static computeSize(value) {
+        let totalSize = 0;
+        totalSize += FfiConverterTypeUpdatableAddressFields.computeSize(value.fields);
+        totalSize += FfiConverterTypeAddressMeta.computeSize(value.meta);
+        return totalSize
+    }
+
+    static checkType(value) {
+        super.checkType(value);
+        if (!(value instanceof UpdatableAddressFieldsWithMeta)) {
+            throw new UniFFITypeError(`Expected 'UpdatableAddressFieldsWithMeta', found '${typeof value}'`);
+        }
+        try {
+            FfiConverterTypeUpdatableAddressFields.checkType(value.fields);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".fields");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterTypeAddressMeta.checkType(value.meta);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".meta");
+            }
+            throw e;
+        }
+    }
+}
+/**
  * What you pass to create or update a credit-card.
  */
 export class UpdatableCreditCardFields {
@@ -1845,6 +2515,97 @@ export class FfiConverterTypeUpdatableCreditCardFields extends FfiConverterArray
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart(".ccType");
+            }
+            throw e;
+        }
+    }
+}
+/**
+ * A credit card together with its metadata, passed to `add_credit_card_with_meta`
+ * and `update_credit_card_with_meta` when importing a record from another store.
+ */
+export class UpdatableCreditCardFieldsWithMeta {
+    constructor(
+        {
+            fields, 
+            meta
+        } = {
+            fields: undefined, 
+            meta: undefined
+        }
+    ) {
+        try {
+            FfiConverterTypeUpdatableCreditCardFields.checkType(fields)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("fields");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterTypeCreditCardMeta.checkType(meta)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("meta");
+            }
+            throw e;
+        }
+        /**
+         * @type {UpdatableCreditCardFields}
+         */
+        this.fields = fields;
+        /**
+         * @type {CreditCardMeta}
+         */
+        this.meta = meta;
+    }
+
+    equals(other) {
+        return (
+            this.fields.equals(other.fields)
+            && this.meta.equals(other.meta)
+        )
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeUpdatableCreditCardFieldsWithMeta extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        return new UpdatableCreditCardFieldsWithMeta({
+            fields: FfiConverterTypeUpdatableCreditCardFields.read(dataStream),
+            meta: FfiConverterTypeCreditCardMeta.read(dataStream),
+        });
+    }
+    static write(dataStream, value) {
+        FfiConverterTypeUpdatableCreditCardFields.write(dataStream, value.fields);
+        FfiConverterTypeCreditCardMeta.write(dataStream, value.meta);
+    }
+
+    static computeSize(value) {
+        let totalSize = 0;
+        totalSize += FfiConverterTypeUpdatableCreditCardFields.computeSize(value.fields);
+        totalSize += FfiConverterTypeCreditCardMeta.computeSize(value.meta);
+        return totalSize
+    }
+
+    static checkType(value) {
+        super.checkType(value);
+        if (!(value instanceof UpdatableCreditCardFieldsWithMeta)) {
+            throw new UniFFITypeError(`Expected 'UpdatableCreditCardFieldsWithMeta', found '${typeof value}'`);
+        }
+        try {
+            FfiConverterTypeUpdatableCreditCardFields.checkType(value.fields);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".fields");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterTypeCreditCardMeta.checkType(value.meta);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".meta");
             }
             throw e;
         }
@@ -2124,6 +2885,192 @@ export class FfiConverterTypeUpdatablePassportFields extends FfiConverterArrayBu
 }
 
 /**
+ * A bulk insert result entry, returned per input record by `add_many_addresses_with_meta`
+ */
+export class AddressBulkResultEntry {}
+/**
+ * Success
+ */
+AddressBulkResultEntry.Success = class extends AddressBulkResultEntry{
+   constructor({address = undefined } = {}) {
+                super();
+            try {
+                FfiConverterTypeAddress.checkType(address);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("address");
+                }
+                throw e;
+            }
+            this.address = address;
+    }
+}
+/**
+ * Error
+ */
+AddressBulkResultEntry.Error = class extends AddressBulkResultEntry{
+   constructor({message = undefined } = {}) {
+                super();
+            try {
+                FfiConverterString.checkType(message);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("message");
+                }
+                throw e;
+            }
+            this.message = message;
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeAddressBulkResultEntry extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
+        switch (dataStream.readInt32()) {
+            case 1:
+                return new AddressBulkResultEntry.Success({
+                    address: FfiConverterTypeAddress.read(dataStream)
+                });
+            case 2:
+                return new AddressBulkResultEntry.Error({
+                    message: FfiConverterString.read(dataStream)
+                });
+            default:
+                throw new UniFFITypeError("Unknown AddressBulkResultEntry variant");
+        }
+    }
+
+    static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
+        if (value instanceof AddressBulkResultEntry.Success) {
+            dataStream.writeInt32(1);
+            FfiConverterTypeAddress.write(dataStream, value.address);
+            return;
+        }
+        if (value instanceof AddressBulkResultEntry.Error) {
+            dataStream.writeInt32(2);
+            FfiConverterString.write(dataStream, value.message);
+            return;
+        }
+        throw new UniFFITypeError("Unknown AddressBulkResultEntry variant");
+    }
+
+    static computeSize(value) {
+        // Size of the Int indicating the variant
+        let totalSize = 4;
+        if (value instanceof AddressBulkResultEntry.Success) {
+            totalSize += FfiConverterTypeAddress.computeSize(value.address);
+            return totalSize;
+        }
+        if (value instanceof AddressBulkResultEntry.Error) {
+            totalSize += FfiConverterString.computeSize(value.message);
+            return totalSize;
+        }
+        throw new UniFFITypeError("Unknown AddressBulkResultEntry variant");
+    }
+
+    static checkType(value) {
+      if (!(value instanceof AddressBulkResultEntry)) {
+        throw new UniFFITypeError(`${value} is not a subclass instance of AddressBulkResultEntry`);
+      }
+    }
+}
+
+/**
+ * Per-record result of `add_many_address_tombstones`.
+ */
+export class AddressBulkTombstoneResultEntry {}
+/**
+ * Success
+ */
+AddressBulkTombstoneResultEntry.Success = class extends AddressBulkTombstoneResultEntry{
+   constructor({guid = undefined } = {}) {
+                super();
+            try {
+                FfiConverterString.checkType(guid);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("guid");
+                }
+                throw e;
+            }
+            this.guid = guid;
+    }
+}
+/**
+ * Error
+ */
+AddressBulkTombstoneResultEntry.Error = class extends AddressBulkTombstoneResultEntry{
+   constructor({message = undefined } = {}) {
+                super();
+            try {
+                FfiConverterString.checkType(message);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("message");
+                }
+                throw e;
+            }
+            this.message = message;
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeAddressBulkTombstoneResultEntry extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
+        switch (dataStream.readInt32()) {
+            case 1:
+                return new AddressBulkTombstoneResultEntry.Success({
+                    guid: FfiConverterString.read(dataStream)
+                });
+            case 2:
+                return new AddressBulkTombstoneResultEntry.Error({
+                    message: FfiConverterString.read(dataStream)
+                });
+            default:
+                throw new UniFFITypeError("Unknown AddressBulkTombstoneResultEntry variant");
+        }
+    }
+
+    static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
+        if (value instanceof AddressBulkTombstoneResultEntry.Success) {
+            dataStream.writeInt32(1);
+            FfiConverterString.write(dataStream, value.guid);
+            return;
+        }
+        if (value instanceof AddressBulkTombstoneResultEntry.Error) {
+            dataStream.writeInt32(2);
+            FfiConverterString.write(dataStream, value.message);
+            return;
+        }
+        throw new UniFFITypeError("Unknown AddressBulkTombstoneResultEntry variant");
+    }
+
+    static computeSize(value) {
+        // Size of the Int indicating the variant
+        let totalSize = 4;
+        if (value instanceof AddressBulkTombstoneResultEntry.Success) {
+            totalSize += FfiConverterString.computeSize(value.guid);
+            return totalSize;
+        }
+        if (value instanceof AddressBulkTombstoneResultEntry.Error) {
+            totalSize += FfiConverterString.computeSize(value.message);
+            return totalSize;
+        }
+        throw new UniFFITypeError("Unknown AddressBulkTombstoneResultEntry variant");
+    }
+
+    static checkType(value) {
+      if (!(value instanceof AddressBulkTombstoneResultEntry)) {
+        throw new UniFFITypeError(`${value} is not a subclass instance of AddressBulkTombstoneResultEntry`);
+      }
+    }
+}
+
+/**
  * AutofillApiError
  */
 export class AutofillApiError extends Error {}
@@ -2298,6 +3245,963 @@ export class FfiConverterTypeAutofillApiError extends FfiConverterArrayBuffer {
     static errorClass = AutofillApiError;
 }
 
+/**
+ * A bulk insert result entry, returned per input record by `add_many_credit_cards_with_meta`
+ */
+export class CreditCardBulkResultEntry {}
+/**
+ * Success
+ */
+CreditCardBulkResultEntry.Success = class extends CreditCardBulkResultEntry{
+   constructor({creditCard = undefined } = {}) {
+                super();
+            try {
+                FfiConverterTypeCreditCard.checkType(creditCard);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("creditCard");
+                }
+                throw e;
+            }
+            this.creditCard = creditCard;
+    }
+}
+/**
+ * Error
+ */
+CreditCardBulkResultEntry.Error = class extends CreditCardBulkResultEntry{
+   constructor({message = undefined } = {}) {
+                super();
+            try {
+                FfiConverterString.checkType(message);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("message");
+                }
+                throw e;
+            }
+            this.message = message;
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeCreditCardBulkResultEntry extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
+        switch (dataStream.readInt32()) {
+            case 1:
+                return new CreditCardBulkResultEntry.Success({
+                    creditCard: FfiConverterTypeCreditCard.read(dataStream)
+                });
+            case 2:
+                return new CreditCardBulkResultEntry.Error({
+                    message: FfiConverterString.read(dataStream)
+                });
+            default:
+                throw new UniFFITypeError("Unknown CreditCardBulkResultEntry variant");
+        }
+    }
+
+    static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
+        if (value instanceof CreditCardBulkResultEntry.Success) {
+            dataStream.writeInt32(1);
+            FfiConverterTypeCreditCard.write(dataStream, value.creditCard);
+            return;
+        }
+        if (value instanceof CreditCardBulkResultEntry.Error) {
+            dataStream.writeInt32(2);
+            FfiConverterString.write(dataStream, value.message);
+            return;
+        }
+        throw new UniFFITypeError("Unknown CreditCardBulkResultEntry variant");
+    }
+
+    static computeSize(value) {
+        // Size of the Int indicating the variant
+        let totalSize = 4;
+        if (value instanceof CreditCardBulkResultEntry.Success) {
+            totalSize += FfiConverterTypeCreditCard.computeSize(value.creditCard);
+            return totalSize;
+        }
+        if (value instanceof CreditCardBulkResultEntry.Error) {
+            totalSize += FfiConverterString.computeSize(value.message);
+            return totalSize;
+        }
+        throw new UniFFITypeError("Unknown CreditCardBulkResultEntry variant");
+    }
+
+    static checkType(value) {
+      if (!(value instanceof CreditCardBulkResultEntry)) {
+        throw new UniFFITypeError(`${value} is not a subclass instance of CreditCardBulkResultEntry`);
+      }
+    }
+}
+
+/**
+ * Per-record result of `add_many_credit_card_tombstones`.
+ */
+export class CreditCardBulkTombstoneResultEntry {}
+/**
+ * Success
+ */
+CreditCardBulkTombstoneResultEntry.Success = class extends CreditCardBulkTombstoneResultEntry{
+   constructor({guid = undefined } = {}) {
+                super();
+            try {
+                FfiConverterString.checkType(guid);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("guid");
+                }
+                throw e;
+            }
+            this.guid = guid;
+    }
+}
+/**
+ * Error
+ */
+CreditCardBulkTombstoneResultEntry.Error = class extends CreditCardBulkTombstoneResultEntry{
+   constructor({message = undefined } = {}) {
+                super();
+            try {
+                FfiConverterString.checkType(message);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("message");
+                }
+                throw e;
+            }
+            this.message = message;
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeCreditCardBulkTombstoneResultEntry extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
+        switch (dataStream.readInt32()) {
+            case 1:
+                return new CreditCardBulkTombstoneResultEntry.Success({
+                    guid: FfiConverterString.read(dataStream)
+                });
+            case 2:
+                return new CreditCardBulkTombstoneResultEntry.Error({
+                    message: FfiConverterString.read(dataStream)
+                });
+            default:
+                throw new UniFFITypeError("Unknown CreditCardBulkTombstoneResultEntry variant");
+        }
+    }
+
+    static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
+        if (value instanceof CreditCardBulkTombstoneResultEntry.Success) {
+            dataStream.writeInt32(1);
+            FfiConverterString.write(dataStream, value.guid);
+            return;
+        }
+        if (value instanceof CreditCardBulkTombstoneResultEntry.Error) {
+            dataStream.writeInt32(2);
+            FfiConverterString.write(dataStream, value.message);
+            return;
+        }
+        throw new UniFFITypeError("Unknown CreditCardBulkTombstoneResultEntry variant");
+    }
+
+    static computeSize(value) {
+        // Size of the Int indicating the variant
+        let totalSize = 4;
+        if (value instanceof CreditCardBulkTombstoneResultEntry.Success) {
+            totalSize += FfiConverterString.computeSize(value.guid);
+            return totalSize;
+        }
+        if (value instanceof CreditCardBulkTombstoneResultEntry.Error) {
+            totalSize += FfiConverterString.computeSize(value.message);
+            return totalSize;
+        }
+        throw new UniFFITypeError("Unknown CreditCardBulkTombstoneResultEntry variant");
+    }
+
+    static checkType(value) {
+      if (!(value instanceof CreditCardBulkTombstoneResultEntry)) {
+        throw new UniFFITypeError(`${value} is not a subclass instance of CreditCardBulkTombstoneResultEntry`);
+      }
+    }
+}
+// Export the FFIConverter object to make external types work.
+export class FfiConverterSequenceString extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        const len = dataStream.readInt32();
+        const arr = [];
+        for (let i = 0; i < len; i++) {
+            arr.push(FfiConverterString.read(dataStream));
+        }
+        return arr;
+    }
+
+    static write(dataStream, value) {
+        dataStream.writeInt32(value.length);
+        value.forEach((innerValue) => {
+            FfiConverterString.write(dataStream, innerValue);
+        })
+    }
+
+    static computeSize(value) {
+        // The size of the length
+        let size = 4;
+        for (const innerValue of value) {
+            size += FfiConverterString.computeSize(innerValue);
+        }
+        return size;
+    }
+
+    static checkType(value) {
+        if (!Array.isArray(value)) {
+            throw new UniFFITypeError(`${value} is not an array`);
+        }
+        value.forEach((innerValue, idx) => {
+            try {
+                FfiConverterString.checkType(innerValue);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart(`[${idx}]`);
+                }
+                throw e;
+            }
+        })
+    }
+}
+// Export the FFIConverter object to make external types work.
+export class FfiConverterOptionalString extends FfiConverterArrayBuffer {
+    static checkType(value) {
+        if (value !== undefined && value !== null) {
+            FfiConverterString.checkType(value)
+        }
+    }
+
+    static read(dataStream) {
+        const code = dataStream.readUint8(0);
+        switch (code) {
+            case 0:
+                return null
+            case 1:
+                return FfiConverterString.read(dataStream)
+            default:
+                throw new UniFFIError(`Unexpected code: ${code}`);
+        }
+    }
+
+    static write(dataStream, value) {
+        if (value === null || value === undefined) {
+            dataStream.writeUint8(0);
+            return;
+        }
+        dataStream.writeUint8(1);
+        FfiConverterString.write(dataStream, value)
+    }
+
+    static computeSize(value) {
+        if (value === null || value === undefined) {
+            return 1;
+        }
+        return 1 + FfiConverterString.computeSize(value)
+    }
+}
+
+/**
+ * The bridged sync engine for addresses. The canonical docs are in
+ * services/interfaces/mozIBridgedSyncEngine.idl.
+ * NOTE: all timestamps here are milliseconds.
+ */
+export class AddressesBridgedEngineInterface {
+    /**
+     * apply
+     * @param {number} serverModifiedMillis
+     * @returns {Promise<Array.<string>>}}
+     */
+    async apply(
+        serverModifiedMillis) {
+      throw Error("apply not implemented");
+    }
+    /**
+     * ensureCurrentSyncId
+     * @param {string} newSyncId
+     * @returns {Promise<string>}}
+     */
+    async ensureCurrentSyncId(
+        newSyncId) {
+      throw Error("ensureCurrentSyncId not implemented");
+    }
+    /**
+     * lastSync
+     * @returns {Promise<number>}}
+     */
+    async lastSync() {
+      throw Error("lastSync not implemented");
+    }
+    /**
+     * reset
+     */
+    async reset() {
+      throw Error("reset not implemented");
+    }
+    /**
+     * resetSyncId
+     * @returns {Promise<string>}}
+     */
+    async resetSyncId() {
+      throw Error("resetSyncId not implemented");
+    }
+    /**
+     * setUploaded
+     * @param {number} newTimestamp
+     * @param {Array.<string>} uploadedIds
+     */
+    async setUploaded(
+        newTimestamp, 
+        uploadedIds) {
+      throw Error("setUploaded not implemented");
+    }
+    /**
+     * storeIncoming
+     * @param {Array.<string>} incomingEnvelopesAsJson
+     */
+    async storeIncoming(
+        incomingEnvelopesAsJson) {
+      throw Error("storeIncoming not implemented");
+    }
+    /**
+     * syncFinished
+     */
+    async syncFinished() {
+      throw Error("syncFinished not implemented");
+    }
+    /**
+     * syncId
+     * @returns {Promise<?string>}}
+     */
+    async syncId() {
+      throw Error("syncId not implemented");
+    }
+    /**
+     * syncStarted
+     */
+    async syncStarted() {
+      throw Error("syncStarted not implemented");
+    }
+    /**
+     * wipe
+     */
+    async wipe() {
+      throw Error("wipe not implemented");
+    }
+
+}
+
+/**
+ * The bridged sync engine for addresses. The canonical docs are in
+ * services/interfaces/mozIBridgedSyncEngine.idl.
+ * NOTE: all timestamps here are milliseconds.
+ */
+export class AddressesBridgedEngine extends AddressesBridgedEngineInterface {
+    // Use `init` to instantiate this class.
+    // DO NOT USE THIS CONSTRUCTOR DIRECTLY
+    constructor(opts) {
+        super();
+        if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
+            throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
+            "Please use a UDL defined constructor, or the init function for the primary constructor")
+        }
+        if (!(opts[constructUniffiObject] instanceof UniFFIPointer)) {
+            throw new UniFFIError("Attempting to create a UniFFI object with a pointer that is not an instance of UniFFIPointer")
+        }
+        this[uniffiObjectPtr] = opts[constructUniffiObject];
+    }
+
+    /**
+     * apply
+     * @param {number} serverModifiedMillis
+     * @returns {Promise<Array.<string>>}}
+     */
+    async apply(
+        serverModifiedMillis) {
+       
+        FfiConverterInt64.checkType(serverModifiedMillis);
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            39, // uniffi_autofill_fn_method_addressesbridgedengine_apply
+            FfiConverterTypeAddressesBridgedEngine.lowerReceiver(this),
+            FfiConverterInt64.lower(serverModifiedMillis),
+        )
+        return handleRustResult(
+            result,
+            FfiConverterSequenceString.lift.bind(FfiConverterSequenceString),
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * ensureCurrentSyncId
+     * @param {string} newSyncId
+     * @returns {Promise<string>}}
+     */
+    async ensureCurrentSyncId(
+        newSyncId) {
+       
+        FfiConverterString.checkType(newSyncId);
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            40, // uniffi_autofill_fn_method_addressesbridgedengine_ensure_current_sync_id
+            FfiConverterTypeAddressesBridgedEngine.lowerReceiver(this),
+            FfiConverterString.lower(newSyncId),
+        )
+        return handleRustResult(
+            result,
+            FfiConverterString.lift.bind(FfiConverterString),
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * lastSync
+     * @returns {Promise<number>}}
+     */
+    async lastSync() {
+       
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            41, // uniffi_autofill_fn_method_addressesbridgedengine_last_sync
+            FfiConverterTypeAddressesBridgedEngine.lowerReceiver(this),
+        )
+        return handleRustResult(
+            result,
+            FfiConverterInt64.lift.bind(FfiConverterInt64),
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * reset
+     */
+    async reset() {
+       
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            42, // uniffi_autofill_fn_method_addressesbridgedengine_reset
+            FfiConverterTypeAddressesBridgedEngine.lowerReceiver(this),
+        )
+        return handleRustResult(
+            result,
+            (result) => undefined,
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * resetSyncId
+     * @returns {Promise<string>}}
+     */
+    async resetSyncId() {
+       
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            43, // uniffi_autofill_fn_method_addressesbridgedengine_reset_sync_id
+            FfiConverterTypeAddressesBridgedEngine.lowerReceiver(this),
+        )
+        return handleRustResult(
+            result,
+            FfiConverterString.lift.bind(FfiConverterString),
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * setUploaded
+     * @param {number} newTimestamp
+     * @param {Array.<string>} uploadedIds
+     */
+    async setUploaded(
+        newTimestamp, 
+        uploadedIds) {
+       
+        FfiConverterInt64.checkType(newTimestamp);
+        FfiConverterSequenceString.checkType(uploadedIds);
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            44, // uniffi_autofill_fn_method_addressesbridgedengine_set_uploaded
+            FfiConverterTypeAddressesBridgedEngine.lowerReceiver(this),
+            FfiConverterInt64.lower(newTimestamp),
+            FfiConverterSequenceString.lower(uploadedIds),
+        )
+        return handleRustResult(
+            result,
+            (result) => undefined,
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * storeIncoming
+     * @param {Array.<string>} incomingEnvelopesAsJson
+     */
+    async storeIncoming(
+        incomingEnvelopesAsJson) {
+       
+        FfiConverterSequenceString.checkType(incomingEnvelopesAsJson);
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            45, // uniffi_autofill_fn_method_addressesbridgedengine_store_incoming
+            FfiConverterTypeAddressesBridgedEngine.lowerReceiver(this),
+            FfiConverterSequenceString.lower(incomingEnvelopesAsJson),
+        )
+        return handleRustResult(
+            result,
+            (result) => undefined,
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * syncFinished
+     */
+    async syncFinished() {
+       
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            46, // uniffi_autofill_fn_method_addressesbridgedengine_sync_finished
+            FfiConverterTypeAddressesBridgedEngine.lowerReceiver(this),
+        )
+        return handleRustResult(
+            result,
+            (result) => undefined,
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * syncId
+     * @returns {Promise<?string>}}
+     */
+    async syncId() {
+       
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            47, // uniffi_autofill_fn_method_addressesbridgedengine_sync_id
+            FfiConverterTypeAddressesBridgedEngine.lowerReceiver(this),
+        )
+        return handleRustResult(
+            result,
+            FfiConverterOptionalString.lift.bind(FfiConverterOptionalString),
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * syncStarted
+     */
+    async syncStarted() {
+       
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            48, // uniffi_autofill_fn_method_addressesbridgedengine_sync_started
+            FfiConverterTypeAddressesBridgedEngine.lowerReceiver(this),
+        )
+        return handleRustResult(
+            result,
+            (result) => undefined,
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * wipe
+     */
+    async wipe() {
+       
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            49, // uniffi_autofill_fn_method_addressesbridgedengine_wipe
+            FfiConverterTypeAddressesBridgedEngine.lowerReceiver(this),
+        )
+        return handleRustResult(
+            result,
+            (result) => undefined,
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeAddressesBridgedEngine extends FfiConverter {
+    static lift(value) {
+        const opts = {};
+        opts[constructUniffiObject] = value;
+        return new AddressesBridgedEngine(opts);
+    }
+
+    static lower(value) {
+        const ptr = value[uniffiObjectPtr];
+        if (!(ptr instanceof UniFFIPointer)) {
+            throw new UniFFITypeError("Object is not a 'AddressesBridgedEngine' instance");
+        }
+        return ptr;
+    }
+
+    static lowerReceiver(value) {
+        // This works exactly the same as lower for non-trait interfaces
+        return this.lower(value);
+    }
+
+    static read(dataStream) {
+        return this.lift(dataStream.readPointer(3));
+    }
+
+    static write(dataStream, value) {
+        dataStream.writePointer(3, this.lower(value));
+    }
+
+    static computeSize(value) {
+        return 8;
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterSequenceTypeAddressTombstone extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        const len = dataStream.readInt32();
+        const arr = [];
+        for (let i = 0; i < len; i++) {
+            arr.push(FfiConverterTypeAddressTombstone.read(dataStream));
+        }
+        return arr;
+    }
+
+    static write(dataStream, value) {
+        dataStream.writeInt32(value.length);
+        value.forEach((innerValue) => {
+            FfiConverterTypeAddressTombstone.write(dataStream, innerValue);
+        })
+    }
+
+    static computeSize(value) {
+        // The size of the length
+        let size = 4;
+        for (const innerValue of value) {
+            size += FfiConverterTypeAddressTombstone.computeSize(innerValue);
+        }
+        return size;
+    }
+
+    static checkType(value) {
+        if (!Array.isArray(value)) {
+            throw new UniFFITypeError(`${value} is not an array`);
+        }
+        value.forEach((innerValue, idx) => {
+            try {
+                FfiConverterTypeAddressTombstone.checkType(innerValue);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart(`[${idx}]`);
+                }
+                throw e;
+            }
+        })
+    }
+}
+// Export the FFIConverter object to make external types work.
+export class FfiConverterSequenceTypeAddressBulkTombstoneResultEntry extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        const len = dataStream.readInt32();
+        const arr = [];
+        for (let i = 0; i < len; i++) {
+            arr.push(FfiConverterTypeAddressBulkTombstoneResultEntry.read(dataStream));
+        }
+        return arr;
+    }
+
+    static write(dataStream, value) {
+        dataStream.writeInt32(value.length);
+        value.forEach((innerValue) => {
+            FfiConverterTypeAddressBulkTombstoneResultEntry.write(dataStream, innerValue);
+        })
+    }
+
+    static computeSize(value) {
+        // The size of the length
+        let size = 4;
+        for (const innerValue of value) {
+            size += FfiConverterTypeAddressBulkTombstoneResultEntry.computeSize(innerValue);
+        }
+        return size;
+    }
+
+    static checkType(value) {
+        if (!Array.isArray(value)) {
+            throw new UniFFITypeError(`${value} is not an array`);
+        }
+        value.forEach((innerValue, idx) => {
+            try {
+                FfiConverterTypeAddressBulkTombstoneResultEntry.checkType(innerValue);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart(`[${idx}]`);
+                }
+                throw e;
+            }
+        })
+    }
+}
+// Export the FFIConverter object to make external types work.
+export class FfiConverterSequenceTypeUpdatableAddressFieldsWithMeta extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        const len = dataStream.readInt32();
+        const arr = [];
+        for (let i = 0; i < len; i++) {
+            arr.push(FfiConverterTypeUpdatableAddressFieldsWithMeta.read(dataStream));
+        }
+        return arr;
+    }
+
+    static write(dataStream, value) {
+        dataStream.writeInt32(value.length);
+        value.forEach((innerValue) => {
+            FfiConverterTypeUpdatableAddressFieldsWithMeta.write(dataStream, innerValue);
+        })
+    }
+
+    static computeSize(value) {
+        // The size of the length
+        let size = 4;
+        for (const innerValue of value) {
+            size += FfiConverterTypeUpdatableAddressFieldsWithMeta.computeSize(innerValue);
+        }
+        return size;
+    }
+
+    static checkType(value) {
+        if (!Array.isArray(value)) {
+            throw new UniFFITypeError(`${value} is not an array`);
+        }
+        value.forEach((innerValue, idx) => {
+            try {
+                FfiConverterTypeUpdatableAddressFieldsWithMeta.checkType(innerValue);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart(`[${idx}]`);
+                }
+                throw e;
+            }
+        })
+    }
+}
+// Export the FFIConverter object to make external types work.
+export class FfiConverterSequenceTypeAddressBulkResultEntry extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        const len = dataStream.readInt32();
+        const arr = [];
+        for (let i = 0; i < len; i++) {
+            arr.push(FfiConverterTypeAddressBulkResultEntry.read(dataStream));
+        }
+        return arr;
+    }
+
+    static write(dataStream, value) {
+        dataStream.writeInt32(value.length);
+        value.forEach((innerValue) => {
+            FfiConverterTypeAddressBulkResultEntry.write(dataStream, innerValue);
+        })
+    }
+
+    static computeSize(value) {
+        // The size of the length
+        let size = 4;
+        for (const innerValue of value) {
+            size += FfiConverterTypeAddressBulkResultEntry.computeSize(innerValue);
+        }
+        return size;
+    }
+
+    static checkType(value) {
+        if (!Array.isArray(value)) {
+            throw new UniFFITypeError(`${value} is not an array`);
+        }
+        value.forEach((innerValue, idx) => {
+            try {
+                FfiConverterTypeAddressBulkResultEntry.checkType(innerValue);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart(`[${idx}]`);
+                }
+                throw e;
+            }
+        })
+    }
+}
+// Export the FFIConverter object to make external types work.
+export class FfiConverterSequenceTypeCreditCardTombstone extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        const len = dataStream.readInt32();
+        const arr = [];
+        for (let i = 0; i < len; i++) {
+            arr.push(FfiConverterTypeCreditCardTombstone.read(dataStream));
+        }
+        return arr;
+    }
+
+    static write(dataStream, value) {
+        dataStream.writeInt32(value.length);
+        value.forEach((innerValue) => {
+            FfiConverterTypeCreditCardTombstone.write(dataStream, innerValue);
+        })
+    }
+
+    static computeSize(value) {
+        // The size of the length
+        let size = 4;
+        for (const innerValue of value) {
+            size += FfiConverterTypeCreditCardTombstone.computeSize(innerValue);
+        }
+        return size;
+    }
+
+    static checkType(value) {
+        if (!Array.isArray(value)) {
+            throw new UniFFITypeError(`${value} is not an array`);
+        }
+        value.forEach((innerValue, idx) => {
+            try {
+                FfiConverterTypeCreditCardTombstone.checkType(innerValue);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart(`[${idx}]`);
+                }
+                throw e;
+            }
+        })
+    }
+}
+// Export the FFIConverter object to make external types work.
+export class FfiConverterSequenceTypeCreditCardBulkTombstoneResultEntry extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        const len = dataStream.readInt32();
+        const arr = [];
+        for (let i = 0; i < len; i++) {
+            arr.push(FfiConverterTypeCreditCardBulkTombstoneResultEntry.read(dataStream));
+        }
+        return arr;
+    }
+
+    static write(dataStream, value) {
+        dataStream.writeInt32(value.length);
+        value.forEach((innerValue) => {
+            FfiConverterTypeCreditCardBulkTombstoneResultEntry.write(dataStream, innerValue);
+        })
+    }
+
+    static computeSize(value) {
+        // The size of the length
+        let size = 4;
+        for (const innerValue of value) {
+            size += FfiConverterTypeCreditCardBulkTombstoneResultEntry.computeSize(innerValue);
+        }
+        return size;
+    }
+
+    static checkType(value) {
+        if (!Array.isArray(value)) {
+            throw new UniFFITypeError(`${value} is not an array`);
+        }
+        value.forEach((innerValue, idx) => {
+            try {
+                FfiConverterTypeCreditCardBulkTombstoneResultEntry.checkType(innerValue);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart(`[${idx}]`);
+                }
+                throw e;
+            }
+        })
+    }
+}
+// Export the FFIConverter object to make external types work.
+export class FfiConverterSequenceTypeUpdatableCreditCardFieldsWithMeta extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        const len = dataStream.readInt32();
+        const arr = [];
+        for (let i = 0; i < len; i++) {
+            arr.push(FfiConverterTypeUpdatableCreditCardFieldsWithMeta.read(dataStream));
+        }
+        return arr;
+    }
+
+    static write(dataStream, value) {
+        dataStream.writeInt32(value.length);
+        value.forEach((innerValue) => {
+            FfiConverterTypeUpdatableCreditCardFieldsWithMeta.write(dataStream, innerValue);
+        })
+    }
+
+    static computeSize(value) {
+        // The size of the length
+        let size = 4;
+        for (const innerValue of value) {
+            size += FfiConverterTypeUpdatableCreditCardFieldsWithMeta.computeSize(innerValue);
+        }
+        return size;
+    }
+
+    static checkType(value) {
+        if (!Array.isArray(value)) {
+            throw new UniFFITypeError(`${value} is not an array`);
+        }
+        value.forEach((innerValue, idx) => {
+            try {
+                FfiConverterTypeUpdatableCreditCardFieldsWithMeta.checkType(innerValue);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart(`[${idx}]`);
+                }
+                throw e;
+            }
+        })
+    }
+}
+// Export the FFIConverter object to make external types work.
+export class FfiConverterSequenceTypeCreditCardBulkResultEntry extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        const len = dataStream.readInt32();
+        const arr = [];
+        for (let i = 0; i < len; i++) {
+            arr.push(FfiConverterTypeCreditCardBulkResultEntry.read(dataStream));
+        }
+        return arr;
+    }
+
+    static write(dataStream, value) {
+        dataStream.writeInt32(value.length);
+        value.forEach((innerValue) => {
+            FfiConverterTypeCreditCardBulkResultEntry.write(dataStream, innerValue);
+        })
+    }
+
+    static computeSize(value) {
+        // The size of the length
+        let size = 4;
+        for (const innerValue of value) {
+            size += FfiConverterTypeCreditCardBulkResultEntry.computeSize(innerValue);
+        }
+        return size;
+    }
+
+    static checkType(value) {
+        if (!Array.isArray(value)) {
+            throw new UniFFITypeError(`${value} is not an array`);
+        }
+        value.forEach((innerValue, idx) => {
+            try {
+                FfiConverterTypeCreditCardBulkResultEntry.checkType(innerValue);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart(`[${idx}]`);
+                }
+                throw e;
+            }
+        })
+    }
+}
+
 
 // Export the FFIConverter object to make external types work.
 export class FfiConverterSequenceTypeAddress extends FfiConverterArrayBuffer {
@@ -2443,6 +4347,15 @@ export class StoreInterface {
       throw Error("addAddress not implemented");
     }
     /**
+     * addAddressWithMeta
+     * @param {UpdatableAddressFieldsWithMeta} entryWithMeta
+     * @returns {Promise<Address>}}
+     */
+    async addAddressWithMeta(
+        entryWithMeta) {
+      throw Error("addAddressWithMeta not implemented");
+    }
+    /**
      * addCreditCard
      * @param {UpdatableCreditCardFields} cc
      * @returns {Promise<CreditCard>}}
@@ -2452,6 +4365,51 @@ export class StoreInterface {
       throw Error("addCreditCard not implemented");
     }
     /**
+     * addCreditCardWithMeta
+     * @param {UpdatableCreditCardFieldsWithMeta} entryWithMeta
+     * @returns {Promise<CreditCard>}}
+     */
+    async addCreditCardWithMeta(
+        entryWithMeta) {
+      throw Error("addCreditCardWithMeta not implemented");
+    }
+    /**
+     * addManyAddressTombstones
+     * @param {Array.<AddressTombstone>} tombstones
+     * @returns {Promise<Array.<AddressBulkTombstoneResultEntry[keyof AddressBulkTombstoneResultEntry]>>}}
+     */
+    async addManyAddressTombstones(
+        tombstones) {
+      throw Error("addManyAddressTombstones not implemented");
+    }
+    /**
+     * addManyAddressesWithMeta
+     * @param {Array.<UpdatableAddressFieldsWithMeta>} entriesWithMeta
+     * @returns {Promise<Array.<AddressBulkResultEntry[keyof AddressBulkResultEntry]>>}}
+     */
+    async addManyAddressesWithMeta(
+        entriesWithMeta) {
+      throw Error("addManyAddressesWithMeta not implemented");
+    }
+    /**
+     * addManyCreditCardTombstones
+     * @param {Array.<CreditCardTombstone>} tombstones
+     * @returns {Promise<Array.<CreditCardBulkTombstoneResultEntry[keyof CreditCardBulkTombstoneResultEntry]>>}}
+     */
+    async addManyCreditCardTombstones(
+        tombstones) {
+      throw Error("addManyCreditCardTombstones not implemented");
+    }
+    /**
+     * addManyCreditCardsWithMeta
+     * @param {Array.<UpdatableCreditCardFieldsWithMeta>} entriesWithMeta
+     * @returns {Promise<Array.<CreditCardBulkResultEntry[keyof CreditCardBulkResultEntry]>>}}
+     */
+    async addManyCreditCardsWithMeta(
+        entriesWithMeta) {
+      throw Error("addManyCreditCardsWithMeta not implemented");
+    }
+    /**
      * addPassport
      * @param {UpdatablePassportFields} p
      * @returns {Promise<Passport>}}
@@ -2459,6 +4417,15 @@ export class StoreInterface {
     async addPassport(
         p) {
       throw Error("addPassport not implemented");
+    }
+    /**
+     * Returns a bridged sync engine for addresses, for use by Desktop's Sync
+     * framework. Constructing it only assembles structs and never touches the
+     * DB, so it cannot fail.
+     * @returns {Promise<AddressesBridgedEngine>}}
+     */
+    async addressesBridgedEngine() {
+      throw Error("addressesBridgedEngine not implemented");
     }
     /**
      * countAllAddresses
@@ -2489,6 +4456,28 @@ export class StoreInterface {
     async deleteAddress(
         guid) {
       throw Error("deleteAddress not implemented");
+    }
+    /**
+     * Removes every address and every address tombstone.
+     * 
+     * A migration primitive: it leaves the sync mirror intact and produces no
+     * tombstones, so the deletions are never uploaded and a synced profile gets
+     * the records back on the next sync. Use `delete_address` to delete on the
+     * user's behalf.
+     */
+    async deleteAllAddresses() {
+      throw Error("deleteAllAddresses not implemented");
+    }
+    /**
+     * Removes every credit card and every credit card tombstone.
+     * 
+     * A migration primitive: it leaves the sync mirror intact and produces no
+     * tombstones, so the deletions are never uploaded and a synced profile gets
+     * the records back on the next sync. Use `delete_credit_card` to delete on the
+     * user's behalf.
+     */
+    async deleteAllCreditCards() {
+      throw Error("deleteAllCreditCards not implemented");
     }
     /**
      * deleteCreditCard
@@ -2592,6 +4581,12 @@ export class StoreInterface {
       throw Error("scrubUndecryptableCreditCardDataForRemoteReplacement not implemented");
     }
     /**
+     * shutdown
+     */
+    async shutdown() {
+      throw Error("shutdown not implemented");
+    }
+    /**
      * touchAddress
      * @param {string} guid
      */
@@ -2626,6 +4621,14 @@ export class StoreInterface {
       throw Error("updateAddress not implemented");
     }
     /**
+     * updateAddressWithMeta
+     * @param {UpdatableAddressFieldsWithMeta} entryWithMeta
+     */
+    async updateAddressWithMeta(
+        entryWithMeta) {
+      throw Error("updateAddressWithMeta not implemented");
+    }
+    /**
      * updateCreditCard
      * @param {string} guid
      * @param {UpdatableCreditCardFields} cc
@@ -2634,6 +4637,14 @@ export class StoreInterface {
         guid, 
         cc) {
       throw Error("updateCreditCard not implemented");
+    }
+    /**
+     * updateCreditCardWithMeta
+     * @param {UpdatableCreditCardFieldsWithMeta} entryWithMeta
+     */
+    async updateCreditCardWithMeta(
+        entryWithMeta) {
+      throw Error("updateCreditCardWithMeta not implemented");
     }
     /**
      * updatePassport
@@ -2675,7 +4686,7 @@ export class Store extends StoreInterface {
        
         FfiConverterString.checkType(dbpath);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            18, // uniffi_autofill_fn_constructor_store_new
+            50, // uniffi_autofill_fn_constructor_store_new
             FfiConverterString.lower(dbpath),
         )
         return handleRustResult(
@@ -2695,9 +4706,30 @@ export class Store extends StoreInterface {
        
         FfiConverterTypeUpdatableAddressFields.checkType(a);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            19, // uniffi_autofill_fn_method_store_add_address
+            51, // uniffi_autofill_fn_method_store_add_address
             FfiConverterTypeStore.lowerReceiver(this),
             FfiConverterTypeUpdatableAddressFields.lower(a),
+        )
+        return handleRustResult(
+            result,
+            FfiConverterTypeAddress.lift.bind(FfiConverterTypeAddress),
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * addAddressWithMeta
+     * @param {UpdatableAddressFieldsWithMeta} entryWithMeta
+     * @returns {Promise<Address>}}
+     */
+    async addAddressWithMeta(
+        entryWithMeta) {
+       
+        FfiConverterTypeUpdatableAddressFieldsWithMeta.checkType(entryWithMeta);
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            52, // uniffi_autofill_fn_method_store_add_address_with_meta
+            FfiConverterTypeStore.lowerReceiver(this),
+            FfiConverterTypeUpdatableAddressFieldsWithMeta.lower(entryWithMeta),
         )
         return handleRustResult(
             result,
@@ -2716,13 +4748,118 @@ export class Store extends StoreInterface {
        
         FfiConverterTypeUpdatableCreditCardFields.checkType(cc);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            20, // uniffi_autofill_fn_method_store_add_credit_card
+            53, // uniffi_autofill_fn_method_store_add_credit_card
             FfiConverterTypeStore.lowerReceiver(this),
             FfiConverterTypeUpdatableCreditCardFields.lower(cc),
         )
         return handleRustResult(
             result,
             FfiConverterTypeCreditCard.lift.bind(FfiConverterTypeCreditCard),
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * addCreditCardWithMeta
+     * @param {UpdatableCreditCardFieldsWithMeta} entryWithMeta
+     * @returns {Promise<CreditCard>}}
+     */
+    async addCreditCardWithMeta(
+        entryWithMeta) {
+       
+        FfiConverterTypeUpdatableCreditCardFieldsWithMeta.checkType(entryWithMeta);
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            54, // uniffi_autofill_fn_method_store_add_credit_card_with_meta
+            FfiConverterTypeStore.lowerReceiver(this),
+            FfiConverterTypeUpdatableCreditCardFieldsWithMeta.lower(entryWithMeta),
+        )
+        return handleRustResult(
+            result,
+            FfiConverterTypeCreditCard.lift.bind(FfiConverterTypeCreditCard),
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * addManyAddressTombstones
+     * @param {Array.<AddressTombstone>} tombstones
+     * @returns {Promise<Array.<AddressBulkTombstoneResultEntry[keyof AddressBulkTombstoneResultEntry]>>}}
+     */
+    async addManyAddressTombstones(
+        tombstones) {
+       
+        FfiConverterSequenceTypeAddressTombstone.checkType(tombstones);
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            55, // uniffi_autofill_fn_method_store_add_many_address_tombstones
+            FfiConverterTypeStore.lowerReceiver(this),
+            FfiConverterSequenceTypeAddressTombstone.lower(tombstones),
+        )
+        return handleRustResult(
+            result,
+            FfiConverterSequenceTypeAddressBulkTombstoneResultEntry.lift.bind(FfiConverterSequenceTypeAddressBulkTombstoneResultEntry),
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * addManyAddressesWithMeta
+     * @param {Array.<UpdatableAddressFieldsWithMeta>} entriesWithMeta
+     * @returns {Promise<Array.<AddressBulkResultEntry[keyof AddressBulkResultEntry]>>}}
+     */
+    async addManyAddressesWithMeta(
+        entriesWithMeta) {
+       
+        FfiConverterSequenceTypeUpdatableAddressFieldsWithMeta.checkType(entriesWithMeta);
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            56, // uniffi_autofill_fn_method_store_add_many_addresses_with_meta
+            FfiConverterTypeStore.lowerReceiver(this),
+            FfiConverterSequenceTypeUpdatableAddressFieldsWithMeta.lower(entriesWithMeta),
+        )
+        return handleRustResult(
+            result,
+            FfiConverterSequenceTypeAddressBulkResultEntry.lift.bind(FfiConverterSequenceTypeAddressBulkResultEntry),
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * addManyCreditCardTombstones
+     * @param {Array.<CreditCardTombstone>} tombstones
+     * @returns {Promise<Array.<CreditCardBulkTombstoneResultEntry[keyof CreditCardBulkTombstoneResultEntry]>>}}
+     */
+    async addManyCreditCardTombstones(
+        tombstones) {
+       
+        FfiConverterSequenceTypeCreditCardTombstone.checkType(tombstones);
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            57, // uniffi_autofill_fn_method_store_add_many_credit_card_tombstones
+            FfiConverterTypeStore.lowerReceiver(this),
+            FfiConverterSequenceTypeCreditCardTombstone.lower(tombstones),
+        )
+        return handleRustResult(
+            result,
+            FfiConverterSequenceTypeCreditCardBulkTombstoneResultEntry.lift.bind(FfiConverterSequenceTypeCreditCardBulkTombstoneResultEntry),
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * addManyCreditCardsWithMeta
+     * @param {Array.<UpdatableCreditCardFieldsWithMeta>} entriesWithMeta
+     * @returns {Promise<Array.<CreditCardBulkResultEntry[keyof CreditCardBulkResultEntry]>>}}
+     */
+    async addManyCreditCardsWithMeta(
+        entriesWithMeta) {
+       
+        FfiConverterSequenceTypeUpdatableCreditCardFieldsWithMeta.checkType(entriesWithMeta);
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            58, // uniffi_autofill_fn_method_store_add_many_credit_cards_with_meta
+            FfiConverterTypeStore.lowerReceiver(this),
+            FfiConverterSequenceTypeUpdatableCreditCardFieldsWithMeta.lower(entriesWithMeta),
+        )
+        return handleRustResult(
+            result,
+            FfiConverterSequenceTypeCreditCardBulkResultEntry.lift.bind(FfiConverterSequenceTypeCreditCardBulkResultEntry),
             FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
         )
     }
@@ -2737,7 +4874,7 @@ export class Store extends StoreInterface {
        
         FfiConverterTypeUpdatablePassportFields.checkType(p);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            21, // uniffi_autofill_fn_method_store_add_passport
+            59, // uniffi_autofill_fn_method_store_add_passport
             FfiConverterTypeStore.lowerReceiver(this),
             FfiConverterTypeUpdatablePassportFields.lower(p),
         )
@@ -2749,13 +4886,32 @@ export class Store extends StoreInterface {
     }
 
     /**
+     * Returns a bridged sync engine for addresses, for use by Desktop's Sync
+     * framework. Constructing it only assembles structs and never touches the
+     * DB, so it cannot fail.
+     * @returns {Promise<AddressesBridgedEngine>}}
+     */
+    async addressesBridgedEngine() {
+       
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            60, // uniffi_autofill_fn_method_store_addresses_bridged_engine
+            FfiConverterTypeStore.lowerReceiver(this),
+        )
+        return handleRustResult(
+            result,
+            FfiConverterTypeAddressesBridgedEngine.lift.bind(FfiConverterTypeAddressesBridgedEngine),
+            null,
+        )
+    }
+
+    /**
      * countAllAddresses
      * @returns {Promise<number>}}
      */
     async countAllAddresses() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            22, // uniffi_autofill_fn_method_store_count_all_addresses
+            61, // uniffi_autofill_fn_method_store_count_all_addresses
             FfiConverterTypeStore.lowerReceiver(this),
         )
         return handleRustResult(
@@ -2772,7 +4928,7 @@ export class Store extends StoreInterface {
     async countAllCreditCards() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            23, // uniffi_autofill_fn_method_store_count_all_credit_cards
+            62, // uniffi_autofill_fn_method_store_count_all_credit_cards
             FfiConverterTypeStore.lowerReceiver(this),
         )
         return handleRustResult(
@@ -2789,7 +4945,7 @@ export class Store extends StoreInterface {
     async countAllPassports() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            24, // uniffi_autofill_fn_method_store_count_all_passports
+            63, // uniffi_autofill_fn_method_store_count_all_passports
             FfiConverterTypeStore.lowerReceiver(this),
         )
         return handleRustResult(
@@ -2809,13 +4965,55 @@ export class Store extends StoreInterface {
        
         FfiConverterString.checkType(guid);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            25, // uniffi_autofill_fn_method_store_delete_address
+            64, // uniffi_autofill_fn_method_store_delete_address
             FfiConverterTypeStore.lowerReceiver(this),
             FfiConverterString.lower(guid),
         )
         return handleRustResult(
             result,
             FfiConverterBoolean.lift.bind(FfiConverterBoolean),
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * Removes every address and every address tombstone.
+     * 
+     * A migration primitive: it leaves the sync mirror intact and produces no
+     * tombstones, so the deletions are never uploaded and a synced profile gets
+     * the records back on the next sync. Use `delete_address` to delete on the
+     * user's behalf.
+     */
+    async deleteAllAddresses() {
+       
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            65, // uniffi_autofill_fn_method_store_delete_all_addresses
+            FfiConverterTypeStore.lowerReceiver(this),
+        )
+        return handleRustResult(
+            result,
+            (result) => undefined,
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * Removes every credit card and every credit card tombstone.
+     * 
+     * A migration primitive: it leaves the sync mirror intact and produces no
+     * tombstones, so the deletions are never uploaded and a synced profile gets
+     * the records back on the next sync. Use `delete_credit_card` to delete on the
+     * user's behalf.
+     */
+    async deleteAllCreditCards() {
+       
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            66, // uniffi_autofill_fn_method_store_delete_all_credit_cards
+            FfiConverterTypeStore.lowerReceiver(this),
+        )
+        return handleRustResult(
+            result,
+            (result) => undefined,
             FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
         )
     }
@@ -2830,7 +5028,7 @@ export class Store extends StoreInterface {
        
         FfiConverterString.checkType(guid);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            26, // uniffi_autofill_fn_method_store_delete_credit_card
+            67, // uniffi_autofill_fn_method_store_delete_credit_card
             FfiConverterTypeStore.lowerReceiver(this),
             FfiConverterString.lower(guid),
         )
@@ -2851,7 +5049,7 @@ export class Store extends StoreInterface {
        
         FfiConverterString.checkType(guid);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            27, // uniffi_autofill_fn_method_store_delete_passport
+            68, // uniffi_autofill_fn_method_store_delete_passport
             FfiConverterTypeStore.lowerReceiver(this),
             FfiConverterString.lower(guid),
         )
@@ -2872,7 +5070,7 @@ export class Store extends StoreInterface {
        
         FfiConverterString.checkType(guid);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            28, // uniffi_autofill_fn_method_store_get_address
+            69, // uniffi_autofill_fn_method_store_get_address
             FfiConverterTypeStore.lowerReceiver(this),
             FfiConverterString.lower(guid),
         )
@@ -2890,7 +5088,7 @@ export class Store extends StoreInterface {
     async getAllAddresses() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            29, // uniffi_autofill_fn_method_store_get_all_addresses
+            70, // uniffi_autofill_fn_method_store_get_all_addresses
             FfiConverterTypeStore.lowerReceiver(this),
         )
         return handleRustResult(
@@ -2907,7 +5105,7 @@ export class Store extends StoreInterface {
     async getAllCreditCards() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            30, // uniffi_autofill_fn_method_store_get_all_credit_cards
+            71, // uniffi_autofill_fn_method_store_get_all_credit_cards
             FfiConverterTypeStore.lowerReceiver(this),
         )
         return handleRustResult(
@@ -2924,7 +5122,7 @@ export class Store extends StoreInterface {
     async getAllPassports() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            31, // uniffi_autofill_fn_method_store_get_all_passports
+            72, // uniffi_autofill_fn_method_store_get_all_passports
             FfiConverterTypeStore.lowerReceiver(this),
         )
         return handleRustResult(
@@ -2944,7 +5142,7 @@ export class Store extends StoreInterface {
        
         FfiConverterString.checkType(guid);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            32, // uniffi_autofill_fn_method_store_get_credit_card
+            73, // uniffi_autofill_fn_method_store_get_credit_card
             FfiConverterTypeStore.lowerReceiver(this),
             FfiConverterString.lower(guid),
         )
@@ -2965,7 +5163,7 @@ export class Store extends StoreInterface {
        
         FfiConverterString.checkType(guid);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            33, // uniffi_autofill_fn_method_store_get_passport
+            74, // uniffi_autofill_fn_method_store_get_passport
             FfiConverterTypeStore.lowerReceiver(this),
             FfiConverterString.lower(guid),
         )
@@ -2982,7 +5180,7 @@ export class Store extends StoreInterface {
     async registerWithSyncManager() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            34, // uniffi_autofill_fn_method_store_register_with_sync_manager
+            75, // uniffi_autofill_fn_method_store_register_with_sync_manager
             FfiConverterTypeStore.lowerReceiver(this),
         )
         return handleRustResult(
@@ -3001,7 +5199,7 @@ export class Store extends StoreInterface {
     async runMaintenance() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            35, // uniffi_autofill_fn_method_store_run_maintenance
+            76, // uniffi_autofill_fn_method_store_run_maintenance
             FfiConverterTypeStore.lowerReceiver(this),
         )
         return handleRustResult(
@@ -3017,7 +5215,7 @@ export class Store extends StoreInterface {
     async scrubEncryptedData() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            36, // uniffi_autofill_fn_method_store_scrub_encrypted_data
+            77, // uniffi_autofill_fn_method_store_scrub_encrypted_data
             FfiConverterTypeStore.lowerReceiver(this),
         )
         return handleRustResult(
@@ -3042,7 +5240,7 @@ export class Store extends StoreInterface {
        
         FfiConverterString.checkType(localEncryptionKey);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            37, // uniffi_autofill_fn_method_store_scrub_undecryptable_credit_card_data_for_remote_replacement
+            78, // uniffi_autofill_fn_method_store_scrub_undecryptable_credit_card_data_for_remote_replacement
             FfiConverterTypeStore.lowerReceiver(this),
             FfiConverterString.lower(localEncryptionKey),
         )
@@ -3050,6 +5248,22 @@ export class Store extends StoreInterface {
             result,
             FfiConverterTypeCreditCardsDeletionMetrics.lift.bind(FfiConverterTypeCreditCardsDeletionMetrics),
             FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * shutdown
+     */
+    async shutdown() {
+       
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            79, // uniffi_autofill_fn_method_store_shutdown
+            FfiConverterTypeStore.lowerReceiver(this),
+        )
+        return handleRustResult(
+            result,
+            (result) => undefined,
+            null,
         )
     }
 
@@ -3062,7 +5276,7 @@ export class Store extends StoreInterface {
        
         FfiConverterString.checkType(guid);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            38, // uniffi_autofill_fn_method_store_touch_address
+            80, // uniffi_autofill_fn_method_store_touch_address
             FfiConverterTypeStore.lowerReceiver(this),
             FfiConverterString.lower(guid),
         )
@@ -3082,7 +5296,7 @@ export class Store extends StoreInterface {
        
         FfiConverterString.checkType(guid);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            39, // uniffi_autofill_fn_method_store_touch_credit_card
+            81, // uniffi_autofill_fn_method_store_touch_credit_card
             FfiConverterTypeStore.lowerReceiver(this),
             FfiConverterString.lower(guid),
         )
@@ -3102,7 +5316,7 @@ export class Store extends StoreInterface {
        
         FfiConverterString.checkType(guid);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            40, // uniffi_autofill_fn_method_store_touch_passport
+            82, // uniffi_autofill_fn_method_store_touch_passport
             FfiConverterTypeStore.lowerReceiver(this),
             FfiConverterString.lower(guid),
         )
@@ -3125,10 +5339,30 @@ export class Store extends StoreInterface {
         FfiConverterString.checkType(guid);
         FfiConverterTypeUpdatableAddressFields.checkType(a);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            41, // uniffi_autofill_fn_method_store_update_address
+            83, // uniffi_autofill_fn_method_store_update_address
             FfiConverterTypeStore.lowerReceiver(this),
             FfiConverterString.lower(guid),
             FfiConverterTypeUpdatableAddressFields.lower(a),
+        )
+        return handleRustResult(
+            result,
+            (result) => undefined,
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * updateAddressWithMeta
+     * @param {UpdatableAddressFieldsWithMeta} entryWithMeta
+     */
+    async updateAddressWithMeta(
+        entryWithMeta) {
+       
+        FfiConverterTypeUpdatableAddressFieldsWithMeta.checkType(entryWithMeta);
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            84, // uniffi_autofill_fn_method_store_update_address_with_meta
+            FfiConverterTypeStore.lowerReceiver(this),
+            FfiConverterTypeUpdatableAddressFieldsWithMeta.lower(entryWithMeta),
         )
         return handleRustResult(
             result,
@@ -3149,10 +5383,30 @@ export class Store extends StoreInterface {
         FfiConverterString.checkType(guid);
         FfiConverterTypeUpdatableCreditCardFields.checkType(cc);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            42, // uniffi_autofill_fn_method_store_update_credit_card
+            85, // uniffi_autofill_fn_method_store_update_credit_card
             FfiConverterTypeStore.lowerReceiver(this),
             FfiConverterString.lower(guid),
             FfiConverterTypeUpdatableCreditCardFields.lower(cc),
+        )
+        return handleRustResult(
+            result,
+            (result) => undefined,
+            FfiConverterTypeAutofillApiError.lift.bind(FfiConverterTypeAutofillApiError),
+        )
+    }
+
+    /**
+     * updateCreditCardWithMeta
+     * @param {UpdatableCreditCardFieldsWithMeta} entryWithMeta
+     */
+    async updateCreditCardWithMeta(
+        entryWithMeta) {
+       
+        FfiConverterTypeUpdatableCreditCardFieldsWithMeta.checkType(entryWithMeta);
+        const result = await UniFFIScaffolding.callAsyncWrapper(
+            86, // uniffi_autofill_fn_method_store_update_credit_card_with_meta
+            FfiConverterTypeStore.lowerReceiver(this),
+            FfiConverterTypeUpdatableCreditCardFieldsWithMeta.lower(entryWithMeta),
         )
         return handleRustResult(
             result,
@@ -3173,7 +5427,7 @@ export class Store extends StoreInterface {
         FfiConverterString.checkType(guid);
         FfiConverterTypeUpdatablePassportFields.checkType(p);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            43, // uniffi_autofill_fn_method_store_update_passport
+            87, // uniffi_autofill_fn_method_store_update_passport
             FfiConverterTypeStore.lowerReceiver(this),
             FfiConverterString.lower(guid),
             FfiConverterTypeUpdatablePassportFields.lower(p),
@@ -3220,6 +5474,4 @@ export class FfiConverterTypeStore extends FfiConverter {
         return 8;
     }
 }
-
-
 

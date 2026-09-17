@@ -37,6 +37,7 @@
 #include "mozilla/dom/BrowserParent.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/MaybeDiscarded.h"
+#include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/dom/network/TCPServerSocketParent.h"
 #include "mozilla/dom/network/TCPSocketParent.h"
 #include "mozilla/dom/network/UDPSocketParent.h"
@@ -67,6 +68,10 @@ using mozilla::ipc::LoadInfoArgsToLoadInfo;
 using mozilla::ipc::PrincipalInfo;
 #ifdef MOZ_PLACES
 using mozilla::places::PageIconProtocolHandler;
+#endif
+
+#ifdef MOZ_THUNDERBIRD
+#  include "MailMessageParent.h"
 #endif
 
 namespace mozilla {
@@ -258,7 +263,7 @@ PAltDataOutputStreamParent* NeckoParent::AllocPAltDataOutputStreamParent(
                                            getter_AddRefs(stream));
   } else {
     CacheEntryWriteHandleParent* h =
-        static_cast<CacheEntryWriteHandleParent*>(handle->get());
+        mozilla::ipc::ActorCast<CacheEntryWriteHandleParent>(handle->get());
     rv = h->OpenAlternativeOutputStream(type, predictedSize,
                                         getter_AddRefs(stream));
   }
@@ -273,7 +278,7 @@ PAltDataOutputStreamParent* NeckoParent::AllocPAltDataOutputStreamParent(
 bool NeckoParent::DeallocPAltDataOutputStreamParent(
     PAltDataOutputStreamParent* aActor) {
   AltDataOutputStreamParent* parent =
-      static_cast<AltDataOutputStreamParent*>(aActor);
+      mozilla::ipc::ActorCast<AltDataOutputStreamParent>(aActor);
   parent->Release();
   return true;
 }
@@ -290,7 +295,8 @@ mozilla::ipc::IPCResult NeckoParent::RecvPDocumentChannelConstructor(
     PDocumentChannelParent* aActor,
     const dom::MaybeDiscarded<dom::BrowsingContext>& aContext,
     const DocumentChannelCreationArgs& aArgs) {
-  DocumentChannelParent* p = static_cast<DocumentChannelParent*>(aActor);
+  DocumentChannelParent* p =
+      mozilla::ipc::ActorCast<DocumentChannelParent>(aActor);
 
   if (aContext.IsNullOrDiscarded()) {
     (void)p->SendFailedAsyncOpen(NS_ERROR_FAILURE);
@@ -305,7 +311,8 @@ mozilla::ipc::IPCResult NeckoParent::RecvPDocumentChannelConstructor(
 }
 
 PCookieServiceParent* NeckoParent::AllocPCookieServiceParent() {
-  return new CookieServiceParent(static_cast<ContentParent*>(Manager()));
+  return new CookieServiceParent(
+      mozilla::ipc::ActorCast<ContentParent>(Manager()));
 }
 
 bool NeckoParent::DeallocPCookieServiceParent(PCookieServiceParent* cs) {
@@ -329,7 +336,8 @@ PWebSocketParent* NeckoParent::AllocPWebSocketParent(
 }
 
 bool NeckoParent::DeallocPWebSocketParent(PWebSocketParent* actor) {
-  WebSocketChannelParent* p = static_cast<WebSocketChannelParent*>(actor);
+  WebSocketChannelParent* p =
+      mozilla::ipc::ActorCast<WebSocketChannelParent>(actor);
   p->Release();
   return true;
 }
@@ -341,10 +349,26 @@ PWebSocketEventListenerParent* NeckoParent::AllocPWebSocketEventListenerParent(
   return c.forget().take();
 }
 
+mozilla::ipc::IPCResult NeckoParent::RecvPWebSocketEventListenerConstructor(
+    PWebSocketEventListenerParent* aActor, const uint64_t& aInnerWindowID) {
+  RefPtr<dom::WindowGlobalParent> wgp =
+      dom::WindowGlobalParent::GetByInnerWindowId(aInnerWindowID);
+  if (wgp && wgp->GetContentParent() == ContentParent::Cast(Manager())) {
+    return IPC_OK();
+  }
+
+  if (wgp) {
+    return IPC_FAIL(this, "Invalid aInnerWindowID");
+  }
+
+  (void)PWebSocketEventListenerParent::Send__delete__(aActor);
+  return IPC_OK();
+}
+
 bool NeckoParent::DeallocPWebSocketEventListenerParent(
     PWebSocketEventListenerParent* aActor) {
-  RefPtr<WebSocketEventListenerParent> c =
-      dont_AddRef(static_cast<WebSocketEventListenerParent*>(aActor));
+  RefPtr<WebSocketEventListenerParent> c = dont_AddRef(
+      mozilla::ipc::ActorCast<WebSocketEventListenerParent>(aActor));
   MOZ_ASSERT(c);
   return true;
 }
@@ -476,7 +500,8 @@ mozilla::ipc::IPCResult NeckoParent::RecvPDNSRequestConstructor(
     return IPC_FAIL(this, "Content process should not specify TRR server");
   }
 
-  RefPtr<DNSRequestParent> actor = static_cast<DNSRequestParent*>(aActor);
+  RefPtr<DNSRequestParent> actor =
+      mozilla::ipc::ActorCast<DNSRequestParent>(aActor);
   RefPtr<DNSRequestHandler> handler =
       actor->GetDNSRequest()->AsDNSRequestHandler();
   handler->DoAsyncResolve(aHost, aTrrServer, aPort, aType, aOriginAttributes,
@@ -733,20 +758,22 @@ mozilla::ipc::IPCResult NeckoParent::RecvEnsureHSTSData(
 mozilla::ipc::IPCResult NeckoParent::RecvGetPageThumbStream(
     nsIURI* aURI, const LoadInfoArgs& aLoadInfoArgs,
     GetPageThumbStreamResolver&& aResolver) {
+  const dom::RemoteType& remoteType =
+      ContentParent::Cast(Manager())->GetRemoteType();
+
   // Only the privileged about content process is allowed to access
   // things over the moz-page-thumb protocol. Any other content process
   // that tries to send this should have been blocked via the
   // ScriptSecurityManager, but if somehow the process has been tricked into
   // sending this message, we send IPC_FAIL in order to crash that
   // likely-compromised content process.
-  if (static_cast<ContentParent*>(Manager())->GetRemoteType() !=
-      PRIVILEGEDABOUT_REMOTE_TYPE) {
+  if (!remoteType.IsPrivilegedAbout()) {
     return IPC_FAIL(this, "Wrong process type");
   }
 
   nsCOMPtr<nsILoadInfo> loadInfo;
-  nsresult rv = mozilla::ipc::LoadInfoArgsToLoadInfo(
-      aLoadInfoArgs, PRIVILEGEDABOUT_REMOTE_TYPE, getter_AddRefs(loadInfo));
+  nsresult rv = mozilla::ipc::LoadInfoArgsToLoadInfo(aLoadInfoArgs, remoteType,
+                                                     getter_AddRefs(loadInfo));
   if (NS_FAILED(rv)) {
     return IPC_FAIL(this, "moz-page-thumb request must include loadInfo");
   }
@@ -785,20 +812,22 @@ mozilla::ipc::IPCResult NeckoParent::RecvGetPageThumbStream(
 mozilla::ipc::IPCResult NeckoParent::RecvGetMozNewTabWallpaperStream(
     nsIURI* aURI, const LoadInfoArgs& aLoadInfoArgs,
     GetMozNewTabWallpaperStreamResolver&& aResolver) {
+  const dom::RemoteType& remoteType =
+      ContentParent::Cast(Manager())->GetRemoteType();
+
   // Only the privileged about content process is allowed to access
   // things over the moz-newtab-wallpaper protocol. Any other content process
   // that tries to send this should have been blocked via the
   // ScriptSecurityManager, but if somehow the process has been tricked into
   // sending this message, we send IPC_FAIL in order to crash that
   // likely-compromised content process.
-  if (static_cast<ContentParent*>(Manager())->GetRemoteType() !=
-      PRIVILEGEDABOUT_REMOTE_TYPE) {
+  if (!remoteType.IsPrivilegedAbout()) {
     return IPC_FAIL(this, "Wrong process type");
   }
 
   nsCOMPtr<nsILoadInfo> loadInfo;
-  nsresult rv = mozilla::ipc::LoadInfoArgsToLoadInfo(
-      aLoadInfoArgs, PRIVILEGEDABOUT_REMOTE_TYPE, getter_AddRefs(loadInfo));
+  nsresult rv = mozilla::ipc::LoadInfoArgsToLoadInfo(aLoadInfoArgs, remoteType,
+                                                     getter_AddRefs(loadInfo));
   if (NS_FAILED(rv)) {
     return IPC_FAIL(this, "moz-newtab-wallpaper request must include loadInfo");
   }
@@ -835,11 +864,21 @@ mozilla::ipc::IPCResult NeckoParent::RecvGetMozNewTabWallpaperStream(
   return IPC_OK();
 }
 
+#ifdef MOZ_THUNDERBIRD
+mozilla::ipc::IPCResult NeckoParent::RecvGetMailMessageStream(
+    nsIURI* aURI, const LoadInfoArgs& aLoadInfoArgs,
+    GetMailMessageStreamResolver&& aResolve) {
+  return MailMessageParent::RecvGetMailMessageStream(
+      aURI, aLoadInfoArgs,
+      std::forward<GetMailMessageStreamResolver>(aResolve));
+}
+#endif
+
 mozilla::ipc::IPCResult NeckoParent::RecvGetPageIconStream(
     nsIURI* aURI, const LoadInfoArgs& aLoadInfoArgs,
     GetPageIconStreamResolver&& aResolver) {
 #ifdef MOZ_PLACES
-  const nsACString& remoteType =
+  const dom::RemoteType& remoteType =
       ContentParent::Cast(Manager())->GetRemoteType();
 
   // Only the privileged about content process is allowed to access
@@ -848,7 +887,7 @@ mozilla::ipc::IPCResult NeckoParent::RecvGetPageIconStream(
   // ScriptSecurityManager, but if somehow the process has been tricked into
   // sending this message, we send IPC_FAIL in order to crash that
   // likely-compromised content process.
-  if (remoteType != PRIVILEGEDABOUT_REMOTE_TYPE) {
+  if (!remoteType.IsPrivilegedAbout()) {
     return IPC_FAIL(this, "Wrong process type");
   }
 

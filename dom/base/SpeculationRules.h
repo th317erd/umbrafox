@@ -6,15 +6,23 @@
 #define mozilla_dom_SpeculationRules_h
 
 #include "mozilla/UniquePtr.h"
+#include "mozilla/dom/speculationrules_ffi_generated.h"
+#include "nsCOMPtr.h"
 #include "nsClassHashtable.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsHashKeys.h"
+#include "nsTArrayForwardDeclare.h"
+#include "nsTHashSet.h"
 
+class nsIContent;
 class nsIScriptElement;
+class nsITimer;
+class nsIURI;
 
 namespace mozilla::dom {
 
 class Document;
+class Element;
 class SpeculationRuleSet;
 
 class SpeculationRules final {
@@ -31,8 +39,30 @@ class SpeculationRules final {
   void ConsiderLoads();
   void InnerConsiderLoads();
 
+  void AddLink(Element* aElement) { mLinks.Insert(aElement); }
+  void RemoveLink(Element* aElement) { mLinks.Remove(aElement); }
+
+  void FindMatchingLinks(nsTArray<const Element*>& aLinks);
+
+  void HoverContentChanged(nsIContent* aContent);
+
  private:
-  virtual ~SpeculationRules() = default;
+  virtual ~SpeculationRules();
+
+  // The innermost inclusive flat tree ancestor of aContent that is a link this
+  // document is tracking, or nullptr if there is none.
+  Element* FindInterestedLink(nsIContent* aContent) const;
+
+  // https://html.spec.whatwg.org/#inner-consider-speculative-loads-steps
+  // Step 7, for those candidate groups that the user's behaviour has shown to
+  // be eager enough. A group is enacted if it is at least as eager as
+  // aTriggerLevel and, when aURL is non-null, is for that URL. Only the least
+  // eager qualifying group per URL is enacted, as it is the one whose tags were
+  // collected from every candidate the user's behaviour justifies.
+  void EnactCandidates(nsIURI* aURL, Eagerness aTriggerLevel);
+
+  void CancelHoverTimer();
+  static void HoverTimerFired(nsITimer* aTimer, void* aClosure);
 
   RefPtr<Document> mDocument;
 
@@ -42,6 +72,24 @@ class SpeculationRules final {
 
   // https://html.spec.whatwg.org/#consider-speculative-loads-microtask-queued
   bool mConsiderSpeculativeLoadsMicrotaskQueued{false};
+
+  // The set of HTML <a> and <area> elements with an href attribute that are
+  // connected to this document. This is tracked so FindMatchingLinks doesn't
+  // have to walk the document tree every time speculative loads are considered.
+  // These are non-owning pointers; the elements should remove themselves when
+  // they are unbound from the document or lose their href attribute.
+  nsTHashSet<Element*> mLinks;
+
+  // https://html.spec.whatwg.org/#speculative-load-candidate-group
+  // The representative candidate of each group produced by the last run of
+  // InnerConsiderLoads. Immediate groups have already been enacted; the rest
+  // are kept so a later signal of user interest can enact them.
+  nsTArray<PrefetchCandidate> mCandidateGroups;
+
+  // The link the hover timer is waiting on. Owning, as nothing else keeps the
+  // element alive for the duration of the timer.
+  RefPtr<Element> mHoverLink;
+  nsCOMPtr<nsITimer> mHoverTimer;
 };
 
 }  // namespace mozilla::dom

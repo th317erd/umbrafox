@@ -10,6 +10,7 @@ task-defaults:
     worker:
         max-run-time: 1800
     run:
+        clone-with: hg
         script: repack-node.sh
         toolchain-artifact: public/build/node.tar.zst
 
@@ -36,7 +37,7 @@ linux64-node-22:
             - nodejs-22-source
         toolchain:
             - linux64-gcc-11
-            - linux64-toolchain-sysroot-gcc10
+            - linux64-toolchain-sysroot-gcc11
 
 linux64-node-24:
     treeherder:

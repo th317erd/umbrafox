@@ -29,6 +29,7 @@
 #include "vm/JSFunction.h"
 #include "vm/JSObject.h"
 #include "vm/JSScript.h"
+#include "vm/Stack.h"  // js::ResumeFrameArgs
 #include "wasm/WasmBuiltins.h"
 #include "wasm/WasmInstance.h"
 
@@ -215,9 +216,7 @@ static bool ShouldBailoutForDebugger(JSContext* cx,
 
 static void OnLeaveIonFrame(JSContext* cx, const InlineFrameIterator& frame,
                             ResumeFromException* rfe) {
-  bool returnFromThisFrame =
-      cx->isPropagatingForcedReturn() || cx->isClosingGenerator();
-  if (!returnFromThisFrame) {
+  if (!cx->isPropagatingForcedReturn()) {
     return;
   }
 
@@ -234,11 +233,7 @@ static void OnLeaveIonFrame(JSContext* cx, const InlineFrameIterator& frame,
 
   MOZ_ASSERT(!frame.more());
 
-  if (cx->isClosingGenerator()) {
-    HandleClosingGeneratorReturn(cx, rematFrame, /*frameOk=*/true);
-  } else {
-    cx->clearPropagatingForcedReturn();
-  }
+  cx->clearPropagatingForcedReturn();
 
   Value& rval = rematFrame->returnValue();
   MOZ_RELEASE_ASSERT(!rval.isMagic());
@@ -258,6 +253,22 @@ static void OnLeaveIonFrame(JSContext* cx, const InlineFrameIterator& frame,
 static void HandleExceptionIon(JSContext* cx, const InlineFrameIterator& frame,
                                ResumeFromException* rfe,
                                bool* hitBailoutException) {
+  // A frame that's still mid-generator-resume must not handle the exception
+  // here. JSOp::AfterYield hasn't run, so the expression stack slots aren't
+  // restored yet and CloseLiveIteratorIon below would read them from the
+  // snapshot, and the environment chain is still the suspended generator's so
+  // it must not be unwound. Pop the frame and keep propagating, like
+  // HandleExceptionBaseline does.
+  //
+  // Only resource errors get here: the overrecursion check in the resume
+  // prologue, which no try note covers, and OOM from instructions LICM hoisted
+  // into a loop's resume merge block. The latter does skip the generator's own
+  // try/catch blocks, but OOM is implementation-defined so that's acceptable.
+  if (frame.frame().jsFrame()->isResumingGenerator()) {
+    MOZ_ASSERT(!frame.more(), "the resume path has no calls to inline");
+    return;
+  }
+
   if (ShouldBailoutForDebugger(cx, frame, *hitBailoutException)) {
     // We do the following:
     //
@@ -292,11 +303,6 @@ static void HandleExceptionIon(JSContext* cx, const InlineFrameIterator& frame,
         break;
 
       case TryNoteKind::Catch:
-        // If we're closing a generator, we have to skip catch blocks.
-        if (cx->isClosingGenerator()) {
-          break;
-        }
-
         if (cx->isExceptionPending()) {
           // Ion can compile try-catch, but bailing out to catch
           // exceptions is slow. Reset the warm-up counter so that if we
@@ -371,8 +377,6 @@ static void HandleExceptionIon(JSContext* cx, const InlineFrameIterator& frame,
       case TryNoteKind::Loop:
         break;
 
-      // TryNoteKind::ForOfIterclose is handled internally by the try note
-      // iterator.
       default:
         MOZ_CRASH("Unexpected try note");
     }
@@ -489,11 +493,6 @@ static bool ProcessTryNotesBaseline(JSContext* cx, const JSJitFrameIter& frame,
     MOZ_ASSERT(cx->isExceptionPending());
     switch (tn->kind()) {
       case TryNoteKind::Catch: {
-        // If we're closing a generator, we have to skip catch blocks.
-        if (cx->isClosingGenerator()) {
-          break;
-        }
-
         SettleOnTryNote(cx, tn, frame, ei, rfe, pc);
 
         // Ion can compile try-catch, but bailing out to catch
@@ -574,8 +573,6 @@ static bool ProcessTryNotesBaseline(JSContext* cx, const JSJitFrameIter& frame,
       case TryNoteKind::Loop:
         break;
 
-      // TryNoteKind::ForOfIterClose is handled internally by the try note
-      // iterator.
       default:
         MOZ_CRASH("Invalid try note");
     }
@@ -591,6 +588,18 @@ static void HandleExceptionBaseline(JSContext* cx, JSJitFrameIter& frame,
 
   jsbytecode* pc;
   frame.baselineScriptAndPc(nullptr, &pc);
+
+  if (frame.baselineFrame()->isResumingGenerator()) {
+    // We're in the generator-resume prologue and JSOp::AfterYield hasn't run
+    // yet. The only fallible operation in the prologue is the overrecursion
+    // check. The debugger hasn't been told about this resume (that happens at
+    // JSOp::AfterYield) and the environment chain is the suspended generator's
+    // environment, so it must not be unwound here. Just pop the frame.
+    MOZ_ASSERT(pc == frame.baselineFrame()->script()->code());
+    EnsureUnwoundJitExitFrame(cx->activation()->asJit(),
+                              frame.baselineFrame()->framePrefix());
+    return;
+  }
 
   // Ensure the BaselineFrame is an interpreter frame. This is easy to do and
   // simplifies the code below and interaction with DebugModeOSR.
@@ -632,16 +641,14 @@ static void HandleExceptionBaseline(JSContext* cx, JSJitFrameIter& frame,
 
 again:
   if (cx->isExceptionPending()) {
-    if (!cx->isClosingGenerator()) {
-      if (!DebugAPI::onExceptionUnwind(cx, frame.baselineFrame())) {
-        if (!cx->isExceptionPending()) {
-          goto again;
-        }
+    if (!DebugAPI::onExceptionUnwind(cx, frame.baselineFrame())) {
+      if (!cx->isExceptionPending()) {
+        goto again;
       }
-      // Ensure that the debugger hasn't returned 'true' while clearing the
-      // exception state.
-      MOZ_ASSERT(cx->isExceptionPending());
     }
+    // Ensure that the debugger hasn't returned 'true' while clearing the
+    // exception state.
+    MOZ_ASSERT(cx->isExceptionPending());
 
     if (hasTryNotes) {
       EnvironmentIter ei(cx, frame.baselineFrame(), pc);
@@ -655,8 +662,6 @@ again:
         return;
       }
     }
-
-    frameOk = HandleClosingGeneratorReturn(cx, frame.baselineFrame(), frameOk);
   } else {
     if (hasTryNotes) {
       CloseLiveIteratorsBaselineForUncatchableException(cx, frame, pc);
@@ -941,6 +946,14 @@ uintptr_t* JitFrameLayout::slotRef(SafepointSlotEntry where) {
   return (uintptr_t*)((uint8_t*)thisAndActualArgs() + where.slot);
 }
 
+JS::Value* JitFrameLayout::resumeArgs() {
+  MOZ_ASSERT(isResumingGenerator());
+  if (!CalleeTokenIsFunction(calleeToken())) {
+    return moduleResumeArgs();
+  }
+  return actualArgs() + CalleeTokenToFunction(calleeToken())->nargs();
+}
+
 #ifdef DEBUG
 void ExitFooterFrame::assertValidVMFunctionId() const {
   MOZ_ASSERT(data_ >= uintptr_t(ExitFrameType::VMFunction));
@@ -970,6 +983,13 @@ static void TraceThisAndArguments(JSTracer* trc, const JSJitFrameIter& frame,
   //
   // For other frames such as LazyLink frames or InterpreterStub frames, we
   // always trace all actual and formal arguments.
+
+  // If we're in the middle of resuming a generator or an async function/module,
+  // we have to trace the ResumeFrameArgs too.
+  if (layout->isResumingGenerator()) {
+    TraceRootRange(trc, ResumeFrameArgs::NumSlots, layout->resumeArgs(),
+                   "jit-resume-args");
+  }
 
   if (!CalleeTokenIsFunction(layout->calleeToken())) {
     return;
@@ -1475,6 +1495,15 @@ void TraceJitFrames(JSTracer* trc, JitActivation* activation) {
       uint8_t* nextPC = frames.resumePCinCurrentFrame();
       MOZ_ASSERT(nextPC != nullptr);
       wasm::WasmFrameIter& wasmFrameIter = frames.asWasm();
+
+      // At the start of a wasm segment, keep alive the instance owning the
+      // exit stub we entered wasm through. Forget it afterwards so we only
+      // trace it once per segment.
+      if (wasm::Instance* exitInstance = wasmFrameIter.exitInstance()) {
+        wasm::TraceInstanceEdge(trc, exitInstance,
+                                "WasmFrameIter exit instance");
+        wasmFrameIter.resetExitInstance();
+      }
 #ifdef ENABLE_WASM_JSPI
       if (wasmFrameIter.currentFrameStackSwitched()) {
         highestByteVisitedInPrevWasmFrame = 0;
@@ -1617,7 +1646,6 @@ RInstructionResults& RInstructionResults::operator=(RInstructionResults&& rhs) {
 }
 
 // results_ is freed by the UniquePtr.
-RInstructionResults::~RInstructionResults() = default;
 
 bool RInstructionResults::init(JSContext* cx, uint32_t numResults) {
   if (numResults) {

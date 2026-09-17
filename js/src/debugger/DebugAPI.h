@@ -228,11 +228,8 @@ class DebugAPI {
    * There is no separate user-visible Debugger.onResumeFrame hook; this
    * fires .onEnterFrame (again, since we're re-entering the frame).
    *
-   * Unfortunately, the interpreter and the baseline JIT arrange for this to
-   * be called in different ways. The interpreter calls it from JSOp::Resume,
-   * immediately after pushing the resumed frame; the JIT calls it from
-   * JSOp::AfterYield, just after the generator resumes. The difference
-   * should not be user-visible.
+   * This is called from JSOp::AfterYield, just after the generator resumes, so
+   * this also handles breakpoints/stepping for the JSOp::AfterYield op.
    */
   [[nodiscard]] static inline bool onResumeFrame(JSContext* cx,
                                                  AbstractFramePtr frame);
@@ -290,11 +287,6 @@ class DebugAPI {
 
   // Call any stepping handlers for the current scripted location.
   [[nodiscard]] static bool onSingleStep(JSContext* cx);
-
-  // Notify any Debugger instances observing this promise's global that a new
-  // promise was allocated.
-  static inline void onNewPromise(JSContext* cx,
-                                  Handle<PromiseObject*> promise);
 
   static inline void onNewGlobalObject(JSContext* cx,
                                        Handle<GlobalObject*> global);
@@ -397,8 +389,6 @@ class DebugAPI {
                                                       AbstractFramePtr frame);
   static void slowPathOnNewWasmInstance(
       JSContext* cx, Handle<WasmInstanceObject*> wasmInstance);
-  static void slowPathOnNewPromise(JSContext* cx,
-                                   Handle<PromiseObject*> promise);
   static bool inFrameMaps(AbstractFramePtr frame);
   static void slowPathTraceGeneratorFrame(JSTracer* tracer,
                                           AbstractGeneratorObject* generator);

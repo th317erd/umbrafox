@@ -40,6 +40,7 @@
 #include "vm/DateTime.h"
 #include "vm/Float16.h"
 #include "vm/FunctionFlags.h"  // js::FunctionFlags
+#include "vm/GeneratorObject.h"
 #include "vm/Iteration.h"
 #include "vm/JSContext.h"
 #include "vm/JSFunction.h"
@@ -51,6 +52,7 @@
 #include "wasm/WasmInstance.h"
 #include "wasm/WasmInstanceData.h"
 #include "wasm/WasmMemory.h"
+#include "wasm/WasmSummarizeInsn.h"
 #include "wasm/WasmTypeDef.h"
 #include "wasm/WasmValidate.h"
 
@@ -719,7 +721,11 @@ void MacroAssembler::bumpPointerAllocate(Register result, Register temp,
     Register site = allocSite.as<Register>();
     updateAllocSite(temp, result, zone, site);
     // See NurseryCellHeader::MakeValue.
-    orPtr(Imm32(int32_t(traceKind)), site);
+    static_assert(int32_t(JS::TraceKind::Object) == 0,
+                  "Object contributes no tag bits, making the OR a no-op");
+    if (traceKind != JS::TraceKind::Object) {
+      orPtr(Imm32(int32_t(traceKind)), site);
+    }
     storePtr(site, Address(result, -js::Nursery::nurseryCellHeaderSize()));
   }
 }
@@ -1418,6 +1424,80 @@ void MacroAssembler::compareStrings(JSOp op, Register left, Register right,
 
     bind(&done);
   }
+}
+
+void MacroAssembler::equalStrings(JSOp op, Register input,
+                                  const JSOffThreadAtom* str, Register result,
+                                  Label* fail) {
+  MOZ_ASSERT(IsEqualityOp(op));
+  MOZ_ASSERT(str->isAtom());
+  MOZ_ASSERT(input != result);
+
+  bool isEqual = op == JSOp::Eq || op == JSOp::StrictEq;
+  auto cond = JSOpToCondition(op, /*isSigned =*/false);
+
+  if (str->empty()) {
+    cmp32Set(cond, Address(input, JSString::offsetOfLength()), Imm32(0),
+             result);
+    return;
+  }
+
+  // If operands point to the same instance, the strings are trivially equal.
+  Label notPointerEqual, done;
+  branchPtr(Assembler::NotEqual, input, ImmGCPtr(str), &notPointerEqual);
+  {
+    move32(Imm32(isEqual), result);
+    jump(&done);
+  }
+  bind(&notPointerEqual);
+  {
+    Label setNotEqualResult;
+
+    // Atoms cannot be equal to each other if they point to different strings.
+    branchTest32(Assembler::NonZero, Address(input, JSString::offsetOfFlags()),
+                 Imm32(StringFlags::ATOM_BIT), &setNotEqualResult);
+
+    if (str->hasTwoByteChars()) {
+      // Pure two-byte strings can't be equal to Latin-1 strings.
+      JS::AutoCheckCannotGC nogc;
+      if (!mozilla::IsUtf16Latin1(str->twoByteRange(nogc))) {
+        branchLatin1String(input, &setNotEqualResult);
+      }
+    }
+
+    // Strings of different length can never be equal.
+    branch32(Assembler::NotEqual, Address(input, JSString::offsetOfLength()),
+             Imm32(str->length()), &setNotEqualResult);
+
+    Label compareChars;
+    Label* compareCharsOrFail =
+        canCompareStringCharsInline(str) ? &compareChars : fail;
+
+    Label forwardedPtrEqual;
+    tryFastAtomize(input, result, result, compareCharsOrFail);
+    {
+      // We now have two atoms. Just check pointer equality.
+      cmpPtrSet(cond, result, ImmGCPtr(str), result);
+      jump(&done);
+    }
+
+    bind(&setNotEqualResult);
+    move32(Imm32(!isEqual), result);
+
+    if (canCompareStringCharsInline(str)) {
+      jump(&done);
+      bind(&compareChars);
+
+      // Load the input string's characters.
+      Register stringChars = result;
+      loadStringCharsForCompare(input, str, stringChars, fail);
+
+      // Start comparing character by character.
+      compareStringChars(op, stringChars, str, result);
+    }
+  }
+
+  bind(&done);
 }
 
 void MacroAssembler::loadStringChars(Register str, Register dest,
@@ -3323,6 +3403,26 @@ void MacroAssembler::emitMegamorphicCachedSetSlot(
   // if (scratch3->generation_ != scratch2) goto cacheMiss
   branch32(Assembler::NotEqual, scratch1, scratch2, &cacheMiss);
 
+  // Preserve the wrapper if necessary. In a world without x86 we would do this
+  // below in doAdd, letting us skip clearing the bit if it isn't set, but we
+  // do it here so we have enough scratch registers free.
+  Label skipPreserve;
+  Address afterShapePtr(
+      scratch3, MegamorphicSetPropCache::Entry::offsetOfTaggedAfterShape());
+  branchTestPtr(Assembler::Zero, afterShapePtr,
+                Imm32(MegamorphicSetPropCache::Entry::ShouldPreserveBit),
+                &skipPreserve);
+  {
+    // scratch1 and scratch2 are dead here. scratch3 is the cache entry.
+    LiveRegisterSet save;
+    save.set() = liveRegs.set();
+    save.takeUnchecked(scratch1);
+    save.takeUnchecked(scratch2);
+    preserveWrapper(obj, scratch1, scratch2, save);
+    branchIfFalseBool(scratch1, &cacheMiss);
+  }
+  bind(&skipPreserve);
+
   // scratch2 = entry->slotOffset()
   load32(
       Address(scratch3, MegamorphicSetPropCache::Entry::offsetOfSlotOffset()),
@@ -3330,9 +3430,6 @@ void MacroAssembler::emitMegamorphicCachedSetSlot(
 
   // scratch1 = slotOffset.offset()
   rshift32(Imm32(TaggedSlotOffset::OffsetShift), scratch2, scratch1);
-
-  Address afterShapePtr(scratch3,
-                        MegamorphicSetPropCache::Entry::offsetOfAfterShape());
 
   // if (!slotOffset.isFixedSlot()) goto dynamicSlot
   branchTest32(Assembler::Zero, scratch2,
@@ -3381,9 +3478,9 @@ void MacroAssembler::emitMegamorphicCachedSetSlot(
 
   bind(&doAdd);
   // scratch3 = entry->afterShape()
-  loadPtr(
-      Address(scratch3, MegamorphicSetPropCache::Entry::offsetOfAfterShape()),
-      scratch3);
+  loadPtr(afterShapePtr, scratch3);
+  andPtr(Imm32(~int32_t(MegamorphicSetPropCache::Entry::ShouldPreserveBit)),
+         scratch3);
 
   storeObjShape(scratch3, obj,
                 [emitPreBarrier](MacroAssembler& masm, const Address& addr) {
@@ -3764,6 +3861,64 @@ void MacroAssembler::timeClip(FloatRegister time, FloatRegister output,
   bind(&done);
 }
 
+void MacroAssembler::unpackTime(ValueOperand packedVal, Register dest,
+                                Register temp, uint32_t shiftImm,
+                                uint32_t maskImm) {
+  MOZ_ASSERT(maskImm <= INT32_MAX);
+
+#ifdef DEBUG
+  {
+    Label okValue;
+
+    branchTestDouble(Condition::Equal, packedVal, &okValue);
+    assumeUnreachable("packedTime is not a double");
+    bind(&okValue);
+  }
+#endif
+
+#ifdef JS_NUNBOX32
+  Register64 dest64(temp, dest);
+#else
+  MOZ_ASSERT(temp == InvalidReg);
+  Register64 dest64(dest);
+#endif
+
+  Register64 packedReg = packedVal.toRegister64();
+
+  if (shiftImm != 0) {
+    rshift64(Imm32(shiftImm), packedReg, dest64);
+  } else if (packedReg != dest64) {
+    move64(packedReg, dest64);
+  }
+
+  and32(Imm32(maskImm), dest);
+
+#ifdef JS_PUNBOX64
+  debugAssertCanonicalInt32(dest);
+#endif
+}
+
+void MacroAssembler::epochMilliseconds(FloatRegister seconds,
+                                       Register nanoseconds,
+                                       FloatRegister output, Register temp) {
+  // Inlined version of EpochNanoseconds::floorToMilliseconds. The
+  // C++ code uses integer arithmetic, but computing this with doubles
+  // gives identical results because all intermediate values are integers
+  // in the range ±8.64e15 and representable as doubles.
+  //
+  // |nanoseconds| is in the range [0, 999'999'999], so our unsigned division
+  // computes the same result as the signed division in the C++ code.
+
+  udiv32ByConstant(nanoseconds, 1'000'000, temp);
+
+  ScratchDoubleScope scratch(*this);
+  loadConstantDouble(1000.0, scratch);
+  mulDouble(seconds, scratch);
+
+  convertInt32ToDouble(temp, output);
+  addDouble(scratch, output);
+}
+
 void MacroAssembler::computeImplicitThis(Register env, ValueOperand output,
                                          Label* slowPath) {
   // Inline implementation of ComputeImplicitThis.
@@ -3960,42 +4115,85 @@ void MacroAssembler::generateBailoutTail(Register scratch,
     AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
     MOZ_ASSERT_IF(!IsHiddenSP(getStackPointer()),
                   !regs.has(AsRegister(getStackPointer())));
+    regs.take(scratch);
     regs.take(bailoutInfo);
+    regs.take(BailoutStubHandlerReg);
 
-    Register temp = regs.takeAny();
+    Register copyCur = regs.takeAny();
+    Register copyEnd = regs.takeAny();
+    Register stubInfo = regs.takeAny();
 
 #ifdef DEBUG
     // Assert the stack pointer points to the JitFrameLayout header. Copying
     // starts here.
     Label ok;
     loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, incomingStack)),
-            temp);
-    branchStackPtr(Assembler::Equal, temp, &ok);
+            scratch);
+    branchStackPtr(Assembler::Equal, scratch, &ok);
     assumeUnreachable("Unexpected stack pointer value");
     bind(&ok);
 #endif
 
-    Register copyCur = regs.takeAny();
-    Register copyEnd = regs.takeAny();
-
     // Copy data onto stack.
     loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, copyStackTop)),
             copyCur);
-    loadPtr(
-        Address(bailoutInfo, offsetof(BaselineBailoutInfo, copyStackBottom)),
-        copyEnd);
-    {
-      Label copyLoop;
-      Label endOfCopy;
-      bind(&copyLoop);
-      branchPtr(Assembler::BelowOrEqual, copyCur, copyEnd, &endOfCopy);
-      subPtr(Imm32(sizeof(uintptr_t)), copyCur);
-      subFromStackPtr(Imm32(sizeof(uintptr_t)));
-      loadPtr(Address(copyCur, 0), temp);
-      storePtr(temp, Address(getStackPointer(), 0));
-      jump(&copyLoop);
-      bind(&endOfCopy);
-    }
+    // Instead of directly copying the entire bailout stack in one go, we
+    // materialize the frames one at a time using calls to bailout stubs for the
+    // return addresses.
+    computeEffectiveAddress(Address(bailoutInfo, sizeof(BaselineBailoutInfo)),
+                            stubInfo);
+
+    CodeLabel bailoutStubHandler;
+    // Pin the BailoutStubHandlerReg that each bailout stub will call.
+    mov(&bailoutStubHandler, BailoutStubHandlerReg);
+
+#ifdef JS_USE_LINK_REGISTER
+    // On the first iteration into the bailout stub handler,
+    // the link register does not need to be pushed.
+    Label copyFrame;
+    jump(&copyFrame);
+#endif
+
+    bind(&bailoutStubHandler);
+    addCodeLabel(bailoutStubHandler);
+
+#ifdef JS_USE_LINK_REGISTER
+    // The call from the bailout stub to the bailout stub handler
+    // does not actually push the return address onto the stack.
+    pushReturnAddress();
+    bind(&copyFrame);
+#endif
+
+    // Bailout segment handler starts here. The baseline bailout stubs
+    // repeatedly call into this to push the return address and begin
+    // copying the next frame on the stack.
+    loadPtr(Address(stubInfo, offsetof(BailoutStubInfo, frameBoundary)),
+            copyEnd);
+
+    Label copyLoop;
+    Label endOfCopy;
+    bind(&copyLoop);
+    branchStackPtr(Assembler::BelowOrEqual, copyEnd, &endOfCopy);
+    subPtr(Imm32(sizeof(uintptr_t)), copyCur);
+    subFromStackPtr(Imm32(sizeof(uintptr_t)));
+    loadPtr(Address(copyCur, 0), scratch);
+    storePtr(scratch, Address(getStackPointer(), 0));
+    jump(&copyLoop);
+
+    bind(&endOfCopy);
+    // all of the frame's contents have been copied except the return address.
+    loadPtr(Address(stubInfo, offsetof(BailoutStubInfo, bailoutStub)), scratch);
+    // move to the next bailout stub info.
+    addPtr(Imm32(sizeof(BailoutStubInfo)), stubInfo);
+    Label copyDone;
+    // A null stubAddr marks the final stack boundary.
+    branchTestPtr(Assembler::Zero, scratch, scratch, &copyDone);
+
+    // The call in each bailout stub recreates the return address skipped here.
+    subPtr(Imm32(sizeof(uintptr_t)), copyCur);
+    jump(scratch);
+
+    bind(&copyDone);
 
     loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeFramePtr)),
             FramePointer);
@@ -4013,7 +4211,7 @@ void MacroAssembler::generateBailoutTail(Register scratch,
 
     // Call a stub to free allocated memory and create arguments objects.
     using Fn = bool (*)(BaselineBailoutInfo* bailoutInfoArg);
-    setupUnalignedABICall(temp);
+    setupUnalignedABICall(scratch);
     passABIArg(bailoutInfo);
     callWithABI<Fn, FinishBailoutToBaseline>(
         ABIType::General, CheckUnsafeCallWithABI::DontCheckHasExitFrame);
@@ -4059,10 +4257,9 @@ void MacroAssembler::loadJitCodeRaw(Register func, Register dest) {
 
 void MacroAssembler::loadJitCodeRawNoIon(Register func, Register dest,
                                          Register scratch) {
-  // This is used when calling a trial-inlined script using a private
-  // ICScript to collect callsite-specific CacheIR. Ion doesn't use
-  // the baseline ICScript, so we want to enter at the highest
-  // available non-Ion tier.
+  // Enter at the highest available non-Ion tier. This is used for trial-inlined
+  // scripts, because Ion doesn't use the private ICScript, and for Throw and
+  // Return generator resumes.
 
   Label useJitCodeRaw, done;
   loadPrivate(Address(func, JSFunction::offsetOfJitInfoOrScript()), dest);
@@ -4096,10 +4293,8 @@ void MacroAssembler::loadJitCodeRawNoIon(Register func, Register dest,
 }
 
 void MacroAssembler::loadBaselineFramePtr(Register framePtr, Register dest) {
-  if (framePtr != dest) {
-    movePtr(framePtr, dest);
-  }
-  subPtr(Imm32(BaselineFrame::Size()), dest);
+  computeEffectiveAddress(Address(framePtr, -int32_t(BaselineFrame::Size())),
+                          dest);
 }
 
 void MacroAssembler::handleFailure() {
@@ -4577,8 +4772,7 @@ MacroAssembler::AutoProfilerCallInstrumentation::
 
   Register reg = CallTempReg0;
   Register reg2 = CallTempReg1;
-  masm.push(reg);
-  masm.push(reg2);
+  masm.pushRegs(reg, reg2);
 
   CodeOffset label = masm.movWithPatch(ImmWord(uintptr_t(-1)), reg);
   masm.loadJSContext(reg2);
@@ -4588,8 +4782,7 @@ MacroAssembler::AutoProfilerCallInstrumentation::
 
   masm.appendProfilerCallSite(label);
 
-  masm.pop(reg2);
-  masm.pop(reg);
+  masm.popRegs(reg2, reg);
 }
 
 void MacroAssembler::linkProfilerCallSites(JitCode* code) {
@@ -4602,7 +4795,8 @@ void MacroAssembler::linkProfilerCallSites(JitCode* code) {
 }
 
 void MacroAssembler::alignJitStackBasedOnNArgs(Register nargs,
-                                               bool countIncludesThis) {
+                                               bool countIncludesThis,
+                                               uint32_t extraArgs) {
   // The stack should already be aligned to the size of a value.
   assertStackAlignment(sizeof(Value), 0);
 
@@ -4629,11 +4823,13 @@ void MacroAssembler::alignJitStackBasedOnNArgs(Register nargs,
   // This implies that |argN| must be aligned if N is even,
   // and offset by |sizeof(Value)| if N is odd.
 
-  // Depending on the context of the caller, it may be easier to pass in a
-  // register that has already been modified to include |this|. If that is the
-  // case, we want to flip the direction of the test.
+  // Only the parity of the total number of pushed Values matters. |staticArgs|
+  // is the number of Values pushed in addition to |nargs| and is known at
+  // compile time, so the total is odd iff |nargs| and |staticArgs| have a
+  // different parity. Branch to |alignmentIsOffset| in that case.
+  uint32_t staticArgs = extraArgs + !countIncludesThis;
   Assembler::Condition condition =
-      countIncludesThis ? Assembler::NonZero : Assembler::Zero;
+      (staticArgs % 2) == 0 ? Assembler::NonZero : Assembler::Zero;
 
   Label alignmentIsOffset, end;
   branchTestPtr(condition, nargs, Imm32(1), &alignmentIsOffset);
@@ -4656,6 +4852,10 @@ void MacroAssembler::alignJitStackBasedOnNArgs(Register nargs,
 
 void MacroAssembler::alignJitStackBasedOnNArgs(uint32_t argc,
                                                bool countIncludesThis) {
+  alignJitStackBasedOnNumValues(argc + !countIncludesThis);
+}
+
+void MacroAssembler::alignJitStackBasedOnNumValues(uint32_t numValues) {
   // The stack should already be aligned to the size of a value.
   assertStackAlignment(sizeof(Value), 0);
 
@@ -4666,8 +4866,7 @@ void MacroAssembler::alignJitStackBasedOnNArgs(uint32_t argc,
   }
 
   // See above for full explanation.
-  uint32_t nArgs = argc + !countIncludesThis;
-  if (nArgs % 2 == 0) {
+  if (numValues % 2 == 0) {
     // |argN| should be 16-byte aligned
     andToStackPtr(Imm32(~(JitStackAlignment - 1)));
   } else {
@@ -5356,6 +5555,39 @@ void MacroAssembler::powPtr(Register base, Register power, Register dest,
   bind(&done);
 }
 
+void MacroAssembler::modDoubleIntegerFastPath(
+    FloatRegister lhs, FloatRegister rhs, FloatRegister output, Register temp1,
+    Register temp2, const LiveRegisterSet& volatileLiveRegs, Label* fail) {
+  MOZ_ASSERT(temp1 != temp2);
+
+  // Bail out unless both operands are integer-valued and in range.
+  //
+  // convertDoubleToPtr does a convert-and-round-trip check, and will fail
+  // for any double that isn't exactly representable in a signed intptr_t:
+  //
+  // On 32-bit platforms that means anything outside the Int32 range falls
+  // through to the generic path.
+  convertDoubleToPtr(rhs, temp2, fail, /* negativeZeroCheck = */ false);
+
+  // Reject a zero divisor (gives NaN) and a -1 divisor.
+  branchTestPtr(Assembler::Zero, temp2, temp2, fail);
+  branchPtr(Assembler::Equal, temp2, Imm32(-1), fail);
+
+  convertDoubleToPtr(lhs, temp1, fail, /* negativeZeroCheck = */ false);
+
+  flexibleRemainderPtr(temp1, temp2, temp2, /* isUnsigned = */ false,
+                       volatileLiveRegs);
+
+  // The exact remainder of two integer-valued doubles is itself always
+  // representable as a double, so this conversion never rounds.
+  convertIntPtrToDouble(temp2, output);
+
+  // The remainder always takes the sign of the dividend, so copying the sign is
+  // a no-op for a non-zero remainder and produces -0 for a zero remainder with
+  // a negative dividend.
+  copySignDouble(output, lhs, output);
+}
+
 void MacroAssembler::signInt32(Register input, Register output) {
   MOZ_ASSERT(input != output);
 
@@ -5433,13 +5665,11 @@ void MacroAssembler::randomDouble(Register rng, FloatRegister dest,
   load64(state0Addr, s1Reg);
 
   // s1 ^= s1 << 23;
-  move64(s1Reg, s0Reg);
-  lshift64(Imm32(23), s1Reg);
+  lshift64(Imm32(23), s1Reg, s0Reg);
   xor64(s0Reg, s1Reg);
 
   // s1 ^= s1 >> 17
-  move64(s1Reg, s0Reg);
-  rshift64(Imm32(17), s1Reg);
+  rshift64(Imm32(17), s1Reg, s0Reg);
   xor64(s0Reg, s1Reg);
 
   // const uint64_t s0 = mState[1];
@@ -5970,6 +6200,22 @@ void MacroAssembler::branchIfObjectNotExtensible(Register obj, Register scratch,
                Imm32(uint32_t(ObjectFlag::NotExtensible)), label);
 }
 
+void MacroAssembler::branchIfNotSuspendedGenerator(Register obj,
+                                                   Register scratch,
+                                                   Register spectreRegToZero,
+                                                   Label* label) {
+  // Test if it's a GeneratorObject.
+  branchTestObjClass(Assembler::NotEqual, obj, &GeneratorObject::class_,
+                     scratch, spectreRegToZero, label);
+
+  // If the resumeIndex slot holds an int32 value < RESUME_INDEX_RUNNING, the
+  // generator is suspended.
+  Address addr(obj, AbstractGeneratorObject::offsetOfResumeIndexSlot());
+  fallibleUnboxInt32(addr, scratch, label);
+  branch32(Assembler::AboveOrEqual, scratch,
+           Imm32(AbstractGeneratorObject::RESUME_INDEX_RUNNING), label);
+}
+
 void MacroAssembler::branchTestObjectNeedsProxyResultValidation(
     Condition cond, Register obj, Register scratch, Label* label) {
   MOZ_ASSERT(cond == Assembler::Zero || cond == Assembler::NonZero);
@@ -5998,13 +6244,79 @@ void MacroAssembler::branchTestObjectNeedsProxyResultValidation(
   bind(&done);
 }
 
-void MacroAssembler::wasmTrap(wasm::Trap trap,
-                              const wasm::TrapSiteDesc& trapSiteDesc) {
-  FaultingCodeOffset fco = wasmTrapInstruction();
-  MOZ_ASSERT_IF(!oom(),
-                currentOffset() - fco.get() == WasmTrapInstructionLength);
+uint8_t MacroAssembler::getByteAtOffset(size_t offset) const {
+  MOZ_ASSERT(offset < readableSize());
+#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
+  return const_cast<X86Encoding::BaseAssemblerSpecific&>(masm).getByteAtOffset(
+      offset);
+#elif defined(JS_CODEGEN_ARM64)
+  // ii points at the first byte of the instruction
+  Instruction* ii = const_cast<MacroAssembler&>(*this).getInstructionAt(
+      BufferOffset(offset & ~size_t(3)));
+  return ((uint8_t*)ii)[offset & 3];
+#elif defined(JS_CODEGEN_ARM)
+  // ii points at the first byte of the instruction
+  Instruction* ii = const_cast<MacroAssembler&>(*this).editSrc(
+      BufferOffset(offset & ~size_t(3)));
+  return ((uint8_t*)ii)[offset & 3];
+#elif defined(JS_CODEGEN_RISCV64)
+  // ii points at the first byte of the instruction
+  Instruction* ii = const_cast<MacroAssembler&>(*this).getInstructionAt(
+      BufferOffset(offset & ~size_t(3)));
+  return ((uint8_t*)ii)[offset & 3];
+#elif defined(JS_CODEGEN_LOONG64)
+  // ii points at the first byte of the instruction
+  Instruction* ii = const_cast<MacroAssembler&>(*this).editSrc(
+      BufferOffset(offset & ~size_t(3)));
+  return ((uint8_t*)ii)[offset & 3];
+#elif defined(JS_CODEGEN_MIPS64)
+  // ii points at the first byte of the instruction
+  Instruction* ii = const_cast<MacroAssembler&>(*this).editSrc(
+      BufferOffset(offset & ~size_t(3)));
+  return ((uint8_t*)ii)[offset & 3];
+#elif defined(JS_CODEGEN_NONE)
+  MOZ_CRASH();
+#else
+#  error "Implement me"
+#endif
+}
 
-  append(trap, wasm::TrapMachineInsn::OfficialUD, fco.get(), trapSiteDesc);
+void MacroAssembler::appendAndVerify(wasm::Trap trap,
+                                     wasm::TrapMachineInsn insn,
+                                     FaultingCodeRange fcr,
+                                     const wasm::TrapSiteDesc& desc) {
+#ifdef DEBUG
+  // The trapping instruction is claimed to begin at `fcr.offset()` and have
+  // length `fcr.length()` and kind `insn`.  Ask SummarizeTrapInstruction
+  // to look at it and check it agrees.
+  if (!oom() && fcr.isValid()) {
+    wasm::SummarizeResult summary =
+        wasm::SummarizeTrapInstruction(*this, fcr.offset());
+    // The instruction must be identifiable
+    MOZ_ASSERT(summary.identified());
+    // .. and have the correct kind and length
+    MOZ_ASSERT(summary.kind() == insn);
+    MOZ_ASSERT(summary.length() == fcr.length());
+  }
+#endif
+
+  appendNoVerify(trap, insn, fcr, desc);
+}
+
+void MacroAssembler::appendAndVerify(const wasm::MemoryAccessDesc& access,
+                                     wasm::TrapMachineInsn insn,
+                                     FaultingCodeRange fcr) {
+  appendAndVerify(wasm::Trap::OutOfBounds, insn, fcr, access.trapDesc());
+}
+
+FaultingCodeRange MacroAssembler::wasmTrap(
+    wasm::Trap trap, const wasm::TrapSiteDesc& trapSiteDesc) {
+  FaultingCodeRange fcr = wasmTrapInstruction();
+  MOZ_ASSERT_IF(!oom(),
+                currentOffset() - fcr.get() == WasmTrapInstructionLength);
+
+  appendAndVerify(trap, wasm::TrapMachineInsn::OfficialUD, fcr, trapSiteDesc);
+  return fcr;
 }
 
 uint32_t MacroAssembler::wasmReserveStackChecked(uint32_t amount, Label* fail) {
@@ -6845,10 +7157,11 @@ void MacroAssembler::wasmCallRef(const wasm::CallSiteDesc& desc,
   size_t instanceSlotOffset = FunctionExtended::offsetOfExtendedSlot(
       FunctionExtended::WASM_INSTANCE_SLOT);
   static_assert(FunctionExtended::WASM_INSTANCE_SLOT < wasm::NullPtrGuardSize);
-  FaultingCodeOffset fco =
+  FaultingCodeRange fcr =
       loadPtr(Address(calleeFnObj, instanceSlotOffset), newInstanceTemp);
-  append(wasm::Trap::NullPointerDereference, wasm::TrapMachineInsnForLoadWord(),
-         fco.get(), desc.toTrapSiteDesc());
+  appendAndVerify(wasm::Trap::NullPointerDereference,
+                  wasm::TrapMachineInsnForLoadWord(), fcr,
+                  desc.toTrapSiteDesc());
   branchPtr(Assembler::Equal, InstanceReg, newInstanceTemp, &fastCall);
 
   storePtr(InstanceReg,
@@ -6910,10 +7223,11 @@ void MacroAssembler::wasmReturnCallRef(
   size_t instanceSlotOffset = FunctionExtended::offsetOfExtendedSlot(
       FunctionExtended::WASM_INSTANCE_SLOT);
   static_assert(FunctionExtended::WASM_INSTANCE_SLOT < wasm::NullPtrGuardSize);
-  FaultingCodeOffset fco =
+  FaultingCodeRange fcr =
       loadPtr(Address(calleeFnObj, instanceSlotOffset), newInstanceTemp);
-  append(wasm::Trap::NullPointerDereference, wasm::TrapMachineInsnForLoadWord(),
-         fco.get(), desc.toTrapSiteDesc());
+  appendAndVerify(wasm::Trap::NullPointerDereference,
+                  wasm::TrapMachineInsnForLoadWord(), fcr,
+                  desc.toTrapSiteDesc());
   branchPtr(Assembler::Equal, InstanceReg, newInstanceTemp, &fastCall);
 
   storePtr(InstanceReg,
@@ -7011,11 +7325,11 @@ BranchWasmRefIsSubtypeRegisters MacroAssembler::regsForBranchWasmRefIsSubtype(
   }
 }
 
-FaultingCodeOffset MacroAssembler::branchWasmRefIsSubtype(
+FaultingCodeRange MacroAssembler::branchWasmRefIsSubtype(
     Register ref, wasm::MaybeRefType sourceType, wasm::RefType destType,
     Label* label, bool onSuccess, bool signalNullChecks, Register superSTV,
     Register scratch1, Register scratch2) {
-  FaultingCodeOffset result = FaultingCodeOffset();
+  FaultingCodeRange result = FaultingCodeRange();
   switch (destType.hierarchy()) {
     case wasm::RefTypeHierarchy::Any: {
       result = branchWasmRefIsSubtypeAny(
@@ -7043,7 +7357,7 @@ FaultingCodeOffset MacroAssembler::branchWasmRefIsSubtype(
   return result;
 }
 
-FaultingCodeOffset MacroAssembler::branchWasmRefIsSubtypeAny(
+FaultingCodeRange MacroAssembler::branchWasmRefIsSubtypeAny(
     Register ref, wasm::RefType sourceType, wasm::RefType destType,
     Label* label, bool onSuccess, bool signalNullChecks, Register superSTV,
     Register scratch1, Register scratch2) {
@@ -7079,7 +7393,7 @@ FaultingCodeOffset MacroAssembler::branchWasmRefIsSubtypeAny(
   // We can omit the null check, and catch nulls in signal handling, if the dest
   // type is non-nullable and the cast process will attempt to load from the
   // (null) ref. This logic must be kept in sync with the flow of checks below;
-  // this will be checked by fcoLogicCheck.
+  // this will be checked by fcrLogicCheck.
   bool willLoadShape =
       // Dest type is a GC object
       (wasm::RefType::isSubTypeOf(destType, wasm::RefType::eq()) &&
@@ -7095,27 +7409,27 @@ FaultingCodeOffset MacroAssembler::branchWasmRefIsSubtypeAny(
   bool canOmitNullCheck = signalNullChecks && !destType.isNullable() &&
                           (willLoadShape || willLoadSTV);
 
-  FaultingCodeOffset fco = FaultingCodeOffset();
-  auto trackFCO = [&](FaultingCodeOffset newFco) {
-    if (signalNullChecks && !destType.isNullable() && !fco.isValid()) {
-      fco = newFco;
+  FaultingCodeRange fcr = FaultingCodeRange();
+  auto trackFCR = [&](FaultingCodeRange newFcr) {
+    if (signalNullChecks && !destType.isNullable() && !fcr.isValid()) {
+      fcr = newFcr;
     }
   };
-  auto fcoLogicCheck = mozilla::DebugOnly(mozilla::MakeScopeExit([&]() {
-    // When we think we can omit the null check, we should get a valid FCO, and
+  auto fcrLogicCheck = mozilla::DebugOnly(mozilla::MakeScopeExit([&]() {
+    // When we think we can omit the null check, we should get a valid FCR, and
     // vice versa. These are asserted to match because:
-    //  - If we think we cannot omit the null check, but get a valid FCO, then
+    //  - If we think we cannot omit the null check, but get a valid FCR, then
     //    we wasted an optimization opportunity.
-    //  - If we think we *can* omit the null check, but do not get a valid FCO,
+    //  - If we think we *can* omit the null check, but do not get a valid FCR,
     //    then we will segfault.
     // We could ignore the former check, but better to be precise and ensure
     // that we are getting the optimizations we expect.
-    MOZ_ASSERT_IF(signalNullChecks && fco.isValid(), canOmitNullCheck);
-    MOZ_ASSERT_IF(signalNullChecks && !fco.isValid(), !canOmitNullCheck);
+    MOZ_ASSERT_IF(signalNullChecks && fcr.isValid(), canOmitNullCheck);
+    MOZ_ASSERT_IF(signalNullChecks && !fcr.isValid(), !canOmitNullCheck);
 
-    // We should never get a valid FCO if the caller doesn't expect signal
+    // We should never get a valid FCR if the caller doesn't expect signal
     // handling. This simplifies life for the caller.
-    MOZ_ASSERT_IF(!signalNullChecks, !fco.isValid());
+    MOZ_ASSERT_IF(!signalNullChecks, !fcr.isValid());
   }));
 
   // -----------------------------------
@@ -7131,14 +7445,14 @@ FaultingCodeOffset MacroAssembler::branchWasmRefIsSubtypeAny(
   if (destType.isNone()) {
     finishFail();
     MOZ_ASSERT(!willLoadShape && !willLoadSTV);
-    return fco;
+    return fcr;
   }
 
   if (destType.isAny()) {
     // No further checks for 'any'
     finishSuccess();
     MOZ_ASSERT(!willLoadShape && !willLoadSTV);
-    return fco;
+    return fcr;
   }
 
   // 'type' is now 'eq' or lower, which currently will either be a gc object or
@@ -7153,7 +7467,7 @@ FaultingCodeOffset MacroAssembler::branchWasmRefIsSubtypeAny(
       // No further checks for 'i31'
       finishFail();
       MOZ_ASSERT(!willLoadShape && !willLoadSTV);
-      return fco;
+      return fcr;
     }
   }
 
@@ -7164,7 +7478,7 @@ FaultingCodeOffset MacroAssembler::branchWasmRefIsSubtypeAny(
     branchWasmAnyRefIsObjectOrNull(false, ref, failLabel);
 
     MOZ_ASSERT(willLoadShape);
-    trackFCO(branchObjectIsWasmGcObject(false, ref, scratch1, failLabel));
+    trackFCR(branchObjectIsWasmGcObject(false, ref, scratch1, failLabel));
   } else {
     MOZ_ASSERT(!willLoadShape);
   }
@@ -7173,7 +7487,7 @@ FaultingCodeOffset MacroAssembler::branchWasmRefIsSubtypeAny(
     // No further checks for 'eq'
     finishSuccess();
     MOZ_ASSERT(!willLoadSTV);
-    return fco;
+    return fcr;
   }
 
   // 'type' is now 'struct', 'array', or a concrete type. (Bottom types and i31
@@ -7185,7 +7499,7 @@ FaultingCodeOffset MacroAssembler::branchWasmRefIsSubtypeAny(
   // that it is correct.
 
   MOZ_ASSERT(willLoadSTV);
-  trackFCO(
+  trackFCR(
       loadPtr(Address(ref, int32_t(WasmGcObject::offsetOfSuperTypeVector())),
               scratch1));
   if (destType.isTypeRef()) {
@@ -7193,7 +7507,7 @@ FaultingCodeOffset MacroAssembler::branchWasmRefIsSubtypeAny(
     branchWasmSTVIsSubtype(scratch1, superSTV, scratch2, destType.typeDef(),
                            label, onSuccess);
     bind(&fallthrough);
-    return fco;
+    return fcr;
   }
 
   // Abstract type, do kind check
@@ -7205,7 +7519,7 @@ FaultingCodeOffset MacroAssembler::branchWasmRefIsSubtypeAny(
   branch32(onSuccess ? Assembler::Equal : Assembler::NotEqual, scratch1,
            Imm32(int32_t(destType.typeDefKind())), label);
   bind(&fallthrough);
-  return fco;
+  return fcr;
 }
 
 void MacroAssembler::branchWasmRefIsSubtypeFunc(
@@ -7636,22 +7950,22 @@ void MacroAssembler::convertStringToWasmAnyRef(Register src, Register dest) {
   orPtr(Imm32(int32_t(wasm::AnyRefTag::String)), src, dest);
 }
 
-FaultingCodeOffset MacroAssembler::branchObjectIsWasmGcObject(bool isGcObject,
-                                                              Register src,
-                                                              Register scratch,
-                                                              Label* label) {
+FaultingCodeRange MacroAssembler::branchObjectIsWasmGcObject(bool isGcObject,
+                                                             Register src,
+                                                             Register scratch,
+                                                             Label* label) {
   constexpr uint32_t ShiftedMask = (Shape::kindMask() << Shape::kindShift());
   constexpr uint32_t ShiftedKind =
       (uint32_t(Shape::Kind::WasmGC) << Shape::kindShift());
   MOZ_ASSERT(src != scratch);
 
-  FaultingCodeOffset fco =
+  FaultingCodeRange fcr =
       loadPtr(Address(src, JSObject::offsetOfShape()), scratch);
   load32(Address(scratch, Shape::offsetOfImmutableFlags()), scratch);
   and32(Imm32(ShiftedMask), scratch);
   branch32(isGcObject ? Assembler::Equal : Assembler::NotEqual, scratch,
            Imm32(ShiftedKind), label);
-  return fco;
+  return fcr;
 }
 
 void MacroAssembler::wasmNewStructObject(Register instance, Register result,
@@ -8246,7 +8560,7 @@ void MacroAssembler::emitPreBarrierFastPath(MIRType type, Register temp1,
   branchTestPtr(Assembler::NonZero, temp2, temp1, noBarrier);
 }
 
-void MacroAssembler::emitWeapMapBarrierFastPath(ValueOperand value,
+void MacroAssembler::emitWeakMapBarrierFastPath(ValueOperand value,
                                                 Register cell, Register temp1,
                                                 Register temp2, Register temp3,
                                                 Register temp4,
@@ -8396,11 +8710,11 @@ void MacroAssembler::loadWasmPinnedRegsFromInstance(
 #ifdef WASM_HAS_HEAPREG
   static_assert(wasm::Instance::offsetOfMemory0Base() < 4096,
                 "We count only on the low page being inaccessible");
-  FaultingCodeOffset fco = loadPtr(
+  FaultingCodeRange fcr = loadPtr(
       Address(InstanceReg, wasm::Instance::offsetOfMemory0Base()), HeapReg);
   if (trapSiteDesc) {
-    append(wasm::Trap::IndirectCallToNull, wasm::TrapMachineInsnForLoadWord(),
-           fco.get(), *trapSiteDesc);
+    appendAndVerify(wasm::Trap::IndirectCallToNull,
+                    wasm::TrapMachineInsnForLoadWord(), fcr, *trapSiteDesc);
   }
 #else
   MOZ_ASSERT(!trapSiteDesc);
@@ -10095,8 +10409,7 @@ void MacroAssembler::hashAndScrambleValue(ValueOperand value, Register result,
   // uint32_t v2 = static_cast<uint32_t>(static_cast<uint64_t>(aValue) >> 32);
 #ifdef JS_PUNBOX64
   auto r64 = Register64(temp);
-  move64(value.toRegister64(), r64);
-  rshift64Arithmetic(Imm32(32), r64);
+  rshift64Arithmetic(Imm32(32), value.toRegister64(), r64);
 #else
   move32(value.typeReg(), temp);
 #endif
@@ -10856,8 +11169,7 @@ void MacroAssembler::fuzzilliHashDouble(FloatRegister src, Register result,
 
 #  ifdef JS_PUNBOX64
   // Move the high word into |result|.
-  move64(r64, Register64(result));
-  rshift64(Imm32(32), Register64(result));
+  rshift64(Imm32(32), r64, Register64(result));
 #  endif
 
   // Add the high and low words of |r64|.

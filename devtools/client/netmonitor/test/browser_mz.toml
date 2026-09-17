@@ -37,6 +37,8 @@ support-files = [
   "html_json-malformed-test-page.html",
   "html_json-text-mime-test-page.html",
   "html_json-xssi-protection.html",
+  "html_jsonl-post-test-page.html",
+  "html_jsonl-test-page.html",
   "html_jsonp-test-page.html",
   "html_maps-test-page.html",
   "html_module-script-cache.html",
@@ -58,6 +60,8 @@ support-files = [
   "html_send-beacon.html",
   "html_send-beacon-late-iframe-request.html",
   "html_sorting-test-page.html",
+  "html_speculation-rules.html",
+  "html_speculation-rules_subpage.html",
   "html_statistics-edge-case-page.html",
   "html_statistics-test-page.html",
   "html_status-codes-test-page.html",
@@ -128,9 +132,6 @@ skip-if = [
 ]
 
 ["browser_net_overrides_with_debugger.js"]
-fail-if = [
-  "a11y_checks", # Bug 1849028 clicked element may not be focusable and/or labeled
-]
 
 ["browser_net_overrides_with_styleeditor.js"]
 
@@ -163,9 +164,6 @@ skip-if = [
 ["browser_net_prefs-and-l10n.js"]
 
 ["browser_net_prefs-reload.js"]
-fail-if = [
-  "a11y_checks", # Bug 1860733 splitter element is not focusable
-]
 
 ["browser_net_raw_headers.js"]
 
@@ -252,6 +250,10 @@ skip-if = [
 
 ["browser_net_sort-reset.js"]
 
+["browser_net_source-preview-search.js"]
+
+["browser_net_speculation-rules-prefetch-requests.js"]
+
 ["browser_net_sse-basic.js"]
 
 ["browser_net_stacktraces-cached.js"]
@@ -290,9 +292,6 @@ skip-if = [
 ["browser_net_stylesheet_cache.js"]
 
 ["browser_net_tabbar_focus.js"]
-fail-if = [
-  "a11y_checks", # Bug 1849028 clicked element may not be focusable and/or labeled
-]
 
 ["browser_net_telemetry_edit_resend.js"]
 

@@ -5,7 +5,10 @@
 #include "ClientValidation.h"
 
 #include "mozilla/StaticPrefs_security.h"
+#include "mozilla/dom/ClientIPCTypes.h"
+#include "mozilla/dom/LoadedOriginSet.h"
 #include "mozilla/dom/ProcessIsolation.h"
+#include "mozilla/dom/RemoteType.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/net/MozURL.h"
 
@@ -16,7 +19,7 @@ using mozilla::ipc::PrincipalInfo;
 using mozilla::net::MozURL;
 
 bool ClientIsValidPrincipalInfo(const PrincipalInfo& aPrincipalInfo,
-                                const nsACString& aRemoteType) {
+                                LoadedOriginSet* aLoadedOrigins) {
   auto result = mozilla::ipc::PrincipalInfoToPrincipal(aPrincipalInfo);
   if (NS_WARN_IF(result.isErr())) {
     return false;
@@ -25,14 +28,67 @@ bool ClientIsValidPrincipalInfo(const PrincipalInfo& aPrincipalInfo,
 
   // FIXME: Remove the system allowance once for non-inference processes once we
   // can load documents with the system principal into content.
-  if (NS_WARN_IF(!ValidatePrincipalCouldPotentiallyBeLoadedBy(
-          principal, aRemoteType, {ValidatePrincipalOptions::AllowSystem}))) {
+  if (aLoadedOrigins &&
+      NS_WARN_IF(!aLoadedOrigins->ValidatePrincipal(
+          principal, {ValidatePrincipalOptions::AllowSystemIfLoaded}))) {
     return false;
   }
 
   // Windows and workers should not have expanded principals, etc.
   return principal->IsSystemPrincipal() || principal->GetIsNullPrincipal() ||
          principal->GetIsContentPrincipal();
+}
+
+bool IsValidClientOpConstructorArgs(const ClientOpConstructorArgs& aArgs,
+                                    LoadedOriginSet* aLoadedOrigins) {
+  switch (aArgs.type()) {
+    case ClientOpConstructorArgs::TClientControlledArgs:
+      return ClientIsValidPrincipalInfo(
+          aArgs.get_ClientControlledArgs().serviceWorker().principalInfo(),
+          aLoadedOrigins);
+
+    case ClientOpConstructorArgs::TClientNavigateArgs: {
+      const ClientNavigateArgs& args = aArgs.get_ClientNavigateArgs();
+      return ClientIsValidPrincipalInfo(args.target().principalInfo(),
+                                        aLoadedOrigins) &&
+             ClientIsValidPrincipalInfo(args.serviceWorker().principalInfo(),
+                                        aLoadedOrigins);
+    }
+
+    case ClientOpConstructorArgs::TClientPostMessageArgs:
+      return ClientIsValidPrincipalInfo(
+          aArgs.get_ClientPostMessageArgs().serviceWorker().principalInfo(),
+          aLoadedOrigins);
+
+    case ClientOpConstructorArgs::TClientMatchAllArgs:
+      return ClientIsValidPrincipalInfo(
+          aArgs.get_ClientMatchAllArgs().serviceWorker().principalInfo(),
+          aLoadedOrigins);
+
+    case ClientOpConstructorArgs::TClientClaimArgs:
+      return ClientIsValidPrincipalInfo(
+          aArgs.get_ClientClaimArgs().serviceWorker().principalInfo(),
+          aLoadedOrigins);
+
+    case ClientOpConstructorArgs::TClientGetInfoAndStateArgs:
+      return ClientIsValidPrincipalInfo(
+          aArgs.get_ClientGetInfoAndStateArgs().principalInfo(),
+          aLoadedOrigins);
+
+    case ClientOpConstructorArgs::TClientOpenWindowArgs:
+      return ClientIsValidPrincipalInfo(
+          aArgs.get_ClientOpenWindowArgs().principalInfo(), aLoadedOrigins);
+
+    case ClientOpConstructorArgs::TClientFocusArgs:
+    case ClientOpConstructorArgs::TClientEvictBFCacheArgs:
+      // No principals.
+      return true;
+
+    case ClientOpConstructorArgs::T__None:
+      break;
+  }
+
+  MOZ_CRASH("Unhandled ClientOpConstructorArgs");
 }
 
 bool ClientIsValidCreationURL(const PrincipalInfo& aPrincipalInfo,

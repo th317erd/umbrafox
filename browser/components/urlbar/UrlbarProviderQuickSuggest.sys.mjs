@@ -2,10 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import {
-  UrlbarProvider,
-  UrlbarUtils,
-} from "moz-src:///browser/components/urlbar/UrlbarUtils.sys.mjs";
+import { UrlbarProvider } from "moz-src:///browser/components/urlbar/UrlbarUtils.sys.mjs";
 
 const lazy = {};
 
@@ -30,10 +27,10 @@ const DEFAULT_SUGGESTION_SCORE = 0.2;
  */
 export class UrlbarProviderQuickSuggest extends UrlbarProvider {
   /**
-   * @returns {Values<typeof UrlbarUtils.PROVIDER_TYPE>}
+   * @returns {Values<typeof lazy.UrlbarShared.PROVIDER_TYPE>}
    */
   get type() {
-    return UrlbarUtils.PROVIDER_TYPE.NETWORK;
+    return lazy.UrlbarShared.PROVIDER_TYPE.NETWORK;
   }
 
   /**
@@ -217,6 +214,13 @@ export class UrlbarProviderQuickSuggest extends UrlbarProvider {
     return filteredSuggestions;
   }
 
+  /**
+   * @param {string} state
+   * @param {UrlbarQueryContext} queryContext
+   * @param {UrlbarParentController} controller
+   * @param {{index: number, result: UrlbarResult}[]} resultsAndIndexes
+   * @param {object|null} details
+   */
   onImpression(state, queryContext, controller, resultsAndIndexes, details) {
     // Build a map from each feature to its results in `resultsAndIndexes`.
     let resultsByFeature = resultsAndIndexes.reduce((memo, { result }) => {
@@ -244,6 +248,11 @@ export class UrlbarProviderQuickSuggest extends UrlbarProvider {
     }
   }
 
+  /**
+   * @param {UrlbarQueryContext} queryContext
+   * @param {UrlbarParentController} controller
+   * @param {object} details
+   */
   onEngagement(queryContext, controller, details) {
     let { result } = details;
 
@@ -269,6 +278,11 @@ export class UrlbarProviderQuickSuggest extends UrlbarProvider {
     }
   }
 
+  /**
+   * @param {UrlbarQueryContext} queryContext
+   * @param {UrlbarParentController} controller
+   * @param {object} details
+   */
   onSearchSessionEnd(queryContext, controller, details) {
     for (let backend of lazy.QuickSuggest.enabledBackends) {
       backend.onSearchSessionEnd(queryContext, controller, details);
@@ -288,9 +302,7 @@ export class UrlbarProviderQuickSuggest extends UrlbarProvider {
   }
 
   /**
-   * This is called only for dynamic result types, when the urlbar view updates
-   * the view of one of the results of the provider.  It should return an object
-   * describing the view update.
+   * This is called only for dynamic result types.
    *
    * @param {UrlbarResult} result The result whose view will be updated.
    * @returns {object} An object describing the view update.
@@ -476,7 +488,7 @@ export class UrlbarProviderQuickSuggest extends UrlbarProvider {
       let { value, highlights } =
         lazy.QuickSuggest.getFullKeywordTitleAndHighlights({
           tokens: queryContext.tokens,
-          highlightType: UrlbarUtils.HIGHLIGHT.SUGGESTED,
+          highlightType: lazy.UrlbarShared.HIGHLIGHT.SUGGESTED,
           fullKeyword: suggestion.full_keyword,
           title: suggestion.title,
         });
@@ -484,7 +496,7 @@ export class UrlbarProviderQuickSuggest extends UrlbarProvider {
       titleHighlights = highlights;
     } else {
       payload.title = suggestion.title;
-      titleHighlights = UrlbarUtils.HIGHLIGHT.TYPED;
+      titleHighlights = lazy.UrlbarShared.HIGHLIGHT.TYPED;
       payload.shouldShowUrl = true;
     }
 

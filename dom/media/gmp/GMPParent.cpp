@@ -67,7 +67,7 @@ namespace mozilla::gmp {
 #endif
 #define __CLASS__ "GMPParent"
 
-GMPParent::GMPParent()
+GMPParent::GMPParent(nsISerialEventTarget* aGMPEventTarget)
     : mState(GMPState::NotLoaded),
       mPluginId(GeckoChildProcessHost::GetUniqueID()),
       mProcess(nullptr),
@@ -80,7 +80,8 @@ GMPParent::GMPParent()
 #ifdef ALLOW_GECKO_CHILD_PROCESS_ARCH
       mChildLaunchArch(base::PROCESS_ARCH_INVALID),
 #endif
-      mMainThread(GetMainThreadSerialEventTarget()) {
+      mMainThread(GetMainThreadSerialEventTarget()),
+      mGMPEventTarget(aGMPEventTarget) {
   MOZ_ASSERT(GMPEventTarget()->IsOnCurrentThread());
   GMP_PARENT_LOG_DEBUG("GMPParent ctor id={}", mPluginId);
 }
@@ -496,21 +497,22 @@ mozilla::ipc::IPCResult GMPParent::RecvFOGData(ByteBuf&& aBuf) {
 
 #if defined(XP_WIN)
 mozilla::ipc::IPCResult GMPParent::RecvGetModulesTrust(
-    ModulePaths&& aModPaths, bool aRunAtNormalPriority,
+    ModuleIdentifiers&& aModIdents, bool aRunAtNormalPriority,
     GetModulesTrustResolver&& aResolver) {
   class ModulesTrustRunnable final : public Runnable {
    public:
-    ModulesTrustRunnable(ModulePaths&& aModPaths, bool aRunAtNormalPriority,
+    ModulesTrustRunnable(ModuleIdentifiers&& aModIdents,
+                         bool aRunAtNormalPriority,
                          GetModulesTrustResolver&& aResolver)
         : Runnable("GMPParent::RecvGetModulesTrust::ModulesTrustRunnable"),
-          mModPaths(std::move(aModPaths)),
+          mModIdents(std::move(aModIdents)),
           mResolver(std::move(aResolver)),
           mEventTarget(GetCurrentSerialEventTarget()),
           mRunAtNormalPriority(aRunAtNormalPriority) {}
 
     NS_IMETHOD Run() override {
       RefPtr<DllServices> dllSvc(DllServices::Get());
-      dllSvc->GetModulesTrust(std::move(mModPaths), mRunAtNormalPriority)
+      dllSvc->GetModulesTrust(std::move(mModIdents), mRunAtNormalPriority)
           ->Then(
               mEventTarget, __func__,
               [self = RefPtr{this}](ModulesMapResult&& aResult) {
@@ -525,14 +527,14 @@ mozilla::ipc::IPCResult GMPParent::RecvGetModulesTrust(
    private:
     ~ModulesTrustRunnable() override = default;
 
-    ModulePaths mModPaths;
+    ModuleIdentifiers mModIdents;
     GetModulesTrustResolver mResolver;
     nsCOMPtr<nsISerialEventTarget> mEventTarget;
     bool mRunAtNormalPriority;
   };
 
   NS_DispatchToMainThread(MakeAndAddRef<ModulesTrustRunnable>(
-      std::move(aModPaths), aRunAtNormalPriority, std::move(aResolver)));
+      std::move(aModIdents), aRunAtNormalPriority, std::move(aResolver)));
   return IPC_OK();
 }
 #endif  // defined(XP_WIN)
@@ -738,17 +740,7 @@ void GMPParent::DeleteProcess() {
 GMPState GMPParent::State() const { return mState; }
 
 nsCOMPtr<nsISerialEventTarget> GMPParent::GMPEventTarget() {
-  nsCOMPtr<mozIGeckoMediaPluginService> mps =
-      do_GetService("@mozilla.org/gecko-media-plugin-service;1");
-  MOZ_ASSERT(mps);
-  if (!mps) {
-    return nullptr;
-  }
-  // Note: GeckoMediaPluginService::GetThread() is threadsafe, and returns
-  // nullptr if the GeckoMediaPluginService has started shutdown.
-  nsCOMPtr<nsIThread> gmpThread;
-  mps->GetThread(getter_AddRefs(gmpThread));
-  return gmpThread;
+  return mGMPEventTarget;
 }
 
 /* static */
@@ -993,6 +985,10 @@ static nsresult ParseVersion(const nsACString& aVersion,
     }
 
     version = (version << 16) | SaturatingCast<uint16_t>(fragmentInt);
+  }
+
+  if (NS_WARN_IF(fragmentCount == 0)) {
+    return NS_ERROR_FAILURE;
   }
 
   *aParsedVersion = version << (4 - fragmentCount) * 16;

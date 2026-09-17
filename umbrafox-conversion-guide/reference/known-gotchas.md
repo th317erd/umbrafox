@@ -78,6 +78,27 @@ Because Umbrafox defaults the customize menu off, upstream tests that expect it 
 ["browser.newtabpage.activity-stream.customizeMenu.enabled", true]
 ```
 
+## Toolkit actors must match their chrome URI scheme
+
+Umbrafox toolkit actors live under `toolkit/actors/` and are listed in
+`toolkit/actors/moz.build` as `MOZ_SRC_FILES`. Register them with
+`moz-src:///toolkit/actors/<Actor>.sys.mjs` in
+`toolkit/modules/ActorManagerParent.sys.mjs`.
+
+Do not register those files as `resource://gre/actors/<Actor>.sys.mjs` unless
+they are also packaged into `FINAL_TARGET_FILES.actors`. A full build can still
+succeed with the wrong URI, but the packaged browser can crash at startup with a
+missing chrome/resource URL such as:
+
+```text
+Missing chrome or resource URLs: resource://gre/actors/UmbrafoxUserlandChild.sys.mjs
+```
+
+After touching actor registrations, run at least one packaged or objdir startup
+test that instantiates the actor. The panel keyup chrome test caught this class
+of issue because `DOMDocElementInserted` creates the `UmbrafoxUserland` actor at
+startup.
+
 ## Regenerate exports after upstream IPDL changes
 
 After a large upstream merge, generated IPDL headers under `obj-*/ipc/ipdl/_ipdlheaders/` can be stale even when the source `.ipdl` files are current. If `./mach build binaries` fails with constructor arity mismatches such as `SendPDocAccessibleConstructor` or `RecvPExternalHelperAppConstructor`, run:

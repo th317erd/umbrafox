@@ -36,23 +36,37 @@ class WebTransportParent : public PWebTransportParent,
               const IPCClientInfo& aClientInfo, const bool& aDedicated,
               const bool& aRequireUnreliable,
               const uint32_t& aCongestionControl,
+              nsTArray<nsString>&& aProtocols,
               nsTArray<WebTransportHash>&& aServerCertHashes,
               Endpoint<PWebTransportParent>&& aParentEndpoint,
               std::function<void(std::tuple<const nsresult&, const uint8_t&>)>&&
                   aResolver);
 
-  IPCResult RecvClose(const uint32_t& aCode, const nsACString& aReason);
+  IPCResult RecvClose(const uint32_t& aCode, const nsACString& aReason,
+                      CloseResolver&& aResolver);
 
-  IPCResult RecvSetSendOrder(uint64_t aStreamId, Maybe<int64_t> aSendOrder);
+  IPCResult RecvSetSendOrder(uint64_t aStreamId, int64_t aSendOrder);
+
+  IPCResult RecvSetSendGroup(uint64_t aStreamId, uint64_t aGroupId);
+
+  IPCResult RecvCreateSendGroup(uint64_t aGroupId);
+
+  IPCResult RecvExportKeyingMaterial(nsTArray<uint8_t>&& aLabel,
+                                     Maybe<nsTArray<uint8_t>>&& aContext,
+                                     ExportKeyingMaterialResolver&& aResolver);
+
+  IPCResult RecvGetStats(GetStatsResolver&& aResolver);
 
   IPCResult RecvCreateUnidirectionalStream(
-      Maybe<int64_t> aSendOrder,
+      int64_t aSendOrder, Maybe<uint64_t> aSendGroupId,
       CreateUnidirectionalStreamResolver&& aResolver);
   IPCResult RecvCreateBidirectionalStream(
-      Maybe<int64_t> aSendOrder, CreateBidirectionalStreamResolver&& aResolver);
+      int64_t aSendOrder, Maybe<uint64_t> aSendGroupId,
+      CreateBidirectionalStreamResolver&& aResolver);
 
   ::mozilla::ipc::IPCResult RecvOutgoingDatagram(
       nsTArray<uint8_t>&& aData, const TimeStamp& aExpirationTime,
+      const uint64_t& aSendGroupId, const int64_t& aSendOrder,
       OutgoingDatagramResolver&& aResolver);
 
   ::mozilla::ipc::IPCResult RecvGetMaxDatagramSize(
@@ -81,11 +95,17 @@ class WebTransportParent : public PWebTransportParent,
 
  private:
   void NotifyRemoteClosed(bool aCleanly, uint32_t aErrorCode,
-                          const nsACString& aReason);
+                          const nsACString& aReason,
+                          const WebTransportStatsData& aStats);
+
+  // Settles and clears every resolver waiting on the in-flight gather. Must be
+  // called on the socket thread.
+  void ResolvePendingGetStats(const Maybe<WebTransportStatsData>& aStats);
 
   using ResolveType = std::tuple<const nsresult&, const uint8_t&>;
   nsCOMPtr<nsISerialEventTarget> mSocketThread;
   Atomic<bool> mSessionReady{false};
+  uint64_t mSessionId{0};
 
   mozilla::Mutex mMutex{"WebTransportParent::mMutex"};
   std::function<void(ResolveType)> mResolver MOZ_GUARDED_BY(mMutex);
@@ -94,6 +114,10 @@ class WebTransportParent : public PWebTransportParent,
   std::function<void()> mExecuteAfterResolverCallback MOZ_GUARDED_BY(mMutex);
   OutgoingDatagramResolver mOutgoingDatagramResolver;
   GetMaxDatagramSizeResolver mMaxDatagramSizeResolver;
+  // Resolvers for in-flight GetStats() requests; only one gather runs at a
+  // time, so concurrent calls share it. Socket thread only; drained via
+  // ResolvePendingGetStats().
+  nsTArray<GetStatsResolver> mGetStatsResolvers;
   FlippedOnce<false> mClosed MOZ_GUARDED_BY(mMutex);
 
   nsCOMPtr<nsIWebTransport> mWebTransport;

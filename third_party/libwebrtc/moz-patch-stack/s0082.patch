@@ -11,22 +11,22 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/2185cab977988fd4a
  3 files changed, 16 insertions(+)
 
 diff --git a/BUILD.gn b/BUILD.gn
-index e373a8c45b..5b12f95346 100644
+index 382e9a6b48..157289fd15 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -613,6 +613,7 @@ if (!build_with_chromium) {
-         "api:frame_transformer_factory",
+@@ -629,6 +629,7 @@ if (!build_with_chromium) {
          "api/audio:builtin_audio_processing_builder",
+         "api/video:adapted_video_track_source",
          "api/video:builtin_video_bitrate_allocator_factory",
 +        "api/environment:environment_factory",
          "api/video:video_frame",
          "api/video:video_rtp_headers",
          "test:rtp_test_utils",
 diff --git a/api/environment/environment_factory.cc b/api/environment/environment_factory.cc
-index 529bbecad7..6e0810267b 100644
+index 53773dc79f..72a0fdbbd3 100644
 --- a/api/environment/environment_factory.cc
 +++ b/api/environment/environment_factory.cc
-@@ -102,12 +102,22 @@ Environment EnvironmentFactory::CreateWithDefaults() && {
+@@ -108,12 +108,22 @@ Environment EnvironmentFactory::CreateWithDefaults() && {
    if (field_trials_ == nullptr) {
      Set(std::make_unique<DeprecatedGlobalFieldTrials>());
    }

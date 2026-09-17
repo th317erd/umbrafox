@@ -6,7 +6,7 @@
 //!
 //! Specification: https://drafts.csswg.org/css-images-4/#linear-gradients
 //!
-//! Linear gradients are rendered via cached render tasks and composited with the image brush.
+//! Linear gradients are rendered as quads with the gradient pattern (ps_quad_gradient).
 
 use euclid::approxeq::ApproxEq;
 use euclid::point2;
@@ -73,7 +73,6 @@ impl PatternBuilder for LinearGradientTemplate {
             end + offset,
             self.extend_mode,
             &self.stops,
-            ctx.fb_config.is_software,
             state.frame_gpu_data,
         )
     }
@@ -91,21 +90,6 @@ impl DerefMut for LinearGradientTemplate {
         &mut self.common
     }
 }
-
-/// Perform a few optimizations to the gradient that are relevant to scene building.
-///
-/// Mutates `prim_rect`, `tile_size`, `start`, `end` to bake in the simplifications
-/// (repeated-tile collapse, equivalent-to-stretching on either axis, clip-induced
-/// offsets). Decomposition into per-segment quads is no longer done here -- the
-/// caller emits a single `LinearGradient` prim and prepare-time runs
-/// [`decompose_axis_aligned_gradient`] against the snapped prim_rect when the
-/// gradient is eligible. Doing the decomposition at frame-build keeps adjacent
-/// segments phase-aligned with the snapped outer prim, even when the frame-time
-/// snap pass nudges the outer rect.
-// `optimize_linear_gradient` now lives in `webrender_api::prim_geometry` so
-// content-process interning can share it. Re-exported here to keep existing
-// references working.
-pub use api::prim_geometry::optimize_linear_gradient;
 
 /// Whether a linear gradient is eligible for the fast-path two-stop-per-segment
 /// decomposition at prepare time. Inputs are the values produced by

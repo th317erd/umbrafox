@@ -20,7 +20,7 @@ python3 -m pip install -r $(dirname ${0})/requirements.txt
 pushd webrender
 cargo build ${CARGOFLAGS} --no-default-features
 cargo build ${CARGOFLAGS} --no-default-features --features capture
-cargo build ${CARGOFLAGS} --features capture,profiler
+cargo build ${CARGOFLAGS} --features capture,tracy
 cargo build ${CARGOFLAGS} --features replay
 popd
 
@@ -30,6 +30,10 @@ OPTIMIZED=0 python3 script/headless.py reftest
 popd
 
 pushd examples
+cargo build ${CARGOFLAGS}
+popd
+
+pushd wrshell
 cargo build ${CARGOFLAGS}
 popd
 

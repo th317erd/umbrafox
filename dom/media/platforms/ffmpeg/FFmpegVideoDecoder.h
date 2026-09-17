@@ -9,6 +9,7 @@
 
 #include "AndroidSurfaceTexture.h"
 #include "FFmpegDataDecoder.h"
+#include "FFmpegDecodeStats.h"
 #include "FFmpegLibWrapper.h"
 #include "ImageContainer.h"
 #include "PerformanceRecorder.h"
@@ -16,7 +17,7 @@
 #include "nsTHashMap.h"
 #if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
 #  include "FFmpegVideoFramePool.h"
-#  if LIBAVCODEC_VERSION_MAJOR >= 60 && !defined(FFVPX_VERSION)
+#  ifdef MOZ_USE_HWDECODE_VULKAN
 #    include "VulkanDeviceHolder.h"
 #  endif
 #endif
@@ -54,7 +55,7 @@ typedef struct _VADRMPRIMESurfaceDescriptor VADRMPRIMESurfaceDescriptor;
 
 struct AVHWFramesContext;
 struct AVFrame;
-#if LIBAVCODEC_VERSION_MAJOR >= 60 && !defined(FFVPX_VERSION)
+#ifdef MOZ_USE_HWDECODE_VULKAN
 #  include <vulkan/vulkan.h>
 #endif
 
@@ -165,6 +166,7 @@ class FFmpegVideoDecoder<LIBAV_VER>
   gfx::ColorDepth GetColorDepth(const AVPixelFormat& aFormat) const;
   gfx::YUVColorSpace GetFrameColorSpace() const;
   gfx::ColorSpace2 GetFrameColorPrimaries() const;
+  Maybe<gfx::TransferFunction> GetFrameTransferFunction() const;
   gfx::ColorRange GetFrameColorRange() const;
   gfx::SurfaceFormat GetSurfaceFormat() const;
 
@@ -237,6 +239,7 @@ class FFmpegVideoDecoder<LIBAV_VER>
                                     MediaDataDecoder::DecodedData& aResults);
   bool ReleaseFrameMediaCodec(void* aKey, bool aRender);
   void ReleaseFramesMediaCodec();
+  void ReleaseSurfaceMediaCodec();
   int32_t mTextureAlignment;
   AVBufferRef* mMediaCodecDeviceContext = nullptr;
   // Only used for the SurfaceTexture case
@@ -253,17 +256,14 @@ class FFmpegVideoDecoder<LIBAV_VER>
   bool IsLinuxHDR() const;
   MediaResult InitVAAPIDecoder();
   MediaResult InitV4L2Decoder();
-#  if LIBAVCODEC_VERSION_MAJOR >= 60 && !defined(FFVPX_VERSION)
-  MediaResult InitVulkanDecoder();
-
+#  ifdef MOZ_USE_HWDECODE_VULKAN
 #    include "FFmpegVulkanVideoDecoder.h"
-#  endif
-  bool CreateVAAPIDeviceContext();
-#  if LIBAVCODEC_VERSION_MAJOR >= 60 && !defined(FFVPX_VERSION)
+  MediaResult InitVulkanDecoder();
   bool CreateVulkanDeviceContext(const StaticMutexAutoLock& aProofOfLock);
   void PrepareVulkanDrmModifiersForSwFormat(int aSwFormat,
                                             VkImageUsageFlags aImageUsages);
 #  endif
+  bool CreateVAAPIDeviceContext();
   bool GetVAAPISurfaceDescriptor(VADRMPRIMESurfaceDescriptor* aVaDesc);
   void AddAcceleratedFormats(nsTArray<AVCodecID>& aCodecList,
                              AVCodecID aCodecID, AVVAAPIHWConfig* hwconfig);
@@ -274,7 +274,7 @@ class FFmpegVideoDecoder<LIBAV_VER>
                                MediaDataDecoder::DecodedData& aResults);
   MediaResult CreateImageV4L2(int64_t aOffset, int64_t aPts, int64_t aDuration,
                               MediaDataDecoder::DecodedData& aResults);
-#  if LIBAVCODEC_VERSION_MAJOR >= 60 && !defined(FFVPX_VERSION)
+#  ifdef MOZ_USE_HWDECODE_VULKAN
  public:
   int ChooseVulkanPixelFormatFromContext(struct AVCodecContext* aCodecContext,
                                          const int* aFormats);
@@ -288,7 +288,7 @@ class FFmpegVideoDecoder<LIBAV_VER>
 
   AVBufferRef* mVAAPIDeviceContext = nullptr;
   AVBufferRef* mVulkanDeviceContext = nullptr;
-#  if LIBAVCODEC_VERSION_MAJOR >= 60 && !defined(FFVPX_VERSION)
+#  ifdef MOZ_USE_HWDECODE_VULKAN
   RefPtr<VulkanDeviceHolder> mVulkanDeviceHolder;
   FFmpegVulkanVideoDecoder mVulkanDecoder;
   VkImageDrmFormatModifierListCreateInfoEXT mVulkanDrmModifierList = {};
@@ -307,31 +307,7 @@ class FFmpegVideoDecoder<LIBAV_VER>
 #endif
 
 #if LIBAVCODEC_VERSION_MAJOR >= 58
-  class DecodeStats {
-   public:
-    void DecodeStart();
-    void UpdateDecodeTimes(int64_t aDuration);
-    bool IsDecodingSlow() const;
-
-   private:
-    uint32_t mDecodedFrames = 0;
-
-    double mAverageFrameDecodeTime = 0;
-    double mAverageFrameDuration = 0;
-
-    // Number of delayed frames until we consider decoding as slow.
-    const uint32_t mMaxLateDecodedFrames = 15;
-    // How many frames is decoded behind its pts time, i.e. video decode lags.
-    uint32_t mDecodedFramesLate = 0;
-
-    // Reset mDecodedFramesLate every 3 seconds of correct playback.
-    const uint32_t mDelayedFrameReset = 3000;
-
-    uint32_t mLastDelayedFrameNum = 0;
-
-    TimeStamp mDecodeStart;
-  };
-
+  using DecodeStats = FFmpegDecodeStats;
   DecodeStats mDecodeStats;
 #endif
 

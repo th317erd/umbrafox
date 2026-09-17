@@ -165,11 +165,16 @@ export const GeckoViewIPProtection = {
       }
       case "GeckoView:IPProtection:ServerList:GetCountryList": {
         lazy.IPProtectionServerlist.maybeFetchList()
-          .then(() => {
-            lazy.EventDispatcher.instance.sendRequest(
-              "GeckoView:IPProtection:ServerList:ListChanged",
-              { countries: lazy.IPProtectionServerlist.countries }
-            );
+          .then(changed => {
+            // maybeFetchList already dispatches ListChanged (forwarded to the
+            // delegate) when the list changed; only push manually otherwise so
+            // getCountryList() delivers the current list exactly once.
+            if (!changed) {
+              lazy.EventDispatcher.instance.sendRequest(
+                "GeckoView:IPProtection:ServerList:ListChanged",
+                { countries: lazy.IPProtectionServerlist.countries }
+              );
+            }
             aCallback.onSuccess();
           })
           .catch(err => {
@@ -180,6 +185,20 @@ export const GeckoViewIPProtection = {
         break;
       }
       case "GeckoView:IPProtection:Activate": {
+        // When the proxy is already active, an Activate request is treated as a
+        // request to switch the connection to the given country.
+        if (lazy.IPPProxyManager.state === "active") {
+          const { switched, error } =
+            lazy.IPPProxyManager.switch(aData?.country) ?? {};
+          if (error) {
+            aCallback.onError(error);
+          } else if (switched) {
+            aCallback.onSuccess();
+          } else {
+            aCallback.onError("generic-error");
+          }
+          break;
+        }
         lazy.IPPProxyManager.start(
           aData?.userAction ?? true,
           aData?.inPrivateBrowsing ?? false,

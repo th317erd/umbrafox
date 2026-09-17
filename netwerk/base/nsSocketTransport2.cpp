@@ -54,6 +54,11 @@
 #  include "ShutdownLayer.h"
 #endif
 
+#if defined(MOZ_WIDGET_ANDROID)
+#  include "AndroidLocalNetworkPermission.h"
+#  include "AndroidNetworkBlockedReason.h"
+#endif
+
 /* Following inclusions required for keepalive config not supported by NSPR. */
 #include "private/pprio.h"
 #if defined(XP_WIN)
@@ -1608,6 +1613,15 @@ nsresult nsSocketTransport::InitiateSocket() {
     }
   }
 
+#if defined(MOZ_WIDGET_ANDROID)
+  // Android 17+ refuses connections to the local network unless the app holds
+  // ACCESS_LOCAL_NETWORK. Ask for it here, as the connection is made, rather
+  // than after a 30 second connect timeout.
+  if (mNetAddr.GetIpAddressSpace() == nsILoadInfo::IPAddressSpace::Private) {
+    RequestAndroidLocalNetworkPermission();
+  }
+#endif
+
   status = PR_Connect(fd, &prAddr, NS_SOCKET_CONNECT_TIMEOUT);
   PRErrorCode code = PR_GetError();
   if (status == PR_SUCCESS) {
@@ -2179,6 +2193,17 @@ void nsSocketTransport::OnSocketReady(PRFileDesc* fd, int16_t outFlags) {
   if (outFlags == -1) {
     SOCKET_LOG(("socket timeout expired\n"));
     mCondition = NS_ERROR_NET_TIMEOUT;
+#if defined(MOZ_WIDGET_ANDROID)
+    // A TCP connect blocked by Android's Local Network Protection reaches
+    // us as a plain timeout, with no distinguishing errno, so we must ask
+    // the OS directly whether that's what happened. Only applies while
+    // still connecting -- a read/write timeout on an already-established
+    // socket can't be an LNP block. See bug 2053432.
+    if (mState == STATE_CONNECTING &&
+        IsConnectBlockedByAndroidLocalNetworkPermission(fd)) {
+      mCondition = NS_ERROR_OS_LOCAL_NETWORK_ACCESS_DENIED;
+    }
+#endif
     return;
   }
 
@@ -2258,6 +2283,15 @@ void nsSocketTransport::OnSocketReady(PRFileDesc* fd, int16_t outFlags) {
             !mProxyHost.IsEmpty()) {
           mCondition = NS_ERROR_PROXY_CONNECTION_REFUSED;
         }
+#if defined(MOZ_WIDGET_ANDROID)
+        // Defensive: per Android's docs a blocked TCP connect should only
+        // ever manifest as a timeout (handled above), but some OEMs/API
+        // levels may surface a synchronous failure instead. See bug
+        // 2053432.
+        else if (IsConnectBlockedByAndroidLocalNetworkPermission(fd)) {
+          mCondition = NS_ERROR_OS_LOCAL_NETWORK_ACCESS_DENIED;
+        }
+#endif
         SOCKET_LOG(("  connection failed! [reason=%" PRIx32 "]\n",
                     static_cast<uint32_t>(mCondition)));
       }

@@ -16,6 +16,10 @@ menu-application-settings =
     .label = Settings…
 menu-application-set-as-default =
     .label = Set { -brand-shorter-name } as Default Browser
+# This menu item opens the referral page, where the user can invite others to
+# use the browser. "Share" here means recommending or referring the browser
+menu-application-referrals2 =
+    .label = Share { -brand-product-name }
 menu-application-services =
     .label = Services
 menu-application-hide-this =
@@ -369,4 +373,8 @@ menu-help-not-deceptive =
     .label = This Isn’t a Deceptive Site…
     .accesskey = D
 menu-report-broken-site =
-  .label = Report Broken Site
+    .label = Report Broken Site
+# This menu item opens the referral page, where the user can invite others to
+# use the browser. "Share" here means recommending or referring the browser
+menu-referrals2 =
+    .label = Share { -brand-product-name }

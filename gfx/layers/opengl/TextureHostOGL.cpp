@@ -74,6 +74,11 @@ already_AddRefed<TextureHost> CreateTextureHostOGL(
       break;
     }
     case SurfaceDescriptor::TSurfaceDescriptorAndroidHardwareBuffer: {
+      if (aDeallocator) {
+        gfxCriticalError() << "SurfaceDescriptorAndroidHardwareBuffer is used "
+                              "only for remote texture";
+        return nullptr;
+      }
       const SurfaceDescriptorAndroidHardwareBuffer& desc =
           aDesc.get_SurfaceDescriptorAndroidHardwareBuffer();
       result = AndroidHardwareBufferTextureHost::Create(aFlags, desc);
@@ -102,7 +107,8 @@ already_AddRefed<TextureHost> CreateTextureHostOGL(
 
 #ifdef MOZ_WIDGET_GTK
     case SurfaceDescriptor::TSurfaceDescriptorDMABuf: {
-      result = new DMABUFTextureHostOGL(aFlags, aDesc);
+      const SurfaceDescriptorDMABuf& desc = aDesc.get_SurfaceDescriptorDMABuf();
+      result = new DMABUFTextureHostOGL(aFlags, desc);
       if (!result->IsValid()) {
         gfxCriticalError() << "DMABuf surface import failed!";
         result = nullptr;
@@ -695,7 +701,7 @@ bool AndroidHardwareBufferTextureSource::EnsureEGLImage() {
                               fenceFd.get(), LOCAL_EGL_NONE};
 
     EGLSync sync =
-        egl->fCreateSync(LOCAL_EGL_SYNC_NATIVE_FENCE_ANDROID, attribs);
+        egl->fCreateSyncKHR(LOCAL_EGL_SYNC_NATIVE_FENCE_ANDROID, attribs);
     if (sync) {
       // Release fd here, since it is owned by EGLSync
       (void)fenceFd.release();
@@ -992,6 +998,7 @@ void AndroidImageReaderImageTextureSource::DeallocateDeviceData() {
 AndroidImageReaderImageTextureHost::AndroidImageReaderImageTextureHost(
     TextureFlags aFlags, const AndroidImageReaderImageDescriptor& aDescriptor)
     : TextureHost(TextureHostType::AndroidSurfaceTexture, aFlags),
+      mDescriptor(aDescriptor),
       mImageReaderId(aDescriptor.imageReaderId()),
       mFrameId(aDescriptor.frameId()),
       mSize(aDescriptor.size()),
@@ -1093,6 +1100,10 @@ void AndroidImageReaderImageTextureHost::PushDisplayItems(
 bool AndroidImageReaderImageTextureHost::SupportsExternalCompositing(
     WebRenderBackend aBackend) {
   return aBackend == WebRenderBackend::SOFTWARE;
+}
+
+SurfaceDescriptor AndroidImageReaderImageTextureHost::GetSurfaceDescriptor() {
+  return mDescriptor;
 }
 
 #endif  // MOZ_WIDGET_ANDROID

@@ -10,6 +10,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <utility>
+
 #include "AsyncDBus.h"
 #include "GRefPtr.h"
 #include "MozContainer.h"
@@ -50,14 +52,6 @@ using mozilla::dom::Promise;
 #define MAX_PREVIEW_SOURCE_SIZE 8192
 
 static nsIFile* sPrevDisplayDirectory = nullptr;
-
-// Use an application-defined response ID (non-negative) for the accept button
-// instead of GTK_RESPONSE_ACCEPT (-3). GTK's built-in negative response IDs
-// cause the button to be treated as the dialog's default widget, meaning it
-// activates on Enter. A non-negative ID prevents this, so a page that tricks
-// the user into holding Enter before the dialog appears cannot auto-confirm
-// an unintended file upload. See bug 2033848 and the equivalent Chrome fix.
-static const gint kFilePickerAccept = 0;
 
 void nsFilePicker::Shutdown() { NS_IF_RELEASE(sPrevDisplayDirectory); }
 
@@ -672,7 +666,7 @@ void nsFilePicker::DonePortal(GVariant* aResult) {
   }
 
   ClearPortalState();
-  DoneCommon(result);
+  DoneCommon(result, std::move(mCallback));
 }
 #endif
 
@@ -697,7 +691,7 @@ void nsFilePicker::OpenNonPortal() {
 
   GtkFileChooser* file_chooser = GTK_FILE_CHOOSER(gtk_file_chooser_dialog_new(
       title.get(), parent_widget, action, g_dgettext("gtk30", "_Cancel"),
-      GTK_RESPONSE_CANCEL, accept_button, kFilePickerAccept, nullptr));
+      GTK_RESPONSE_CANCEL, accept_button, GTK_RESPONSE_ACCEPT, nullptr));
 
   // If we have --enable-proxy-bypass-protection, then don't allow
   // remote URLs to be used.
@@ -773,6 +767,11 @@ void nsFilePicker::OpenNonPortal() {
     }
   }
 
+  if (GTK_IS_DIALOG(file_chooser)) {
+    gtk_dialog_set_default_response(GTK_DIALOG(file_chooser),
+                                    GTK_RESPONSE_ACCEPT);
+  }
+
   size_t count = mFilters.Length();
   for (size_t i = 0; i < count; ++i) {
     GtkFileFilter* filter = NewFilter(mFilters[i], mFilterNames[i]);
@@ -807,6 +806,11 @@ already_AddRefed<nsIFile> nsFilePicker::GetDefaultPath() {
   } else if (sPrevDisplayDirectory) {
     sPrevDisplayDirectory->Clone(getter_AddRefs(defaultPath));
   }
+
+  if (!defaultPath || !IsReadableDirectory(*defaultPath)) {
+    return nullptr;
+  }
+
   return defaultPath.forget();
 }
 
@@ -876,9 +880,14 @@ void nsFilePicker::DoneNonPortal(GtkWidget* file_chooser, gint response) {
   // Ignore a confirmation that arrives before the input-protection time range
   // has passed, leaving the dialog open. (GTK emits GTK_RESPONSE_ACCEPT on a
   // double-click.)
-  if ((response == GTK_RESPONSE_OK || response == GTK_RESPONSE_ACCEPT ||
-       response == kFilePickerAccept) &&
+  if ((response == GTK_RESPONSE_OK || response == GTK_RESPONSE_ACCEPT) &&
       IsPickerInputProtected()) {
+    return;
+  }
+
+  // A null callback means a re-entrant call; the outer one owns the teardown.
+  nsCOMPtr<nsIFilePickerShownCallback> callback = std::move(mCallback);
+  if (!callback) {
     return;
   }
 
@@ -887,8 +896,7 @@ void nsFilePicker::DoneNonPortal(GtkWidget* file_chooser, gint response) {
   nsIFilePicker::ResultCode result;
   switch (response) {
     case GTK_RESPONSE_OK:
-    case GTK_RESPONSE_ACCEPT:  // emitted by GTK internally on double-click
-    case kFilePickerAccept:
+    case GTK_RESPONSE_ACCEPT:
       ReadValuesFromNonPortalFileChooser(GTK_FILE_CHOOSER(file_chooser));
       result = nsIFilePicker::returnOK;
       break;
@@ -932,11 +940,12 @@ void nsFilePicker::DoneNonPortal(GtkWidget* file_chooser, gint response) {
     mFileChooserDelegate = nullptr;
   }
 
-  DoneCommon(result);
+  DoneCommon(result, std::move(callback));
   NS_RELEASE_THIS();
 }
 
-void nsFilePicker::DoneCommon(ResultCode aResult) {
+void nsFilePicker::DoneCommon(ResultCode aResult,
+                              nsCOMPtr<nsIFilePickerShownCallback> aCallback) {
   if (aResult == ResultCode::returnOK) {
     if (mMode == nsIFilePicker::modeSave) {
       nsCOMPtr<nsIFile> file;
@@ -966,9 +975,8 @@ void nsFilePicker::DoneCommon(ResultCode aResult) {
     }
   }
 
-  if (mCallback) {
-    mCallback->Done(aResult);
-    mCallback = nullptr;
+  if (aCallback) {
+    aCallback->Done(aResult);
   }
 }
 

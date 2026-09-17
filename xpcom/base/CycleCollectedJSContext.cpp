@@ -73,6 +73,9 @@ CycleCollectedJSContext::CycleCollectedJSContext()
 
 CycleCollectedJSContext::~CycleCollectedJSContext() {
   MOZ_COUNT_DTOR(CycleCollectedJSContext);
+  MOZ_ASSERT(mWebTaskSchedulingStateCount == 0,
+             "A global leaked a WebTaskSchedulingState, which would have "
+             "permanently disabled the getHostDefinedData fast path");
   // If the allocation failed, here we are.
   if (!mJSContext) {
     return;
@@ -98,6 +101,7 @@ CycleCollectedJSContext::~CycleCollectedJSContext() {
   mPendingException = nullptr;
 
   mUncaughtRejections.reset();
+  mUncaughtRejectionIndices.Clear();
   mConsumedRejections.reset();
 
   mAboutToBeNotifiedRejectedPromises.Clear();
@@ -172,17 +176,13 @@ size_t CycleCollectedJSContext::SizeOfExcludingThis(
   return 0;
 }
 
-enum { SCHEDULING_STATE_SLOT, SCHEDULING_STATE_SLOT_COUNT };
-
 void FinalizeSchedulingStateWrapper(JS::GCContext* aGCX, JSObject* aObjSelf) {
-  JS::Value slotEvent = JS::GetReservedSlot(aObjSelf, SCHEDULING_STATE_SLOT);
-  if (slotEvent.isUndefined()) {
+  nsISupports* schedulingState = JS::GetObjectISupports<nsISupports>(aObjSelf);
+  if (!schedulingState) {
     return;
   }
 
-  WebTaskSchedulingState* schedulingState =
-      static_cast<WebTaskSchedulingState*>(slotEvent.toPrivate());
-  JS_SetReservedSlot(aObjSelf, SCHEDULING_STATE_SLOT, JS::UndefinedValue());
+  JS::SetObjectISupports(aObjSelf, nullptr);
   schedulingState->Release();
 }
 
@@ -190,11 +190,13 @@ static const JSClassOps sSchedulingStateWrapper = {
     .finalize = FinalizeSchedulingStateWrapper,
 };
 
-static const JSClass sSchedulingStateClass = {
-    "SchedulingStateWrapper",
-    JSCLASS_HAS_RESERVED_SLOTS(SCHEDULING_STATE_SLOT_COUNT) |
-        JSCLASS_FOREGROUND_FINALIZE,
-    &sSchedulingStateWrapper};
+// The only slot holds the WebTaskSchedulingState as an nsISupports, which is
+// how the cycle collector sees the strong reference.
+static const JSClass sSchedulingStateClass = {"SchedulingStateWrapper",
+                                              JSCLASS_HAS_RESERVED_SLOTS(1) |
+                                                  JSCLASS_SLOT0_IS_NSISUPPORTS |
+                                                  JSCLASS_FOREGROUND_FINALIZE,
+                                              &sSchedulingStateWrapper};
 
 bool CycleCollectedJSContext::getHostDefinedGlobal(
     JSContext* aCx, JS::MutableHandle<JSObject*> out) const {
@@ -242,7 +244,13 @@ bool CycleCollectedJSContext::getHostDefinedData(
 
   // A performance note: On promise heavy benchmarks the allocation of an
   // object can be heavy, which is why this is conditional on the existence
-  // of schedulingState.
+  // of schedulingState. Checking the count first avoids walking the script
+  // settings stack (and the principal check in GetEntryGlobal) when no global
+  // on this thread has a scheduling state at all.
+  if (!MayHaveWebTaskSchedulingState()) {
+    return true;
+  }
+
   mozilla::dom::WebTaskSchedulingState* schedulingState =
       mozilla::dom::GetWebTaskSchedulingState();
   if (!schedulingState) {
@@ -259,8 +267,8 @@ bool CycleCollectedJSContext::getHostDefinedData(
 
   // This ref will be removed by FinalizeSchedulingStateWrapper.
   schedulingState->AddRef();
-  JS_SetReservedSlot(schedulingStateResult, SCHEDULING_STATE_SLOT,
-                     JS::PrivateValue(schedulingState));
+  JS::SetObjectISupports(schedulingStateResult,
+                         static_cast<nsISupports*>(schedulingState));
   aOptionalHostDefinedData.set(schedulingStateResult);
 
   return true;
@@ -388,30 +396,29 @@ void CycleCollectedJSContext::PromiseRejectionTrackerCallback(
   uint64_t promiseID = JS::GetPromiseID(aPromise);
 
   if (state == JS::PromiseRejectionHandlingState::Unhandled) {
-    PromiseDebugging::AddUncaughtRejection(aPromise);
+    PromiseDebugging::AddUncaughtRejection(aPromise, promiseID);
     if (!aMutedErrors) {
       RefPtr<Promise> promise =
           Promise::CreateFromExisting(xpc::NativeGlobal(aPromise), aPromise);
+      size_t index = aboutToBeNotified.Length();
       aboutToBeNotified.AppendElement(promise);
-      unhandled.InsertOrUpdate(promiseID, std::move(promise));
+      unhandled.InsertOrUpdate(promiseID,
+                               PendingRejection{std::move(promise), index});
     }
   } else {
-    PromiseDebugging::AddConsumedRejection(aPromise);
-    for (size_t i = 0; i < aboutToBeNotified.Length(); i++) {
-      if (aboutToBeNotified[i] &&
-          aboutToBeNotified[i]->PromiseObj() == aPromise) {
-        // To avoid large amounts of memmoves, we don't shrink the vector
-        // here. Instead, we filter out nullptrs when iterating over the
-        // vector later.
-        aboutToBeNotified[i] = nullptr;
-        DebugOnly<bool> isFound = unhandled.Remove(promiseID);
-        MOZ_ASSERT(isFound);
-        return;
+    PromiseDebugging::AddConsumedRejection(aPromise, promiseID);
+    if (Maybe<PendingRejection> pending = unhandled.Extract(promiseID)) {
+      // The stored index outlives the array whenever AfterProcessMicrotasks
+      // hands it off, so only clear the slot if it still holds this promise.
+      // To avoid large amounts of memmoves, we don't shrink the vector here.
+      // Instead, we filter out nullptrs when iterating over the vector later.
+      if (pending->mIndex < aboutToBeNotified.Length() &&
+          aboutToBeNotified[pending->mIndex] == pending->mPromise) {
+        aboutToBeNotified[pending->mIndex] = nullptr;
       }
+      return;
     }
-    RefPtr<Promise> promise;
-    unhandled.Remove(promiseID, getter_AddRefs(promise));
-    if (!promise && !aMutedErrors) {
+    if (!aMutedErrors) {
       nsIGlobalObject* global = xpc::NativeGlobal(aPromise);
       if (nsCOMPtr<EventTarget> owner = do_QueryInterface(global)) {
         RootedDictionary<PromiseRejectionEventInit> init(aCx);
@@ -793,12 +800,8 @@ void ExtractIncumbentAndSchedulingState(
     if (aOptionalHostDefinedData) {
       MOZ_ASSERT(JS::GetClass(aOptionalHostDefinedData) ==
                  &sSchedulingStateClass);
-      JS::Value state =
-          JS::GetReservedSlot(aOptionalHostDefinedData, SCHEDULING_STATE_SLOT);
-      if (!state.isUndefined()) {
-        aSchedulingState =
-            static_cast<WebTaskSchedulingState*>(state.toPrivate());
-      }
+      aSchedulingState = static_cast<WebTaskSchedulingState*>(
+          JS::GetObjectISupports<nsISupports>(aOptionalHostDefinedData));
     }
   }
 }
@@ -990,16 +993,18 @@ void RunJSMicroTask(JSContext* aCx, CycleCollectedJSContext* aCCJS,
       asyncStackSetter.emplace(aCx, allocStack, reason);
     }
 
+    // Inform the profiler about the flow for this microtask.
+    mozilla::Maybe<AutoProfilerTerminatingFlowMarkerFlowOnly> terminatingMarker;
+    MaybeGetFlowMarker(aMicroTask, terminatingMarker);
+
     {
+      mozilla::Maybe<AutoHandlingUserInputStatePusher> userInputStateSwitcher;
       // A new scope is used to make sure the UserInputState is reset before
       // potentially draining more microtasks.
-      bool propagate = ShouldPropagateUserInputEventHandlingState(aMicroTask);
-      AutoHandlingUserInputStatePusher userInputStateSwitcher(propagate);
-
-      // Inform the profiler about the flow for this microtask.
-      mozilla::Maybe<AutoProfilerTerminatingFlowMarkerFlowOnly>
-          terminatingMarker;
-      MaybeGetFlowMarker(aMicroTask, terminatingMarker);
+      if (NS_IsMainThread()) {
+        bool propagate = ShouldPropagateUserInputEventHandlingState(aMicroTask);
+        userInputStateSwitcher.emplace(propagate);
+      }
 
       if (incumbentGlobal) {
         // https://wicg.github.io/scheduling-apis/#sec-patches-html-hostcalljobcallback
@@ -1103,8 +1108,11 @@ void RunJSMicroTask(JSContext* aCx, CycleCollectedJSContext* aCCJS,
         incumbentGlobal->SetWebTaskSchedulingState(peekedSchedulingState);
       }
 
-      bool propagate = ShouldPropagateUserInputEventHandlingState(aMicroTask);
-      AutoHandlingUserInputStatePusher userInputStateSwitcher(propagate);
+      mozilla::Maybe<AutoHandlingUserInputStatePusher> userInputStateSwitcher;
+      if (NS_IsMainThread()) {
+        bool propagate = ShouldPropagateUserInputEventHandlingState(aMicroTask);
+        userInputStateSwitcher.emplace(propagate);
+      }
 
       // If this task fails we need cleanup code, which is in AutoJSAPI's
       // destructor to run, so abort execution.
@@ -1341,20 +1349,25 @@ NS_IMETHODIMP CycleCollectedJSContext::NotifyUnhandledRejections::Run() {
 
     // Notify observers only if still unhandled (matches old
     // FlushUncaughtRejectionsInternal behavior for observer consumers
-    // like PromiseTestUtils).
+    // like PromiseTestUtils). An observer returning true takes ownership of
+    // the rejection and suppresses the console report, as on the
+    // FlushUncaughtRejectionsInternal and Cancel() paths.
+    bool suppressReporting = false;
     if (!JS::GetPromiseIsHandled(promiseObj)) {
       auto& observers = cccx->mUncaughtRejectionObservers;
       for (size_t j = 0; j < observers.Length(); ++j) {
         RefPtr<UncaughtRejectionObserver> obs =
             static_cast<UncaughtRejectionObserver*>(observers[j].get());
-        obs->OnLeftUncaught(promiseObj, IgnoreErrors());
+        if (obs->OnLeftUncaught(promiseObj, IgnoreErrors())) {
+          suppressReporting = true;
+        }
       }
     }
 
     // Report to console regardless of handled state — this matches the
     // pre-existing behavior where FlushRejections reported before handling
     // could occur. Only preventDefault() suppresses the console report.
-    if (!defaultPrevented) {
+    if (!defaultPrevented && !suppressReporting) {
       JSAutoRealm ar(cccx->Context(), promiseObj);
       Promise::ReportRejectedPromise(cccx->Context(), promiseObj);
     }

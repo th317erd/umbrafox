@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+import { serializeClientErrorDetail } from "chrome://browser/content/aiwindow/modules/ClientErrorTelemetry.mjs";
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {});
@@ -37,6 +38,9 @@ export class AIChatContentChild extends JSWindowActorChild {
     "AIChatContent:AssetsReady": {
       event: "aiChatContentActor:assets-ready",
     },
+    "AIChatContent:SetMode": {
+      event: "aiChatContentActor:set-mode",
+    },
   };
 
   static #VALID_EVENTS_FROM_CONTENT = new Set([
@@ -50,6 +54,7 @@ export class AIChatContentChild extends JSWindowActorChild {
     "AIChatContent:RequestAssets",
     "AIChatContent:HistoryGridRender",
     "AIChatContent:HistoryGridItemClick",
+    "AIChatContent:ClientError",
   ]);
 
   /**
@@ -119,7 +124,23 @@ export class AIChatContentChild extends JSWindowActorChild {
       return true;
     } catch (error) {
       console.error(`Error dispatching ${eventName} to chat content:`, error);
+      this.#reportDispatchFailure(error);
       return false;
+    }
+  }
+
+  #reportDispatchFailure(error) {
+    try {
+      this.sendAsyncMessage(
+        "AIChatContent:ClientError",
+        serializeClientErrorDetail(
+          error,
+          "message-data",
+          "message_dispatch_failed"
+        )
+      );
+    } catch (e) {
+      console.warn("Could not report dispatch failure:", e);
     }
   }
 }

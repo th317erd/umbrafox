@@ -4,22 +4,12 @@
 
 import { actionTypes as at } from "resource://newtab/common/Actions.mjs";
 import { Dedupe } from "resource:///modules/Dedupe.sys.mjs";
-// Namespace import: a named import of an export missing on older train-hop
-// platforms is a link error; a namespace member is just undefined.
-import * as PlatformTopSitesConstants from "resource:///modules/topsites/constants.mjs";
 
 export {
   TOP_SITES_DEFAULT_ROWS,
+  TOP_SITES_MAX_ROWS,
   TOP_SITES_MAX_SITES_PER_ROW,
 } from "resource:///modules/topsites/constants.mjs";
-
-// @backward-compat { version 154 }
-// TOP_SITES_MAX_ROWS lands in platform constants.mjs in 154; until that reaches
-// Release it's absent on train-hop, so fall back to 4. At 154-Release: drop the
-// namespace import above, delete this shim, and add TOP_SITES_MAX_ROWS to the
-// re-export block above.
-export const TOP_SITES_MAX_ROWS =
-  PlatformTopSitesConstants.TOP_SITES_MAX_ROWS ?? 4;
 
 const dedupe = new Dedupe(site => site && site.url);
 
@@ -70,7 +60,7 @@ export const INITIAL_STATE = {
   },
   Prefs: {
     initialized: false,
-    values: { featureConfig: {} },
+    values: { featureConfig: {}, lockedPrefs: [] },
   },
   Dialog: {
     visible: false,
@@ -146,17 +136,6 @@ export const INITIAL_STATE = {
     // For can be a queue in the future, but for now is one item
     toastQueue: [],
   },
-  // Snapshot of the platform NotificationDB (persisted web notifications).
-  // Distinct from `Notifications` above, which is in-newtab toast UI state.
-  // Normalized: `notifications` is the canonical id-keyed table; `byOrigin`
-  // is an id-only index. Fed by WebNotificationsFeed.
-  WebNotifications: {
-    initialized: false,
-    lastUpdated: null,
-    notifications: {},
-    byOrigin: {},
-    error: null,
-  },
   InferredPersonalization: {
     initialized: false,
     lastUpdated: null,
@@ -180,9 +159,26 @@ export const INITIAL_STATE = {
     highlightSeenCounter: 0,
     categories: [],
     uploadedWallpaper: "",
+    uploadResult: null,
+    // The images someone has saved, newest first. Shown as "Your images".
+    customWallpapers: [],
+    // Picker thumbnails, one { filename, file } per saved image. The library
+    // is not reachable by URL, so the bytes come over when the picker opens.
+    customWallpaperThumbnails: [],
   },
   SectionsLayout: {
     configs: {},
+    orderings: {},
+  },
+  // Web notifications surfaced on newtab. Distinct from `Notifications` above,
+  // which is in-newtab toast UI state. `notifications` is the canonical
+  // id-keyed table; `byOrigin` is an id-only index. Fed by WebNotificationsFeed.
+  WebNotifications: {
+    initialized: false,
+    lastUpdated: null,
+    notifications: {},
+    byOrigin: {},
+    error: null,
   },
   Weather: {
     initialized: false,
@@ -205,6 +201,12 @@ export const INITIAL_STATE = {
     tickers: [],
     lastUpdated: null,
     error: false,
+    watchlistTickers: [],
+    watchlistReconciledSymbols: [],
+    searchResults: [],
+    searchStatus: "idle",
+    activeRequestId: null,
+    submittedQuery: "",
   },
   PictureOfTheDay: {
     initialized: false,
@@ -297,6 +299,49 @@ export const INITIAL_STATE = {
     // "sites where we blocked something"; see PrivacyFeed).
     sitesToday: 0,
     lastUpdated: null,
+    // True when the user has turned off every Enhanced Tracking Protection
+    // blocking option, so nothing is being counted (Bug 2063525). The widget
+    // shows a warning card instead of the readout.
+    etpOff: false,
+    // Secondary-message decision chosen by PrivacyFeed's selector
+    // (Bug 2050954). variant: empty | blank | streak | tip. `category` is the
+    // message family (CATEGORY) so the UI can tell a celebration from an
+    // ordinary tip; `icon` is an icon key (see Privacy.jsx); `countArg` is the
+    // l10n plural/var arg.
+    variant: null,
+    messageId: null,
+    category: null,
+    icon: null,
+    countArg: null,
+    // SpecialMessageAction for the message's CTA button (null → no button).
+    cta: null,
+    // When set, the count readout shows "{countCeiling}+" (the daily-cap render).
+    countCeiling: null,
+    // Pending count-up celebration awarded by PrivacyFeed, or null. Shaped
+    // { awardedAt, fromCount, toCount }, plus `forcedTier` when the debug
+    // pref made it; `awardedAt` doubles as its id.
+    celebration: null,
+  },
+  RecentSearches: {
+    initialized: false,
+    /**
+     * @type {Array<{value: string, lastUsed: number}>}
+     *   Recent searches, newest first, as { value, lastUsed } where lastUsed is
+     *   a ms epoch.
+     */
+    searches: [],
+    /**
+     * @type {?Array<string>}
+     *   Trending search strings for the default engine. Null until a user opens
+     *   the Trending tab and the engine answers, so an empty list means the
+     *   engine had nothing rather than that nothing has been asked for yet.
+     */
+    trending: null,
+    /**
+     * Name of the default engine, for the Trending tab attribution. Empty until
+     * the first update arrives, and for a profile with no default engine.
+     */
+    engineName: "",
   },
 };
 
@@ -1100,6 +1145,12 @@ function Wallpapers(prevState = INITIAL_STATE.Wallpapers, action) {
       return { ...prevState, categories: action.data };
     case at.WALLPAPERS_CUSTOM_SET:
       return { ...prevState, uploadedWallpaper: action.data };
+    case at.WALLPAPERS_CUSTOM_LIBRARY_SET:
+      return { ...prevState, customWallpapers: action.data };
+    case at.WALLPAPERS_CUSTOM_THUMBNAILS_SET:
+      return { ...prevState, customWallpaperThumbnails: action.data };
+    case at.WALLPAPER_UPLOAD_RESULT:
+      return { ...prevState, uploadResult: action.data };
     default:
       return prevState;
   }
@@ -1108,7 +1159,11 @@ function Wallpapers(prevState = INITIAL_STATE.Wallpapers, action) {
 function SectionsLayout(prevState = INITIAL_STATE.SectionsLayout, action) {
   switch (action.type) {
     case at.SECTIONS_LAYOUT_UPDATE:
-      return { ...prevState, configs: action.data.configs };
+      return {
+        ...prevState,
+        configs: action.data.configs,
+        orderings: action.data.orderings ?? prevState.orderings,
+      };
     default:
       return prevState;
   }
@@ -1143,6 +1198,39 @@ function Notifications(prevState = INITIAL_STATE.Notifications, action) {
   }
 }
 
+/** Merges one notification into the id table and origin index. */
+function addWebNotification(prevState, notification) {
+  const { id, origin } = notification;
+  const originIds = prevState.byOrigin[origin] || [];
+  return {
+    ...prevState,
+    initialized: true,
+    notifications: { ...prevState.notifications, [id]: notification },
+    byOrigin: {
+      ...prevState.byOrigin,
+      [origin]: originIds.includes(id) ? originIds : [...originIds, id],
+    },
+  };
+}
+
+/** Drops a list of `{origin, id}` pairs from the id table and origin index. */
+function removeWebNotifications(prevState, removed) {
+  const notifications = { ...prevState.notifications };
+  const byOrigin = { ...prevState.byOrigin };
+  for (const { origin, id } of removed) {
+    delete notifications[id];
+    const remaining = (byOrigin[origin] || []).filter(
+      existing => existing !== id
+    );
+    if (remaining.length) {
+      byOrigin[origin] = remaining;
+    } else {
+      delete byOrigin[origin];
+    }
+  }
+  return { ...prevState, notifications, byOrigin };
+}
+
 function WebNotifications(prevState = INITIAL_STATE.WebNotifications, action) {
   switch (action.type) {
     case at.WEB_NOTIFICATIONS_UPDATED:
@@ -1154,11 +1242,12 @@ function WebNotifications(prevState = INITIAL_STATE.WebNotifications, action) {
         byOrigin: action.data.byOrigin,
         error: null,
       };
+    case at.WEB_NOTIFICATIONS_ADDED:
+      return addWebNotification(prevState, action.data.notification);
+    case at.WEB_NOTIFICATIONS_REMOVED:
+      return removeWebNotifications(prevState, action.data.removed);
     case at.WEB_NOTIFICATIONS_ERROR:
-      return {
-        ...prevState,
-        error: action.data,
-      };
+      return { ...prevState, error: action.data };
     default:
       return prevState;
   }
@@ -1214,12 +1303,26 @@ const PictureOfTheDay = (prevState = INITIAL_STATE.PictureOfTheDay, action) => {
 function PrivacyWidget(prevState = INITIAL_STATE.PrivacyWidget, action) {
   switch (action.type) {
     case at.WIDGETS_PRIVACY_UPDATE:
+      // Merge whatever the feed sent: SYSTEM_TICK/INIT broadcast counts only
+      // (message fields absent → kept); NEW_TAB_INIT also carries the
+      // selector's message decision.
       return {
         ...prevState,
-        trackersToday: action.data.trackersToday,
-        sitesToday: action.data.sitesToday,
-        lastUpdated: action.data.lastUpdated,
+        ...action.data,
         initialized: true,
+      };
+    default:
+      return prevState;
+  }
+}
+
+function RecentSearches(prevState = INITIAL_STATE.RecentSearches, action) {
+  switch (action.type) {
+    case at.WIDGETS_RECENT_SEARCHES_UPDATE:
+      return {
+        ...prevState,
+        ...action.data,
+        initialized: prevState.initialized || "searches" in action.data,
       };
     default:
       return prevState;
@@ -1335,6 +1438,37 @@ function Stocks(prevState = INITIAL_STATE.Stocks, action) {
         tickers: action.data.tickers,
         lastUpdated: action.data.lastUpdated,
         error: action.data.error ?? false,
+      };
+    case at.WIDGETS_STOCKS_WATCHLIST_UPDATE:
+      return {
+        ...prevState,
+        watchlistTickers: action.data.watchlistTickers,
+        watchlistReconciledSymbols: action.data.reconciledSymbols,
+      };
+    case at.WIDGETS_STOCKS_SEARCH_STARTED:
+      return {
+        ...prevState,
+        searchStatus: "loading",
+        searchResults: [],
+        activeRequestId: action.data.requestId,
+        submittedQuery: action.data.query,
+      };
+    case at.WIDGETS_STOCKS_SEARCH_RESPONSE:
+      if (action.data.requestId !== prevState.activeRequestId) {
+        return prevState;
+      }
+      return {
+        ...prevState,
+        searchStatus: action.data.status,
+        searchResults: action.data.values || [],
+      };
+    case at.WIDGETS_STOCKS_SEARCH_CLEAR:
+      return {
+        ...prevState,
+        searchStatus: "idle",
+        searchResults: [],
+        activeRequestId: null,
+        submittedQuery: "",
       };
     default:
       return prevState;
@@ -1484,7 +1618,6 @@ export const reducers = {
   Sections,
   Messages,
   Notifications,
-  WebNotifications,
   Pocket,
   InferredPersonalization,
   DiscoveryStream,
@@ -1493,10 +1626,12 @@ export const reducers = {
   ListsWidget,
   Wallpapers,
   SectionsLayout,
+  WebNotifications,
   Weather,
   Stocks,
   ExternalComponents,
   SportsWidget,
   PrivacyWidget,
   PictureOfTheDay,
+  RecentSearches,
 };

@@ -1467,9 +1467,10 @@ void gfxTextRun::CopyGlyphDataFrom(gfxShapedWord* aShapedWord,
     for (uint32_t i = 0; i < wordLen; ++i, ++aOffset) {
       const CompressedGlyph& g = wordGlyphs[i];
       if (!g.IsSimpleGlyph()) {
+        uint32_t count = g.GetGlyphCount();
         const DetailedGlyph* details =
-            g.GetGlyphCount() > 0 ? aShapedWord->GetDetailedGlyphs(i) : nullptr;
-        SetDetailedGlyphs(aOffset, g.GetGlyphCount(), details);
+            count > 0 ? aShapedWord->GetDetailedGlyphs(i, count) : nullptr;
+        SetDetailedGlyphs(aOffset, count, details);
       }
       charGlyphs[aOffset] = g;
     }
@@ -1498,11 +1499,10 @@ void gfxTextRun::CopyGlyphDataFrom(gfxTextRun* aSource, Range aRange,
                             ? CompressedGlyph::FLAG_BREAK_TYPE_NONE
                             : dstGlyphs[i].CanBreakBefore());
     if (!g.IsSimpleGlyph()) {
-      uint32_t count = g.GetGlyphCount();
-      if (count > 0) {
+      if (uint32_t count = g.GetGlyphCount()) {
         // DetailedGlyphs allocation is infallible, so this should never be
         // null unless the source textrun is somehow broken.
-        DetailedGlyph* src = aSource->GetDetailedGlyphs(i + aRange.start);
+        const auto* src = aSource->GetDetailedGlyphs(i + aRange.start, count);
         MOZ_ASSERT(src, "missing DetailedGlyphs?");
         if (src) {
           DetailedGlyph* dst = AllocateDetailedGlyphs(i + aDest, count);
@@ -1661,15 +1661,12 @@ void gfxTextRun::FetchGlyphExtents(DrawTarget* aRefDrawTarget) const {
           }
         }
       } else if (!glyphData->IsMissing()) {
-        uint32_t glyphCount = glyphData->GetGlyphCount();
-        if (glyphCount == 0) {
+        uint32_t count = glyphData->GetGlyphCount();
+        if (count == 0) {
           continue;
         }
-        const gfxTextRun::DetailedGlyph* details = GetDetailedGlyphs(j);
-        if (!details) {
-          continue;
-        }
-        for (uint32_t k = 0; k < glyphCount; ++k, ++details) {
+        const auto* details = GetDetailedGlyphs(j, count);
+        for (uint32_t k = 0; k < count; ++k, ++details) {
           uint32_t glyphIndex = details->mGlyphID;
           if (!extents->IsGlyphKnownWithTightExtentsLocked(glyphIndex)) {
 #ifdef DEBUG_TEXT_RUN_STORAGE_METRICS
@@ -1789,19 +1786,19 @@ void gfxTextRun::Dump(FILE* out) {
       line.AppendPrintf(" id=%d adv=%d", glyphData.GetSimpleGlyph(),
                         glyphData.GetSimpleAdvance());
     } else {
-      uint32_t count = glyphData.GetGlyphCount();
-      if (count) {
+      if (uint32_t count = glyphData.GetGlyphCount()) {
+        const auto* glyphs = GetDetailedGlyphs(i, count);
         line += " ids=";
         for (uint32_t j = 0; j < count; j++) {
-          line.AppendPrintf(j ? ",%d" : "%d", GetDetailedGlyphs(i)[j].mGlyphID);
+          line.AppendPrintf(j ? ",%d" : "%d", glyphs[j].mGlyphID);
         }
         line += " advs=";
         for (uint32_t j = 0; j < count; j++) {
-          line.AppendPrintf(j ? ",%d" : "%d", GetDetailedGlyphs(i)[j].mAdvance);
+          line.AppendPrintf(j ? ",%d" : "%d", glyphs[j].mAdvance);
         }
         line += " offsets=";
         for (uint32_t j = 0; j < count; j++) {
-          auto offset = GetDetailedGlyphs(i)[j].mOffset;
+          auto offset = glyphs[j].mOffset;
           line.AppendPrintf(j ? ",(%g,%g)" : "(%g,%g)", offset.x.value,
                             offset.y.value);
         }
@@ -2588,6 +2585,9 @@ static Script ResolveScriptForLang(const nsAtom* aLanguage, Script aDefault) {
       : public MruCache<const nsAtom*, std::pair<const nsAtom*, Script>,
                         LangScriptCache> {
    public:
+    static bool IsEmpty(const std::pair<const nsAtom*, Script>& aValue) {
+      return !aValue.first;
+    }
     static HashNumber Hash(const nsAtom* const& aKey) { return aKey->hash(); }
     static bool Match(const nsAtom* const& aKey,
                       const std::pair<const nsAtom*, Script>& aValue) {
@@ -2652,7 +2652,7 @@ void gfxFontGroup::InitTextRunLog(LogModule* aLog, const uint8_t* aString,
   MOZ_LOG(
       aLog, LogLevel::Warning,
       ("(%s) fontgroup: [%s] default: %s lang: %s script: %d "
-       "len %d weight: %g stretch: %g%% style: %s size: %6.2f "
+       "len %d weight: %g width: %g%% style: %s size: %6.2f "
        "%d-byte TEXTRUN [%s] ENDTEXTRUN\n",
        (mStyle.systemFont ? "textrunui" : "textrun"),
        FamilyListToString(mFamilyList).get(),
@@ -2662,7 +2662,7 @@ void gfxFontGroup::InitTextRunLog(LogModule* aLog, const uint8_t* aString,
                    ? "sans-serif"
                    : "none")),
        lang.get(), static_cast<int>(aRun.mScript), aRun.mLength,
-       mStyle.weight.ToFloat(), mStyle.stretch.ToFloat(), styleString.get(),
+       mStyle.weight.ToFloat(), mStyle.width.ToFloat(), styleString.get(),
        mStyle.size, aString ? 1 : 2,
        aTextPtr
            ? NS_ConvertUTF16toUTF8(aTextPtr + aRun.mOffset, aRun.mLength).get()
@@ -2915,7 +2915,7 @@ void gfxFontGroup::InitScriptRun(DrawTarget* aDrawTarget, gfxTextRun* aTextRun,
       bool syntheticLower = false;
       bool syntheticUpper = false;
 
-      if (mStyle.variantSubSuper != NS_FONT_VARIANT_POSITION_NORMAL &&
+      if (mStyle.variantSubSuper != StyleFontVariantPosition::Normal &&
           mStyle.useSyntheticPosition &&
           (aTextRun->GetShapingState() ==
                gfxTextRun::eShapingState_ForceFallbackFeature ||
@@ -2945,7 +2945,7 @@ void gfxFontGroup::InitScriptRun(DrawTarget* aDrawTarget, gfxTextRun* aTextRun,
           // glyph layout failed! treat as missing glyphs
           matchedFont = nullptr;
         }
-      } else if (mStyle.variantCaps != NS_FONT_VARIANT_CAPS_NORMAL &&
+      } else if (mStyle.variantCaps != StyleFontVariantCaps::Normal &&
                  mStyle.allowSyntheticSmallCaps &&
                  !matchedFont->SupportsVariantCaps(
                      aRunScript, mStyle.variantCaps, petiteToSmallCaps,
@@ -3435,7 +3435,7 @@ already_AddRefed<gfxFont> gfxFontGroup::FindFontForChar(
           loading = true;
         }
 
-        gfxFontEntry* pfe = ufe->GetPlatformFontEntry();
+        RefPtr<gfxFontEntry> pfe = ufe->GetPlatformFontEntry();
         if (pfe && (pfe->HasCharacter(aCh) ||
                     (fallbackChar && pfe->HasCharacter(fallbackChar)))) {
           font = GetFontAt(i, aCh, &loading);

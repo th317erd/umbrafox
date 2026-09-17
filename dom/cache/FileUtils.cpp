@@ -30,7 +30,7 @@
 
 namespace mozilla::dom::cache {
 
-static_assert(SNAPPY_VERSION == 0x010202);
+static_assert(SNAPPY_VERSION == 0x010300);
 
 using mozilla::dom::quota::Client;
 using mozilla::dom::quota::CloneFileAndAppend;
@@ -43,7 +43,7 @@ namespace {
 
 // Const variable for generate padding size.
 // XXX This will be tweaked to something more meaningful in Bug 1383656.
-const int64_t kRoundUpNumber = 20480;
+const int64_t kRoundUpNumber = 131072;
 
 // At the moment, the encrypted stream block size is assumed to be unchangeable
 // between encrypting and decrypting blobs. This assumptions holds as long as we

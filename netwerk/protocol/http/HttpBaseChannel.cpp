@@ -541,15 +541,14 @@ HttpBaseChannel::SetDocshellUserAgentOverride() {
     return NS_OK;
   }
 
-  nsAutoString customUserAgent;
+  nsAutoCString customUserAgent;
   bc->GetCustomUserAgent(customUserAgent);
   if (customUserAgent.IsEmpty() || customUserAgent.IsVoid()) {
     return NS_OK;
   }
 
-  NS_ConvertUTF16toUTF8 utf8CustomUserAgent(customUserAgent);
   nsresult rv = SetRequestHeaderInternal(
-      "User-Agent"_ns, utf8CustomUserAgent, false,
+      "User-Agent"_ns, customUserAgent, false,
       nsHttpHeaderArray::eVarietyRequestEnforceDefault);
   if (NS_FAILED(rv)) {
     return rv;
@@ -1200,6 +1199,13 @@ HttpBaseChannel::CloneUploadStream(int64_t* aContentLength,
     return NS_OK;
   }
 
+  // Teeing an async pipe would buffer an upload of unbounded size in memory,
+  // so report no clone; a service worker therefore sees a null request body.
+  if (LoadUploadStreamIsStreaming()) {
+    *aContentLength = -1;
+    return NS_OK;
+  }
+
   nsCOMPtr<nsIInputStream> clonedStream;
   nsresult rv =
       NS_CloneInputStream(mUploadStream, getter_AddRefs(clonedStream));
@@ -1258,6 +1264,18 @@ nsresult HttpBaseChannel::InternalSetUploadStream(
 
     mUploadStream = aUploadStream;
     ExplicitSetUploadStreamLength(aContentLength, aSetContentLengthHeader);
+    return NS_OK;
+  }
+
+  // For streaming uploads (JS ReadableStream body), the stream is an async
+  // pipe fed by FetchStreamReader. It cannot be normalized (buffered into a
+  // StorageStream) because it's consumed incrementally. Skip normalization
+  // entirely and use the pipe as-is.
+  if (LoadUploadStreamIsStreaming()) {
+    mUploadStream = aUploadStream;
+    // mReqContentLength stays 0: the length genuinely is not known yet.
+    // nsHttpTransaction::Init consults RequestBodyIsStreaming() so that it
+    // does not mistake that for "no body".
     return NS_OK;
   }
 
@@ -1986,12 +2004,6 @@ nsresult HttpBaseChannel::SetReferrerInfoInternal(
     return NS_ERROR_NOT_INITIALIZED;
   }
 
-  if (aClone) {
-    // Record the telemetry once we set the referrer info to the channel
-    // successfully.
-    referrerInfo->RecordTelemetry(this);
-  }
-
   if (aCompute) {
     rv = referrerInfo->ComputeReferrer(this);
     if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -2459,7 +2471,7 @@ HttpBaseChannel::GetProtocolVersion(nsACString& aProtocolVersion) {
         NS_SUCCEEDED(mSecurityInfo->GetNegotiatedNPN(protocol)) &&
         !protocol.IsEmpty()) {
       // The negotiated protocol was not empty so we can use it.
-      aProtocolVersion = protocol;
+      aProtocolVersion = std::move(protocol);
       return NS_OK;
     }
   }
@@ -3420,12 +3432,6 @@ bool HttpBaseChannel::ShouldBlockOpaqueResponse() const {
     return false;
   }
 
-  // Ignore the request from object or embed elements
-  if (mLoadInfo->GetIsFromObjectOrEmbed()) {
-    LOGORB("No block: Request From <object> or <embed>");
-    return false;
-  }
-
   // Exclude no_cors System XHR
   if (extContentPolicyType == ExtContentPolicy::TYPE_XMLHTTPREQUEST) {
     if (securityMode ==
@@ -3448,13 +3454,6 @@ bool HttpBaseChannel::ShouldBlockOpaqueResponse() const {
   uint32_t httpsOnlyStatus = mLoadInfo->GetHttpsOnlyStatus();
   if (httpsOnlyStatus & nsILoadInfo::HTTPS_ONLY_BYPASS_ORB) {
     LOGORB("No block: HTTPS_ONLY_BYPASS_ORB");
-    return false;
-  }
-
-  bool isInDevToolsContext;
-  mLoadInfo->GetIsInDevToolsContext(&isInDevToolsContext);
-  if (isInDevToolsContext) {
-    LOGORB("No block: Request created by devtools");
     return false;
   }
 
@@ -3772,8 +3771,8 @@ void HttpBaseChannel::SetChannelBlockedByOpaqueResponse() {
   }
 }
 
-NS_IMETHODIMP
-HttpBaseChannel::SetCookieHeaders(const nsTArray<nsCString>& aCookieHeaders) {
+nsresult HttpBaseChannel::SetCookieHeaders(
+    const nsTArray<nsCString>& aCookieHeaders) {
   if (mLoadFlags & LOAD_ANONYMOUS) return NS_OK;
 
   // The loadGroup of the channel in the parent process could be null in the
@@ -3988,6 +3987,13 @@ HttpBaseChannel::HTTPUpgrade(const nsACString& aProtocolName,
                              nsIHttpUpgradeListener* aListener) {
   NS_ENSURE_ARG(!aProtocolName.IsEmpty());
   NS_ENSURE_ARG_POINTER(aListener);
+
+  // The protocol name is emitted verbatim into the Upgrade request header, so
+  // reject anything that could inject additional headers or requests (e.g. an
+  // embedded CRLF from a compromised child process).
+  if (!nsHttp::IsReasonableHeaderValue(aProtocolName)) {
+    return NS_ERROR_ILLEGAL_VALUE;
+  }
 
   mUpgradeProtocol = aProtocolName;
   mUpgradeProtocolCallback = aListener;
@@ -4410,7 +4416,7 @@ HttpBaseChannel::GetEntityID(nsACString& aEntityID) {
   entityID.Append(lastmod);
   // NOTE: Appending lastmod as the last part avoids having to escape it
 
-  aEntityID = entityID;
+  aEntityID = std::move(entityID);
 
   return NS_OK;
 }
@@ -4592,7 +4598,7 @@ already_AddRefed<nsILoadInfo> HttpBaseChannel::CloneLoadInfoForRedirect(
         this, getter_AddRefs(redirectPrincipal));
     nsCOMPtr<nsIPrincipal> nullPrincipalToInherit =
         NullPrincipal::CreateWithInheritedAttributes(redirectPrincipal);
-    newLoadInfo->SetPrincipalToInherit(nullPrincipalToInherit);
+    newLoadInfo->SetTrustedPrincipalToInherit(nullPrincipalToInherit);
   }
 
   bool isTopLevelDoc = newLoadInfo->GetExternalContentPolicyType() ==
@@ -4602,26 +4608,27 @@ already_AddRefed<nsILoadInfo> HttpBaseChannel::CloneLoadInfoForRedirect(
     // re-compute the origin attributes of the loadInfo if it's top-level load.
     nsCOMPtr<nsILoadContext> loadContext;
     NS_QueryNotificationCallbacks(this, loadContext);
-    OriginAttributes docShellAttrs;
+    OriginAttributes attrs;
     if (loadContext) {
-      loadContext->GetOriginAttributes(docShellAttrs);
+      loadContext->GetOriginAttributes(attrs);
     }
 
-    OriginAttributes attrs = newLoadInfo->GetOriginAttributes();
+    OriginAttributes channelAttrs = newLoadInfo->GetOriginAttributes();
+
+    // Preserve the container from the channel attributes, as it could
+    // legitimately differ from the loadContext.
+    attrs.mUserContextId = channelAttrs.mUserContextId;
 
     MOZ_ASSERT(
-        docShellAttrs.mUserContextId == attrs.mUserContextId,
-        "docshell and necko should have the same userContextId attribute.");
-    MOZ_ASSERT(
-        docShellAttrs.mPrivateBrowsingId == attrs.mPrivateBrowsingId,
+        attrs.mPrivateBrowsingId == channelAttrs.mPrivateBrowsingId,
         "docshell and necko should have the same privateBrowsingId attribute.");
-    MOZ_ASSERT(docShellAttrs.mGeckoViewSessionContextId ==
-                   attrs.mGeckoViewSessionContextId,
+    MOZ_ASSERT(attrs.mGeckoViewSessionContextId ==
+                   channelAttrs.mGeckoViewSessionContextId,
                "docshell and necko should have the same "
                "geckoViewSessionContextId attribute");
 
-    attrs = std::move(docShellAttrs);
     attrs.SetFirstPartyDomain(true, aNewURI);
+
     newLoadInfo->SetOriginAttributes(attrs);
 
     // re-compute the upgrade insecure requests bit for document navigations
@@ -5006,6 +5013,7 @@ HttpBaseChannel::CloneReplacementChannelConfig(bool aPreserveMethod,
       config.uploadStream = mUploadStream;
     }
     config.uploadStreamLength = mReqContentLength;
+    config.uploadStreamIsStreaming = LoadUploadStreamIsStreaming();
 
     nsAutoCString contentType;
     nsresult rv = mRequestHead.GetHeader(nsHttp::Content_Type, contentType);
@@ -5148,6 +5156,12 @@ HttpBaseChannel::CloneReplacementChannelConfig(bool aPreserveMethod,
       // because ExplicitSetUploadStream treats the former as "no header" and
       // the latter as "header with empty string value".
       const nsACString& method = config.method ? *config.method : VoidCString();
+      if (config.uploadStreamIsStreaming) {
+        RefPtr<HttpBaseChannel> baseChan = do_QueryObject(httpChannel);
+        if (baseChan) {
+          baseChan->SetUploadStreamIsStreaming(true);
+        }
+      }
       uploadChannel2->ExplicitSetUploadStream(
           config.uploadStream, ctype, config.uploadStreamLength, method);
     } else if (nsCOMPtr<nsIUploadChannel> uploadChannel =
@@ -5179,6 +5193,7 @@ HttpBaseChannel::ReplacementChannelConfig::ReplacementChannelConfig(
   timedChannelInfo = aInit.timedChannelInfo();
   uploadStream = aInit.uploadStream();
   uploadStreamLength = aInit.uploadStreamLength();
+  uploadStreamIsStreaming = aInit.uploadStreamIsStreaming();
   contentType = aInit.contentType();
   contentLength = aInit.contentLength();
 }
@@ -5195,6 +5210,7 @@ HttpBaseChannel::ReplacementChannelConfig::Serialize() {
   config.uploadStream() =
       uploadStream ? RemoteLazyInputStream::WrapStream(uploadStream) : nullptr;
   config.uploadStreamLength() = uploadStreamLength;
+  config.uploadStreamIsStreaming() = uploadStreamIsStreaming;
   config.contentType() = contentType;
   config.contentLength() = contentLength;
 

@@ -1,8 +1,3 @@
-#![allow(
-    semicolon_in_expressions_from_macros,
-    reason = "work around <https://github.com/katharostech/cfg_aliases/issues/16>"
-)]
-
 fn main() {
     cfg_aliases::cfg_aliases! {
         windows_linux_android: { any(windows, target_os = "linux", target_os = "android", target_os = "freebsd") },
@@ -30,7 +25,5 @@ fn main() {
             any(target_os = "linux", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd")
         ) },
         metal: { all(target_vendor = "apple", feature = "metal") },
-
-        supports_64bit_atomics: { target_has_atomic = "64" }
     }
 }

@@ -1321,6 +1321,7 @@ nsresult GeckoEditableSupport::NotifyIME(
 
         --mIMEMaskEventsCount;
         if (!mIMEFocusCount || !widget || widget->Destroyed()) {
+          ALOGIME("IME: NOTIFY_IME_OF_FOCUS: No focus");
           return;
         }
 
@@ -1333,6 +1334,16 @@ nsresult GeckoEditableSupport::NotifyIME(
                 mEditable, do_AddRef(this));
             mEditableAttached = true;
           }
+
+          if (!mEditable->HasEditableParent()) {
+            if (dom::BrowserChild* browserChild =
+                    widget->GetOwningBrowserChild()) {
+              const uint64_t tabId = browserChild->GetTabId();
+
+              EnsureEditableParent(tabId);
+            }
+          }
+
           // Because GeckoEditableSupport in content process doesn't
           // manage the active input context, we need to retrieve the
           // input context from the widget, for use by
@@ -1591,6 +1602,16 @@ void GeckoEditableSupport::TransferParent(jni::Object::Param aEditableParent) {
   }
 }
 
+void GeckoEditableSupport::EnsureEditableParent(uint64_t aTabId) {
+  MOZ_ASSERT(mEditableAttached);
+  MOZ_ASSERT(mEditable);
+
+  if (mEditable->HasEditableParent()) {
+    return;
+  }
+  java::GeckoServiceChildProcess::GetEditableParent(GetJavaEditable(), aTabId);
+}
+
 void GeckoEditableSupport::SetOnBrowserChild(dom::BrowserChild* aBrowserChild) {
   MOZ_ASSERT(!XRE_IsParentProcess());
   NS_ENSURE_TRUE_VOID(aBrowserChild);
@@ -1600,7 +1621,7 @@ void GeckoEditableSupport::SetOnBrowserChild(dom::BrowserChild* aBrowserChild) {
   RefPtr<widget::PuppetWidget> widget(aBrowserChild->WebWidget());
   NS_ENSURE_TRUE_VOID(contentChild && widget);
 
-  // Get the content/tab ID in order to get the correct
+  // Get the tab ID in order to get the correct
   // IGeckoEditableParent object, which GeckoEditableChild uses to
   // communicate with the parent process.
   const uint64_t contentId = contentChild->GetID();
@@ -1631,8 +1652,7 @@ void GeckoEditableSupport::SetOnBrowserChild(dom::BrowserChild* aBrowserChild) {
     accEditableSupport->mEditableAttached = true;
 
     // Connect the new child to a parent that corresponds to the BrowserChild.
-    java::GeckoServiceChildProcess::GetEditableParent(editableChild, contentId,
-                                                      tabId);
+    java::GeckoServiceChildProcess::GetEditableParent(editableChild, tabId);
     return;
   }
 
@@ -1655,13 +1675,8 @@ void GeckoEditableSupport::SetOnBrowserChild(dom::BrowserChild* aBrowserChild) {
     support->mEditableAttached = true;
   }
 
-  MOZ_ASSERT(support->mEditable);
-
-  if (!support->mEditable->HasEditableParent()) {
-    // Transfer to a new parent that corresponds to the BrowserChild.
-    java::GeckoServiceChildProcess::GetEditableParent(
-        support->GetJavaEditable(), contentId, tabId);
-  }
+  // Transfer to a new parent that corresponds to the BrowserChild.
+  support->EnsureEditableParent(tabId);
 }
 
 nsIWidget* GeckoEditableSupport::GetWidget() const {

@@ -10,6 +10,7 @@ task-defaults:
     attributes:
         local-toolchain: true
     run:
+        clone-with: hg
         script: build-onnxruntime.sh
     fetches:
         fetch:
@@ -26,9 +27,12 @@ onnxruntime-x86_64-linux-gnu:
             - "Linux"
             - "x64"
         toolchain-artifact: public/build/onnxruntime-x86_64-linux-gnu.tar.zst
+        resources:
+            - taskcluster/scripts/misc/onnxruntime-thread-atexit.cpp
     fetches:
         toolchain:
             - linux64-clang-toolchain
+            - sysroot-x86_64-linux-gnu
 
 # onnxruntime-i686-linux-gnu: requires more work upstream
 # onnxruntime-aarch64-linux-gnu: requires more work upstream
@@ -43,6 +47,7 @@ onnxruntime-x86_64-windows-msvc:
     run:
         arguments:
             - "Windows"
+            - "x64"
         toolchain-artifact: public/build/onnxruntime-x86_64-windows-msvc.tar.zst
     fetches:
         toolchain:
@@ -78,7 +83,6 @@ onnxruntime-i686-windows-msvc:
 
 onnxruntime-x86_64-apple-darwin:
     description: "ONNX Runtime (macOS x64)"
-    worker-type: b-osx-1015
     treeherder:
         symbol: TM(onnx)
     run:
@@ -88,16 +92,12 @@ onnxruntime-x86_64-apple-darwin:
         toolchain-artifact: public/build/onnxruntime-x86_64-apple-darwin.tar.zst
     fetches:
         toolchain:
-            - macosx64-clang-toolchain
+            - linux64-clang-toolchain
             - macosx64-sdk-toolchain
-        fetch:
-            - macosx64-cmake
-            - macosx64-ninja
 
 
 onnxruntime-aarch64-apple-darwin:
     description: "ONNX Runtime (macOS aarch64)"
-    worker-type: b-osx-1015
     treeherder:
         symbol: TMA64(onnx)
     run:
@@ -107,17 +107,14 @@ onnxruntime-aarch64-apple-darwin:
         toolchain-artifact: public/build/onnxruntime-aarch64-apple-darwin.tar.zst
     fetches:
         toolchain:
-            - macosx64-clang-toolchain
+            - linux64-clang-toolchain
             - macosx64-sdk-toolchain
-        fetch:
-            - macosx64-cmake
-            - macosx64-ninja
 
 
 onnxruntime-arm-linux-androideabi:
     description: "ONNX Runtime (android arm)"
     treeherder:
-        symbol: TL(onnx-android-arm)
+        symbol: TA(onnx-arm)
     run:
         arguments:
             - "Android"
@@ -134,7 +131,7 @@ onnxruntime-arm-linux-androideabi:
 onnxruntime-aarch64-linux-android:
     description: "ONNX Runtime (android aarch64)"
     treeherder:
-        symbol: TL(onnx-android-aarch64)
+        symbol: TA(onnx-aarch64)
     run:
         arguments:
             - "Android"
@@ -151,7 +148,7 @@ onnxruntime-aarch64-linux-android:
 onnxruntime-x86_64-linux-android:
     description: "ONNX Runtime (android x64)"
     treeherder:
-        symbol: TL(onnx-android-x64)
+        symbol: TA(onnx-x64)
     run:
         arguments:
             - "Android"

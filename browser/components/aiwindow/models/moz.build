@@ -6,6 +6,7 @@ with Files("**"):
     BUG_COMPONENT = ("Core", "Machine Learning: General")
 
 DIRS += [
+    "aitab",
     "memories",
     "agents",
     "search",
@@ -32,6 +33,7 @@ MOZ_SRC_FILES += [
     "SearchBrowsingHistory.sys.mjs",
     "SearchBrowsingHistoryDomainBoost.sys.mjs",
     "SecurityProperties.sys.mjs",
+    "SmartFormFillModel.sys.mjs",
     "SmartWindowNavigationInfo.sys.mjs",
     "TelemetryManager.sys.mjs",
     "TelemetryUtils.sys.mjs",
@@ -39,7 +41,6 @@ MOZ_SRC_FILES += [
     "TokenStreamParser.sys.mjs",
     "Tools.sys.mjs",
     "Utils.sys.mjs",
-    "WCSMerinoClient.sys.mjs",
 ]
 
 XPCSHELL_TESTS_MANIFESTS += [

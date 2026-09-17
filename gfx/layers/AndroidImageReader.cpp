@@ -22,6 +22,7 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Logging.h"
+#include "mozilla/layers/AndroidHardwareBuffer.h"
 #include "mozilla/layers/AndroidImageConsumer.h"
 #include "mozilla/webrender/RenderThread.h"
 #include "nsProxyRelease.h"
@@ -54,9 +55,23 @@ Maybe<SurfaceDescriptor> AndroidImageReaderImage::GetDesc() {
   return Nothing();
 }
 
-void AndroidImageReaderImage::OnSetCurrent() {}
+void AndroidImageReaderImage::OnSetCurrent() {
+  auto* imageReaderMap = layers::GpuProcessAndroidImageReaderMap::Get();
+  if (!imageReaderMap) {
+    return;
+  }
 
-bool AndroidImageReaderImage::MaybeReleaseFrameToCodec(bool aRender) {
+  RefPtr<AndroidImageReader> imageReader =
+      imageReaderMap->GetImageReader(mImageReaderId);
+  if (!imageReader) {
+    return;
+  }
+
+  imageReader->MaybeRenderFirstFrame(mFrameId);
+}
+
+bool AndroidImageReaderImage::MaybeReleaseFrameToCodec(
+    const MonitorAutoLock& aProofOfLock, bool aRender) {
   if (!mSetCurrentCallback) {
     return false;
   }
@@ -120,32 +135,45 @@ nsresult AndroidImageReaderImage::BuildSurfaceDescriptorBuffer(
   return NS_OK;
 }
 
-AndroidImageWrapper::AndroidImageWrapper(AndroidImageReader* aImageReader,
-                                         AImage* aImage,
-                                         AHardwareBuffer* aHardwareBuffer,
-                                         const gfx::IntSize aSize,
-                                         const gfx::SurfaceFormat aFormat,
-                                         mozilla::UniqueFileHandle&& aFence)
+AndroidImageWrapper::AndroidImageWrapper(
+    AndroidImageReader* aImageReader, AImage* aImage,
+    AHardwareBuffer* aHardwareBuffer, const gfx::IntSize aSize,
+    const gfx::SurfaceFormat aFormat, mozilla::UniqueFileHandle&& aWriteFenceFd)
     : mHardwareBuffer(aHardwareBuffer),
       mSize(aSize),
       mFormat(aFormat),
+      mMutex("AndroidImageWrapper::mMutex"),
       mImageReader(aImageReader),
       mImage(aImage),
-      mFence(std::move(aFence)) {
+      mWriteFenceFd(std::move(aWriteFenceFd)) {
   MOZ_ASSERT(mImageReader);
   mImageReader->mAcquiredImageCount++;
 }
 
 AndroidImageWrapper::~AndroidImageWrapper() {
-  AImage_delete(mImage);
-  // XXX Add fence handling
-  // AImage_deleteAsync(mImage fence);
+  MutexAutoLock lock(mMutex);
+
+  if (mReadFenceFd) {
+    AImage_deleteAsync(mImage, mReadFenceFd.get());
+    mReadFenceFd.release();
+  } else {
+    AImage_delete(mImage);
+  }
   mImageReader->mAcquiredImageCount--;
 }
 
-mozilla::UniqueFileHandle AndroidImageWrapper::CloneFence() {
-  auto fence = ipc::FileDescriptor(GetHandle());
-  return fence.TakePlatformHandle();
+mozilla::UniqueFileHandle AndroidImageWrapper::CloneWriteFenceFd() {
+  MutexAutoLock lock(mMutex);
+
+  auto writeFenceFd = ipc::FileDescriptor(mWriteFenceFd.get());
+  return writeFenceFd.TakePlatformHandle();
+}
+
+void AndroidImageWrapper::SetReadFenceFd(UniqueFileHandle&& aFenceFd) {
+  MutexAutoLock lock(mMutex);
+
+  mReadFenceFd = AndroidHardwareBuffer::MergeFences(std::move(mReadFenceFd),
+                                                    std::move(aFenceFd));
 }
 
 /* static */
@@ -384,6 +412,15 @@ bool AndroidImageReader::UpdateTexImageWithReadback(
   return true;
 }
 
+void AndroidImageReader::MaybeRenderFirstFrame(
+    AndroidMediaCodecFrameId aFrameId) {
+  MonitorAutoLock lock(mMonitor);
+  if (mCurrentImage) {
+    return;
+  }
+  DoUpdateTexImage(lock, aFrameId);
+}
+
 bool AndroidImageReader::DoUpdateTexImage(const MonitorAutoLock& aProofOfLock,
                                           AndroidMediaCodecFrameId aFrameId) {
   MOZ_ASSERT(static_cast<int32_t>(mAcquiredImageCount) <= mMaxImageCount);
@@ -465,9 +502,11 @@ bool AndroidImageReader::DoUpdateTexImage(const MonitorAutoLock& aProofOfLock,
   if (!nativeBuffer) {
     gfxCriticalNoteOnce << "AImage_getHardwareBuffer failed"
                         << static_cast<int32_t>(result);
-    AImage_delete(image);
-    // XXX Add fence handling
-    // AImage_deleteAsync(image, fence);
+    if (fence) {
+      AImage_deleteAsync(image, fence.get());
+    } else {
+      AImage_delete(image);
+    }
     return false;
   }
 
@@ -482,6 +521,7 @@ bool AndroidImageReader::DoUpdateTexImage(const MonitorAutoLock& aProofOfLock,
 
   mCurrentImage = new AndroidImageWrapper(this, image, nativeBuffer, size,
                                           format, std::move(fence));
+  mCurrentFrameId = aFrameId;
 
   MOZ_ASSERT(static_cast<int32_t>(mAcquiredImageCount) <= mMaxImageCount);
 
@@ -524,7 +564,7 @@ bool AndroidImageReader::MaybeReleaseFrameToCodec(
     return false;
   }
 
-  bool ret = it->second->MaybeReleaseFrameToCodec(aRender);
+  bool ret = it->second->MaybeReleaseFrameToCodec(aProofOfLock, aRender);
   mPendingFrames.erase(it);
 
   return ret;
@@ -588,7 +628,7 @@ RefPtr<AndroidImageReader> GpuProcessAndroidImageReaderMap::GetImageReader(
   if (it == mImageReaders.end()) {
     return nullptr;
   }
-  return it->second->mImageReader;
+  return RefPtr<AndroidImageReader>(it->second->mImageReader);
 }
 
 bool GpuProcessAndroidImageReaderMap::MaybeReleaseFrameToCodec(
@@ -623,8 +663,13 @@ RefPtr<AndroidImageConsumer> GpuProcessAndroidImageReaderMap::GetImageConsumer(
     return nullptr;
   }
 
+  RefPtr<AndroidImageReader> imageReader(holder->mImageReader);
+  if (!imageReader) {
+    return nullptr;
+  }
+
   RefPtr<AndroidImageConsumer> imageConsumer;
-  imageConsumer = AndroidImageConsumer::Create(holder->mImageReader, aGL);
+  imageConsumer = AndroidImageConsumer::Create(imageReader, aGL);
   if (!imageConsumer) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return nullptr;
@@ -654,7 +699,7 @@ void GpuProcessAndroidImageReaderMap::UnregisterImageConsumer(
 
 GpuProcessAndroidImageReaderMap::ImageReaderHolder::ImageReaderHolder(
     AndroidImageReader* aImageReader)
-    : mImageReader(aImageReader) {}
+    : mImageReader(RefPtr<AndroidImageReader>(aImageReader)) {}
 
 GpuProcessAndroidImageReaderMap::ImageReaderHolder::~ImageReaderHolder() {}
 

@@ -29,7 +29,7 @@ import {
   computeMemoryFrecency,
   computeMemoryStrength,
 } from "moz-src:///browser/components/aiwindow/models/memories/Memories.sys.mjs";
-import { EmbeddingsGenerator } from "chrome://global/content/ml/EmbeddingsGenerator.sys.mjs";
+import { embeddingsGeneratorFactory } from "chrome://global/content/ml/EmbeddingsGenerator.sys.mjs";
 import { cosSim } from "chrome://global/content/ml/NLPUtils.sys.mjs";
 
 /**
@@ -43,6 +43,8 @@ import { cosSim } from "chrome://global/content/ml/NLPUtils.sys.mjs";
  *   "meta": {
  *     "last_history_memory_ts": 0,
  *     "last_chat_memory_ts": 0,
+ *     "last_session_memory_ts": 0,
+ *     "last_generation_run_ts": 0,
  *   },
  *   "version": 1
  * }
@@ -61,6 +63,7 @@ let gState = {
     last_history_memory_ts: 0,
     last_chat_memory_ts: 0,
     last_session_memory_ts: 0,
+    last_generation_run_ts: 0,
   },
   version: MEMORY_STORE_VERSION,
 };
@@ -108,6 +111,25 @@ function unionSourceIds(a, b) {
   };
 }
 
+/**
+ * Whether a value is a well-formed list of component summaries.
+ *
+ * @param {*} v
+ * @returns {boolean}
+ */
+function isComponentSummaries(v) {
+  return (
+    Array.isArray(v) &&
+    v.every(
+      component =>
+        !!component &&
+        typeof component === "object" &&
+        typeof component.memory_summary === "string" &&
+        typeof component.reasoning === "string"
+    )
+  );
+}
+
 // Whether we've finished initial load
 let gInitialized = false;
 let lazy = {};
@@ -140,19 +162,42 @@ export function migrateMemoryStoreVersionOneToTwo(memories) {
     if (!m.type) {
       m.type = MEMORY_TYPE_SHORT_TERM_MEMORY;
     }
-    // Move source into sources array
-    if (m.source) {
-      m.sources = [m.source];
-      delete m.source;
-    }
+
     // Normalize source_ids
     m.source_ids = normalizeSourceIds(m.source_ids);
+    // Create sources array if it's missing and move source into it
+    if (!m.sources) {
+      // Fill source if available, otherwise infer from source_ids
+      // Fall back to "history" if source_ids don't exist
+      if (m.source) {
+        m.sources = [m.source];
+      } else if (
+        m.source_ids.history_source_ids.length &&
+        m.source_ids.conversation_source_ids.length
+      ) {
+        m.sources = [SESSION];
+      } else if (m.source_ids.conversation_source_ids.length) {
+        m.sources = [CONVERSATION];
+      } else {
+        m.sources = [HISTORY];
+      }
+    }
+    // Delete source
+    delete m.source;
     // Add sensitivity category, assume not sensitive
     if (!m.sensitivity_category) {
       m.sensitivity_category = MEMORY_SENSITIVITY_CATEGORY_NOT_SENSITIVE;
     }
+    // Make sure soft deletion flag exists
+    if (typeof m.is_deleted !== "boolean") {
+      m.is_deleted = false;
+    }
 
     /** Descriptive fields */
+    // Backfill empty reasoning if it doesn't exist
+    if (!m.reasoning) {
+      m.reasoning = "";
+    }
     // Add tags
     if (!m.tags) {
       m.tags = [];
@@ -169,25 +214,25 @@ export function migrateMemoryStoreVersionOneToTwo(memories) {
       }
     }
     // Delete category and intent
-    if (m.category) {
-      delete m.category;
-    }
-    if (m.intent) {
-      delete m.intent;
-    }
+    delete m.category;
+    delete m.intent;
     // Rename entities to keywords if it exists, otherwise add the keywords array
-    if (m.entities) {
+    if (Array.isArray(m.entities)) {
       m.keywords = m.entities;
-      delete m.entities;
     } else {
       m.keywords = [];
     }
+    delete m.entities;
     // Add component summaries
     if (!m.component_summaries) {
       m.component_summaries = [];
     }
 
     /** Tracker fields */
+    // Make sure updated_at exists
+    if (!m.updated_at) {
+      m.updated_at = Date.now();
+    }
     // If created_at doesn't exist, set it to updated_at
     // By this point, we've lost the actual created_at timestamp
     if (!m.created_at) {
@@ -211,10 +256,9 @@ export function migrateMemoryStoreVersionOneToTwo(memories) {
       }
     }
 
-    // Delete score
-    if (m.score) {
-      delete m.score;
-    }
+    // Delete score if it exists
+    // Score is not a v2 field
+    delete m.score;
 
     // Add frecency & strength last
     m.frecency = computeMemoryFrecency(m);
@@ -291,12 +335,21 @@ async function loadMemories() {
       memories = [];
     }
 
+    // Add extra v2 schema fields
+    memories.map(mem => {
+      if (!mem.merge_count) {
+        mem.merge_count = 0;
+      }
+      return mem;
+    });
+
     gState = {
       memories,
       meta: {
         last_history_memory_ts: data.meta?.last_history_memory_ts || 0,
         last_chat_memory_ts: data.meta?.last_chat_memory_ts || 0,
         last_session_memory_ts: data.meta?.last_session_memory_ts || 0,
+        last_generation_run_ts: data.meta?.last_generation_run_ts || 0,
       },
       version:
         typeof data.version === "number" ? data.version : MEMORY_STORE_VERSION,
@@ -342,6 +395,14 @@ export const MemoryStore = {
   },
 
   /**
+   * Request a debounced write of the current in-memory state to disk.
+   */
+  async requestSave() {
+    await this.ensureInitialized();
+    gJSONFile?.saveSoon();
+  },
+
+  /**
    * Force writing current in-memory state to disk immediately.
    *
    * This is intended for test only.
@@ -366,14 +427,16 @@ export const MemoryStore = {
    * @property {string} reasoning - Explanation of why this memory was created.
    * @property {Array[string]} tags - List of tags for the memory.
    * @property {Array[string]} keywords - List of keywords for the memory.
-   * @property {Array[string]} component_summaries - List of summaries from the memories merged to create this one.
+   * @property {Array[object]} component_summaries - List of {memory_summary, reasoning} pairs from the memories merged to create this one.
    * @property {number} created_at - When the memory was created in milliseconds since Unix epoch.
-   * @property {number} updated_at - Last-updated time in milliseconds since Unix epoch.
+   * @property {number} updated_at - When the memory was last aged by memory maintenance, in milliseconds since Unix epoch. This doubles as the memory's maintenance clock.
    * @property {number} last_accessed - Last-accessed time in milliseconds since Unix epoch.
    * @property {object} recent_accessed_counts - Rolling 7-day count of how often the memory was used.
    * @property {number} lifetime_accessed_count - Total number of times the memory was used across its life
    * @property {number} frecency - Computed frecency for the memory.
-   * @property {number} merge_count - How many memories were merged to create thie one.
+   * @property {number} strength - Computed strength for the memory, driving its type tier and decay.
+   * @property {number} last_merged - When the memory was last merged with others.
+   * @property {number} merge_count - How many merge operations contributed to this memory.
    */
   /**
    * @typedef {object} MemoryPartial
@@ -387,14 +450,16 @@ export const MemoryStore = {
    * @property {string} reasoning - Explanation of why this memory was created.
    * @property {Array[string]} tags - List of tags for the memory.
    * @property {Array[string]} keywords - List of keywords for the memory.
-   * @property {Array[string]} component_summaries - List of summaries from the memories merged to create this one.
+   * @property {Array[object]} component_summaries - List of {memory_summary, reasoning} pairs from the memories merged to create this one.
    * @property {number} created_at - When the memory was created in milliseconds since Unix epoch.
-   * @property {number} updated_at - Last-updated time in milliseconds since Unix epoch.
+   * @property {number} updated_at - When the memory was last aged by memory maintenance, in milliseconds since Unix epoch. This doubles as the memory's maintenance clock.
    * @property {number} last_accessed - Last-accessed time in milliseconds since Unix epoch.
    * @property {object} recent_accessed_counts - Rolling 7-day count of how often the memory was used.
    * @property {number} lifetime_accessed_count - Total number of times the memory was used across its life
    * @property {number} frecency - Computed frecency for the memory.
-   * @property {number} merge_count - How many memories were merged to create thie one.
+   * @property {number} strength - Computed strength for the memory, driving its type tier and decay.
+   * @property {number} last_merged - When the memory was last merged with others.
+   * @property {number} merge_count - How many merge operations contributed to this memory.
    */
   /**
    * Add a new memory, or update an existing one with the same id.
@@ -465,6 +530,8 @@ export const MemoryStore = {
           ),
         lifetime_accessed_count: memoryPartial.lifetime_accessed_count || 0,
         frecency: memoryPartial.frecency || 0,
+        strength: memoryPartial.strength || 0,
+        last_merged: memoryPartial.last_merged || null,
         merge_count: memoryPartial.merge_count || 0,
       };
 
@@ -520,10 +587,6 @@ export const MemoryStore = {
         "keywords",
         v => Array.isArray(v) && v.every(i => typeof i === "string"),
       ],
-      [
-        "component_summaries",
-        v => Array.isArray(v) && v.every(i => typeof i === "string"),
-      ],
 
       // Tracker fields
       ["created_at", v => Number.isFinite(v)],
@@ -538,6 +601,8 @@ export const MemoryStore = {
       ],
       ["lifetime_accessed_count", v => Number.isFinite(v)],
       ["frecency", v => Number.isFinite(v)],
+      ["strength", v => Number.isFinite(v)],
+      ["last_merged", v => Number.isFinite(v)],
       ["merge_count", v => Number.isFinite(v)],
     ];
 
@@ -558,7 +623,18 @@ export const MemoryStore = {
       memory.source_ids = unionSourceIds(memory.source_ids, updates.source_ids);
     }
 
-    memory.updated_at = updates.updated_at || Date.now();
+    if (isComponentSummaries(updates.component_summaries)) {
+      // Component summaries are objects, so they dedupe on their summary
+      memory.component_summaries = [
+        ...new Map(
+          [...memory.component_summaries, ...updates.component_summaries].map(
+            component => [component.memory_summary, component]
+          )
+        ).values(),
+      ];
+    }
+
+    memory.updated_at ||= updates.updated_at || Date.now();
 
     gJSONFile?.saveSoon();
     Services.obs.notifyObservers(null, MEMORY_STORE_CHANGED);
@@ -611,7 +687,7 @@ export const MemoryStore = {
    * Uses incremental FNV-1a hashing to avoid allocating large concatenated strings
    * based on https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function#FNV-1a_hash
    *
-   * @param {Array} memories  Array of memory objects with id and updated_at fields
+   * @param {Array} memories  Array of memory objects with id and memory_summary fields
    * @returns {number}        32-bit hash representing the memories state
    */
   computeMemoriesHash(memories) {
@@ -619,7 +695,7 @@ export const MemoryStore = {
     let hash = 0x811c9dc5;
 
     for (const m of memories) {
-      const str = `${m.id}-${m.updated_at}`;
+      const str = `${m.id}-${m.memory_summary}`;
       for (let i = 0; i < str.length; i++) {
         hash ^= str.charCodeAt(i);
         // FNV prime, keep 32-bit
@@ -643,8 +719,10 @@ export const MemoryStore = {
    * Uses embeddings and cosine similarity for fast, accurate memory retrieval.
    *
    * @param {string} message                  User message to find relevant memories for
-   * @param {number} topK                     Number of top relevant memories to return (default: 5)
-   * @param {number} similarityThreshold      Minimum similarity score (0-1) to include (default: 0.22)
+   * @param {number} topK                     Number of top relevant memories to return
+   *                                          (default: {@link DEFAULT_RELEVANT_MEMORIES_TOP_K})
+   * @param {number} similarityThreshold      Minimum similarity score (0-1) to include
+   *                                          (default: {@link DEFAULT_RELEVANT_MEMORIES_SIMILARITY_THRESHOLD})
    * @returns {Promise<Array<object>>}        List of relevant memories sorted by similarity
    */
   async getRelevantMemories(
@@ -660,7 +738,7 @@ export const MemoryStore = {
 
     // Lazy initialize embeddings generator
     if (!this.embeddingsGenerator) {
-      this.embeddingsGenerator = EmbeddingsGenerator.forGeneral();
+      this.embeddingsGenerator = embeddingsGeneratorFactory.forGeneral();
     }
 
     // Re-embed memories only if cache is invalid
@@ -672,7 +750,11 @@ export const MemoryStore = {
       const memoryTexts = memories.map(m => {
         const summary = m.memory_summary?.toLowerCase() || "";
         const reasoning = m.reasoning?.toLowerCase() || "";
-        return reasoning ? `${summary}. ${reasoning}` : summary;
+        const tags = m.tags?.join(" ").toLowerCase() || "";
+        return [tags, summary, reasoning]
+          .filter(part => part?.trim())
+          .join(". ")
+          .toLowerCase();
       });
       const result = await this.embeddingsGenerator.embedMany(memoryTexts);
       this.memoryEmbeddingsCache = result.output || result;
@@ -911,6 +993,7 @@ export const MemoryStore = {
       ["last_history_memory_ts", v => Number.isFinite(v)],
       ["last_chat_memory_ts", v => Number.isFinite(v)],
       ["last_session_memory_ts", v => Number.isFinite(v)],
+      ["last_generation_run_ts", v => Number.isFinite(v)],
     ];
 
     for (const [prop, validator] of validatedProps) {

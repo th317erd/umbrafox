@@ -7,6 +7,7 @@
 #include "BlobURLChannel.h"
 #include "mozilla/AppShutdown.h"
 #include "mozilla/BasePrincipal.h"
+#include "mozilla/Components.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/NullPrincipal.h"
@@ -473,7 +474,8 @@ class ReleasingTimerHolder final : public Runnable,
   }
 
   static nsCOMPtr<nsIAsyncShutdownClient> GetShutdownPhase() {
-    nsCOMPtr<nsIAsyncShutdownService> svc = services::GetAsyncShutdownService();
+    nsCOMPtr<nsIAsyncShutdownService> svc =
+        components::AsyncShutdown::Service();
     NS_ENSURE_TRUE(!!svc, nullptr);
 
     nsCOMPtr<nsIAsyncShutdownClient> phase;
@@ -532,8 +534,11 @@ nsresult BlobURLProtocolHandler::AddDataEntry(mozilla::dom::BlobImpl* aBlobImpl,
 
   Init();
 
-  nsresult rv = GenerateURIString(aPrincipal, aUri);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (XRE_IsContentProcess() && aPrincipal->IsSystemPrincipal()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  MOZ_TRY(GenerateURIString(aPrincipal, aUri));
 
   AddDataEntryInternal(aUri, aBlobImpl, aPrincipal, aPartitionKey);
 

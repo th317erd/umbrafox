@@ -64,14 +64,6 @@ async function makeValidators() {
       "resource://testing-common/BookmarksBarButton.schema.json",
       { common: true }
     ),
-    cfr_doorhanger: await schemaValidatorFor(
-      "resource://testing-common/ExtensionDoorhanger.schema.json",
-      { common: true }
-    ),
-    cfr_urlbar_chiclet: await schemaValidatorFor(
-      "resource://testing-common/CFRUrlbarChiclet.schema.json",
-      { common: true }
-    ),
     infobar: await schemaValidatorFor(
       "resource://testing-common/InfoBar.schema.json",
       { common: true }
@@ -86,6 +78,10 @@ async function makeValidators() {
     ),
     pb_newtab: await schemaValidatorFor(
       "resource://testing-common/NewtabPromoMessage.schema.json",
+      { common: true }
+    ),
+    sidebar_chatbot_promo: await schemaValidatorFor(
+      "resource://testing-common/SidebarChatBotPromo.schema.json",
       { common: true }
     ),
     smart_window_newtab_promo: await schemaValidatorFor(
@@ -114,8 +110,6 @@ async function makeValidators() {
       { common: true }
     ),
   };
-
-  messageValidators.milestone_message = messageValidators.cfr_doorhanger;
 
   return { experimentValidator, messageValidators };
 }

@@ -126,26 +126,6 @@ using LocalDirection = MediaSessionConduitLocalDirection;
 const int kNullPayloadType = -1;
 const char kRtcpFbCcmParamTmmbr[] = "tmmbr";
 
-template <class t>
-void ConstrainPreservingAspectRatioExact(uint32_t max_fs, t* width, t* height) {
-  // We could try to pick a better starting divisor, but it won't make any real
-  // performance difference.
-  for (size_t d = 1; d < std::min(*width, *height); ++d) {
-    if ((*width % d) || (*height % d)) {
-      continue;  // Not divisible
-    }
-
-    if (((*width) * (*height)) / (d * d) <= max_fs) {
-      *width /= d;
-      *height /= d;
-      return;
-    }
-  }
-
-  *width = 0;
-  *height = 0;
-}
-
 /**
  * Perform validation on the codecConfig to be applied
  */
@@ -194,13 +174,13 @@ ConfigureVideoEncoderSettings(const VideoCodecConfig& aConfig,
   aConfig.mAv1Config.apply([&](const Av1Config& config) {
     MOZ_ASSERT(aConfig.mName == kAv1CodecName);
     config.mProfile.apply([&](uint8_t value) {
-      aParameters[kAv1FmtpProfile] = std::to_string(value);
+      aParameters[std::string(kAv1FmtpProfile)] = std::to_string(value);
     });
     config.mLevelIdx.apply([&](uint8_t value) {
-      aParameters[kAv1FmtpLevelIdx] = std::to_string(value);
+      aParameters[std::string(kAv1FmtpLevelIdx)] = std::to_string(value);
     });
     config.mTier.apply([&](uint8_t value) {
-      aParameters[kAv1FmtpTier] = std::to_string(value);
+      aParameters[std::string(kAv1FmtpTier)] = std::to_string(value);
     });
   });
 
@@ -218,10 +198,11 @@ ConfigureVideoEncoderSettings(const VideoCodecConfig& aConfig,
           webrtc::ParseH264ProfileLevelId(profileLevelId.c_str());
       MOZ_DIAGNOSTIC_ASSERT(parsedProfileLevelId);
       if (parsedProfileLevelId) {
-        aParameters[kH264FmtpProfileLevelId] = profileLevelId;
+        aParameters[kH264FmtpProfileLevelId] = std::move(profileLevelId);
       }
     }
-    aParameters[kH264FmtpSpropParameterSets] = aConfig.mSpropParameterSets;
+    aParameters[std::string(kH264FmtpSpropParameterSets)] =
+        aConfig.mSpropParameterSets;
   }
   if (aConfig.mName == kVp8CodecName) {
     webrtc::VideoCodecVP8 vp8_settings =
@@ -409,7 +390,7 @@ WebrtcVideoConduit::WebrtcVideoConduit(
       mFrameRecvThread(CreateWebrtcTaskQueueWrapper(
           GetMediaThreadPool(MediaThreadType::WEBRTC_WORKER),
           "WebrtcVideoConduit::mFrameRecvThread"_ns,
-          /* aSupportsTailDispatch= */ true)),
+          TailDispatchPolicy::ConsistentOrdering)),
       mControl(mCall->mCallThread),
       INIT_CANONICAL(mReceivingSize, mFrameRecvThread, {}),
       mWatchManager(this, mCall->mCallThread),
@@ -577,11 +558,11 @@ void WebrtcVideoConduit::OnControlConfigChange() {
 
       // Check for the keyframe request type: PLI is preferred over FIR, and FIR
       // is preferred over none.
-      if (codec_config.RtcpFbNackIsSet(kRtcpFbNackParamPli)) {
+      if (codec_config.RtcpFbNackIsSet(std::string(kRtcpFbNackParamPli))) {
         newRtp.keyframe_method = webrtc::KeyFrameReqMethod::kPliRtcp;
       } else if (newRtp.keyframe_method !=
                      webrtc::KeyFrameReqMethod::kPliRtcp &&
-                 codec_config.RtcpFbCcmIsSet(kRtcpFbCcmParamFir)) {
+                 codec_config.RtcpFbCcmIsSet(std::string(kRtcpFbCcmParamFir))) {
         newRtp.keyframe_method = webrtc::KeyFrameReqMethod::kFirRtcp;
       }
 
@@ -589,7 +570,7 @@ void WebrtcVideoConduit::OnControlConfigChange() {
       // has none? In practice, that's not a useful configuration, and
       // VideoReceiveStream::Config can't represent that, so simply union the
       // (boolean) settings
-      if (codec_config.RtcpFbNackIsSet(kParamValueEmpty)) {
+      if (codec_config.RtcpFbNackIsSet(std::string(kParamValueEmpty))) {
         newRtp.nack.rtp_history_ms = 1000;
       }
       newRtp.tmmbr |= codec_config.RtcpFbCcmIsSet(kRtcpFbCcmParamTmmbr);
@@ -786,17 +767,30 @@ void WebrtcVideoConduit::OnControlConfigChange() {
           video_stream.height = codecConfig->mEncodingConstraints.maxHeight;
 
           // Max framerate is also used to cap the source, to avoid processing
-          // frames that will have to be dropped. Our signals here are both
-          // RTCRtpEncodingParameters.maxFramerate (per encoding) and max-fr
-          // for supported codecs.
+          // frames that will have to be dropped. Our signals here are
+          // RTCRtpEncodingParameters.maxFramerate (per encoding), max-fr for
+          // supported codecs, and any macroblocks-per-second cap implied by a
+          // negotiated level (H264 Annex A Table A-1 / AV1 Annex A.3). Since
+          // resolution is always scaled to fit within maxFs (see
+          // VideoStreamFactory::CalculateScaledResolution), maxMbps / maxFs
+          // is a safe worst-case framerate ceiling for whatever resolution
+          // ends up being used.
+          Maybe<double> levelMaxFps;
+          if (codecConstraints.maxMbps && codecConstraints.maxFs) {
+            levelMaxFps = Some(static_cast<double>(codecConstraints.maxMbps) /
+                               codecConstraints.maxFs);
+          }
           video_stream.max_framerate = static_cast<int>(([&]() {
-            if (codecConstraints.maxFps && encodingConstraints.maxFps) {
-              return std::min(*codecConstraints.maxFps,
-                              *encodingConstraints.maxFps);
+            Maybe<double> fps;
+            for (const auto& candidate :
+                 {codecConstraints.maxFps, encodingConstraints.maxFps,
+                  levelMaxFps}) {
+              if (!candidate) {
+                continue;
+              }
+              fps = fps ? Some(std::min(*fps, *candidate)) : candidate;
             }
-            return codecConstraints.maxFps
-                .orElse([&] { return encodingConstraints.maxFps; })
-                .valueOr(-1);
+            return fps.valueOr(-1);
           })());
 
           // Set each layer's max-bitrate explicitly or libwebrtc may ignore all
@@ -841,7 +835,7 @@ void WebrtcVideoConduit::OnControlConfigChange() {
           const bool useFECDefaults =
               !codecConfig->RtcpFbFECIsSet() ||
               (codecConfig->mName == kH264CodecName &&
-               codecConfig->RtcpFbNackIsSet(kParamValueEmpty));
+               codecConfig->RtcpFbNackIsSet(std::string(kParamValueEmpty)));
           newRtp.ulpfec.ulpfec_payload_type =
               useFECDefaults ? kNullPayloadType
                              : codecConfig->mULPFECPayloadType;
@@ -853,7 +847,8 @@ void WebrtcVideoConduit::OnControlConfigChange() {
         }
 
         newRtp.nack.rtp_history_ms =
-            codecConfig->RtcpFbNackIsSet(kParamValueEmpty) ? 1000 : 0;
+            codecConfig->RtcpFbNackIsSet(std::string(kParamValueEmpty)) ? 1000
+                                                                        : 0;
 
         newRtp.rids.clear();
         if (!codecConfig->mEncodings.empty() &&

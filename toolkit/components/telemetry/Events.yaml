@@ -62,26 +62,6 @@ readermode:
     products:
       - "firefox"
 
-addonsSearchDetection:
-  etld_change:
-    description: |
-      Recorded when a request for a search query is redirected to another
-      domain. This can be via the webRequest API, or through other means.
-    objects: ["webrequest", "other"]
-    methods: ["etld_change"]
-    extra_keys:
-      addonId: The id of the addon, if available.
-      addonVersion: The version of the addon.
-      from: The original domain (eTLD+1) of the request that matched a search endpoint.
-      to: The domain (eTLD+1) of the final redirect target.
-    notification_emails: ["addons-dev-internal@mozilla.com", "tlong@mozilla.com"]
-    expiry_version: "never"
-    products:
-      - "firefox"
-    record_in_processes: ["main"]
-    bug_numbers: [1894526]
-    release_channel_collection: opt-out
-
 downloads:
   added:
     description: >
@@ -1204,56 +1184,6 @@ telemetry.test.second:
       key1: This is just a test description.
 
 security.ui.protections:
-  show:
-    objects: [
-      "protection_report",
-      "vpn_banner",
-    ]
-    bug_numbers:
-      - 1557050
-      - 1610897
-      - 1643428
-      - 1650468
-      - 1661756
-      - 1678201
-      - 1739287
-      - 1787249
-    description: >
-      User arrived on the protection report. This also includes a 'value' attribute which defaults to 'direct' or will be the value that a referring website addds to the url. This also indicates if the vpn banner has been seen.
-    expiry_version: never
-    record_in_processes: ["content"]
-    release_channel_collection: opt-out
-    notification_emails:
-      - emz@mozilla.com
-      - seceng-telemetry@mozilla.com
-    products:
-      - firefox
-    extra_keys:
-      category: The category of protections the user is in, standard, strict or custom.
-  close:
-    objects: [
-      "protection_report",
-    ]
-    bug_numbers:
-      - 1557050
-      - 1610897
-      - 1612091
-      - 1643428
-      - 1678201
-      - 1739287
-      - 1787249
-    description: >
-      User closed on the protection report.
-    expiry_version: never
-    record_in_processes: ["content"]
-    release_channel_collection: opt-out
-    notification_emails:
-      - emz@mozilla.com
-      - seceng-telemetry@mozilla.com
-    products:
-      - firefox
-    extra_keys:
-      category: The category of protections the user is in, standard, strict or custom.
   click:
     bug_numbers:
       - 1557050
@@ -1270,18 +1200,10 @@ security.ui.protections:
     description: >
       User interaction by click events on the protection report.
     objects: [
-      "lw_open_button",
       "lw_sync_link",
-      "lw_about_link",
       "mtr_about_link",
       "mtr_report_link",
       "mtr_signup_button",
-      "trackers_about_link",
-      "mobile_app_link",
-      "settings_link",
-      "vpn_banner_link",
-      "vpn_banner_close",
-      "vpn_card_link",
       "vpn_app_link_android",
       "vpn_app_link_ios",
     ]
@@ -1310,8 +1232,6 @@ security.ui.protectionspopup:
       "settings",
       "full_report",
       "milestone_message",
-      "cookieb_toggle_on",
-      "cookieb_toggle_off",
       "protectionspopup_cfr",
     ]
     extra_keys:
@@ -1338,32 +1258,6 @@ security.ui.protectionspopup:
       - main
     products:
       - firefox
-
-privacy.ui.fpp:
-  click:
-    objects: [
-      "checkbox",
-      "menu",
-    ]
-    bug_numbers:
-      - 1841097
-    description: >
-      User interaction by click events on fingerprinting protection checkbox in
-      the ETP Custom subpanel.
-    expiry_version: never
-    notification_emails:
-      - tom@mozilla.com
-      - tschuster@mozilla.com
-      - tihuang@mozilla.com
-      - seceng-telemetry@mozilla.com
-    release_channel_collection: opt-out
-    record_in_processes:
-      - all
-    products:
-      - firefox
-    extra_keys:
-      checked: >
-        The checked state of the fingerprinting protection checkbox.
 
 intl.ui.browserLanguage:
   action:
@@ -1408,127 +1302,6 @@ intl.ui.browserLanguage:
       - 1911321
       - 1928262
       - 1999880
-
-security:
-  prefUsage:
-    objects: ["contentProcess"]
-    bug_numbers:
-      - 1782544
-      - 1708798
-    description: >
-      We block certain preferences from being sent to the content process because they contain sensitive
-      user data. Some preferences are blocked by name, others by heuristic. If one of the preferences so
-      blocked is accidently accessed we want to know about it so we can allowlist it or refactor the access.
-    notification_emails:
-      - tom@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - firefox
-    expiry_version: "never"
-    record_in_processes:
-      - all_children
-  fissionPrincipals:
-    objects: ["contentParent"]
-    bug_numbers:
-      - 1687891
-    description: >
-      When running with Fission, we received an unexpected principal from the content process.
-      Expected values for this telemetry event are the method names in ContentParent that
-      received the unexpected principal.
-    notification_emails:
-      - tom@mozilla.com
-      - ckerschb@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - firefox
-    expiry_version: "never"
-    record_in_processes:
-      - main
-    extra_keys:
-      principalType: >
-        The type of principal that was received. Expected values for this field are
-          NullPtr
-          SystemPrincipal
-          ExpandedPrincipal
-          ContentPrincipal
-          Unknown
-      scheme: If the principal is a ContentPrincipal, we also collect the scheme
-  evalUsage:
-    objects: ["systemContext", "parentProcess"]
-    bug_numbers:
-      - 1567623
-    description: >
-      eval() (or an eval()-like method) was called while running in the System Principal
-      context or the Parent Process.
-      Expected values are:
-        chromeuri - chrome:// file
-        resourceuri - resource:// file
-        datauri - a data URI
-        bloburi - a blob URI
-        abouturi - an about URI
-        singlestring - A single file or string with no slashes
-        mozillaextension - An extension claiming to be from *mozilla.org (Deprecated)
-        otherextension - Another extension not from Mozilla (Deprecated)
-        mozillaextension_file - An extension claiming to be from *mozilla.org, loaded from a file://
-        otherextension_file - Another extension not from Mozilla, loaded from a file://
-        extension_uri - A URI with the moz-extension:// scheme
-        suspectedUserChromeJS - A filepath ending in .uc.js
-        sanitizedWindowsPath - A filepath, on Windows, sanitized by WinUtils::PreparePathForTelemetry
-                               which is a bare filename or a subpath of %ProgramFiles%, %SystemRoot%,
-                               or %TEMP%
-        sanitizedWindowsURL - A partial URL, on Windows, consisting of either file://../ followed by
-                              the value prepared as for sanitizedWindowsPath, or the bare scheme of
-                              the original url
-        other - Unknown
-        other-on-worker - We cannot do a regex; it is not a chrome, resource, data, or blob uri, but
-                          could be any other.
-        regexfailure - Our Regex Matching code threw an error
-      The fileinfo key may contain additional information about the file that caused the eval()
-      depending on the above value. Resource, Chrome, About, and SingleString will contain the full value.
-      (About URIs will remove any querystring values.)
-      Extensions-from-file will contain the full value; however .xpi! will be shortened to !,
-      shield.mozilla.org! to s! and mozilla.org! to m!.  Data, Blob, UserChromeJS, Other, and
-      Regexfailure should have no value.
-    notification_emails:
-      - tom@mozilla.com
-      - ckerschb@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - firefox
-    expiry_version: "never"
-    record_in_processes:
-      - all
-    extra_keys:
-      fileinfo: Information about the file that triggered eval
-  unexpectedload:
-    objects: ["systemprincipal"]
-    bug_numbers:
-      - 1644671
-    description: >
-      Long term want to block all loads from the system principal that cause us to parse non-trivial data.
-      We don't look to break existing functionality and will allow exceptions, for this we are collecting
-      information about unexpected requests triggered by the system principal
-      Our measurement *excludes* acceptable requests. Those are:
-      - annotated using the 'AllowedDeprecatedSystemRequests' loadinfo flag
-      - using a nsContentPolicyType of FETCH, XMLHTTPREQUEST, WEBSOCKET, SAVEAS_DOWNLOAD or IMAGE
-      - with a requested URI object has the flag URI_IS_UI_RESOURCE
-      - if the URL scheme is 'view-source'
-      - if the URL scheme is 'file' and the Content-Type is STYLESHEET or OTHER
-      - if the scheme is 'jar', 'about' or 'moz-extension'
-    notification_emails:
-      - fbraun@mozilla.com
-      - ckerschb@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - firefox
-    expiry_version: "never"
-    record_in_processes:
-      - all
-    extra_keys:
-      contenttype: Information about the content-type we expect to receive
-      remotetype: Information about the remoteType in which we triggered the load
-      filedetails: Information about the file that triggered the load
-      redirects: Comma-separated string listing schemes for URLs that we redirected from
 
 launch_on_login:
   last_profile_disable:
@@ -1612,83 +1385,6 @@ security.doh.neterror:
       provider_key: TRR provider
       skip_reason: The reason why DoH request is failed
 
-security.ui.certerror:
-  load:
-    objects: ["aboutcerterror"]
-    bug_numbers:
-      - 1484255
-      - 1505310
-      - 1553181
-      - 1629826
-    description: >
-      The about:certerror page is loaded, keyed by error code, see https://searchfox.org/firefox-main/source/security/nss/lib/mozpkix/include/pkix/Result.h
-    expiry_version: never
-    notification_emails:
-      - jhofmann@mozilla.com
-      - rtestard@mozilla.com
-      - seceng-telemetry@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - "firefox"
-    record_in_processes: ["content"]
-    extra_keys:
-      is_frame: If the error page is loaded in an iframe.
-      has_sts: If the error page is for a site with HSTS headers or with a pinned key.
-      channel_status: The status of the failed channel, as an nsresult.
-      issued_by_cca: If trusting the CCA India roots would fix this error.
-      hyphen_compat: If the error is due to a domain label starting or ending with a hyphen.
-  click:
-    objects: [
-      "advanced_button",
-      "exception_button",
-      "return_button_top",
-      "return_button_adv",
-      "learn_more_link",
-      "auto_report_cb",
-      "error_code_link",
-      "clipboard_button_top",
-      "clipboard_button_bot",
-    ]
-    bug_numbers:
-      - 1484255
-      - 1505310
-      - 1553181
-      - 1629826
-    description: >
-      User interaction by click events on the cert error page. Keyed by error code, see https://searchfox.org/firefox-main/source/security/nss/lib/mozpkix/include/pkix/Result.h
-    expiry_version: never
-    notification_emails:
-      - jhofmann@mozilla.com
-      - rtestard@mozilla.com
-      - seceng-telemetry@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - "firefox"
-    record_in_processes: ["content"]
-    extra_keys:
-      is_frame: If the error page is loaded in an iframe.
-      has_sts: If the error page is for a site with HSTS headers or with a pinned key.
-      panel_open: If the advanced panel was open at the time of the interaction.
-
-security.ui.tlserror:
-  load:
-    objects: ["abouttlserror"]
-    bug_numbers:
-      - 1881335
-    description: >
-      The about:neterror page is loaded with a TLS error or non-overridable certificate error, keyed by error code.
-    expiry_version: never
-    notification_emails:
-      - dkeeler@mozilla.com
-      - seceng-telemetry@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - "firefox"
-    record_in_processes: ["content"]
-    extra_keys:
-      is_frame: If the error page is loaded in an iframe.
-      channel_status: The status of the failed channel, as an nsresult.
-
 ysod:
   shown:
     bug_numbers:
@@ -1749,44 +1445,6 @@ dom.quota.try:
       source_line: The line within source_file where the error occurred.
       stack_id: Optionally, the stack within process_id.
 
-zero_byte_load:
-  load:
-    bug_numbers:
-      - 1675823
-    description: >-
-        Collection of zero_byte_load events as part of the Yellow Screen of Death analysis.
-        When a file is loaded synchronously, this event gets recorded in nsJARChannel::Open if the content length is zero.
-        For asynchronous loads, this event gets recorded in onStopRequest.
-        Note that when the load has been cancelled, the consumer could already receive some data, so this event also captures non-zero-byte loads.
-    products:
-      - "firefox"
-    record_in_processes: ["main", "content"]
-    release_channel_collection: opt-out
-    expiry_version: "never"
-    notification_emails:
-      - zbraniecki@mozilla.com
-      - vchin@mozilla.com
-      - kershaw@mozilla.com
-    objects:
-      - "ftl"
-      - "dtd"
-      - "properties"
-      - "js"
-      - "xml"
-      - "xhtml"
-      - "css"
-      - "json"
-      - "html"
-      - "png"
-      - "svg"
-      - "others"
-    extra_keys:
-      sync: Was the load synchronous
-      file_name: The name of the file being loaded.
-      status: The channel status code.
-      cancelled: Whether this load has been cancelled.
-      cancel_reason: Reason why this load was cancelled.
-
 avif:
   dav1d_get_picture:
     objects: ["return_value"]
@@ -1799,36 +1457,6 @@ avif:
     expiry_version: never
     notification_emails:
       - media-alerts@mozilla.com
-
-installation:
-  first_seen:
-    description: >
-      Recorded after the application has been installed or reinstalled, the first time that
-      a profile sees that there was a new installation. This includes information about how
-      the installer was run.
-    objects:
-      - full # if the full installer was run directly
-      - stub # if the stub installer was used
-      - msix # if the installation was done through an MSIX package
-    release_channel_collection: opt-out
-    record_in_processes: ["main"]
-    products: ["firefox"]
-    extra_keys:
-      version: The application version installed by the installer (not necessarily the current version)
-      build_id: The build ID of the application installed by the installer (not necessarily the current version)
-      admin_user: Whether the installer is running from an elevated admin user
-      install_existed: Whether there was already an install in this location
-      other_inst: Whether there was already any non-MSIX install on this system
-      other_msix_inst: Whether there was already any MSIX install on this system
-      profdir_existed: Whether the top-level profile directory existed
-      silent: '(optional, present if object is "full") Whether this was a silent install'
-      from_msi: '(optional, present if object is "full") Whether this was an MSI install'
-      default_path: '(optional, present if object is "full") Whether the default path was used'
-    bug_numbers: [1660198, 1725295, 1743465, 1754638]
-    notification_emails:
-      - application-update-telemetry-alerts@mozilla.com
-      - rtestard@mozilla.com
-    expiry_version: never
 
 service_request:
   bypass:
@@ -2053,6 +1681,24 @@ profiles:
       - "nbaumgardner@mozilla.com"
     bug_numbers:
       - 1927608
+    expiry_version: never
+    products:
+      - "firefox"
+  error:
+    objects: ["avatar"]
+    release_channel_collection: opt-out
+    record_in_processes:
+      - main
+    description: >
+      Recorded when the profile system attempts to load a custom avatar
+      image, but the file is not found on disk. See Glean probe
+      definition for details.
+    notification_emails:
+      - "dtownsend@mozilla.com"
+      - "jhirsch@mozilla.com"
+      - "nbaumgardner@mozilla.com"
+    bug_numbers:
+      - 2028725
     expiry_version: never
     products:
       - "firefox"

@@ -56,10 +56,6 @@ class ParamBlock {
 
 NS_IMPL_ISUPPORTS(nsPrintDialogServiceWin, nsIPrintDialogService)
 
-nsPrintDialogServiceWin::nsPrintDialogServiceWin() {}
-
-nsPrintDialogServiceWin::~nsPrintDialogServiceWin() {}
-
 NS_IMETHODIMP
 nsPrintDialogServiceWin::Init() {
   nsresult rv;
@@ -189,7 +185,7 @@ nsresult nsPrintDialogServiceWin::DoDialog(mozIDOMWindowProxy* aParent,
 
   nsCOMPtr<mozIDOMWindowProxy> dialog;
   nsresult rv = mWatcher->OpenWindow(
-      aParent, nsDependentCString(aChromeURL), "_blank"_ns,
+      aParent, nsDependentCString(aChromeURL), u"_blank"_ns,
       "centerscreen,chrome,modal,titlebar"_ns, array, getter_AddRefs(dialog));
 
   return rv;

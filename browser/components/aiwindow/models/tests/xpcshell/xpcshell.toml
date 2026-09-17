@@ -31,8 +31,6 @@ firefox-appdir = "browser"
 
 ["test_Message.js"]
 
-["test_PromptLoader_buildConversation.js"]
-
 ["test_PromptOptimizer.js"]
 
 ["test_SearchBrowsingHistory.js"]
@@ -57,6 +55,8 @@ firefox-appdir = "browser"
 
 ["test_Tools_GetPageContent.js"]
 
+["test_Tools_GetTabList.js"]
+
 ["test_Tools_GetUserMemories.js"]
 
 ["test_Tools_ManageTabs.js"]
@@ -65,13 +65,15 @@ firefox-appdir = "browser"
 
 ["test_Tools_SearchBrowsingHistory.js"]
 
-["test_Tools_WorldCup.js"]
-
 ["test_Utils.js"]
 
 ["test_Utils_RemoteSettings.js"]
 
 ["test_Utils_RemoteSettings_ChatModelChoice.js"]
+
+["test_aitab_parse.js"]
+
+["test_aitab_viewer.js"]
 
 ["test_engine_build_object_form.js"]
 

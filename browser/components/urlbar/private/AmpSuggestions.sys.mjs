@@ -83,16 +83,22 @@ export class AmpSuggestions extends SuggestProvider {
   }
 
   enable(enabled) {
+    // NOTE: The lines below related to the deletion-request ping are
+    // intentionally commented out so that the ping is never enabled. The ping
+    // should be removed at the same time the `context_id` metric is removed.
+    // See bug 2056936, bug 2056943, and bug 2059566.
+
     if (enabled) {
       GleanPings.quickSuggest.setEnabled(true);
-      GleanPings.quickSuggestDeletionRequest.setEnabled(true);
+      // GleanPings.quickSuggestDeletionRequest.setEnabled(true);
     } else {
       // Submit the `deletion-request` ping. Both it and the `quick-suggest`
       // ping must remain enabled in order for it to be successfully submitted
       // and uploaded. That's fine: It's harmless for both pings to remain
       // enabled until shutdown, and they won't be submitted again since AMP
       // suggestions are now disabled. On restart they won't be enabled again.
-      this.#submitQuickSuggestDeletionRequestPing();
+      //
+      // this.#submitQuickSuggestDeletionRequestPing();
     }
   }
 
@@ -221,6 +227,13 @@ export class AmpSuggestions extends SuggestProvider {
     return commands;
   }
 
+  /**
+   * @param {string} state
+   * @param {UrlbarQueryContext} queryContext
+   * @param {UrlbarParentController} controller
+   * @param {{index: number, result: UrlbarResult}[]} featureResults
+   * @param {object|null} details
+   */
   onImpression(state, queryContext, controller, featureResults, details) {
     // For the purpose of the `quick-suggest` impression ping, "impression"
     // means that one of these suggestions was visible at the time of an
@@ -237,6 +250,12 @@ export class AmpSuggestions extends SuggestProvider {
     }
   }
 
+  /**
+   * @param {UrlbarQueryContext} queryContext
+   * @param {UrlbarParentController} controller
+   * @param {object} details
+   * @param {string} searchString
+   */
   onEngagement(queryContext, controller, details, searchString) {
     let { result } = details;
 
@@ -407,12 +426,15 @@ export class AmpSuggestions extends SuggestProvider {
       pingType: lazy.CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
       isClicked:
         // `selType` == "quicksuggest" if the result itself was clicked. It will
-        // be a command name if a command was clicked, e.g., "dismiss".
-        result == details.result && details.selType == "quicksuggest",
+        // be a command name if a command was clicked, e.g., "dismiss". Match by
+        // id: the visible result and the picked result aren't necessarily the
+        // same object.
+        result.id == details.result?.id && details.selType == "quicksuggest",
       reportingUrl: result.payload.sponsoredImpressionUrl,
     });
   }
 
+  // eslint-disable-next-line no-unused-private-class-members
   async #submitQuickSuggestDeletionRequestPing() {
     if (lazy.ContextId.rotationEnabled) {
       // The ContextId module will take care of sending the appropriate

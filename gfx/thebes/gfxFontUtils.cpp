@@ -667,8 +667,10 @@ uint32_t gfxFontUtils::MapCharToGlyphFormat4(const uint8_t* aBuf,
   const AutoSwap_PRUint16* idDelta = &startCodes[segCount];
   const AutoSwap_PRUint16* idRangeOffset = &idDelta[segCount];
 
-  // Sanity-check that the fixed-size arrays don't exceed the buffer.
-  const uint8_t* const limit = aBuf + aLength;
+  // Sanity-check that the fixed-size arrays don't exceed the buffer or the
+  // current subtable.
+  const uint8_t* const limit =
+      aBuf + std::min(aLength, uint32_t(cmap4->length));
   if ((const uint8_t*)(&idRangeOffset[segCount]) > limit) {
     return 0;  // broken font, just bail out safely
   }
@@ -993,7 +995,7 @@ void gfxFontUtils::GetPrefsFontList(const char* aPrefName,
 
 constexpr uint32_t MAX_B64_LEN = 32;
 
-nsresult gfxFontUtils::MakeUniqueUserFontName(nsAString& aName) {
+nsresult gfxFontUtils::MakeUniqueUserFontName(nsACString& aName) {
   nsCOMPtr<nsIUUIDGenerator> uuidgen =
       do_GetService("@mozilla.org/uuid-generator;1");
   NS_ENSURE_TRUE(uuidgen, NS_ERROR_OUT_OF_MEMORY);
@@ -1018,7 +1020,7 @@ nsresult gfxFontUtils::MakeUniqueUserFontName(nsAString& aName) {
     if (*p == '/') *p = '-';
   }
 
-  aName.AssignLiteral(u"uf");
+  aName.AssignLiteral("uf");
   aName.AppendASCII(guidB64);
   return NS_OK;
 }
@@ -1277,17 +1279,17 @@ nsresult gfxFontUtils::GetFullNameFromTable(hb_blob_t* aNameTable,
   nsAutoCString name;
   nsresult rv = gfxFontUtils::ReadCanonicalName(
       aNameTable, gfxFontUtils::NAME_ID_FULL, name);
-  if (NS_SUCCEEDED(rv) && !name.IsEmpty()) {
+  if (NS_SUCCEEDED(rv)) {
     aFullName = std::move(name);
     return NS_OK;
   }
   rv = gfxFontUtils::ReadCanonicalName(aNameTable, gfxFontUtils::NAME_ID_FAMILY,
                                        name);
-  if (NS_SUCCEEDED(rv) && !name.IsEmpty()) {
+  if (NS_SUCCEEDED(rv)) {
     nsAutoCString styleName;
     rv = gfxFontUtils::ReadCanonicalName(
         aNameTable, gfxFontUtils::NAME_ID_STYLE, styleName);
-    if (NS_SUCCEEDED(rv) && !styleName.IsEmpty()) {
+    if (NS_SUCCEEDED(rv)) {
       name.Append(' ');
       name.Append(styleName);
       aFullName = std::move(name);
@@ -1303,7 +1305,7 @@ nsresult gfxFontUtils::GetFamilyNameFromTable(hb_blob_t* aNameTable,
   nsAutoCString name;
   nsresult rv = gfxFontUtils::ReadCanonicalName(
       aNameTable, gfxFontUtils::NAME_ID_FAMILY, name);
-  if (NS_SUCCEEDED(rv) && !name.IsEmpty()) {
+  if (NS_SUCCEEDED(rv)) {
     aFamilyName = std::move(name);
     return NS_OK;
   }
@@ -1369,7 +1371,7 @@ nsresult gfxFontUtils::ReadCanonicalName(const char* aNameData,
 
   // return the first name (99.9% of the time names will
   // contain a single English name)
-  if (names.Length()) {
+  if (names.Length() && !names[0].IsEmpty()) {
     aName.Assign(names[0]);
     return NS_OK;
   }
@@ -1497,14 +1499,6 @@ const Encoding* gfxFontUtils::GetCharsetForFontName(uint16_t aPlatform,
   }
 
   return nullptr;
-}
-
-template <int N>
-static bool StartsWith(const nsACString& string, const char (&prefix)[N]) {
-  if (N - 1 > string.Length()) {
-    return false;
-  }
-  return memcmp(string.Data(), prefix, N - 1) == 0;
 }
 
 // convert a raw name from the name table to an nsString, if possible;
@@ -1759,8 +1753,8 @@ void gfxFontUtils::GetVariationData(
       }
       instance.mValues.SetCapacity(axisCount);
       for (unsigned j = 0; j < axisCount; ++j) {
-        gfxFontVariationValue value = {axes[j].axisTag,
-                                       int32_t(coords[j]) / 65536.0f};
+        gfxFontVariation value = {axes[j].axisTag,
+                                  int32_t(coords[j]) / 65536.0f};
         instance.mValues.AppendElement(value);
       }
       aInstances->AppendElement(std::move(instance));
@@ -2016,29 +2010,29 @@ double StyleDistance(const mozilla::SlantStyleRange& aRange,
   return kReverse + kNegate + (minAngle - targetAngle);
 }
 
-double StretchDistance(const mozilla::StretchRange& aRange,
-                       const mozilla::StyleFontStretch& aTargetStretch) {
+double WidthDistance(const mozilla::WidthRange& aRange,
+                     const mozilla::StyleFontWidth& aTargetWidth) {
   const double kReverseDistance = 1000.0;
 
-  mozilla::FontStretch minStretch = aRange.Min();
-  mozilla::FontStretch maxStretch = aRange.Max();
+  mozilla::FontWidth minWidth = aRange.Min();
+  mozilla::FontWidth maxWidth = aRange.Max();
 
-  // The stretch value is a (non-negative) percentage; currently we support
+  // The width value is a (non-negative) percentage; currently we support
   // values in the range 0 .. 1000. (If the upper limit is ever increased,
   // the kReverseDistance value used here may need to be adjusted.)
-  // If aTargetStretch is >100, we prefer larger values if available;
+  // If aTargetWidth is >100, we prefer larger values if available;
   // if <=100, we prefer smaller values if available.
-  if (aTargetStretch < minStretch) {
-    if (aTargetStretch > mozilla::FontStretch::NORMAL) {
-      return minStretch.ToFloat() - aTargetStretch.ToFloat();
+  if (aTargetWidth < minWidth) {
+    if (aTargetWidth > mozilla::FontWidth::NORMAL) {
+      return minWidth.ToFloat() - aTargetWidth.ToFloat();
     }
-    return (minStretch.ToFloat() - aTargetStretch.ToFloat()) + kReverseDistance;
+    return (minWidth.ToFloat() - aTargetWidth.ToFloat()) + kReverseDistance;
   }
-  if (aTargetStretch > maxStretch) {
-    if (aTargetStretch <= mozilla::FontStretch::NORMAL) {
-      return aTargetStretch.ToFloat() - maxStretch.ToFloat();
+  if (aTargetWidth > maxWidth) {
+    if (aTargetWidth <= mozilla::FontWidth::NORMAL) {
+      return aTargetWidth.ToFloat() - maxWidth.ToFloat();
     }
-    return (aTargetStretch.ToFloat() - maxStretch.ToFloat()) + kReverseDistance;
+    return (aTargetWidth.ToFloat() - maxWidth.ToFloat()) + kReverseDistance;
   }
   return 0.0;
 }

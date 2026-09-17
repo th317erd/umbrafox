@@ -149,6 +149,11 @@ class Handle;
 
 #define PROFILE(isolate, event)
 
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && \
+    __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#  define V8_TARGET_LITTLE_ENDIAN 1
+#endif
+
 // Origin:
 // https://github.com/v8/v8/blob/855591a54d160303349a5f0a32fab15825c708d1/src/base/macros.h#L310-L319
 // ptrdiff_t is 't' according to the standard, but MSVC uses 'I'.
@@ -383,6 +388,12 @@ inline uint64_t CountTrailingZeros(uint64_t value) {
   return std::countr_zero(value);
 }
 
+template <typename T>
+inline constexpr unsigned CountLeadingZeros(T value) {
+  static_assert(std::is_unsigned_v<T>);
+  return std::countl_zero(value);
+}
+
 inline constexpr size_t RoundUpToPowerOfTwo32(size_t value) {
   return mozilla::RoundUpPow2(value);
 }
@@ -393,7 +404,8 @@ inline constexpr size_t RoundUpToPowerOfTwo(size_t value) {
 
 template <typename T>
 constexpr bool IsPowerOfTwo(T value) {
-  return std::has_single_bit(value);
+  static_assert(std::is_integral_v<T>);
+  return value > 0 && (value & (value - 1)) == 0;
 }
 
 constexpr uint32_t CountPopulation(uint32_t value) {
@@ -1096,7 +1108,7 @@ inline Handle<To> CheckedCast(Handle<From> value) {
 template <typename T>
 class MOZ_NONHEAP_CLASS MaybeHandle final {
  public:
-  MaybeHandle() : location_(nullptr) {}
+  MaybeHandle() = default;
 
   // Constructor for handling automatic up casting from Handle.
   // Ex. Handle<JSArray> can be passed when MaybeHandle<Object> is expected.
@@ -1122,7 +1134,7 @@ class MOZ_NONHEAP_CLASS MaybeHandle final {
   }
 
  private:
-  JS::Value* location_;
+  JS::Value* location_{nullptr};
 };
 
 // From v8/src/handles/handles-inl.h
@@ -1153,14 +1165,10 @@ using DisallowGarbageCollection = JS::AutoAssertNoGC;
 
 // V8 uses this inside DisallowGarbageCollection regions to turn
 // allocation back on before throwing a stack overflow exception or
-// handling interrupts. AutoSuppressGC is sufficient for the former
-// case, but not for the latter: handling interrupts can execute
-// arbitrary script code, and V8 jumps through some scary hoops to
-// "manually relocate unhandlified references" afterwards. To keep
-// things sane, we don't try to handle interrupts while regex code is
-// still on the stack. Instead, we return EXCEPTION and handle
-// interrupts in the caller. (See RegExpShared::execute.)
-
+// handling interrupts. We instead arrange to throw exceptions and do
+// any necessary work in the caller. See Isolate::StackOverflow and
+// Isolate::HandleInterrupts. AllowGarbageCollection is therefore a
+// no-op for us.
 class AllowGarbageCollection {
  public:
   AllowGarbageCollection() = default;
@@ -1330,6 +1338,48 @@ class RegExpData : public HeapObject {
 
   Tagged<String> escaped_source() const { return String(inner()->getSource()); }
 
+  // TODO: Support QuickCheck (bug 2060702)
+
+  // The first-character bitset covers the latin-1 range, one bit per character.
+  static constexpr int kQuickCheckBitsetChars = 256;
+  static constexpr int kQuickCheckBitsetBitsPerWord = 32;
+  static constexpr int kQuickCheckBitsetWords =
+      kQuickCheckBitsetChars / kQuickCheckBitsetBitsPerWord;
+
+  // Where |c| lives in the bitset: which word to load, and which bit to test
+  // in it.  For 'a' (97) that is word 3, bit 1.
+  static constexpr std::pair<int, uint32_t> QuickCheckBitsetBit(uint8_t c) {
+    return {c / kQuickCheckBitsetBitsPerWord,
+            uint32_t{1} << (c % kQuickCheckBitsetBitsPerWord)};
+  }
+
+  inline uint32_t quick_check_mask() const { return 0; }
+  inline void set_quick_check_mask(uint32_t value) {}
+
+  inline uint32_t quick_check_value() const { return 0; }
+  inline void set_quick_check_value(uint32_t value) {}
+
+  inline void set_quick_check_reject_bitset_word(int index, uint32_t value) {}
+
+  enum InternalFlag : uint32_t {
+    // Set if either quick-check filter was built.  Most regexps get neither,
+    // so this lets the exec path skip straight past both with one test
+    // instead of loading the subject and running the bitset check to find out.
+    kHasQuickCheck = 1 << 0,
+  };
+
+  inline uint32_t internal_flags() const { return 0; }
+  inline void set_internal_flags(uint32_t value) {}
+
+  inline void clear_quick_check() {}
+
+  // True iff the quick-check filters prove that no match can begin at
+  // |subject[index]|.  |subject| must be one-byte and flat.  Mirrored by
+  // RegExpExecInternal in builtins-regexp-gen.cc; keep the two in sync.
+  bool QuickCheckRejects(base::Vector<const uint8_t> subject, int index) const {
+    return false;
+  }
+
  private:
   js::RegExpShared* inner() const {
     return value().toGCThing()->as<js::RegExpShared>();
@@ -1421,9 +1471,9 @@ class Isolate {
   js::LifoAlloc* allocator() { return &cx_->tempLifoAlloc(); }
 
   // This is called from inside no-GC code. Instead of suppressing GC
-  // to allocate the error, we return false from Execute and call
-  // ReportOverRecursed in the caller.
-  void StackOverflow() {}
+  // to allocate the error, we set a flag on the context, return false
+  // from Execute and call ReportOverRecursed in the caller.
+  void StackOverflow() { cx_->noteDelayedOverRecursed(); }
 
 #ifndef V8_INTL_SUPPORT
   unibrow::Mapping<unibrow::Ecma262UnCanonicalize>* jsregexp_uncanonicalize() {
@@ -1551,6 +1601,11 @@ class StackLimitCheck {
 
   // Use this to check for interrupt request in C++ code.
   bool InterruptRequested() {
+#ifdef DEBUG
+    if (cx_->isolate->shouldSimulateInterrupt_) {
+      return true;
+    }
+#endif
     return cx_->hasPendingInterrupt(js::InterruptReason::CallbackUrgent);
   }
 
@@ -1567,6 +1622,7 @@ class StackLimitCheck {
 class ExternalReference {
  public:
   static const void* TopOfRegexpStack(Isolate* isolate);
+  static const void* RegexpStackPointer(Isolate* isolate);
   static size_t SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
                                     regexp::Stack* regexpStack);
 };

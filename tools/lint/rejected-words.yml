@@ -5,6 +5,7 @@ avoid-blacklist-and-whitelist:
     include: ['.']
     type: external
     payload: mozcheck:lint
+    setup: mozcheck:setup
     check: rejected-words
     check-config:
         regex-pattern: (black|white)[-_]?list
@@ -62,13 +63,14 @@ avoid-blacklist-and-whitelist:
         - browser/components/tabbrowser/test/browser/tabMediaIndicator/browser_mute_webAudio.js
         - browser/components/tabbrowser/test/browser/tabs/browser_new_file_whitelisted_http_tab.js
         - browser/components/tabbrowser/test/browser/tabs/browser_tab_drag_drop_perwindow.js
-        - browser/components/urlbar/tests/browser/browser_searchSingleWordNotification.js
-        - browser/components/urlbar/tests/browser/browser_trust_panel.js
+        - browser/components/urlbar/tests/browser-search/browser_searchSingleWordNotification.js
+        - browser/components/urlbar/tests/browser-trustPanel/browser_trust_panel.js
+        - browser/components/urlbar/tests/browser-trustPanel/browser_trust_panel_icon.js
+        - browser/components/urlbar/tests/browser-trustPanel/browser_trust_panel_privacy_metrics_alignment.js
         - browser/components/urlbar/tests/browser-UrlbarInput/browser_trimURLs.js
         - browser/components/urlbar/tests/unit/test_providerHeuristicFallback.js
         - browser/components/urlbar/tests/unit/test_search_suggestions.js
         - browser/components/urlbar/tests/unit/test_tokenizer.js
-        - browser/extensions/newtab/data/content/activity-stream.bundle.js
         - browser/extensions/webcompat/shims/nielsen.js
         - browser/modules/SitePermissions.sys.mjs
         - browser/tools/mozscreenshots/mozscreenshots/extension/configurations/PermissionPrompts.sys.mjs
@@ -99,7 +101,6 @@ avoid-blacklist-and-whitelist:
         - dom/base/nsTreeSanitizer.h
         - dom/base/test/browser_multiple_popups.js
         - dom/base/test/browser_timeout_throttling_with_audio_playback.js
-        - dom/base/test/chrome/test_permission_hasValidTransientUserActivation.xhtml
         - dom/bindings/Codegen.py
         - dom/bindings/parser/WebIDL.py
         - dom/bindings/RemoteObjectProxy.cpp
@@ -310,6 +311,7 @@ avoid-gobbledygook:
     include: ['.']
     type: external
     payload: mozcheck:lint
+    setup: mozcheck:setup
     check: rejected-words
     check-config:
         regex-pattern: \b(gobbledy)?-?gook
@@ -337,6 +339,7 @@ forbid-moduleloaderbase-include:
     include: ['.']
     type: external
     payload: mozcheck:lint
+    setup: mozcheck:setup
     check: rejected-words
     check-config:
         regex-pattern: '#\s*include\s+"(js/loader/)?ModuleLoaderBase\.h"'

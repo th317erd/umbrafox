@@ -23,6 +23,7 @@ import actions from "../../actions/index";
 
 import { sourceTypes } from "../../utils/source";
 import { createLocation } from "../../utils/location";
+import { sourceTree } from "../../constants";
 
 const classnames = require("resource://devtools/client/shared/classnames.js");
 
@@ -58,7 +59,7 @@ class SourceTreeItemContents extends Component {
       this.props;
 
     focusItem(item);
-    if (item.type == "source") {
+    if (item.type == sourceTree.itemTypes.SOURCE) {
       selectSourceItem(item);
     } else if (item.type == "userland-script") {
       selectUserlandScriptItem(item);
@@ -90,7 +91,7 @@ class SourceTreeItemContents extends Component {
   };
 
   renderIcon(item) {
-    if (item.type == "thread") {
+    if (item.type == sourceTree.itemTypes.THREAD) {
       const icon = item.thread.targetType.includes("worker")
         ? "worker"
         : "window";
@@ -98,7 +99,7 @@ class SourceTreeItemContents extends Component {
         name: icon,
       });
     }
-    if (item.type == "group") {
+    if (item.type == sourceTree.itemTypes.GROUP) {
       if (item.groupName === "Webpack") {
         return React.createElement(DebuggerImage, {
           name: "webpack",
@@ -119,7 +120,10 @@ class SourceTreeItemContents extends Component {
         name: "globe-small",
       });
     }
-    if (item.type == "directory" || item.type == "userland-folder") {
+    if (
+      item.type == sourceTree.itemTypes.DIRECTORY ||
+      item.type == "userland-folder"
+    ) {
       return React.createElement(DebuggerImage, {
         name: "folder",
       });
@@ -127,7 +131,7 @@ class SourceTreeItemContents extends Component {
     if (item.type == "userland-script") {
       return null;
     }
-    if (item.type == "source") {
+    if (item.type == sourceTree.itemTypes.SOURCE) {
       const { source, sourceActor } = item;
       return React.createElement(SourceIcon, {
         className: this.props.isSourceOverridden ? " has-network-override" : "",
@@ -150,17 +154,17 @@ class SourceTreeItemContents extends Component {
   renderItemName() {
     const { item } = this.props;
 
-    if (item.type == "thread") {
+    if (item.type == sourceTree.itemTypes.THREAD) {
       const { thread } = item;
       return (
         thread.name +
         (thread.serviceWorkerStatus ? ` (${thread.serviceWorkerStatus})` : "")
       );
     }
-    if (item.type == "group") {
+    if (item.type == sourceTree.itemTypes.GROUP) {
       return item.groupName;
     }
-    if (item.type == "directory") {
+    if (item.type == sourceTree.itemTypes.DIRECTORY) {
       const parentItem = this.props.getParent(item);
       return item.path.replace(parentItem.path, "").replace(/^\//, "");
     }
@@ -170,7 +174,7 @@ class SourceTreeItemContents extends Component {
     if (item.type == "userland-script") {
       return item.script.name;
     }
-    if (item.type == "source") {
+    if (item.type == sourceTree.itemTypes.SOURCE) {
       return item.source.longName;
     }
 
@@ -180,13 +184,13 @@ class SourceTreeItemContents extends Component {
   renderItemTooltip() {
     const { item } = this.props;
 
-    if (item.type == "thread") {
+    if (item.type == sourceTree.itemTypes.THREAD) {
       return item.thread.name;
     }
-    if (item.type == "group") {
+    if (item.type == sourceTree.itemTypes.GROUP) {
       return item.groupName;
     }
-    if (item.type == "directory") {
+    if (item.type == sourceTree.itemTypes.DIRECTORY) {
       return item.path;
     }
     if (item.type == "userland-folder") {
@@ -198,7 +202,7 @@ class SourceTreeItemContents extends Component {
         item.script.scope.origin
       );
     }
-    if (item.type == "source") {
+    if (item.type == sourceTree.itemTypes.SOURCE) {
       return item.source.url;
     }
 
@@ -224,7 +228,8 @@ class SourceTreeItemContents extends Component {
       {
         className: classnames("node", {
           focused,
-          blackboxed: item.type == "source" && item.isBlackBoxed,
+          blackboxed:
+            item.type == sourceTree.itemTypes.SOURCE && item.isBlackBoxed,
           "userland-script": item.type == "userland-script",
         }),
         key: item.path,
@@ -317,7 +322,7 @@ class SourcesTreeItem extends Component {
 
 const mapStateToProps = (state, props) => {
   const { item } = props;
-  if (item.type == "source") {
+  if (item.type == sourceTree.itemTypes.SOURCE) {
     const { source } = item;
     return {
       hasMatchingGeneratedSource: getHasMatchingGeneratedSource(state, source),

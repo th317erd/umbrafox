@@ -24,6 +24,7 @@ task-defaults:
     attributes:
         build_platform: android
     run:
+        clone-with: hg
         gradle-package-command: bundle
 
 tasks:

@@ -168,6 +168,16 @@ add_task(async function test_init_empty_state() {
     "Default last_history_memory_ts should be 0"
   );
   equal(meta.last_chat_memory_ts, 0, "Default last_chat_memory_ts should be 0");
+  equal(
+    meta.last_session_memory_ts,
+    0,
+    "Default last_session_memory_ts should be 0"
+  );
+  equal(
+    meta.last_generation_run_ts,
+    0,
+    "Default last_generation_run_ts should be 0"
+  );
 });
 
 add_task(async function test_addMemory() {
@@ -502,6 +512,18 @@ add_task(async function test_updateMeta_and_persistence_roundtrip() {
     "last_chat_memory_ts should be updated"
   );
 
+  const generationTime = now + 2000;
+  await MemoryStore.updateMeta({
+    last_generation_run_ts: generationTime,
+  });
+
+  meta = await MemoryStore.getMeta();
+  equal(
+    meta.last_generation_run_ts,
+    generationTime,
+    "updateMeta should update last_generation_run_ts"
+  );
+
   // Force a write to disk.
   await MemoryStore.testOnlyFlush();
 
@@ -524,6 +546,11 @@ add_task(async function test_updateMeta_and_persistence_roundtrip() {
     meta2.last_chat_memory_ts,
     chatTime,
     "last_chat_memory_ts should survive roundtrip to disk"
+  );
+  equal(
+    meta2.last_generation_run_ts,
+    generationTime,
+    "last_generation_run_ts should survive roundtrip to disk"
   );
 
   const memories = await FreshStore.getMemories();
@@ -776,6 +803,181 @@ add_task(async function test_migrate_memories_from_v1_to_v2() {
   );
 });
 
+add_task(
+  async function test_migrate_memories_from_v1_to_v2_missing_fields_fill_defaults() {
+    const now = Date.now();
+    const memoriesV1 = [
+      {
+        id: "mem.123",
+        memory_summary: "Likes dogs",
+        category: "Dogs",
+        intent: "Share / Communicate",
+        score: 1.0,
+        source: "history",
+        source_ids: {
+          history_source_ids: [1, 2, 3],
+          conversation_source_ids: [4, 5, 6],
+        },
+        updated_at: now,
+      },
+    ];
+
+    const memoriesV2 = migrateMemoryStoreVersionOneToTwo(memoriesV1);
+
+    Assert.equal(
+      memoriesV2[0].reasoning,
+      "",
+      "Missing reasoning should fill empty string"
+    );
+    Assert.equal(
+      memoriesV2[0].is_deleted,
+      false,
+      "Missing soft deletion flag should fill false"
+    );
+    Assert.greaterOrEqual(
+      memoriesV2[0].updated_at,
+      now,
+      "Missing updated_at should fill now"
+    );
+  }
+);
+
+add_task(
+  async function test_migrate_memories_from_v1_to_v2_missing_source_fills_from_source_ids() {
+    const memoriesV1FromSession = [
+      {
+        id: "mem.123",
+        memory_summary: "Likes dogs",
+        reasoning: "User researches dog facts, treats, and training advice",
+        category: "Dogs",
+        intent: "Share / Communicate",
+        score: 1.0,
+        source_ids: {
+          history_source_ids: [1, 2, 3],
+          conversation_source_ids: [4, 5, 6],
+        },
+        is_deleted: false,
+        updated_at: Date.now(),
+      },
+    ];
+    const memoriesV2Session = migrateMemoryStoreVersionOneToTwo(
+      memoriesV1FromSession
+    );
+    Assert.ok(!memoriesV2Session[0].source, "Source field should not exist");
+    Assert.deepEqual(
+      memoriesV2Session[0].sources,
+      ["session"],
+      "Should infer session from the source IDs when source doesn't exists"
+    );
+
+    const memoriesV1FromChat = [
+      {
+        id: "mem.123",
+        memory_summary: "Likes dogs",
+        reasoning: "User researches dog facts, treats, and training advice",
+        category: "Dogs",
+        intent: "Share / Communicate",
+        score: 1.0,
+        source_ids: {
+          history_source_ids: [],
+          conversation_source_ids: [4, 5, 6],
+        },
+        is_deleted: false,
+        updated_at: Date.now(),
+      },
+    ];
+    const memoriesV2Chat =
+      migrateMemoryStoreVersionOneToTwo(memoriesV1FromChat);
+    Assert.ok(!memoriesV2Chat[0].source, "Source field should not exist");
+    Assert.deepEqual(
+      memoriesV2Chat[0].sources,
+      ["conversation"],
+      "Should infer conversation from the source IDs when source doesn't exists"
+    );
+
+    const memoriesV1FromHistory = [
+      {
+        id: "mem.123",
+        memory_summary: "Likes dogs",
+        reasoning: "User researches dog facts, treats, and training advice",
+        category: "Dogs",
+        intent: "Share / Communicate",
+        score: 1.0,
+        source_ids: {
+          history_source_ids: [1, 2, 3],
+          conversation_source_ids: [],
+        },
+        is_deleted: false,
+        updated_at: Date.now(),
+      },
+    ];
+    const memoriesV2History = migrateMemoryStoreVersionOneToTwo(
+      memoriesV1FromHistory
+    );
+    Assert.ok(!memoriesV2History[0].source, "Source field should not exist");
+    Assert.deepEqual(
+      memoriesV2History[0].sources,
+      ["history"],
+      "Should infer history from the source IDs when source doesn't exists"
+    );
+
+    const memoriesV1SourceFallback = [
+      {
+        id: "mem.123",
+        memory_summary: "Likes dogs",
+        reasoning: "User researches dog facts, treats, and training advice",
+        category: "Dogs",
+        intent: "Share / Communicate",
+        score: 1.0,
+        source_ids: {
+          history_source_ids: [],
+          conversation_source_ids: [],
+        },
+        is_deleted: false,
+        updated_at: Date.now(),
+      },
+    ];
+    const memoriesV2SourceFallback = migrateMemoryStoreVersionOneToTwo(
+      memoriesV1SourceFallback
+    );
+    Assert.ok(
+      !memoriesV2SourceFallback[0].source,
+      "Source field should not exist"
+    );
+    Assert.deepEqual(
+      memoriesV2SourceFallback[0].sources,
+      ["history"],
+      "Should fill history when the source IDs are empty and source doesn't exists"
+    );
+
+    const memoriesV1SourceFallbackMissingSourceIDs = [
+      {
+        id: "mem.123",
+        memory_summary: "Likes dogs",
+        reasoning: "User researches dog facts, treats, and training advice",
+        category: "Dogs",
+        intent: "Share / Communicate",
+        score: 1.0,
+        is_deleted: false,
+        updated_at: Date.now(),
+      },
+    ];
+    const memoriesV2SourceFallbackkMissingSourceIDs =
+      migrateMemoryStoreVersionOneToTwo(
+        memoriesV1SourceFallbackMissingSourceIDs
+      );
+    Assert.ok(
+      !memoriesV2SourceFallbackkMissingSourceIDs[0].source,
+      "Source field should not exist"
+    );
+    Assert.deepEqual(
+      memoriesV2SourceFallbackkMissingSourceIDs[0].sources,
+      ["history"],
+      "Should fill history when the source IDs are empty and source doesn't exists"
+    );
+  }
+);
+
 /**
  * Tests retrieving relevant memories for a user message using embeddings
  */
@@ -955,7 +1157,8 @@ add_task(
 
 /**
  * Tests that getRelevantMemories properly invalidates cache when memories are updated.
- * Cache should be reused when memories haven't changed, but invalidated when updated_at changes.
+ * Cache should be reused when memories haven't changed, but invalidated when a
+ * memory's identity (id or summary) changes.
  */
 add_task(async function test_getRelevantMemories_cache_invalidation() {
   await deleteAllMemories();
@@ -1005,11 +1208,8 @@ add_task(async function test_getRelevantMemories_cache_invalidation() {
     const memories = await MemoryStore.getMemories({
       includeSoftDeleted: true,
     });
-    // Explicitly set a different timestamp to ensure cache invalidation
-    const originalTimestamp = memories[0].updated_at;
     await MemoryStore.updateMemory(memories[0].id, {
       memory_summary: "Loves drinking coffee and tea",
-      updated_at: originalTimestamp + 1000, // Explicitly different timestamp
     });
 
     await MemoryStore.getRelevantMemories("coffee");

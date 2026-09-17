@@ -4,10 +4,9 @@
 
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use crate::http_cache::{
-    clock::{CacheClock, Clock},
-    request_hash::RequestHash,
-    ByteSize,
+use crate::{
+    common::clock::{CacheClock, Clock},
+    http_cache::{request_hash::RequestHash, ByteSize},
 };
 use parking_lot::Mutex;
 use rusqlite::{params, Connection, OptionalExtension, Result as SqliteResult};
@@ -40,9 +39,14 @@ impl HttpCacheStore {
         }
     }
 
+    pub fn close(self) -> Result<(), rusqlite::Error> {
+        let conn = self.conn.into_inner();
+        conn.close().map_err(|(_, err)| err)
+    }
+
     #[cfg(test)]
     pub fn new_with_test_clock(conn: Connection) -> Self {
-        use crate::http_cache::clock::TestClock;
+        use crate::common::clock::TestClock;
 
         Self {
             conn: Mutex::new(conn),

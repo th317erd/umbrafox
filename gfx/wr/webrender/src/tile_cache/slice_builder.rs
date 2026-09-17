@@ -7,7 +7,8 @@ use api::units::*;
 use crate::clip::{clamped_radius, ClipItemKeyKind, ClipNodeId, ClipTreeBuilder, intersect_rounded_rects};
 use crate::frame_builder::FrameBuilderConfig;
 use crate::internal_types::FastHashMap;
-use crate::picture::{PrimitiveList, PictureCompositeMode, PictureInstance, Picture3DContext, PictureFlags};
+use crate::picture::{PrimitiveList, PictureInstance, Picture3DContext, PictureFlags};
+use crate::picture_composite_mode::PictureCompositeMode;
 use crate::tile_cache::{SliceId, TileCacheParams};
 use crate::prim_store::{PrimitiveInstance, PrimitiveStore, PictureIndex};
 use crate::scene_building::SliceFlags;
@@ -272,6 +273,7 @@ impl TileCacheBuilder {
         &mut self,
         prim_instance: PrimitiveInstance,
         prim_rect: LayoutRect,
+        prim_local_clip_rect: LayoutRect,
         spatial_node_index: SpatialNodeIndex,
         prim_flags: PrimitiveFlags,
         spatial_tree: &SceneSpatialTree,
@@ -286,10 +288,10 @@ impl TileCacheBuilder {
                 prim_list.add_prim(
                     prim_instance,
                     prim_rect,
+                    prim_local_clip_rect,
                     spatial_node_index,
                     prim_flags,
                     prim_instances,
-                    clip_tree_builder,
                 );
             }
             SliceKind::Default { ref mut secondary_slices } => {
@@ -336,8 +338,7 @@ impl TileCacheBuilder {
                                 // (a common case is parallax scrolling effects).
                                 let mut create_slice = true;
 
-                                let leaf = clip_tree_builder.get_leaf(prim_instance.clip_leaf_id);
-                                let mut current_node_id = leaf.node_id;
+                                let mut current_node_id = prim_instance.clip_node_id;
 
                                 while current_node_id != ClipNodeId::NONE {
                                     let node = clip_tree_builder.get_node(current_node_id);
@@ -381,10 +382,10 @@ impl TileCacheBuilder {
                     .add_prim(
                         prim_instance,
                         prim_rect,
+                        prim_local_clip_rect,
                         spatial_node_index,
                         prim_flags,
                         prim_instances,
-                        clip_tree_builder,
                     );
             }
         }
@@ -404,11 +405,6 @@ impl TileCacheBuilder {
         let mut tile_cache_pictures = Vec::new();
         let primary_slices = std::mem::replace(&mut self.primary_slices, Vec::new());
 
-        // TODO: At the moment, culling, clipping and invalidation are always
-        // done in the root coordinate space. The plan is to move to doing it
-        // (always or mostly) in raster space.
-        let visibility_node = spatial_tree.root_reference_frame_index();
-
         for mut primary_slice in primary_slices {
 
             if primary_slice.has_too_many_slices() {
@@ -425,7 +421,6 @@ impl TileCacheBuilder {
                             self.debug_flags,
                             primary_slice.slice_flags,
                             descriptor.scroll_root,
-                            visibility_node,
                             primary_slice.iframe_clip,
                             descriptor.prim_list,
                             primary_slice.background_color,
@@ -446,7 +441,6 @@ impl TileCacheBuilder {
                             self.debug_flags,
                             primary_slice.slice_flags,
                             descriptor.scroll_root,
-                            visibility_node,
                             primary_slice.iframe_clip,
                             descriptor.prim_list,
                             primary_slice.background_color,
@@ -491,7 +485,6 @@ fn create_tile_cache(
     debug_flags: DebugFlags,
     slice_flags: SliceFlags,
     scroll_root: SpatialNodeIndex,
-    visibility_node: SpatialNodeIndex,
     iframe_clip: Option<ClipId>,
     prim_list: PrimitiveList,
     background_color: Option<ColorF>,
@@ -522,15 +515,15 @@ fn create_tile_cache(
 
     for cluster in &prim_list.clusters {
         for prim_instance in &prim_instances[cluster.prim_range()] {
-            let leaf = clip_tree_builder.get_leaf(prim_instance.clip_leaf_id);
+            let node_id = prim_instance.clip_node_id;
 
             // TODO(gw): Need to cache last clip-node id here?
             shared_clip_node_id = match shared_clip_node_id {
                 Some(current) => {
-                    Some(clip_tree_builder.find_lowest_common_ancestor(current, leaf.node_id))
+                    Some(clip_tree_builder.find_lowest_common_ancestor(current, node_id))
                 }
                 None => {
-                    Some(leaf.node_id)
+                    Some(node_id)
                 }
             }
         }
@@ -569,15 +562,16 @@ fn create_tile_cache(
             match clip_node_data.key.kind {
                 ClipItemKeyKind::ImageMask(..) |
                 ClipItemKeyKind::Rectangle(ClipMode::ClipOut) |
-                ClipItemKeyKind::RoundedRectangle(_, ClipMode::ClipOut) => {
+                ClipItemKeyKind::RoundedRectangle(_, _, ClipMode::ClipOut) => {
                     // Has an image-mask or clip-out clip, we can't handle this as a shared clip
                     false
                 }
-                ClipItemKeyKind::RoundedRectangle(radius, ClipMode::Clip) => {
+                ClipItemKeyKind::RoundedRectangle(radius, _, ClipMode::Clip) => {
                     // The shader and CoreAnimation rely on certain constraints such
                     // as uniform radii to be able to apply the clip during compositing.
                     let br = clamped_radius(&BorderRadius::from(radius), node.unsnapped_clip_rect.size());
-                    if br.can_use_fast_path_in(&node.unsnapped_clip_rect) {
+                    if !debug_flags.contains(DebugFlags::DISABLE_COMPOSITOR_CLIPS) &&
+                       br.can_use_fast_path_in(&node.unsnapped_clip_rect) {
                         rounded_rect_count += 1;
 
                         if accumulated_rounded_rect.is_none() {
@@ -611,7 +605,7 @@ fn create_tile_cache(
                 let can_combine = match (accumulated_rounded_rect, clip_node_data.key.kind) {
                     (
                         Some((acc_rect, acc_radius)),
-                        ClipItemKeyKind::RoundedRectangle(radius, ClipMode::Clip),
+                        ClipItemKeyKind::RoundedRectangle(radius, _, ClipMode::Clip),
                     ) => {
                         let radius = clamped_radius(&BorderRadius::from(radius), node.unsnapped_clip_rect.size());
                         intersect_rounded_rects(
@@ -632,7 +626,7 @@ fn create_tile_cache(
                     // Can't combine, drop children and keep only this clip.
                     shared_clip_node_id = current_node_id;
                     rounded_rect_count = 1;
-                    if let ClipItemKeyKind::RoundedRectangle(radius, ClipMode::Clip) = clip_node_data.key.kind {
+                    if let ClipItemKeyKind::RoundedRectangle(radius, _, ClipMode::Clip) = clip_node_data.key.kind {
                         let radius = clamped_radius(&BorderRadius::from(radius), node.unsnapped_clip_rect.size());
                         accumulated_rounded_rect = Some((node.unsnapped_clip_rect, radius));
                     }
@@ -650,7 +644,7 @@ fn create_tile_cache(
         current_node_id = node.parent;
     }
 
-    let shared_clip_leaf_id = Some(clip_tree_builder.build_for_tile_cache(
+    let tile_clip_node_id = Some(clip_tree_builder.build_for_tile_cache(
         shared_clip_node_id,
         &additional_clips,
     ));
@@ -679,10 +673,9 @@ fn create_tile_cache(
         slice,
         slice_flags,
         spatial_node_index: scroll_root,
-        visibility_node_index: visibility_node,
         background_color,
         shared_clip_node_id,
-        shared_clip_leaf_id,
+        tile_clip_node_id,
         virtual_surface_size: frame_builder_config.compositor_kind.get_virtual_surface_size(),
         image_surface_count: prim_list.image_surface_count,
         yuv_image_surface_count: prim_list.yuv_image_surface_count,
@@ -699,7 +692,7 @@ fn create_tile_cache(
         None,
     ));
 
-    tile_cache_pictures.push(PictureIndex(pic_index));
+    tile_cache_pictures.push(PictureIndex(pic_index as u32));
 }
 
 /// Debug information about a set of picture cache slices, exposed via RenderResults

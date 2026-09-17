@@ -426,9 +426,6 @@ class StyleRuleActor extends Actor {
         // Indicates whether StyleRuleActor implements and can use the setRuleText method.
         // It cannot use it if the stylesheet was programmatically mutated via the CSSOM.
         canSetRuleText: this.canSetRuleText,
-        // @backward-compat { version 153 } `getCssExplainersData` was added in 153, so
-        // this trait can be removed once it's in release.
-        hasGetCssExplainersData: true,
       },
     };
 
@@ -608,9 +605,10 @@ class StyleRuleActor extends Actor {
           );
           if (
             registeredProperty &&
-            // For now, we don't handle variable based on top of other variables. This would
-            // require to build some kind of dependency tree and check the validity for
-            // all the leaves.
+            // For now, we don't handle variable based on top of substitution functions.
+            // Those guards should be removed as part of Bug 2070169.
+            !decl.value.includes("attr(") &&
+            !decl.value.includes("env(") &&
             !decl.value.includes("var(") &&
             !InspectorUtils.valueMatchesSyntax(
               targetDocument,

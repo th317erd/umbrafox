@@ -15,12 +15,6 @@
 #include "PathSkia.h"
 #include "ScaledFontBase.h"
 
-#if defined(WIN32)
-#  include "NativeFontResourceGDI.h"
-#  include "ScaledFontWin.h"
-#  include "UnscaledFontGDI.h"
-#endif
-
 #ifdef XP_DARWIN
 #  include "NativeFontResourceMac.h"
 #  include "ScaledFontMac.h"
@@ -126,8 +120,8 @@ StaticMutex Factory::mFTLock;
 
 already_AddRefed<SharedFTFace> FTUserFontData::CloneFace(int aFaceIndex) {
   if (mFontData) {
-    RefPtr<SharedFTFace> face = Factory::NewSharedFTFaceFromData(
-        nullptr, mFontData, mLength, aFaceIndex, this);
+    RefPtr<SharedFTFace> face =
+        Factory::NewSharedFTFaceFromData(nullptr, mFontData, aFaceIndex, this);
     if (!face ||
         (FT_Select_Charmap(face->GetFace(), FT_ENCODING_UNICODE) != FT_Err_Ok &&
          FT_Select_Charmap(face->GetFace(), FT_ENCODING_MS_SYMBOL) !=
@@ -411,8 +405,6 @@ already_AddRefed<NativeFontResource> Factory::CreateNativeFontResource(
 #ifdef WIN32
     case FontType::DWRITE:
       return NativeFontResourceDWrite::Create(aData, aSize);
-    case FontType::GDI:
-      return NativeFontResourceGDI::Create(aData, aSize);
 #elif defined(XP_DARWIN)
     case FontType::MAC:
       return NativeFontResourceMac::Create(aData, aSize);
@@ -440,9 +432,6 @@ already_AddRefed<UnscaledFont> Factory::CreateUnscaledFontFromFontDescriptor(
     case FontType::DWRITE:
       return UnscaledFontDWrite::CreateFromFontDescriptor(aData, aDataLength,
                                                           aIndex);
-    case FontType::GDI:
-      return UnscaledFontGDI::CreateFromFontDescriptor(aData, aDataLength,
-                                                       aIndex);
 #elif defined(XP_DARWIN)
     case FontType::MAC:
       return UnscaledFontMac::CreateFromFontDescriptor(aData, aDataLength,
@@ -577,13 +566,13 @@ already_AddRefed<SharedFTFace> Factory::NewSharedFTFace(FT_Library aFTLibrary,
 }
 
 FT_Face Factory::NewFTFaceFromData(FT_Library aFTLibrary, const uint8_t* aData,
-                                   size_t aDataSize, int aFaceIndex) {
+                                   uint32_t aLength, int aFaceIndex) {
   StaticMutexAutoLock lock(mFTLock);
   if (!aFTLibrary) {
     aFTLibrary = mFTLibrary;
   }
   FT_Face face;
-  if (FT_New_Memory_Face(aFTLibrary, aData, aDataSize, aFaceIndex, &face) !=
+  if (FT_New_Memory_Face(aFTLibrary, aData, aLength, aFaceIndex, &face) !=
       FT_Err_Ok) {
     return nullptr;
   }
@@ -591,10 +580,10 @@ FT_Face Factory::NewFTFaceFromData(FT_Library aFTLibrary, const uint8_t* aData,
 }
 
 already_AddRefed<SharedFTFace> Factory::NewSharedFTFaceFromData(
-    FT_Library aFTLibrary, const uint8_t* aData, size_t aDataSize,
-    int aFaceIndex, SharedFTFaceData* aSharedData) {
-  if (FT_Face face =
-          NewFTFaceFromData(aFTLibrary, aData, aDataSize, aFaceIndex)) {
+    FT_Library aFTLibrary, FontData* aFontData, int aFaceIndex,
+    SharedFTFaceData* aSharedData) {
+  if (FT_Face face = NewFTFaceFromData(aFTLibrary, aFontData->Data(),
+                                       aFontData->Length(), aFaceIndex)) {
     return MakeAndAddRef<SharedFTFace>(face, aSharedData);
   } else {
     return nullptr;
@@ -710,13 +699,6 @@ already_AddRefed<ScaledFont> Factory::CreateScaledFontForDWriteFont(
   return MakeAndAddRef<ScaledFontDWrite>(
       aFontFace, aUnscaledFont, aSize, aUseEmbeddedBitmap, aUseMultistrikeBold,
       aGDIForced, aStyle);
-}
-
-already_AddRefed<ScaledFont> Factory::CreateScaledFontForGDIFont(
-    const void* aLogFont, const RefPtr<UnscaledFont>& aUnscaledFont,
-    Float aSize) {
-  return MakeAndAddRef<ScaledFontWin>(static_cast<const LOGFONT*>(aLogFont),
-                                      aUnscaledFont, aSize);
 }
 #endif  // WIN32
 

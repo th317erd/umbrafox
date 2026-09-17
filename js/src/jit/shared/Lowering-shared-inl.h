@@ -292,7 +292,7 @@ void LIRGeneratorShared::defineReturn(LInstruction* lir, MDefinition* mir) {
                                  LFloatReg(ReturnDoubleReg)));
       break;
     case MIRType::Simd128:
-#ifdef ENABLE_WASM_SIMD
+#ifdef ENABLE_JIT_SIMD
       lir->setDef(0, LDefinition(vreg, LDefinition::SIMD128,
                                  LFloatReg(ReturnSimd128Reg)));
       break;
@@ -379,6 +379,11 @@ void LIRGeneratorShared::redefine(MDefinition* def, MDefinition* as) {
         replacement =
             MConstant::NewInt32(alloc(), as->toConstant()->toBoolean());
       }
+      def->block()->insertBefore(def->toInstruction(), replacement);
+      emitAtUses(replacement->toInstruction());
+    } else if (as->isWasmNullConstant() && as->wasmRefType().hierarchy() !=
+                                               def->wasmRefType().hierarchy()) {
+      replacement = MWasmNullConstant::New(alloc(), def->wasmRefType());
       def->block()->insertBefore(def->toInstruction(), replacement);
       emitAtUses(replacement->toInstruction());
     } else {
@@ -660,7 +665,7 @@ LDefinition LIRGeneratorShared::tempDouble() {
   return temp(LDefinition::DOUBLE);
 }
 
-#ifdef ENABLE_WASM_SIMD
+#ifdef ENABLE_JIT_SIMD
 LDefinition LIRGeneratorShared::tempSimd128() {
   return temp(LDefinition::SIMD128);
 }
@@ -733,15 +738,6 @@ LUse LIRGeneratorShared::usePayloadAtStart(MDefinition* mir,
 
 LUse LIRGeneratorShared::usePayloadInRegisterAtStart(MDefinition* mir) {
   return usePayloadAtStart(mir, LUse::REGISTER);
-}
-
-void LIRGeneratorShared::fillBoxUses(LInstruction* lir, size_t n,
-                                     MDefinition* mir) {
-  ensureDefined(mir);
-  lir->getOperand(n)->toUse()->setVirtualRegister(mir->virtualRegister() +
-                                                  VREG_TYPE_OFFSET);
-  lir->getOperand(n + 1)->toUse()->setVirtualRegister(
-      VirtualRegisterOfPayload(mir));
 }
 #endif
 

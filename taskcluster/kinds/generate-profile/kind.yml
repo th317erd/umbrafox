@@ -19,13 +19,13 @@ transforms:
 
 
 task-defaults:
-    run-on-repo-type: [hg]
     run-on-projects: []
     treeherder:
         symbol: Bpgo(run)
         kind: build
         tier: 1
     use-python: default
+    run:
     fetches:
         fetch:
             - pgo-extended-corpus

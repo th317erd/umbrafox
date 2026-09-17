@@ -55,8 +55,8 @@ Here are some things you can try out yourself that show off some of `Debugger`�
 
 While the `Debugger` core API deals only with concepts common to any JavaScript implementation, it also includes some Gecko-specific features:
 
-- [Global tracking][global] supports debugging all the code running in a Gecko instance at once—the ‘chrome debugging’ model.
-- [Object wrapper][wrapper] functions help manipulate object references that cross privilege boundaries.
+- {doc}`Global tracking <debugger/index>` supports debugging all the code running in a Gecko instance at once—the ‘chrome debugging’ model.
+- {doc}`Object wrapper <debugger.object/index>` functions help manipulate object references that cross privilege boundaries.
 
 ### Source Metadata
 
@@ -71,3 +71,18 @@ Watermark:
 Changeset:
 
 : [ffa775dd5bd4](https://hg.mozilla.org/mozilla-central/rev/ffa775dd5bd4)
+
+```{toctree}
+:hidden:
+:maxdepth: 1
+
+debugger/index
+debugger.environment/index
+debugger.frame/index
+debugger.memory/index
+debugger.object/index
+debugger.script/index
+debugger.source/index
+tutorial-allocation-log-tree/index
+tutorial-breakpoint/index
+```

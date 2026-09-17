@@ -84,6 +84,7 @@
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_general.h"
 #include "mozilla/StaticPrefs_gfx.h"
+#include "mozilla/StaticPrefs_mozilla.h"
 #include "mozilla/StaticPrefs_ui.h"
 #include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/WritingModes.h"
@@ -1651,6 +1652,7 @@ NSEvent* gLastDragMouseDownEvent = nil;  // [strong]
   mGeckoChild = inChild;
   mBlockedLastMouseDown = NO;
   mExpectingWheelStop = NO;
+  mZoomStateAtLastSingleClick = NO;
 
   mLastMouseDownEvent = nil;
   mLastKeyDownEvent = nil;
@@ -2410,13 +2412,27 @@ NSEvent* gLastDragMouseDownEvent = nil;  // [strong]
     return;
   }
 
+  // Starting with macOS 27, a double-click in the region where the title
+  // bar would be (the upper region of the tab bar) gets zoomed natively when
+  // "Zoom" is set as the double click titlebar action. Not for "Fill" and
+  // "Minimize" actions. The zoom/unzoom state is already reflected in the
+  // window state when the second click's mouseUp is handled here. Snapshot
+  // the zoomed state on the first mouseUp and skip our own toggle if it
+  // already changed when checked in the second mouseUp.
+  if (nsCocoaFeatures::OnGoldenGateOrLater() && [theEvent clickCount] == 1) {
+    mZoomStateAtLastSingleClick = [[self window] isZoomed];
+  }
+
   // Check to see if we are double-clicking in draggable parts of the window.
   if (!defaultPrevented && [theEvent clickCount] == 2 &&
       !mGeckoChild->GetNonDraggableRegion().Contains(pos.x, pos.y)) {
-    if (nsCocoaUtils::ShouldZoomOnTitlebarDoubleClick()) {
-      [[self window] performZoom:nil];
-    } else if (nsCocoaUtils::ShouldMinimizeOnTitlebarDoubleClick()) {
-      [[self window] performMiniaturize:nil];
+    // Did the window state already change?
+    bool zoomStateAlreadyChanged =
+        nsCocoaFeatures::OnGoldenGateOrLater() &&
+        ([[self window] isZoomed] != mZoomStateAtLastSingleClick);
+
+    if (!zoomStateAlreadyChanged) {
+      nsCocoaUtils::PerformTitlebarDoubleClickAction([self window]);
     }
   }
 
@@ -4992,6 +5008,7 @@ nsresult nsCocoaWindow::Create(nsIWidget* aParent, const DesktopIntRect& aRect,
 
   mAlwaysOnTop = aInitData.mAlwaysOnTop;
   mIsAlert = aInitData.mIsAlert;
+  mIsInitialFullscreenSuppressed = aInitData.mIsInitialFullscreenSuppressed;
 
   nsresult rv = CreateNativeWindow(nsCocoaUtils::GeckoRectToCocoaRect(aRect),
                                    mBorderStyle, false, aInitData.mIsPrivate);
@@ -5056,10 +5073,7 @@ static unsigned int WindowMaskForBorderStyle(BorderStyle aBorderStyle) {
     return NSWindowStyleMaskBorderless;
   }
 
-  unsigned int mask = NSWindowStyleMaskTitled;
-  if (allOrDefault || aBorderStyle & BorderStyle::Close) {
-    mask |= NSWindowStyleMaskClosable;
-  }
+  unsigned int mask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable;
   if (allOrDefault || aBorderStyle & BorderStyle::Minimize) {
     mask |= NSWindowStyleMaskMiniaturizable;
   }
@@ -5088,13 +5102,6 @@ nsresult nsCocoaWindow::CreateNativeWindow(const NSRect& aRect,
     case WindowType::Invisible:
       break;
     case WindowType::Popup:
-      if (aBorderStyle != BorderStyle::Default &&
-          mBorderStyle & BorderStyle::Title) {
-        features |= NSWindowStyleMaskTitled;
-        if (aBorderStyle & BorderStyle::Close) {
-          features |= NSWindowStyleMaskClosable;
-        }
-      }
       break;
     case WindowType::TopLevel:
     case WindowType::Dialog:
@@ -5513,12 +5520,14 @@ void nsCocoaWindow::Show(bool aState) {
     // opened from an existing fullscreen window, then macOS will open the new
     // window in fullscreen, too. For some windows, this is not desirable. We
     // want to prevent it for any popup, alert, or alwaysOnTop windows that
-    // aren't already in fullscreen. If the user already got the window into
-    // fullscreen somehow, that's fine, but we don't want the initial display to
-    // be in fullscreen.
+    // aren't already in fullscreen, as well as windows that explicitly asked to
+    // suppress it (e.g. a window created by detaching a tab from a fullscreen
+    // window). If the user already got the window into fullscreen somehow,
+    // that's fine, but we don't want the initial display to be in fullscreen.
     bool savedValueForSupportsNativeFullscreen = GetSupportsNativeFullscreen();
     if (!mInFullScreenMode &&
-        ((mWindowType == WindowType::Popup) || mAlwaysOnTop || mIsAlert)) {
+        ((mWindowType == WindowType::Popup) || mAlwaysOnTop || mIsAlert ||
+         mIsInitialFullscreenSuppressed)) {
       SetSupportsNativeFullscreen(false);
     }
 
@@ -6662,8 +6671,7 @@ void nsCocoaWindow::EndOurNativeTransition() {
 
 // Coordinates are desktop pixels
 void nsCocoaWindow::DoResize(double aX, double aY, double aWidth,
-                             double aHeight, bool aRepaint,
-                             bool aConstrainToCurrentScreen) {
+                             double aHeight, bool aRepaint) {
   NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
 
   if (!mWindow || mInResize) {
@@ -6727,14 +6735,14 @@ void nsCocoaWindow::DoResize(double aX, double aY, double aWidth,
 }
 
 void nsCocoaWindow::Resize(const DesktopRect& aRect, bool aRepaint) {
-  DoResize(aRect.x, aRect.y, aRect.width, aRect.height, aRepaint, false);
+  DoResize(aRect.x, aRect.y, aRect.width, aRect.height, aRepaint);
 }
 
 // Coordinates are desktop pixels
 void nsCocoaWindow::Resize(const DesktopSize& aSize, bool aRepaint) {
   double invScale = 1.0 / BackingScaleFactor();
   DoResize(mBounds.x * invScale, mBounds.y * invScale, aSize.width,
-           aSize.height, aRepaint, true);
+           aSize.height, aRepaint);
 }
 
 // Return the area that the Gecko ChildView in our window should cover, as an
@@ -7095,6 +7103,14 @@ void nsCocoaWindow::SetFocus(Raise aRaise,
       [mWindow deminiaturize:nil];
     }
     [mWindow makeKeyAndOrderFront:nil];
+    // AppKit will not make a window key while its application is inactive, so
+    // the call above cannot honour Raise::Yes from the background, and the
+    // cooperative -activate is refused for a background application. Reaching
+    // here already means BrowsingContext::CanFocusCheck granted the raise.
+    if (StaticPrefs::mozilla_widget_raise_on_setfocus_AtStartup() &&
+        !NSApp.isActive) {
+      [NSApp activateIgnoringOtherApps:YES];
+    }
   }
 }
 
@@ -7328,14 +7344,6 @@ void nsCocoaWindow::SetInputRegion(const InputRegion& aInputRegion) {
   } else {
     [mWindow setIgnoresMouseEvents:NO];
   }
-}
-
-void nsCocoaWindow::SetShowsToolbarButton(bool aShow) {
-  NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
-
-  if (mWindow) [mWindow setShowsToolbarButton:aShow];
-
-  NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
 
 bool nsCocoaWindow::GetSupportsNativeFullscreen() {
@@ -7620,7 +7628,7 @@ void nsCocoaWindow::LockNativePointer(
 }
 
 void nsCocoaWindow::UnlockNativePointer() {
-  if (NS_WARN_IF(!GetNativePointerLockedMode())) {
+  if (!GetNativePointerLockedMode()) {
     MOZ_ASSERT(!sNativeLockedWindow);
     MOZ_ASSERT(sNativeLockedPoint == LayoutDeviceIntPoint(0, 0));
     return;
@@ -8123,57 +8131,73 @@ static CGFloat GetMenuCornerRadius() {
   return nsCocoaFeatures::OnTahoeOrLater() ? 12.0f : 6.0f;
 }
 
-// Returns an autoreleased NSImage.
-static NSImage* GetMenuMaskImage() {
-  const CGFloat radius = GetMenuCornerRadius();
-  const NSSize maskSize = {radius * 3.0f, radius * 3.0f};
+static CGFloat GetTooltipCornerRadius() {
+  return nsCocoaFeatures::OnGoldenGateOrLater() ? 5.0f : 0.0f;
+}
+
+// Returns an autoreleased NSImage that rounds the corners at aRadius.
+static NSImage* GetCornerMaskImage(CGFloat aRadius) {
+  const NSSize maskSize = {aRadius * 3.0f, aRadius * 3.0f};
   NSImage* maskImage = [NSImage imageWithSize:maskSize
-                                      flipped:FALSE
+                                      flipped:NO
                                drawingHandler:^BOOL(NSRect dstRect) {
                                  NSBezierPath* path = [NSBezierPath
                                      bezierPathWithRoundedRect:dstRect
-                                                       xRadius:radius
-                                                       yRadius:radius];
+                                                       xRadius:aRadius
+                                                       yRadius:aRadius];
                                  [NSColor.blackColor set];
                                  [path fill];
                                  return YES;
                                }];
-  maskImage.capInsets = NSEdgeInsetsMake(radius, radius, radius, radius);
+  maskImage.capInsets = NSEdgeInsetsMake(aRadius, aRadius, aRadius, aRadius);
   return maskImage;
+}
+
+// Returns a retained view. A radius of zero means square corners.
+static NSVisualEffectView* CreateVibrancyView(NSRect aFrame,
+                                              NSVisualEffectMaterial aMaterial,
+                                              CGFloat aCornerRadius) {
+  auto* view = [[NSVisualEffectView alloc] initWithFrame:aFrame];
+  view.material = aMaterial;
+  // Tooltip and menu windows are never key, so the effect has to be told to
+  // look active regardless of window state.
+  view.state = NSVisualEffectStateActive;
+  view.blendingMode = NSVisualEffectBlendingModeBehindWindow;
+  if (aCornerRadius > 0.0f) {
+    view.maskImage = GetCornerMaskImage(aCornerRadius);
+  }
+  return view;
+}
+
+// Returns a retained view. The caller owns it.
+- (NSView*)newEffectViewWrapperForStyle:(WindowShadow)aStyle {
+  const NSRect frame = self.contentView.frame;
+  switch (aStyle) {
+    case WindowShadow::Menu:
+      if (@available(macOS 26.0, *)) {
+        // Menus use glass rather than vibrancy from macOS 26 on, and the glass
+        // view rounds its own corners.
+        auto* glass = [[NSGlassEffectView alloc] initWithFrame:frame];
+        glass.cornerRadius = GetMenuCornerRadius();
+        return glass;
+      }
+      return CreateVibrancyView(frame, NSVisualEffectMaterialMenu,
+                                GetMenuCornerRadius());
+
+    case WindowShadow::Tooltip:
+      return CreateVibrancyView(frame, NSVisualEffectMaterialToolTip,
+                                GetTooltipCornerRadius());
+
+    case WindowShadow::None:
+    case WindowShadow::Panel:
+      return [[NSView alloc] initWithFrame:frame];
+  }
 }
 
 // Add an effect view wrapper if needed so that the OS draws the appropriate
 // vibrancy effect and window border.
 - (void)setEffectViewWrapperForStyle:(WindowShadow)aStyle {
-  NSView* wrapper = [&]() -> NSView* {
-    if (@available(macOS 26.0, *)) {
-      if (aStyle == WindowShadow::Menu) {
-        // Menus on macOS 26 use glass instead of vibrancy.
-        auto* effectView =
-            [[NSGlassEffectView alloc] initWithFrame:self.contentView.frame];
-        effectView.cornerRadius = GetMenuCornerRadius();
-        return effectView;
-      }
-    }
-    if (aStyle == WindowShadow::Menu || aStyle == WindowShadow::Tooltip) {
-      const bool isMenu = aStyle == WindowShadow::Menu;
-      auto* effectView =
-          [[NSVisualEffectView alloc] initWithFrame:self.contentView.frame];
-      effectView.material =
-          isMenu ? NSVisualEffectMaterialMenu : NSVisualEffectMaterialToolTip;
-      // Tooltip and menu windows are never "key", so we need to tell the
-      // vibrancy effect to look active regardless of window state.
-      effectView.state = NSVisualEffectStateActive;
-      effectView.blendingMode = NSVisualEffectBlendingModeBehindWindow;
-      if (isMenu) {
-        // Turn on rounded corner masking.
-        effectView.maskImage = GetMenuMaskImage();
-      }
-      return effectView;
-    }
-    return [[NSView alloc] initWithFrame:self.contentView.frame];
-  }();
-
+  NSView* wrapper = [self newEffectViewWrapperForStyle:aStyle];
   wrapper.wantsLayer = YES;
   // Swap out our content view by the new view. Setting .contentView releases
   // the old view.
@@ -8243,7 +8267,6 @@ static NSImage* GetMenuMaskImage() {
 static const NSString* kStateTitleKey = @"title";
 static const NSString* kStateDrawsContentsIntoWindowFrameKey =
     @"drawsContentsIntoWindowFrame";
-static const NSString* kStateShowsToolbarButton = @"showsToolbarButton";
 static const NSString* kStateCollectionBehavior = @"collectionBehavior";
 
 - (void)importState:(NSDictionary*)aState {
@@ -8253,8 +8276,6 @@ static const NSString* kStateCollectionBehavior = @"collectionBehavior";
   [self setDrawsContentsIntoWindowFrame:
             [[aState objectForKey:kStateDrawsContentsIntoWindowFrameKey]
                 boolValue]];
-  [self setShowsToolbarButton:[[aState objectForKey:kStateShowsToolbarButton]
-                                  boolValue]];
   [self setCollectionBehavior:[[aState objectForKey:kStateCollectionBehavior]
                                   unsignedIntValue]];
 }
@@ -8266,8 +8287,6 @@ static const NSString* kStateCollectionBehavior = @"collectionBehavior";
   }
   [state setObject:[NSNumber numberWithBool:self.drawsContentsIntoWindowFrame]
             forKey:kStateDrawsContentsIntoWindowFrameKey];
-  [state setObject:[NSNumber numberWithBool:self.showsToolbarButton]
-            forKey:kStateShowsToolbarButton];
   [state setObject:[NSNumber numberWithUnsignedInt:self.collectionBehavior]
             forKey:kStateCollectionBehavior];
   return state;
@@ -8830,33 +8849,6 @@ static CGFloat DefaultTitlebarHeight() {
 
 - (NSRect)windowButtonsRect {
   return mWindowButtonsRect;
-}
-
-// Returning YES here makes the setShowsToolbarButton method work even though
-// the window doesn't contain an NSToolbar.
-- (BOOL)_hasToolbar {
-  return YES;
-}
-
-// Dispatch a toolbar pill button clicked message to Gecko.
-- (void)_toolbarPillButtonClicked:(id)sender {
-  NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
-
-  RollUpPopups();
-
-  if ([self.delegate isKindOfClass:[WindowDelegate class]]) {
-    auto* windowDelegate = static_cast<WindowDelegate*>(self.delegate);
-    nsCocoaWindow* geckoWindow = windowDelegate.geckoWidget;
-    if (!geckoWindow) {
-      return;
-    }
-
-    if (nsIWidgetListener* listener = geckoWindow->GetWidgetListener()) {
-      listener->OSToolbarButtonPressed();
-    }
-  }
-
-  NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
 
 // Retain and release "self" to avoid crashes when our widget (and its native

@@ -922,15 +922,6 @@ void CopyChars(Latin1Char* dest, const JSLinearString& str) {
 
 } /* namespace js */
 
-template <typename CharT>
-static constexpr uint32_t StringFlagsForCharType(uint32_t baseFlags) {
-  if constexpr (std::is_same_v<CharT, char16_t>) {
-    return baseFlags;
-  }
-
-  return baseFlags | StringFlags::LATIN1_CHARS_BIT;
-}
-
 static bool UpdateNurseryBuffersOnTransfer(js::Nursery& nursery,
                                            JSExtensibleString* from,
                                            JSString* to, void* chars,
@@ -1142,7 +1133,7 @@ JSLinearString* JSRope::flattenInternal(JSRope* root) {
   CharT* pos = wholeChars;
 
   JSRope* parent = nullptr;
-  uint32_t parentFlag = 0;
+  uint32_t parentFlag = StringFlags::FLATTEN_FINISH_NODE;
 
 first_visit_node: {
   MOZ_ASSERT_IF(str != root, parent && parentFlag);
@@ -1151,8 +1142,13 @@ first_visit_node: {
   ropeBarrierDuringFlattening<usingBarrier>(str);
 
   JSString& left = *str->d.s.u2.left;
-  setField(&str->d.s.u2.parent, parent);
+#ifdef JS_GC_CONCURRENT_MARKING
+  str->setFlagBitAtomic(parentFlag);
+  js::gc::MemoryReleaseFence(str);
+#else
   str->setFlagBit(parentFlag);
+#endif
+  setField(&str->d.s.u2.parent, parent);
   parent = nullptr;
   parentFlag = 0;
 

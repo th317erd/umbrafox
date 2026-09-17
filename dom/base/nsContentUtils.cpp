@@ -108,13 +108,14 @@
 #include "mozilla/Result.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/ScrollContainerFrame.h"
-#include "mozilla/ScrollbarPreferences.h"
 #include "mozilla/ShutdownPhase.h"
 #include "mozilla/Span.h"
 #include "mozilla/StaticAnalysisFunctions.h"
 #include "mozilla/StaticPrefs_browser.h"
+#include "mozilla/StaticPrefs_clipboard.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_network.h"
+#include "mozilla/StaticPrefs_pdfjs.h"
 #include "mozilla/dom/ReportDeliver.h"
 #include "mozilla/extensions/WebExtensionPolicy.h"
 #include "nsIOService.h"
@@ -329,7 +330,6 @@
 #include "nsILoadGroup.h"
 #include "nsILoadInfo.h"
 #include "nsIMIMEService.h"
-#include "nsIMemoryReporter.h"
 #include "nsINetUtil.h"
 #include "nsINode.h"
 #include "nsIObjectLoadingContent.h"
@@ -412,6 +412,7 @@
 #include "nsURLHelper.h"
 #include "nsUnicodeProperties.h"
 #include "nsVariant.h"
+#include "nsWhitespaceTokenizer.h"
 #include "nsWidgetsCID.h"
 #include "nsXPCOM.h"
 #include "nsXPCOMCID.h"
@@ -678,41 +679,15 @@ static constexpr nsAttrValue::EnumTableEntry
 
 namespace {
 
-static StaticAutoPtr<nsTHashMap<const nsINode*, RefPtr<EventListenerManager>>>
-    sEventListenerManagersHash;
+// Non-owning list of the managers nodes store themselves; the managers remove
+// themselves from it when deleted.  Documents keep their manager in
+// Document::mListenerManager and are not in this list.
+constinit DoublyLinkedList<EventListenerManager> sNodeEventListenerManagers;
 
 // A global hashtable to for keeping the arena alive for cross docGroup node
 // adoption.
 static nsRefPtrHashtable<nsPtrHashKey<const nsINode>, mozilla::dom::DOMArena>*
     sDOMArenaHashtable;
-
-class DOMEventListenerManagersHashReporter final : public nsIMemoryReporter {
-  MOZ_DEFINE_MALLOC_SIZE_OF(MallocSizeOf)
-
-  ~DOMEventListenerManagersHashReporter() = default;
-
- public:
-  NS_DECL_ISUPPORTS
-
-  NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
-                            nsISupports* aData, bool aAnonymize) override {
-    // We don't measure the |EventListenerManager| objects pointed to by the
-    // entries because those references are non-owning.
-    int64_t amount =
-        sEventListenerManagersHash
-            ? sEventListenerManagersHash->ShallowSizeOfIncludingThis(
-                  MallocSizeOf)
-            : 0;
-
-    MOZ_COLLECT_REPORT(
-        "explicit/dom/event-listener-managers-hash", KIND_HEAP, UNITS_BYTES,
-        amount, "Memory used by the event listener manager's hash table.");
-
-    return NS_OK;
-  }
-};
-
-NS_IMPL_ISUPPORTS(DOMEventListenerManagersHashReporter, nsIMemoryReporter)
 
 class SameOriginCheckerImpl final : public nsIChannelEventSink,
                                     public nsIInterfaceRequestor {
@@ -959,18 +934,6 @@ struct GetParentBrowserParent {
     return false;
   }
 };
-
-template <TreeKind aKind>
-static bool AreNodesInSameSlot(const nsINode* aNode1, const nsINode* aNode2) {
-  if (const auto* content1 = nsIContent::FromNodeOrNull(aNode1)) {
-    if (auto* slot = content1->GetAssignedSlot<aKind>()) {
-      if (const auto* content2 = nsIContent::FromNodeOrNull(aNode2)) {
-        return slot == content2->GetAssignedSlot<aKind>();
-      }
-    }
-  }
-  return false;
-}
 
 template <TreeKind aKind>
 static bool ChildNodeIsInShadowDOMHostedByParent(const nsINode* aParent,
@@ -1286,14 +1249,6 @@ nsresult nsContentUtils::Init() {
   fingerprintingProtectionPrincipal.forget(&sFingerprintingProtectionPrincipal);
 
   if (!InitializeEventTable()) return NS_ERROR_FAILURE;
-
-  if (!sEventListenerManagersHash) {
-    sEventListenerManagersHash =
-        new nsTHashMap<const nsINode*, RefPtr<EventListenerManager>>();
-
-    RegisterStrongMemoryReporter(
-        MakeAndAddRef<DOMEventListenerManagersHashReporter>());
-  }
 
   sBlockedScriptRunners = new AutoTArray<nsCOMPtr<nsIRunnable>, 8>;
 
@@ -2458,23 +2413,10 @@ void nsContentUtils::Shutdown() {
   delete sUserDefinedEvents;
   sUserDefinedEvents = nullptr;
 
-  if (sEventListenerManagersHash) {
-    NS_ASSERTION(sEventListenerManagersHash->Count() == 0,
-                 "Event listener manager hash not empty at shutdown!");
-
-    // See comment above.
-
-    // However, we have to handle this table differently.  If it still
-    // has entries, we want to leak it too, so that we can keep it alive
-    // in case any elements are destroyed.  Because if they are, we need
-    // their event listener managers to be destroyed too, or otherwise
-    // it could leave dangling references in DOMClassInfo's preserved
-    // wrapper table.
-
-    if (sEventListenerManagersHash->Count() == 0) {
-      sEventListenerManagersHash = nullptr;
-    }
-  }
+  // Managers left in the list remove themselves from it when they're deleted,
+  // which can happen after this point.
+  NS_ASSERTION(sNodeEventListenerManagers.isEmpty(),
+               "Node event listener manager list not empty at shutdown!");
 
   MOZ_ASSERT_IF(sDOMArenaHashtable, sDOMArenaHashtable->Count() == 0);
   delete sDOMArenaHashtable;
@@ -2898,6 +2840,28 @@ inline bool SchemeSaysShouldNotResistFingerprinting(nsIPrincipal* aPrincipal) {
   return !isContentAccessibleAboutURI;
 }
 
+// mFirstPartyDomain and mPartitionKey are serialized either as a bare host
+// ("example.com") or in site format ("(https,example.com[,port][,f])"),
+// depending on privacy.firstparty.isolate.use_site and
+// privacy.dynamic_firstparty.use_site respectively. Those two prefs are
+// independent, and ParsePartitionKey() only consults the latter, so detect the
+// format here instead of letting it decide for a first-party domain.
+inline void TopLevelInfoToBaseDomain(const nsAString& aInfo,
+                                     nsAString& aBaseDomain) {
+  if (aInfo.IsEmpty() || aInfo.First() != '(') {
+    aBaseDomain = aInfo;
+    return;
+  }
+
+  nsAutoString scheme;
+  int32_t port;
+  bool foreignByAncestorContext;
+  if (!OriginAttributes::ParsePartitionKey(aInfo, scheme, aBaseDomain, port,
+                                           foreignByAncestorContext)) {
+    aBaseDomain.Truncate();
+  }
+}
+
 inline bool PartionKeyIsAlsoExempted(
     const mozilla::OriginAttributes& aOriginAttributes) {
   // If we've gotten here we have (probably) passed the CookieJarSettings
@@ -2908,15 +2872,18 @@ inline bool PartionKeyIsAlsoExempted(
   // instatiated from a state where we could have been partitioned.
   // So perform this last-ditch check for that scenario.
   // We arbitrarily use https as the scheme, but it doesn't matter.
-  nsresult rv = NS_ERROR_NOT_INITIALIZED;
-  nsCOMPtr<nsIURI> uri;
+  nsAutoString baseDomain;
   if (StaticPrefs::privacy_firstparty_isolate() &&
       !aOriginAttributes.mFirstPartyDomain.IsEmpty()) {
-    rv = NS_NewURI(getter_AddRefs(uri),
-                   u"https://"_ns + aOriginAttributes.mFirstPartyDomain);
+    TopLevelInfoToBaseDomain(aOriginAttributes.mFirstPartyDomain, baseDomain);
   } else if (!aOriginAttributes.mPartitionKey.IsEmpty()) {
-    rv = NS_NewURI(getter_AddRefs(uri),
-                   u"https://"_ns + aOriginAttributes.mPartitionKey);
+    TopLevelInfoToBaseDomain(aOriginAttributes.mPartitionKey, baseDomain);
+  }
+
+  nsresult rv = NS_ERROR_NOT_INITIALIZED;
+  nsCOMPtr<nsIURI> uri;
+  if (!baseDomain.IsEmpty()) {
+    rv = NS_NewURI(getter_AddRefs(uri), u"https://"_ns + baseDomain);
   }
 
   if (!NS_FAILED(rv)) {
@@ -3631,6 +3598,23 @@ template <TreeKind aKind, typename Dummy>
 Maybe<int32_t> nsContentUtils::CompareChildNodes(
     const nsINode& aParent, const nsIContent* aChild1,
     const nsIContent* aChild2, NodeIndexCache* aIndexCache /* = nullptr */) {
+  MOZ_ASSERT_IF(aKind != TreeKind::DOM && aChild1,
+                GetParentNodeForComparison<aKind>::Get(aChild1) == &aParent);
+  MOZ_ASSERT_IF(aKind != TreeKind::DOM && aChild2,
+                GetParentNodeForComparison<aKind>::Get(aChild2) == &aParent);
+  // See the explanation of TreeKindToCompareChildren. aParent may be computed
+  // with TreeKind::ShadowIncludingDOM if aKind is TreeKind::DOM.
+  MOZ_ASSERT_IF(
+      aKind == TreeKind::DOM && aChild1,
+      GetParentNodeForComparison<TreeKind::DOM>::Get(aChild1) == &aParent ||
+          GetParentNodeForComparison<TreeKind::ShadowIncludingDOM>::Get(
+              aChild1) == &aParent);
+  MOZ_ASSERT_IF(
+      aKind == TreeKind::DOM && aChild2,
+      GetParentNodeForComparison<TreeKind::DOM>::Get(aChild2) == &aParent ||
+          GetParentNodeForComparison<TreeKind::ShadowIncludingDOM>::Get(
+              aChild2) == &aParent);
+
   // FIXME: bug 1946003 and bug 1946008.
   if ((aChild1 && NS_WARN_IF(aChild1->IsDocumentFragment())) ||
       (aChild2 && NS_WARN_IF(aChild2->IsDocumentFragment()))) [[unlikely]] {
@@ -3697,24 +3681,26 @@ Maybe<int32_t> nsContentUtils::CompareChildNodes(
 
   if constexpr (aKind == TreeKind::FlatForSelection) {
     // If we're handling flattened tree for selection, aChild1 and/or aChild2
-    // may be fallback content of a <slot> which has some assigned nodes.
-    // Then, the fallback content is not part of the flattened tree, but the
-    // fallback content is also valid for range boundaries. Therefore, we need
-    // to handle the case here.
-    if (aParent.GetAsHTMLSlotElementIfFilledForSelection()) {
+    // may be:
+    // - fallback content of a <slot> which has some assigned nodes
+    // - unassigned child node of a shadow host
+    // Even though they are not part of the flattened tree, but they are also
+    // valid for range boundaries. Therefore, we need to handle the case here.
+    if (aParent.GetAsHTMLSlotElementIfFilledForSelection() ||
+        aParent.GetShadowRootForSelection()) {
       if (aChild1->GetParentNode() == &aParent) {
         if (aChild2->GetParentNode() == &aParent) {
-          // If both aChild1 and aChild2 are the fallback content, compare them
-          // in the DOM.
+          // If both aChild1 and aChild2 are the fallback content or the
+          // unassigned children of a shadow host, compare them in the DOM.
           return CompareChildNodes<TreeKind::DOM>(aParent, aChild1, aChild2);
         }
-        // If only aChild1 is the fallback content, let's treat it as after the
-        // last assigned node.
+        // If only aChild1 is the fallback content or the unassigned child,
+        // let's treat it as after the last assigned node.
         return Some(1);
       }
       if (aChild2->GetParentNode() == &aParent) {
-        // If only aChild2 is the fallback content, let's treat it as after the
-        // last assigned node for now.
+        // If only aChild2 is the fallback content or the unassigned child,
+        // let's treat it as after the last assigned node for now.
         return Some(-1);
       }
     }
@@ -3882,6 +3868,23 @@ template <TreeKind aKind, typename Dummy>
 Maybe<int32_t> nsContentUtils::CompareClosestCommonAncestorChildren(
     const nsINode& aParent, const nsIContent* aChild1,
     const nsIContent* aChild2, nsContentUtils::NodeIndexCache* aIndexCache) {
+  MOZ_ASSERT_IF(aKind != TreeKind::DOM && aChild1,
+                GetParentNodeForComparison<aKind>::Get(aChild1) == &aParent);
+  MOZ_ASSERT_IF(aKind != TreeKind::DOM && aChild2,
+                GetParentNodeForComparison<aKind>::Get(aChild2) == &aParent);
+  // See the explanation of TreeKindToCompareChildren. aParent may be computed
+  // with TreeKind::ShadowIncludingDOM if aKind is TreeKind::DOM.
+  MOZ_ASSERT_IF(
+      aKind == TreeKind::DOM && aChild1,
+      GetParentNodeForComparison<TreeKind::DOM>::Get(aChild1) == &aParent ||
+          GetParentNodeForComparison<TreeKind::ShadowIncludingDOM>::Get(
+              aChild1) == &aParent);
+  MOZ_ASSERT_IF(
+      aKind == TreeKind::DOM && aChild2,
+      GetParentNodeForComparison<TreeKind::DOM>::Get(aChild2) == &aParent ||
+          GetParentNodeForComparison<TreeKind::ShadowIncludingDOM>::Get(
+              aChild2) == &aParent);
+
   if (aChild1 && aChild2) {
     if (MOZ_UNLIKELY(aChild1->IsShadowRoot())) {
       // Shadow roots come before light DOM per
@@ -3974,13 +3977,21 @@ Maybe<int32_t> nsContentUtils::CompareClosestCommonAncestorChildren(
   const DebugOnly<bool> eitherIsNAC =
       (aChild1 && aChild1->IsRootOfNativeAnonymousSubtree()) ||
       (aChild2 && aChild2->IsRootOfNativeAnonymousSubtree());
+  const DebugOnly<bool> eitherIsNotPartOfTree =
+      ShouldHandleAssignedNodesOnSlot<aKind>() &&
+      ((aParent.GetShadowRoot<aKind>() &&
+        ((aChild1 && aChild1->GetParentNode() == &aParent) ||
+         (aChild2 && aChild2->GetParentNode() == &aParent))) ||
+       ((aParent.GetAsHTMLSlotElementIfFilled<aKind>() &&
+         ((aChild1 && !aChild1->GetAssignedSlot<aKind>()) ||
+          (aChild2 && !aChild2->GetAssignedSlot<aKind>())))));
   MOZ_ASSERT_IF(!eitherIsNAC && !*comp,
                 ChildrenHaveSameIndex(aChild1, aChild2));
   MOZ_ASSERT_IF(
-      !eitherIsNAC && *comp < 0,
+      !eitherIsNAC && !eitherIsNotPartOfTree && *comp < 0,
       ChildIndexIsLessThanTheOtherChildIndex(aParent, aChild1, aChild2));
   MOZ_ASSERT_IF(
-      !eitherIsNAC && *comp > 0,
+      !eitherIsNAC && !eitherIsNotPartOfTree && *comp > 0,
       ChildIndexIsLessThanTheOtherChildIndex(aParent, aChild2, aChild1));
 #endif  // #ifdef DEBUG
   return comp;
@@ -3991,6 +4002,16 @@ template <TreeKind aKind, typename Dummy>
 Maybe<int32_t> nsContentUtils::CompareChildOffsetAndChildNode(
     const nsINode& aParent, uint32_t aOffset1, const nsIContent& aChild2,
     NodeIndexCache* aIndexCache /* = nullptr */) {
+  MOZ_ASSERT_IF(aKind != TreeKind::DOM,
+                GetParentNodeForComparison<aKind>::Get(&aChild2) == &aParent);
+  // See the explanation of TreeKindToCompareChildren. aParent may be computed
+  // with TreeKind::ShadowIncludingDOM if aKind is TreeKind::DOM.
+  MOZ_ASSERT_IF(
+      aKind == TreeKind::DOM,
+      GetParentNodeForComparison<TreeKind::DOM>::Get(&aChild2) == &aParent ||
+          GetParentNodeForComparison<TreeKind::ShadowIncludingDOM>::Get(
+              &aChild2) == &aParent);
+
   if (NS_WARN_IF(aChild2.IsDocumentFragment())) {
     return Nothing();
   }
@@ -4022,13 +4043,15 @@ Maybe<int32_t> nsContentUtils::CompareChildOffsetAndChildNode(
 
   if constexpr (aKind == TreeKind::FlatForSelection) {
     // If we're handling flattened tree for selection, aChild2 may be a fallback
-    // content of a <slot> which has some assigned nodes. Then, the fallback
-    // content is not part of the flattened tree, but the fallback content is
-    // also valid for range boundaries. Therefore, we need to handle the case
-    // here.
-    if (aParent.GetAsHTMLSlotElementIfFilledForSelection() &&
-        aChild2.GetParentNode() == &aParent) {
-      // Treat the fallback content is after the last assigned node.
+    // content of a <slot> which has some assigned nodes or an unassigned child
+    // node of a shadow host. Then, aChild2 is not part of the flattened tree,
+    // but it is also valid for range boundaries. Therefore, we need to handle
+    // the case here.
+    if (aChild2.GetParentNode() == &aParent &&
+        (aParent.GetAsHTMLSlotElementIfFilledForSelection() ||
+         aParent.GetShadowRootForSelection())) {
+      // Treat the fallback content and the unassigned node is after the last
+      // assigned node or the shadow.
       // XXX I'm not sure whether we should treat the end of aParent and a
       // fallback content node are the same position or not. For now, we treat
       // them as the same, but if you find a bug and you know better result in
@@ -4346,6 +4369,14 @@ Maybe<int32_t> nsContentUtils::ComparePoints(
     MOZ_ASSERT_IF(child1, !child1->IsShadowRoot());
     const nsIContent* const child2 = aBoundary2.GetChildAtOffset();
     MOZ_ASSERT_IF(child2, !child2->IsShadowRoot());
+    // But aBoundary1 and aBoundary2 may be not updated for the latest DOM.
+    // In such case, we need to return Nothing.
+    if (NS_WARN_IF(child1 && GetParentNodeForComparison<aKind>::Get(child1) !=
+                                 aBoundary1.GetContainer()) ||
+        NS_WARN_IF(child2 && GetParentNodeForComparison<aKind>::Get(child2) !=
+                                 aBoundary2.GetContainer())) [[unlikely]] {
+      return Nothing{};
+    }
     return CompareClosestCommonAncestorChildren<
         TreeKindToCompareChildren<aKind>()>(*aBoundary1.GetContainer(), child1,
                                             child2, aIndexCache);
@@ -5987,8 +6018,8 @@ void nsContentUtils::ReportDeprecation(
       new DeprecationReportBody(aGlobal, type, nullptr /* date */, msg,
                                 sourceFile, lineNumber, columnNumber);
 
-  ReportingUtils::Report(aGlobal, nsGkAtoms::deprecation, u"default"_ns,
-                         NS_ConvertUTF8toUTF16(url), body);
+  ReportingUtils::Report(aGlobal, nsGkAtoms::deprecation, "default"_ns, url,
+                         body);
 }
 
 void nsContentUtils::LogMessageToConsole(const char* aMsg) {
@@ -6266,6 +6297,10 @@ nsresult nsContentUtils::DispatchEvent(
   event->WidgetEventPtr()->mFlags.mOnlySystemGroupDispatch =
       aSystemGroupOnly == SystemGroupOnly::eYes;
 
+  // For the performance reason, aDoc may be set to a raw pointer because it's
+  // used only before dispatching the event. Therefore, we should not use aDoc
+  // anymore.
+  aDoc = nullptr;
   bool doDefault = aTarget->DispatchEvent(*event, CallerType::System, err);
   if (aDefaultAction) {
     *aDefaultAction = doDefault;
@@ -6274,13 +6309,10 @@ nsresult nsContentUtils::DispatchEvent(
 }
 
 // static
-nsresult nsContentUtils::DispatchEvent(Document* aDoc, EventTarget* aTarget,
-                                       WidgetEvent& aEvent,
-                                       EventMessage aEventMessage,
-                                       CanBubble aCanBubble,
-                                       Cancelable aCancelable, Trusted aTrusted,
-                                       bool* aDefaultAction,
-                                       ChromeOnlyDispatch aOnlyChromeDispatch) {
+nsresult nsContentUtils::DispatchEvent(
+    EventTarget* aTarget, WidgetEvent& aEvent, EventMessage aEventMessage,
+    CanBubble aCanBubble, Cancelable aCancelable, Trusted aTrusted,
+    bool* aDefaultAction, ChromeOnlyDispatch aOnlyChromeDispatch) {
   MOZ_ASSERT_IF(aOnlyChromeDispatch == ChromeOnlyDispatch::eYes,
                 aTrusted == Trusted::eYes);
 
@@ -6520,9 +6552,10 @@ void nsContentUtils::RequestFrameFocus(Element& aFrameElement, bool aCanRaise,
   RefPtr<Element> target = &aFrameElement;
   bool defaultAction = true;
   if (aCanRaise) {
-    DispatchEventOnlyToChrome(target->OwnerDoc(), target,
-                              u"framefocusrequested"_ns, CanBubble::eYes,
-                              Cancelable::eYes, &defaultAction);
+    RefPtr<Document> doc = target->OwnerDoc();
+    DispatchEventOnlyToChrome(doc, target, u"framefocusrequested"_ns,
+                              CanBubble::eYes, Cancelable::eYes,
+                              &defaultAction);
   }
   if (!defaultAction) {
     return;
@@ -6644,73 +6677,29 @@ void nsContentUtils::NotifyDevToolsOfNodeRemoval(nsINode& aRemovingNode) {
 }
 
 void nsContentUtils::UnmarkGrayJSListenersInCCGenerationDocuments() {
-  if (!sEventListenerManagersHash) {
-    return;
-  }
-
-  for (EventListenerManager* mgr : sEventListenerManagersHash->Values()) {
-    nsINode* n = static_cast<nsINode*>(mgr->GetTarget());
+  for (EventListenerManager& mgr : sNodeEventListenerManagers) {
+    nsINode* n = static_cast<nsINode*>(mgr.GetTarget());
     if (n && n->IsInComposedDoc() &&
         nsCCUncollectableMarker::InGeneration(
             n->OwnerDoc()->GetMarkedCCGeneration())) {
-      mgr->MarkForCC();
+      mgr.MarkForCC();
     }
   }
 }
 
 /* static */
-void nsContentUtils::TraverseListenerManager(
-    nsINode* aNode, nsCycleCollectionTraversalCallback& cb) {
-  if (!sEventListenerManagersHash) {
-    // We're already shut down, just return.
-    return;
-  }
-
-  auto entry = sEventListenerManagersHash->Lookup(aNode);
-  if (entry) {
-    CycleCollectionNoteChild(cb, entry->get(), "[via hash] mListenerManager");
-  }
+void nsContentUtils::AddNodeListenerManager(EventListenerManager* aManager) {
+  MOZ_ASSERT(NS_IsMainThread());
+  sNodeEventListenerManagers.pushBack(aManager);
 }
 
-EventListenerManager* nsContentUtils::GetListenerManagerForNode(
-    nsINode* aNode) {
-  if (!sEventListenerManagersHash) {
-    // We're already shut down, don't bother creating an event listener
-    // manager.
-
-    return nullptr;
+/* static */
+void nsContentUtils::RemoveNodeListenerManager(EventListenerManager* aManager) {
+  MOZ_ASSERT(NS_IsMainThread());
+  // ~EventListenerManager passes here managers which are not in the list.
+  if (sNodeEventListenerManagers.ElementProbablyInList(aManager)) {
+    sNodeEventListenerManagers.remove(aManager);
   }
-
-  auto& entry = sEventListenerManagersHash->LookupOrInsert(aNode);
-
-  if (!entry) {
-    entry = new EventListenerManager(aNode);
-
-    aNode->SetFlags(NODE_HAS_LISTENERMANAGER);
-  }
-
-  return entry;
-}
-
-EventListenerManager* nsContentUtils::GetExistingListenerManagerForNode(
-    const nsINode* aNode) {
-  if (!aNode->HasFlag(NODE_HAS_LISTENERMANAGER)) {
-    return nullptr;
-  }
-
-  if (!sEventListenerManagersHash) {
-    // We're already shut down, don't bother creating an event listener
-    // manager.
-
-    return nullptr;
-  }
-
-  auto entry = sEventListenerManagersHash->Lookup(aNode);
-  if (entry) {
-    return entry.Data();
-  }
-
-  return nullptr;
 }
 
 void nsContentUtils::AddEntryToDOMArenaTable(nsINode* aNode,
@@ -6738,19 +6727,6 @@ already_AddRefed<DOMArena> nsContentUtils::TakeEntryFromDOMArenaTable(
   RefPtr<DOMArena> arena;
   sDOMArenaHashtable->Remove(aNode, getter_AddRefs(arena));
   return arena.forget();
-}
-
-/* static */
-void nsContentUtils::RemoveListenerManager(nsINode* aNode) {
-  if (sEventListenerManagersHash) {
-    // Remove the entry and *then* do operations that could cause further
-    // modification of sEventListenerManagersHash.  See bug 334177.
-    Maybe<RefPtr<EventListenerManager>> listenerManager =
-        sEventListenerManagersHash->Extract(aNode);
-    if (listenerManager && *listenerManager) {
-      (*listenerManager)->Disconnect();
-    }
-  }
 }
 
 /* static */
@@ -6788,7 +6764,9 @@ bool nsContentUtils::IsValidNodeName(nsAtom* aLocalName, nsAtom* aPrefix,
 
 already_AddRefed<DocumentFragment> nsContentUtils::CreateContextualFragment(
     nsINode* aContextNode, const nsAString& aFragment,
-    bool aPreventScriptExecution, ErrorResult& aRv) {
+    bool aPreventScriptExecution,
+    Maybe<RefPtr<CustomElementRegistry>> aCustomElementRegistry,
+    ErrorResult& aRv) {
   if (!aContextNode) {
     aRv.Throw(NS_ERROR_INVALID_ARG);
     return nullptr;
@@ -6809,12 +6787,14 @@ already_AddRefed<DocumentFragment> nsContentUtils::CreateContextualFragment(
           aFragment, frag, element->NodeInfo()->NameAtom(),
           element->GetNameSpaceID(),
           (document->GetCompatibilityMode() == eCompatibility_NavQuirks),
-          aPreventScriptExecution);
+          aPreventScriptExecution, kParseFragmentPrivilegedDefaultSanitization,
+          std::move(aCustomElementRegistry));
     } else {
       aRv = ParseFragmentHTML(
           aFragment, frag, nsGkAtoms::body, kNameSpaceID_XHTML,
           (document->GetCompatibilityMode() == eCompatibility_NavQuirks),
-          aPreventScriptExecution);
+          aPreventScriptExecution, kParseFragmentPrivilegedDefaultSanitization,
+          std::move(aCustomElementRegistry));
     }
 
     return frag.forget();
@@ -6920,13 +6900,14 @@ static void SetAndFilterHTML(
 
   // Step 2. Let sanitizer be the result of calling get a sanitizer instance
   // from options with options and safe.
-  nsCOMPtr<nsIGlobalObject> global = aTarget->GetRelevantGlobal();
-  if (!global) {
+  nsCOMPtr<nsPIDOMWindowInner> window =
+      do_QueryInterface(aTarget->GetRelevantGlobal());
+  if (!window) {
     aError.ThrowInvalidStateError("Missing owner global.");
     return;
   }
   RefPtr<Sanitizer> sanitizer =
-      Sanitizer::GetInstance(global, aSanitizerOptions, aSafe, aError);
+      Sanitizer::GetInstance(window, aSanitizerOptions, aSafe, aError);
   if (aError.Failed()) {
     return;
   }
@@ -6966,9 +6947,15 @@ static void SetAndFilterHTML(
   int32_t flags =
       aSafe ? nsContentUtils::kParseFragmentNoSanitization
             : nsContentUtils::kParseFragmentPrivilegedDefaultSanitization;
+
+  const bool sanitizeWhileParsing =
+      StaticPrefs::dom_security_sanitizer_while_parsing();
+
   aError = nsContentUtils::ParseFragmentHTML(
       aHTML, fragment, contextLocalName, contextNameSpaceID,
-      /* aQuirks */ false, /* aPreventScriptExecution */ true, flags);
+      /* aQuirks */ false, /* aPreventScriptExecution */ true, flags,
+      mozilla::Nothing(), sanitizeWhileParsing ? sanitizer.get() : nullptr,
+      aSafe);
   if (aError.Failed()) {
     return;
   }
@@ -6978,10 +6965,12 @@ static void SetAndFilterHTML(
   // mutation listeners on the fragment that comes from the parser.
   nsAutoScriptBlockerSuppressNodeRemoved scriptBlocker;
 
-  // Step 6. Run sanitize on fragment using sanitizer and safe.
-  sanitizer->Sanitize(fragment, aSafe, aError);
-  if (aError.Failed()) {
-    return;
+  if (!sanitizeWhileParsing) {
+    // Step 6. Run sanitize on fragment using sanitizer and safe.
+    sanitizer->Sanitize(fragment, aSafe, aError);
+    if (aError.Failed()) {
+      return;
+    }
   }
 
   // Step 7. Replace all with fragment within target.
@@ -7047,6 +7036,15 @@ void nsContentUtils::SetHTMLUnsafe(
     nsAtom* contextLocalName = aContext->NodeInfo()->NameAtom();
     int32_t contextNameSpaceID = aContext->GetNameSpaceID();
 
+    // https://html.spec.whatwg.org/#html-fragment-parsing-algorithm
+    // 11. Let root be the result of creating an element given document,
+    //     'html', the HTML namespace, null, null, false, and context's
+    //     custom element registry.
+    Maybe<RefPtr<CustomElementRegistry>> customElementRegistry;
+    if (StaticPrefs::dom_scoped_custom_element_registries_enabled()) {
+      customElementRegistry.emplace(aContext->GetCustomElementRegistry());
+    }
+
     RefPtr<Document> doc = aTarget->OwnerDoc();
     fragment = doc->CreateDocumentFragment();
 
@@ -7056,7 +7054,7 @@ void nsContentUtils::SetHTMLUnsafe(
         *compliantString, fragment, contextLocalName, contextNameSpaceID,
         fragment->OwnerDoc()->GetCompatibilityMode() ==
             eCompatibility_NavQuirks,
-        true, true);
+        true, true, std::move(customElementRegistry));
     if (NS_FAILED(rv)) {
       NS_WARNING("Failed to parse fragment for SetHTMLUnsafe");
     }
@@ -7128,7 +7126,12 @@ uint32_t ComputeSanitizationFlags(nsIPrincipal* aPrincipal, int32_t aFlags) {
 nsresult nsContentUtils::ParseFragmentHTML(
     const nsAString& aSourceBuffer, nsIContent* aTargetNode,
     nsAtom* aContextLocalName, int32_t aContextNamespace, bool aQuirks,
-    bool aPreventScriptExecution, int32_t aFlags) {
+    bool aPreventScriptExecution, int32_t aFlags,
+    mozilla::Maybe<RefPtr<mozilla::dom::CustomElementRegistry>>
+        aCustomElementRegistry,
+    Sanitizer* aSanitizer, bool aSanitizerSafe) {
+  MOZ_ASSERT(!aSanitizer ||
+             StaticPrefs::dom_security_sanitizer_while_parsing());
   if (nsContentUtils::sFragmentParsingActive) {
     MOZ_ASSERT_UNREACHABLE("Re-entrant fragment parsing attempted.");
     return NS_ERROR_DOM_INVALID_STATE_ERR;
@@ -7175,7 +7178,8 @@ nsresult nsContentUtils::ParseFragmentHTML(
 
   nsresult rv = sHTMLFragmentParser->ParseFragment(
       aSourceBuffer, target, aContextLocalName, aContextNamespace, aQuirks,
-      aPreventScriptExecution, false);
+      aPreventScriptExecution, false, std::move(aCustomElementRegistry),
+      aSanitizer, aSanitizerSafe);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (fragment) {
@@ -7197,7 +7201,10 @@ nsresult nsContentUtils::ParseFragmentHTML(
 /* static */
 nsresult nsContentUtils::ParseDocumentHTML(
     const nsAString& aSourceBuffer, Document* aTargetDocument,
-    bool aScriptingEnabledForNoscriptParsing) {
+    bool aScriptingEnabledForNoscriptParsing, Sanitizer* aSanitizer,
+    bool aSanitizerSafe) {
+  MOZ_ASSERT(!aSanitizer ||
+             StaticPrefs::dom_security_sanitizer_while_parsing());
   if (nsContentUtils::sFragmentParsingActive) {
     MOZ_ASSERT_UNREACHABLE("Re-entrant fragment parsing attempted.");
     return NS_ERROR_DOM_INVALID_STATE_ERR;
@@ -7209,7 +7216,8 @@ nsresult nsContentUtils::ParseDocumentHTML(
     // Now sHTMLFragmentParser owns the object
   }
   nsresult rv = sHTMLFragmentParser->ParseDocument(
-      aSourceBuffer, aTargetDocument, aScriptingEnabledForNoscriptParsing);
+      aSourceBuffer, aTargetDocument, aScriptingEnabledForNoscriptParsing,
+      aSanitizer, aSanitizerSafe);
   return rv;
 }
 
@@ -7443,38 +7451,35 @@ nsresult nsContentUtils::SetNodeTextContent(
   return rv.StealNSResult();
 }
 
+template <typename CharT>
 static bool AppendNodeTextContentsRecurse(const nsINode* aNode,
-                                          nsAString& aResult,
+                                          nsTSubstring<CharT>& aResult,
                                           const fallible_t& aFallible) {
   for (nsIContent* child = aNode->GetFirstChild(); child;
        child = child->GetNextSibling()) {
     if (child->IsElement()) {
-      bool ok = AppendNodeTextContentsRecurse(child, aResult, aFallible);
-      if (!ok) {
+      if (!AppendNodeTextContentsRecurse(child, aResult, aFallible)) {
         return false;
       }
     } else if (Text* text = child->GetAsText()) {
-      bool ok = text->AppendTextTo(aResult, aFallible);
-      if (!ok) {
+      if (!text->AppendTextTo(aResult, aFallible)) {
         return false;
       }
     }
   }
-
   return true;
 }
 
-/* static */
-bool nsContentUtils::AppendNodeTextContent(const nsINode* aNode, bool aDeep,
-                                           nsAString& aResult,
-                                           const fallible_t& aFallible) {
+template <typename CharT>
+static bool AppendNodeTextContent(const nsINode* aNode, bool aDeep,
+                                  nsTSubstring<CharT>& aResult,
+                                  const fallible_t& aFallible) {
   if (const Text* text = aNode->GetAsText()) {
     return text->AppendTextTo(aResult, aFallible);
   }
   if (aDeep) {
     return AppendNodeTextContentsRecurse(aNode, aResult, aFallible);
   }
-
   for (nsIContent* child = aNode->GetFirstChild(); child;
        child = child->GetNextSibling()) {
     if (Text* text = child->GetAsText()) {
@@ -7485,6 +7490,19 @@ bool nsContentUtils::AppendNodeTextContent(const nsINode* aNode, bool aDeep,
     }
   }
   return true;
+}
+
+/* static */
+bool nsContentUtils::AppendNodeTextContent(const nsINode* aNode, bool aDeep,
+                                           nsAString& aResult,
+                                           const fallible_t& aFallible) {
+  return ::AppendNodeTextContent(aNode, aDeep, aResult, aFallible);
+}
+
+bool nsContentUtils::AppendNodeTextContent(const nsINode* aNode, bool aDeep,
+                                           nsACString& aResult,
+                                           const fallible_t& aFallible) {
+  return ::AppendNodeTextContent(aNode, aDeep, aResult, aFallible);
 }
 
 bool nsContentUtils::HasNonEmptyTextContent(
@@ -8520,18 +8538,16 @@ bool nsContentUtils::MatchClassNames(Element* aElement, int32_t aNamespaceID,
 
   // need to match *all* of the classes
   ClassMatchingInfo* info = static_cast<ClassMatchingInfo*>(aData);
-  uint32_t length = info->mClasses.Length();
-  if (!length) {
+  if (info->mClasses.IsEmpty()) {
     // If we actually had no classes, don't match.
     return false;
   }
-  uint32_t i;
-  for (i = 0; i < length; ++i) {
-    if (!classAttr->Contains(info->mClasses[i], info->mCaseTreatment)) {
+
+  for (nsAtom* cls : info->mClasses) {
+    if (!classAttr->Contains(cls, info->mCaseTreatment)) {
       return false;
     }
   }
-
   return true;
 }
 
@@ -8549,7 +8565,7 @@ void* nsContentUtils::AllocClassMatchingInfo(nsINode* aRootNode,
   // nsAttrValue::Equals is sensitive to order, so we'll send an array
   auto* info = new ClassMatchingInfo;
   if (attrValue.Type() == nsAttrValue::eAtomArray) {
-    info->mClasses = attrValue.GetAtomArrayValue()->mArray.Clone();
+    info->mClasses.AppendElements(attrValue.GetAtomArrayValue()->Array());
   } else if (attrValue.Type() == nsAttrValue::eAtom) {
     info->mClasses.AppendElement(attrValue.GetAtomValue());
   }
@@ -8705,20 +8721,16 @@ bool nsContentUtils::AllowXULXBLForPrincipal(nsIPrincipal* aPrincipal) {
   return xpc::IsInAutomation() && IsSitePermAllow(aPrincipal, "allowXULXBL"_ns);
 }
 
-bool nsContentUtils::IsPDFJSEnabled() {
-  nsCOMPtr<nsIStreamConverter> conv = do_CreateInstance(
-      "@mozilla.org/streamconv;1?from=application/pdf&to=text/html");
-  return conv;
-}
+bool nsContentUtils::IsPDFJSEnabled() { return !StaticPrefs::pdfjs_disabled(); }
 
 bool nsContentUtils::IsPDFJS(nsIPrincipal* aPrincipal) {
   if (!aPrincipal || !aPrincipal->SchemeIs("resource")) {
     return false;
   }
-  nsAutoCString spec;
-  nsresult rv = aPrincipal->GetAsciiSpec(spec);
+  nsAutoCString originNoSuffix;
+  nsresult rv = aPrincipal->GetOriginNoSuffix(originNoSuffix);
   NS_ENSURE_SUCCESS(rv, false);
-  return spec.EqualsLiteral("resource://pdf.js/web/viewer.html");
+  return originNoSuffix.Equals("resource://pdf.js"_ns);
 }
 
 bool nsContentUtils::IsSystemOrPDFJS(JSContext* aCx, JSObject*) {
@@ -9420,8 +9432,22 @@ bool nsContentUtils::GetNodeTextContent(const nsINode* aNode, bool aDeep,
   return AppendNodeTextContent(aNode, aDeep, aResult, aFallible);
 }
 
+bool nsContentUtils::GetNodeTextContent(const nsINode* aNode, bool aDeep,
+                                        nsACString& aResult,
+                                        const fallible_t& aFallible) {
+  aResult.Truncate();
+  return AppendNodeTextContent(aNode, aDeep, aResult, aFallible);
+}
+
 void nsContentUtils::GetNodeTextContent(const nsINode* aNode, bool aDeep,
                                         nsAString& aResult) {
+  if (!GetNodeTextContent(aNode, aDeep, aResult, fallible)) {
+    NS_ABORT_OOM(0);  // Unfortunately we don't know the allocation size
+  }
+}
+
+void nsContentUtils::GetNodeTextContent(const nsINode* aNode, bool aDeep,
+                                        nsACString& aResult) {
   if (!GetNodeTextContent(aNode, aDeep, aResult, fallible)) {
     NS_ABORT_OOM(0);  // Unfortunately we don't know the allocation size
   }
@@ -9741,11 +9767,33 @@ nsresult nsContentUtils::IPCTransferableDataToTransferable(
   nsresult rv;
   const nsTArray<IPCTransferableDataItem>& items = aTransferableData.items();
   for (const auto& item : items) {
-    if (aFilterUnknownFlavors && !IPCTransferableDataItemHasKnownFlavor(item)) {
-      NS_WARNING(
-          "Ignoring unknown flavor in "
-          "nsContentUtils::IPCTransferableDataToTransferable");
-      continue;
+    if (aFilterUnknownFlavors) {
+      if (item.flavor().EqualsLiteral(kFilePromiseDirectoryMime)) {
+        NS_WARNING(
+            "Ignoring unknown flavor in "
+            "nsContentUtils::IPCTransferableDataToTransferable");
+        continue;
+      }
+
+      if ((item.flavor().EqualsLiteral(kFilePromiseMime) ||
+           item.flavor().EqualsLiteral(kFilePromiseURLMime) ||
+           item.flavor().EqualsLiteral(kFilePromiseDestFilename))
+#ifdef XP_WIN
+          && !StaticPrefs::clipboard_imageAsFile_enabled()
+#endif
+      ) {
+        NS_WARNING(
+            "Ignoring unknown flavor in "
+            "nsContentUtils::IPCTransferableDataToTransferable");
+        continue;
+      }
+
+      if (!IPCTransferableDataItemHasKnownFlavor(item)) {
+        NS_WARNING(
+            "Ignoring unknown flavor in "
+            "nsContentUtils::IPCTransferableDataToTransferable");
+        continue;
+      }
     }
 
     if (aAddDataFlavor) {
@@ -9907,17 +9955,24 @@ nsresult nsContentUtils::CalculateBufferSizeForImage(
     const uint32_t& aStride, const IntSize& aImageSize,
     const SurfaceFormat& aFormat, size_t* aMaxBufferSize,
     size_t* aUsedBufferSize) {
-  CheckedInt32 requiredBytes =
-      CheckedInt32(aStride) * CheckedInt32(aImageSize.height);
-
-  CheckedInt32 usedBytes =
-      requiredBytes - aStride +
-      (CheckedInt32(aImageSize.width) * BytesPerPixel(aFormat));
-  if (!usedBytes.isValid()) {
+  if (aImageSize.width <= 0 || aImageSize.height <= 0) {
     return NS_ERROR_FAILURE;
   }
 
-  MOZ_ASSERT(requiredBytes.isValid(), "usedBytes valid but not required?");
+  CheckedInt32 rowBytes =
+      CheckedInt32(aImageSize.width) * BytesPerPixel(aFormat);
+  CheckedInt32 stride(aStride);
+  if (!rowBytes.isValid() || !stride.isValid() ||
+      stride.value() < rowBytes.value()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  CheckedInt32 requiredBytes = stride * CheckedInt32(aImageSize.height);
+  CheckedInt32 usedBytes = requiredBytes - stride + rowBytes;
+  if (!requiredBytes.isValid() || !usedBytes.isValid()) {
+    return NS_ERROR_FAILURE;
+  }
+
   *aMaxBufferSize = requiredBytes.value();
   *aUsedBufferSize = usedBytes.value();
   return NS_OK;
@@ -10650,8 +10705,8 @@ void nsContentUtils::FirePageHideEventForFrameLoaderSwap(
 
   for (uint32_t i = 0; i < kids.Length(); ++i) {
     if (kids[i]) {
-      FirePageHideEventForFrameLoaderSwap(kids[i], aChromeEventHandler,
-                                          aOnlySystemGroup);
+      FirePageHideEventForFrameLoaderSwap(
+          MOZ_KnownLive(kids[i]), aChromeEventHandler, aOnlySystemGroup);
     }
   }
 }
@@ -10674,8 +10729,9 @@ void nsContentUtils::FirePageShowEventForFrameLoaderSwap(
 
   for (uint32_t i = 0; i < kids.Length(); ++i) {
     if (kids[i]) {
-      FirePageShowEventForFrameLoaderSwap(kids[i], aChromeEventHandler,
-                                          aFireIfShowing, aOnlySystemGroup);
+      FirePageShowEventForFrameLoaderSwap(MOZ_KnownLive(kids[i]),
+                                          aChromeEventHandler, aFireIfShowing,
+                                          aOnlySystemGroup);
     }
   }
 
@@ -10768,6 +10824,29 @@ ReferrerPolicy nsContentUtils::GetReferrerPolicyFromChannel(
 
   return ReferrerInfo::ReferrerPolicyFromHeaderString(
       NS_ConvertUTF8toUTF16(headerValue));
+}
+
+// static
+bool nsContentUtils::HasRelNoReferrer(const Element& aElement) {
+  // rel=noreferrer is only supported in <a>, <area>, and <form>
+  if (!aElement.IsAnyOfHTMLElements(nsGkAtoms::a, nsGkAtoms::area,
+                                    nsGkAtoms::form) &&
+      !aElement.IsSVGElement(nsGkAtoms::a)) {
+    return false;
+  }
+
+  nsAutoString rel;
+  aElement.GetAttr(nsGkAtoms::rel, rel);
+  nsWhitespaceTokenizerTemplate<nsContentUtils::IsHTMLWhitespace> tok(rel);
+
+  while (tok.hasMoreTokens()) {
+    const nsAString& token = tok.nextToken();
+    if (token.LowerCaseEqualsLiteral("noreferrer")) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 // static
@@ -11540,30 +11619,95 @@ static bool StartSerializingShadowDOM(
     return false;
   }
 
+  // https://html.spec.whatwg.org/#html-fragment-serialisation-algorithm
+  // steps 4-12
+
+  // 4.2.1. Append "<template shadowrootmode="".
   aBuilder.Append(u"<template shadowrootmode=\"");
+
+  // 4.2.2. If shadow's mode is "open", then append "open". Otherwise, append
+  //    "closed".
+  // 3. Append U+0022 (").
   if (shadow->IsClosed()) {
     aBuilder.Append(u"closed\"");
   } else {
     aBuilder.Append(u"open\"");
   }
 
+  // 4. If shadow's delegates focus is set, then append "
+  // shadowrootdelegatesfocus=""".
   if (shadow->DelegatesFocus()) {
     aBuilder.Append(u" shadowrootdelegatesfocus=\"\"");
   }
+
+  // 5. If shadow's serializable is set, then append "
+  //    shadowrootserializable=""".
   if (shadow->Serializable()) {
     aBuilder.Append(u" shadowrootserializable=\"\"");
   }
+
+  // 6. If shadow's slot assignment is "manual", then append "
+  // shadowrootslotassignment="manual"".
   if (StaticPrefs::dom_shadowdom_shadowRootSlotAssignment_enabled() &&
       shadow->SlotAssignment() == SlotAssignmentMode::Manual) {
     aBuilder.Append(u" shadowrootslotassignment=\"manual\"");
   }
+
+  // 7. If shadow's slot assignment is "manual", then append "
+  // shadowrootslotassignment="manual"".
   if (shadow->Clonable()) {
     aBuilder.Append(u" shadowrootclonable=\"\"");
   }
 
+  auto isGlobalCustomElementRegistry = [](CustomElementRegistry* registry) {
+    return registry && !registry->IsScoped();
+  };
+
+  // 8. Let shouldAppendRegistryAttribute be the result of running these steps:
+  const bool shouldAppendRegistryAttribute = [&]() {
+    if (!StaticPrefs::dom_scoped_custom_element_registries_enabled()) {
+      return false;
+    }
+
+    // 8.1. Let documentRegistry be shadow's node document's custom element
+    //    registry.
+    CustomElementRegistry* documentRegistry =
+        shadow->OwnerDoc()->GetCustomElementRegistry();
+    // 8.2. Let shadowRegistry be shadow's custom element registry.
+    CustomElementRegistry* shadowRegistry = shadow->GetCustomElementRegistry();
+
+    // 8.3. If documentRegistry is null and shadowRegistry is null, then return
+    //    false.
+    if (!documentRegistry && !shadowRegistry) {
+      return false;
+    }
+    // 8.4. If documentRegistry is a global custom element registry and
+    //    shadowRegistry is a global custom element registry, then return
+    //    false.
+    else if (isGlobalCustomElementRegistry(documentRegistry) &&
+             isGlobalCustomElementRegistry(shadowRegistry)) {
+      return false;
+    }
+
+    // 8.5. Return true.
+    return true;
+  }();
+
+  // 9. If shouldAppendRegistryAttribute is true, then append "
+  //    shadowrootcustomelementregistry=""".
+  if (shouldAppendRegistryAttribute) {
+    aBuilder.Append(u" shadowrootcustomelementregistry=\"\"");
+  }
+
+  // 10. Append U+003E (>).
   aBuilder.Append(u">");
 
+  // 11. Append the value of running the HTML fragment serialization algorithm
+  //     with shadow, serializableShadowRoots, and shadowRoots (thus recursing
+  //     into this algorithm for that element).
+  // (Returning `true` tells the caller to continue).
   if (!shadow->HasChildren()) {
+    // 12. Append "</template>".
     aBuilder.Append(u"</template>");
     return false;
   }
@@ -11766,16 +11910,6 @@ bool nsContentUtils::IsSpecificAboutPage(JSObject* aGlobal, const char* aUri) {
 }
 
 /* static */
-void nsContentUtils::SetScrollbarsVisibility(nsIDocShell* aDocShell,
-                                             bool aVisible) {
-  if (!aDocShell) {
-    return;
-  }
-  auto pref = aVisible ? ScrollbarPreference::Auto : ScrollbarPreference::Never;
-  nsDocShell::Cast(aDocShell)->SetScrollbarPreference(pref);
-}
-
-/* static */
 nsIDocShell* nsContentUtils::GetDocShellForEventTarget(EventTarget* aTarget) {
   if (!aTarget) {
     return nullptr;
@@ -11928,15 +12062,37 @@ void nsContentUtils::TryToUpgradeElement(Element* aElement) {
       aElement->GetCustomElementData()->GetCustomElementType();
 
   MOZ_ASSERT(nodeInfo->NameAtom()->Equals(nodeInfo->LocalName()));
-  CustomElementDefinition* definition =
-      nsContentUtils::LookupCustomElementDefinition(
-          nodeInfo->GetDocument(), nodeInfo->NameAtom(),
-          nodeInfo->NamespaceID(), typeAtom);
+
+  // When scoped custom element registries are enabled, look up the element's
+  // own custom element registry (which may be a scoped registry, null, or the
+  // document's global registry as fallback).
+  CustomElementRegistry* registry = nullptr;
+  if (StaticPrefs::dom_scoped_custom_element_registries_enabled()) {
+    registry = aElement->GetCustomElementRegistry();
+    if (!registry) {
+      return;
+    }
+  }
+
+  CustomElementDefinition* definition = nullptr;
+  if (registry) {
+    definition = registry->LookupCustomElementDefinition(
+        nodeInfo->NameAtom(), nodeInfo->NamespaceID(), typeAtom);
+  } else {
+    MOZ_ASSERT(!StaticPrefs::dom_scoped_custom_element_registries_enabled());
+    definition = nsContentUtils::LookupCustomElementDefinition(
+        nodeInfo->GetDocument(), nodeInfo->NameAtom(), nodeInfo->NamespaceID(),
+        typeAtom);
+  }
+
   // 2. "If definition is not null, then enqueue a custom element upgrade
   //    reaction given element and definition."
   if (definition) {
     nsContentUtils::EnqueueUpgradeReaction(aElement, definition);
+  } else if (registry) {
+    registry->RegisterUnresolvedElement(aElement, typeAtom);
   } else {
+    MOZ_ASSERT(!StaticPrefs::dom_scoped_custom_element_registries_enabled());
     // XXX: Not in spec. Add an unresolved custom element that is a candidate
     // for upgrade when a custom element is connected to the document.
     nsContentUtils::RegisterUnresolvedElement(aElement, typeAtom);
@@ -12044,12 +12200,15 @@ nsresult nsContentUtils::NewXULOrHTMLElement(
   RefPtr<CustomElementDefinition> definition = aDefinition;
   if (isCustomElement && !definition) {
     MOZ_ASSERT(nodeInfo->NameAtom()->Equals(nodeInfo->LocalName()));
+    // When a custom element registry is provided (e.g. from fragment parsing
+    // with a scoped registry), use it for definition lookup.
     if (aCustomElementRegistry.isSome()) {
       if (RefPtr<CustomElementRegistry> registry =
               aCustomElementRegistry.value()) {
         definition = registry->LookupCustomElementDefinition(
             nodeInfo->NameAtom(), nodeInfo->NamespaceID(), typeAtom);
       }
+      // If registry is explicitly null, definition stays null (no upgrade).
     } else {
       definition = nsContentUtils::LookupCustomElementDefinition(
           nodeInfo->GetDocument(), nodeInfo->NameAtom(),
@@ -12057,9 +12216,23 @@ nsresult nsContentUtils::NewXULOrHTMLElement(
     }
   }
 
+  /*
+   * Synchronous custom elements flag is determined by 3 places in spec,
+   * 1) create an element for a token, the flag is determined by
+   *    "will execute script" which is not originally created
+   *    for the HTML fragment parsing algorithm.
+   * 2) createElement and createElementNS, the flag is the same as
+   *    NOT_FROM_PARSER.
+   * 3) clone a node, our implementation will not go into this function.
+   * For the unset case which is non-synchronous only applied for
+   * inner/outerHTML.
+   */
+  bool synchronousCustomElements =
+      definition && aFromParser != dom::FROM_PARSER_FRAGMENT;
   auto setRegistryOnExit = MakeScopeExit([&]() {
     if (!*aResult ||
-        !StaticPrefs::dom_scoped_custom_element_registries_enabled()) {
+        !StaticPrefs::dom_scoped_custom_element_registries_enabled() ||
+        synchronousCustomElements) {
       return;
     }
     if (aCustomElementRegistry.isSome()) {
@@ -12067,7 +12240,7 @@ nsresult nsContentUtils::NewXULOrHTMLElement(
       if (registry) {
         (*aResult)->SetCustomElementRegistry(registry);
       } else {
-        (*aResult)->SetKeepCustomElementRegistryNull();
+        (*aResult)->SetNullCustomElementRegistry();
       }
     } else {
       Document* doc = (*aResult)->OwnerDoc();
@@ -12081,18 +12254,6 @@ nsresult nsContentUtils::NewXULOrHTMLElement(
   // It might be a problem that parser synchronously calls constructor, so
   // filed bug 1378079 to figure out what we should do for parser case.
   if (definition) {
-    /*
-     * Synchronous custom elements flag is determined by 3 places in spec,
-     * 1) create an element for a token, the flag is determined by
-     *    "will execute script" which is not originally created
-     *    for the HTML fragment parsing algorithm.
-     * 2) createElement and createElementNS, the flag is the same as
-     *    NOT_FROM_PARSER.
-     * 3) clone a node, our implementation will not go into this function.
-     * For the unset case which is non-synchronous only applied for
-     * inner/outerHTML.
-     */
-    bool synchronousCustomElements = aFromParser != dom::FROM_PARSER_FRAGMENT;
     // Per discussion in https://github.com/w3c/webcomponents/issues/635,
     // use entry global in those places that are called from JS APIs and use
     // the node document's global object if it is called from parser.
@@ -12154,15 +12315,45 @@ nsresult nsContentUtils::NewXULOrHTMLElement(
     // 5. "Otherwise, if definition is non-null:"
     // 5.1. "If synchronousCustomElements is true:"
     if (synchronousCustomElements) {
-      // 5.1.1. "Let C be definition's constructor."
-      // 5.1.2. "Set the surrounding agent's active custom element constructor
-      //         map[C] to registry."
-      // 5.1.3. "Run these steps while catching any exceptions:
-      //         Set result to the result of constructing C, with no arguments."
-      RefPtr<Document> doc = nodeInfo->GetDocument();
-      DoCustomElementCreate(aResult, cx, doc, nodeInfo,
-                            MOZ_KnownLive(definition->mConstructor), rv,
-                            aFromParser);
+      {
+        // 5.1.1. "Let C be definition's constructor."
+        CustomElementConstructor* constructor = definition->mConstructor;
+
+        RefPtr<Document> doc = nodeInfo->GetDocument();
+        DocGroup* docGroup = doc->GetDocGroup();
+
+        // XXX: https://github.com/whatwg/dom/pull/1494
+        // 5.1.2. Let previousRegistry be the surrounding agent's active
+        //        custom element constructor map[C] with default null.
+        // 5.1.3. Set the surrounding agent's active custom element constructor
+        //        map[C] to registry.
+        Maybe<DocGroup::AutoActiveConstructorRegistry>
+            activeConstructorRegistry;
+        if (StaticPrefs::dom_scoped_custom_element_registries_enabled() &&
+            constructor->CallableOrNull() && docGroup) {
+          if (aCustomElementRegistry.isSome()) {
+            activeConstructorRegistry.emplace(docGroup, constructor,
+                                              aCustomElementRegistry.ref());
+          } else {
+            activeConstructorRegistry.emplace(
+                docGroup, constructor,
+                doc->GetEffectiveGlobalCustomElementRegistry());
+          }
+        }
+
+        // 5.1.4. "Run these steps while catching any exceptions:
+        DoCustomElementCreate(aResult, cx, doc, nodeInfo,
+                              MOZ_KnownLive(definition->mConstructor), rv,
+                              aFromParser);
+
+        // 5.1.5. If previousRegistry is null, then remove the surrounding
+        //        agent's active custom element constructor map[C]. Otherwise,
+        //        set it back to previousRegistry.
+        // 5.1.6. Otherwise, set the surrounding agent ’s active custom element
+        //        constructor map[C] to previousRegistry.
+        // (Handled by `activeRegistry`'s destructor during scope exit).
+      }
+
       if (rv.MaybeSetPendingException(cx)) {
         // "If any of these steps threw an exception: ... Set result to the
         //  result of creating an element internal given document,
@@ -12174,6 +12365,17 @@ nsresult nsContentUtils::NewXULOrHTMLElement(
           NS_IF_ADDREF(*aResult = nsXULElement::Construct(nodeInfo.forget()));
         }
         (*aResult)->SetDefined(false);
+        // Set the fallback element's registry even on failure.
+        if (StaticPrefs::dom_scoped_custom_element_registries_enabled()) {
+          if (aCustomElementRegistry.isSome()) {
+            if (CustomElementRegistry* registry =
+                    aCustomElementRegistry.ref()) {
+              (*aResult)->SetCustomElementRegistry(registry);
+            } else {
+              (*aResult)->SetNullCustomElementRegistry();
+            }
+          }
+        }
       } else if (*aResult && nodeInfo->GetPrefixAtom()) {
         // 5.1.3.9. Set result's namespace prefix to prefix.
         (*aResult)->SetNamespacePrefix(nodeInfo->GetPrefixAtom());
@@ -12224,7 +12426,15 @@ nsresult nsContentUtils::NewXULOrHTMLElement(
   //       element state to "undefined"."
   if (isCustomElement) {
     (*aResult)->SetCustomElementData(MakeUnique<CustomElementData>(typeAtom));
-    nsContentUtils::RegisterCallbackUpgradeElement(*aResult, typeAtom);
+    if (aCustomElementRegistry.isSome()) {
+      // When an explicit custom element registry is provided, register for
+      // upgrade on that registry (if non-null), not the document's.
+      if (CustomElementRegistry* registry = aCustomElementRegistry.ref()) {
+        registry->RegisterCallbackUpgradeElement(*aResult, typeAtom);
+      }
+    } else {
+      nsContentUtils::RegisterCallbackUpgradeElement(*aResult, typeAtom);
+    }
   }
 
   // 7. "Return result."
@@ -12232,28 +12442,48 @@ nsresult nsContentUtils::NewXULOrHTMLElement(
 }
 
 // https://html.spec.whatwg.org/#look-up-a-custom-element-registry
-CustomElementRegistry* nsContentUtils::GetCustomElementRegistry(
+Maybe<RefPtr<CustomElementRegistry>> nsContentUtils::GetCustomElementRegistry(
     nsINode* aNode) {
   if (!aNode || !StaticPrefs::dom_scoped_custom_element_registries_enabled()) {
-    return nullptr;
+    return Nothing();
   }
   // 1. If node is an Element object, then return node's custom element
-  // registry.
-  if (aNode->IsElement()) {
-    return aNode->AsElement()->GetCustomElementRegistry();
-  }
+  //    registry.
   // 2. If node is a ShadowRoot object, then return node's custom element
-  // registry.
-  if (aNode->IsShadowRoot()) {
-    return ShadowRoot::FromNode(aNode)->GetCustomElementRegistry();
-  }
+  //    registry.
   // 3. If node is a Document object, then return node's custom element
-  // registry.
-  if (aNode->IsDocument()) {
-    return aNode->AsDocument()->GetEffectiveGlobalCustomElementRegistry();
+  //    registry.
+  // A node specifies its own registry only when its state is not Global (i.e.
+  // scoped, or explicitly null). A Global-state node inherits the global
+  // registry, which we report as Nothing() so callers can fall back to a
+  // context registry when parsing into the node.
+  CustomElementRegistryState state = CustomElementRegistryState::Global;
+  if (aNode->IsElement()) {
+    state = aNode->AsElement()->GetCustomElementRegistryState();
+  } else if (ShadowRoot* shadowRoot = ShadowRoot::FromNode(aNode)) {
+    state = shadowRoot->GetCustomElementRegistryState();
+  } else if (aNode->IsDocument()) {
+    if (!aNode->AsDocument()->HasScopedCustomElementRegistry()) {
+      // 4. Return null (reported as Nothing(): inherit the global registry).
+      return Nothing();
+    }
+    state = CustomElementRegistryState::Scoped;
+  } else {
+    // 4. Return null.
+    return Nothing();
   }
-  // 4. Return null.
-  return nullptr;
+  if (state == CustomElementRegistryState::Global) {
+    return Nothing();
+  }
+  RefPtr<CustomElementRegistry> registry;
+  if (aNode->IsElement()) {
+    registry = aNode->AsElement()->GetCustomElementRegistry();
+  } else if (ShadowRoot* shadowRoot = ShadowRoot::FromNode(aNode)) {
+    registry = shadowRoot->GetCustomElementRegistry();
+  } else {
+    registry = aNode->AsDocument()->GetCustomElementRegistry();
+  }
+  return Some(std::move(registry));
 }
 
 /* https://html.spec.whatwg.org/#look-up-a-custom-element-definition */
@@ -12749,9 +12979,10 @@ uint32_t nsContentUtils::HtmlObjectContentTypeForMIMEType(
     return nsIObjectLoadingContent::TYPE_DOCUMENT;
   }
 
-  // Faking support of the PDF content as a document for EMBED tags
-  // when internal PDF viewer is enabled.
-  if (aMIMEType.LowerCaseEqualsLiteral(APPLICATION_PDF) && IsPDFJSEnabled()) {
+  // Faking support of the PDF content as a document for EMBED tags when the
+  // internal PDF viewer or the embedded PDF fallback is enabled.
+  if (aMIMEType.LowerCaseEqualsLiteral(APPLICATION_PDF) &&
+      (IsPDFJSEnabled() || StaticPrefs::pdfjs_embedFallback())) {
     // Sandboxed iframes are just never allowed to display plugins. In the
     // modern world, this just means "application/pdf".
     return aIsSandboxed ? nsIObjectLoadingContent::TYPE_FALLBACK
@@ -13378,6 +13609,23 @@ nsContentUtils::GetSubresourceCacheValidationInfo(nsIRequest* aRequest,
     if (!info.mMustRevalidate) {
       (void)httpChannel->IsNoCacheResponse(&info.mMustRevalidate);
     }
+
+    if (!info.mMustRevalidate) {
+      nsAutoCString vary;
+      (void)httpChannel->GetResponseHeader("vary"_ns, vary);
+      info.mMustRevalidate = [&] {
+        for (const nsACString& token :
+             nsCCharSeparatedTokenizer(vary, ',').ToRange()) {
+          if (token.EqualsLiteral("*")) {
+            return true;
+          }
+          if (token.EqualsIgnoreCase("cookie")) {
+            return true;
+          }
+        }
+        return false;
+      }();
+    }
   }
 
   // data: URIs are safe to cache across documents under any circumstance, so we
@@ -13391,6 +13639,7 @@ nsContentUtils::GetSubresourceCacheValidationInfo(nsIRequest* aRequest,
       return false;
     }
     if (aURI->SchemeIs("data") || aURI->SchemeIs("moz-page-thumb") ||
+        aURI->SchemeIs("moz-newtab-wallpaper") ||
         aURI->SchemeIs("moz-extension")) {
       return true;
     }
@@ -13738,6 +13987,13 @@ nsIContent* nsContentUtils::AttachDeclarativeShadowRoot(
   if (shadowRoot) {
     shadowRoot->SetIsDeclarative(
         nsGenericHTMLFormControlElement::ShadowRootDeclarative::Yes);
+    // https://html.spec.whatwg.org/#parsing-main-inhead
+    // 7. If templateStartTag has a shadowrootcustomelementregistry attribute,
+    //    set shadow's keep custom element registry null to true.
+    if (StaticPrefs::dom_scoped_custom_element_registries_enabled() &&
+        aCustomElementRegistry) {
+      shadowRoot->SetKeepCustomElementRegistryNull();
+    }
     // https://html.spec.whatwg.org/#parsing-main-inhead:available-to-element-internals
     shadowRoot->SetAvailableToElementInternals();
     shadowRoot->SetReferenceTarget(aReferenceTarget);

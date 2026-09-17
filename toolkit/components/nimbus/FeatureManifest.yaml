@@ -39,6 +39,19 @@ testFeature:
         pref: nimbus.testing.testSetString
       description: A string pref set by Nimbus tests
 
+testPlatformExposureFeature:
+    description: Test only feature
+    owner: beth@mozilla.com
+    applications:
+      - firefox-desktop
+    hasExposure: true
+    exposureDescription: Test feature for exposures.
+    isEarlyStartup: true
+    variables:
+      enabled:
+        type: boolean
+        description: Whether or not this feature is enabled
+
 nimbus-qa-1:
   description: A feature for testing pref-setting on the default branch.
   owner: beth@mozilla.com
@@ -85,7 +98,8 @@ search:
   hasExposure: true
   exposureDescription: >
     Exposure is recorded when the visual search context menu item is shown or
-    would have been shown.
+    would have been shown, or when the highlight to search actions menu is
+    shown after text is selected on a page.
   variables:
     scotchBonnetEnableOverride:
       type: boolean
@@ -125,6 +139,15 @@ search:
         pref: browser.search.visualSearch.featureGate
       description: >-
         Feature gate for visual search.
+    highlightToSearchEnabled:
+      type: boolean
+      setPref:
+        branch: default
+        pref: browser.highlightToSearch.featureGate
+      description: >-
+        Feature gate for highlight to search, the actions menu shown when text
+        is selected on a page. Does not affect the user's own settings for the
+        menu or its individual actions.
 
 searchConfiguration:
   description: >-
@@ -178,7 +201,7 @@ searchConfiguration:
       type: boolean
       setPref:
         branch: user
-        pref: browser.search.separatePrivateDefault.ui.enabled
+        pref: browser.search.separatePrivateDefault.featureGate
       description: Whether the UI for the separate private default feature is enabled.
     separatePrivateDefaultUrlbarResultEnabled:
       type: boolean
@@ -252,6 +275,32 @@ urlbar:
     autoFillAdaptiveHistoryUseCountThreshold:
       type: string
       description: This value assumes float expression like "0.47". Threshold for use count of input history that we handle as adaptive history autofill. If the use count is this value or more, it will be a candidate.
+    autoFillAdaptiveHistoryUrlMinPicks:
+      type: int
+      setPref:
+        pref: browser.urlbar.autoFill.adaptiveHistory.urlMinPicks
+        branch: user
+      description: >-
+        Roughly how many times the user has to pick a specific page from the
+        address bar for a given typed string before Firefox starts autofilling
+        that page. Only applies to individual pages, not to domains: a domain
+        like example.com is still autofilled on the first pick, while a page
+        like example.com/dashboard needs this many. This is a rough count
+        rather than an exact one, because how often the user picks the page
+        matters as well as how many times: picking a page a handful of times
+        this week counts for more than the same number of picks spread over a
+        year. Raise it to autofill pages for fewer users, lower it to autofill
+        pages for more users.
+    autoFillAdaptiveHistoryUrlPicksAgeDays:
+      type: int
+      setPref:
+        pref: browser.urlbar.autoFill.adaptiveHistory.urlPicksAgeDays
+        branch: user
+      description: >-
+        How spread out over time the picks counted by
+        autoFillAdaptiveHistoryUrlMinPicks are allowed to be. Raise it to
+        qualify users who pick a page at a slower pace, lower it to require
+        picks to be more recent and more closely spaced.
     autoFillBackspaceBlockDurationMs:
       type: int
       setPref:
@@ -362,6 +411,12 @@ urlbar:
       type: int
       fallbackPref: browser.urlbar.merino.timeoutMs
       description: Timeout for Merino fetches (ms)
+    newtabFeatureGate:
+      type: boolean
+      fallbackPref: browser.urlbar.newtab.featureGate
+      description: >-
+        Feature gate that controls whether about:newtab and about:home show the
+        address bar in place of the handoff search bar.
     exposureResults:
       type: string
       setPref:
@@ -634,6 +689,14 @@ urlbar:
       description: >-
         semantic similarity distance threshold (0.0 - 1.0)
         defaulted at 0.6.
+    semanticHistorySmartwindowDistanceThreshold:
+      type: string
+      setPref:
+        branch: user
+        pref: places.semanticHistory.smartwindow.distanceThreshold
+      description: >-
+        semantic similarity distance threshold (0.0 - 1.0) for Smart Window
+        history search only.
     semanticHistorySupportedRegions:
       type: string
       setPref:
@@ -653,12 +716,28 @@ urlbar:
         branch: user
         pref: places.semanticHistory.embeddingType
       description: >-
-        Embedding family used by Places semantic history: "static" (default,
-        lightweight) or "contextual" (transformer-based, larger). Changing
-        this on a live profile drops the embedding tables and rebuilds them
-        on next startup. Contextual model details (dimension, modelId,
-        wasm fallback) are controlled by the browser.ml.embedGen.* prefs and
-        are intentionally not exposed via Nimbus.
+        Embedding family used by Places semantic history: "static"
+        (lightweight) or "contextual" (transformer-based, larger). When unset
+        or empty, the family is derived from the home region, the app locale
+        and the OS: contextual in the markets listed in
+        `semanticHistoryMultilingualEmbeddingRegions` on Mac/Windows, static
+        everywhere else. Changing this on a live profile drops the embedding
+        tables and rebuilds them on next startup. Contextual model details
+        (dimension, modelId) are controlled by the browser.ml.embedGen.* prefs
+        and are intentionally not exposed via Nimbus.
+    semanticHistoryMultilingualEmbeddingRegions:
+      type: string
+      setPref:
+        branch: user
+        pref: places.semanticHistory.multilingualEmbeddingRegions
+      description: >-
+        map-like JSON of regions and locales that get multilingual (contextual)
+        embeddings, used when `semanticHistoryEmbeddingType` is unset or empty.
+        Same format as `semanticHistorySupportedRegions`, except that a "*"
+        region matches any region. The entries are OR-ed, so
+        '[["FR",["en-*","fr-*"]],["*",["fr-*"]]]' means France in English or
+        French, or a French locale anywhere. An empty value disables
+        multilingual embeddings everywhere.
     semanticHistoryInSeparateGroup:
       type: boolean
       setPref:
@@ -697,6 +776,13 @@ urlbar:
       description: >-
         Whether or not to show calculator results when a user types a valid
         calculation string into the urlbar.
+    trackerCountFeatureGate:
+      type: boolean
+      fallbackPref: browser.urlbar.trackerCount.featureGate
+      description: >-
+        Boolean used to determine if the "x trackers blocked" pill should be
+        shown in the urlbar. Should be false for Control branch of an
+        experiment.
     unitConversionEnabled:
       type: boolean
       setPref:
@@ -1015,6 +1101,21 @@ windowsLaunchOnLogin:
         pref: browser.startup.windowsLaunchOnLogin.enabled
       description: Should users see the Windows launch on login checkbox.
 
+pushNotificationHelper:
+  description: "Controls the Windows push notification helper process"
+  owner: desktop-integrations@mozilla.com
+  applications:
+    - firefox-desktop
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: default
+        pref: app.backgroundNotifications.helper.enabled
+      description: >-
+        Whether the push notification helper process should be enabled and running.
+
 firefoxBridge:
   description: "Controls for Firefox Bridge extension and extension registration"
   owner: install-update@mozilla.com
@@ -1331,13 +1432,6 @@ newtabPrivatePing:
         pref: browser.newtabpage.activity-stream.telemetry.privatePing.enabled
       description: >-
         Enables the private newtab-content ping sent through OHTTP
-    redactNewtabPing:
-      type: boolean
-      setPref:
-        branch: user
-        pref: browser.newtabpage.activity-stream.telemetry.privatePing.redactNewtabPing.enabled
-      description: >-
-        Provides an option to redact content ids of users from click, impression and related events in the NewTab ping. Should be enabled when data colection has shefted to the more private NewTab_content ping.
     includeInferredInterests:
       type: boolean
       setPref:
@@ -1687,6 +1781,33 @@ newtabTrainhopAddon:
         branch: user
         pref: browser.newtabpage.trainhopAddon.version
 
+newtabTrainhopAddonDeployment:
+  description: |
+    Co-enrollment version of newtabTrainhopAddon used to deploy updated newtab
+    resources packaged as an xpi. Multiple overlapping enrollments are allowed and
+    the enrollment with the highest addon_version wins.
+  owner: mconley@mozilla.com
+  hasExposure: true
+  allowCoenrollment: true
+  exposureDescription: |
+    Exposure is sent when the trainhop addon version from a co-enrolled deployment is in use
+    (starting from the browser startup right after it has been downloaded and installed).
+  variables:
+    xpi_download_path:
+      type: string
+      description: |
+        Provide the path (relative to the base URL set in the `browser.newtabpage.trainhopAddon.xpiBaseURL`
+        about:config pref) from which the xpi should be downloaded.
+    addon_version:
+      type: string
+      description: |
+        Expected addon version (installing the xpi is cancelled if it mismatches the one set here).
+        The trainhop add-on version is also stored in an about:config pref, managed manually by
+        AboutNewTabResourceMapping to reflect the highest version across all active enrollments
+        (across both this feature and newtabTrainhopAddon). It is used on early application startup
+        to determine if the trainhop add-on version should be uninstalled (and not be used for the
+        newtab resources mapping to safely uninstall it later in the same application session).
+
 newtabTrainhopFirstStartup:
   description: |
     Controls startup behaviours if and when a train-hop is available for a
@@ -1985,12 +2106,6 @@ pocketNewtab:
       setPref:
         branch: user
         pref: "browser.newtabpage.activity-stream.discoverystream.endpoints"
-    spocsClearEndpoint:
-      description: URL for deleting any server data when a user opts out of sponsored content
-      type: string
-      setPref:
-        branch: user
-        pref: "browser.newtabpage.activity-stream.discoverystream.endpointSpocsClear"
     ctaButtonSponsors:
       description: A CSV list of sponsors that should use a button CTA.
       type: string
@@ -2002,7 +2117,11 @@ pocketNewtab:
       fallbackPref: >-
         browser.newtabpage.activity-stream.discoverystream.ctaButtonVariant
     regionStoriesConfig:
-      description: A comma-separated list of region to get stories for.
+      description: >-
+        Legacy, superseded by the stories-region-locale-config pref, which the
+        newtab extension reads directly. A region listed here
+        gets stories in the locales it was historically paired with. Do not set
+        it in new recipes.
       type: string
       fallbackPref: >-
         browser.newtabpage.activity-stream.discoverystream.region-stories-config
@@ -2012,15 +2131,10 @@ pocketNewtab:
         browser.newtabpage.activity-stream.discoverystream.merino-provider.endpoint
       description: Merino endpoint to use for recommendations.
     regionStoriesBlock:
-      description: A comma-separated list of regions that do not get stories, regardless of locale-list-config.
+      description: A comma-separated list of regions that do not get stories, regardless of the stories-region-locale-config pref.
       type: string
       fallbackPref: >-
         browser.newtabpage.activity-stream.discoverystream.region-stories-block
-    localeListConfig:
-      description: A comma-separated list of locales that get stories, regardless of region-stories-config.
-      type: string
-      fallbackPref: >-
-        browser.newtabpage.activity-stream.discoverystream.locale-list-config
     regionSpocsConfig:
       description: A comma-separated list of regions that get spocs by default.
       type: string
@@ -2142,6 +2256,92 @@ creditcards-autofill-enabled:
       setPref:
         branch: default
         pref: extensions.formautofill.creditCards.supported
+
+creditcards-cvv-capture:
+  description: Capturing and storing credit card security codes (CVV/CSC)
+  owner: mtigley@mozilla.com
+  hasExposure: false
+  variables:
+    cvvSupported:
+      description: >-
+        When "on", the CVV feature is rolled out to this user: the security code
+        field takes part in autofill and the setting that turns capture on or
+        off is offered. Users can still decline capture through
+        extensions.formautofill.creditCards.cvv.enabled, which is their own
+        choice and is deliberately not controlled here.
+      type: string
+      setPref:
+        branch: default
+        pref: extensions.formautofill.creditCards.cvv.supported
+
+autofill-ml:
+  description: Machine-learning based form field detection for autofill
+  owner: dlee@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      description: >-
+        If true, use the ML model instead of the regular expression based
+        heuristics to classify form fields. Has no effect on Android.
+      type: boolean
+      setPref:
+        branch: default
+        pref: extensions.formautofill.useml
+    twoHeadEnabled:
+      type: boolean
+      setPref:
+        branch: default
+        pref: extensions.formautofill.useml.twoHead
+      description: >-
+        If true, classify form fields with the two-engine encoder + fusion head
+        model instead of the single text-classification model.
+    engineTimeoutMS:
+      type: int
+      setPref:
+        branch: default
+        pref: extensions.formautofill.useml.timeoutMS
+      description: >-
+        How long an idle ML autofill engine is kept alive, in milliseconds.
+        Applies to every engine the active classifier creates. -1 means never
+        time out. Defaults to 120000.
+    features:
+      description: >-
+        JSON array of mlData tokenizer feature keys to enable, e.g.
+        ["select_option", "input_attributes"]. Must match the model in use.
+      type: string
+      setPref:
+        branch: default
+        pref: extensions.formautofill.useml.features
+    modelVersion:
+      description: >-
+        Pin the ML model revision to load. Empty keeps the Remote Settings default.
+      type: string
+      setPref:
+        branch: default
+        pref: extensions.formautofill.useml.modelVersion
+
+# Deliberately a feature of its own rather than a variable of autofill-ml: a
+# field type that turns out to be badly classified needs a rollout of its own,
+# and Nimbus allows a single enrollment per feature.
+autofill-ml-ignore-field-types:
+  description: Field types excluded from machine-learning based form field detection
+  owner: dlee@mozilla.com
+  hasExposure: false
+  variables:
+    ignoreFieldTypes:
+      type: string
+      setPref:
+        branch: default
+        pref: extensions.formautofill.useml.ignoreFieldTypes
+      description: >-
+        Comma separated list of field types (for example
+        "cc-exp, cc-exp-month, cc-exp-year"; spaces after the commas are
+        ignored) the ML model is not trusted with. Those types are classified
+        by the regular expression based heuristics instead, and any prediction
+        the model makes for one of them is discarded. List related field types
+        together, as in the example: the heuristics only try the rules of the
+        listed types, so leaving one out can let a broader rule win over the
+        more specific one it would normally lose to.
 
 shellService:
   description: "Interface with OS, e.g., pinning and set default"
@@ -2389,6 +2589,14 @@ pdfjs:
       setPref:
         branch: default
         pref: pdfjs.enableSignatureEditor
+    enableSignatureVerification:
+      description: >-
+        Set to true to enable digital signature verification, which validates a
+        PDF's signatures against NSS and exposes the certificate viewer.
+      type: boolean
+      setPref:
+        branch: default
+        pref: pdfjs.enableSignatureVerification
 
 fxms-message:
   description: A messaging channel that supports multiple simultaneous enrollments
@@ -2736,6 +2944,19 @@ pbNewtab:
     uri: "chrome://browser/content/asrouter/schemas/MessagingExperiment.schema.json"
     path: "browser/components/asrouter/content-src/schemas/MessagingExperiment.schema.json"
   variables: {}
+
+privateWindowRedesign:
+  description: "Experimental features for the private browsing window redesign"
+  owner: omc-core@mozilla.com
+  hasExposure: false
+  variables:
+    pbwRedesignGate:
+      type: boolean
+      setPref:
+        branch: default
+        pref: "browser.privateWindowRedesign.enabled"
+      description: >-
+        Enables the new private browsing window redesign, including updated styling, promotions, animation and other visual improvements.
 
 backgroundTaskMessage:
   description: "A Firefox Messaging System message for the background task message channel"
@@ -3117,6 +3338,12 @@ networking:
       setPref:
         branch: default
         pref: "network.dnsCacheExpirationGracePeriod"
+    dnsNegativeCacheExpiration:
+      description: Lifetime (in seconds) of a negative (failed/empty) DNS cache entry.
+      type: int
+      setPref:
+        branch: default
+        pref: "network.dnsNegativeCacheExpiration"
     http3UseNSPRForIO:
       description: true by default using legacy UDP IO via NSPR. When set to false, uses new UDP IO via Fast UDP for Firefox project.
       type: boolean
@@ -3292,6 +3519,12 @@ localNetworkAccess:
       setPref:
         branch: default
         pref: "network.lna.enabled"
+    blockInsecureContexts:
+      description: Whether LNA requests from insecure contexts should be blocked outright, without prompting the user for permission.
+      type: boolean
+      setPref:
+        branch: default
+        pref: "network.lna.block_insecure_contexts"
 
 essentialFallbackDomains:
   description: "Whether to retry failing system requests with a backup domain"
@@ -3994,40 +4227,6 @@ legacyHeartbeat:
       type: json
       description: The Heartbeat survey parameters.
 
-queryStripping:
-  description: Query parameter stripping anti-tracking feature.
-  owner: emz@mozilla.com
-  hasExposure: false
-  variables:
-    enabledNormalBrowsing:
-      type: boolean
-      setPref:
-        branch: default
-        pref: privacy.query_stripping.enabled
-      description: Enables / disables URL query string stripping in normal browsing mode.
-    enabledPrivateBrowsing:
-      type: boolean
-      setPref:
-        branch: default
-        pref: privacy.query_stripping.enabled.pbmode
-      description: Enables / disables URL query string stripping in private browsing mode.
-    allowList:
-      type: string
-      setPref:
-        branch: default
-        pref: privacy.query_stripping.allow_list
-      description: >-
-        List of sites exempt from query stripping. This list will be merged with
-        records coming from RemoteSettings.
-    stripList:
-      type: string
-      setPref:
-        branch: default
-        pref: privacy.query_stripping.strip_list
-      description: >-
-        List of query params to be stripped from URIs. This list will be merged
-        with records coming from RemoteSettings.
-
 fingerprintingProtection:
   description: Control Fingerprinting Protection
   owner: tihuang@mozilla.com
@@ -4661,66 +4860,6 @@ bookmarks:
         pref: browser.toolbars.bookmarks.showOtherBookmarks
       description: Display state of the "Other Bookmarks" toolbar button.
 
-cookieBannerHandling:
-  description: Automatically handle cookie banners on the user's behalf.
-  owner: emz@mozilla.com
-  hasExposure: false
-  variables:
-    modeNormalBrowsing:
-      type: int
-      setPref:
-        branch: default
-        pref: cookiebanners.service.mode
-      description: >-
-        Controls the cookie banner handling mode in normal browsing.
-        Values: 0 - disabled, 1 - reject all, 2 - reject all with accept all fallback.
-    modePrivateBrowsing:
-      type: int
-      setPref:
-        branch: default
-        pref: cookiebanners.service.mode.privateBrowsing
-      description: >-
-        Controls the cookie banner handling mode in private browsing.
-        Values: 0 - disabled, 1 - reject all, 2 - reject all with accept all fallback.
-    enableGlobalRules:
-      type: boolean
-      setPref:
-        branch: default
-        pref: cookiebanners.service.enableGlobalRules
-      description: >-
-        Enables use of global CookieBannerRules, which apply to all sites.
-        This enables handling of CMPs across sites without the use of site-specific rules.
-    enableGlobalRulesSubFrames:
-      type: boolean
-      setPref:
-        branch: default
-        pref: cookiebanners.service.enableGlobalRules.subFrames
-      description: >-
-        Whether global rules are allowed to run in sub-frames. Running query
-        selectors in every sub-frame may negatively impact performance, but is
-        required for some CMPs.
-    enableDetectOnly:
-      type: boolean
-      setPref:
-        branch: default
-        pref: cookiebanners.service.detectOnly
-      description: >-
-        When set to true, cookie banners are detected and detection events are
-        dispatched, but they will not be handled.
-        This pref applies to both normal and private browsing windows.
-    enablePromo:
-      type: boolean
-      setPref:
-        branch: default
-        pref: browser.promo.cookiebanners.enabled
-      description: Enables the cookie banner promo in about:privatebrowsing.
-    enableDesktopFeatureCallout:
-      type: boolean
-      setPref:
-        branch: default
-        pref: cookiebanners.ui.desktop.showCallout
-      description: Enables the cookie banner feature callout on desktop.
-
 backgroundThreads:
   description: Prefs to control MacOS thread priorities for power savings.
   owner: kwright@mozilla.com
@@ -4741,36 +4880,6 @@ backgroundThreads:
       setPref:
         branch: user
         pref: threads.lower_mainthread_priority_in_background.enabled
-
-reportBrokenSite:
-  description: The Report Broken Site feature
-  owner: twisniewski@mozilla.com
-  hasExposure: false
-  variables:
-    enabled:
-      type: boolean
-      setPref:
-        branch: user
-        pref: ui.new-webcompat-reporter.enabled
-      description: >-
-        Whether Report Broken Site is enabled
-    sendMoreInfo:
-      type: boolean
-      setPref:
-        branch: user
-        pref: ui.new-webcompat-reporter.send-more-info-link
-      description: >-
-        Whether Report Broken Site shows the send more info link directing
-        users to webcompat.com (defaults to true for prerelease channels)
-    reasonDropdown:
-      type: int
-      setPref:
-        branch: user
-        pref: ui.new-webcompat-reporter.reason-dropdown
-      description: >-
-        0 = do not show the "reason" dropdown
-        1 = show an optional "reason" dropdown
-        2 = show a required "reason" dropdown
 
 phc:
   description: Prefs to control the Probabalistic Heap Checker (PHC)
@@ -5050,13 +5159,6 @@ pqcrypto:
         pref: network.http.http3.enable_kyber
       description: >-
         Whether to enable mlkem768x25519 for H3/QUIC.
-    sendP256:
-      type: boolean
-      setPref:
-        branch: default
-        pref: security.tls.client_hello.send_p256_keyshare
-      description: >-
-        Whether to send a P256 share in the client hello in QUIC and TLS.
     dtlsWebRTCEnableMlkem:
       type: boolean
       setPref:
@@ -5416,15 +5518,6 @@ smartblockEmbeds:
         pref: extensions.webcompat.smartblockEmbeds.enabled
       description: >-
         Controls whether smartblock embed placeholders and protections panel toggles will be shown to the user.
-
-selectableProfiles:
-  description: "Multiple profile management using selectableProfileService"
-  owner: jhirsch@mozilla.com
-  hasExposure: false
-  variables:
-    enabled:
-      type: boolean
-      description: Enables the multiple profiles feature when true. Turning off this variable will not disable the feature.
 
 storageAccessHeuristics:
   description: Heuristics that grant cookie access automatically for foreign resources
@@ -5802,12 +5895,6 @@ xpcom:
   owner: tthorne@mozilla.com
   hasExposure: false
   variables:
-    idle_period_cross_process_scheduling:
-      description: Whether Firefox allows background processes to use idle time to schedule and run tasks.
-      type: boolean
-      setPref:
-        branch: user
-        pref: "idle_period.cross_process_scheduling"
     low_commit_space_threshold_mb:
       description: if defined(XP_WIN) || defined(XP_LINUX) - notify TabUnloader or send the memory pressure if the memory resource notification is signaled AND the available commit space is lower than this value.
       type: int
@@ -6045,6 +6132,47 @@ smartWindow:
       description: >-
         If true, Firefox opens as a Smart Window by default on startup for
         eligible users. Set to false (or unenroll) to disable the rollout.
+    hiddenOnboardingScreenIds:
+      type: string
+      fallbackPref: browser.smartwindow.firstrun.hiddenOnboardingScreenIds
+      description: >-
+        Comma-separated list of screen ids that should be hidden in the Smart
+        Window first run onboarding.
+
+smartWindowAgentWatch:
+  description: >-
+    Controls the Smart Window agent watch feature - whether users can create a
+    watch task (a task that monitors a page for changes). This gates the capability
+    itself, including its "/watch" command palette entry. Existing Smart Window
+    eligibility checks still apply.
+  owner: yjamora@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: default
+        pref: browser.smartwindow.agent.enabled
+      description: >-
+        Enables the Smart Window Agent Watch feature when true. Set to false
+        to disable the rollout.
+    supportedRegions:
+      type: string
+      setPref:
+        branch: default
+        pref: browser.smartwindow.agent.supportedRegions
+      description: >-
+        Comma-separated list of region codes where the agent watch command is
+        available, for example "US,CA".
+    monitorAnnouncement:
+      type: boolean
+      setPref:
+        branch: default
+        pref: browser.smartwindow.agent.monitorAnnouncement
+      description: >-
+        Announces the agent monitor feature as new with a dot on its toolbar
+        button, until the user opens the panel or the rollout ends. Independent
+        of the dot that marks a task whose condition was met.
 
 contentSharing:
   description: Controls the content sharing feature, which allows users to share browser content.
@@ -6063,6 +6191,30 @@ contentSharing:
         branch: default
         pref: browser.contentsharing.server.url
       description: The URL of the content sharing server.
+
+urlbarShareButton:
+  description: Controls the share button in the url bar.
+  owner: nbaumgardner@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: default
+        pref: browser.urlbar.share-button.enabled
+      description: Whether the share button in the url bar is visible.
+
+referrals:
+  description: Controls the Firefox referral program.
+  owner: nbarrett@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: default
+        pref: browser.referrals.enabled
+      description: Whether the referral program is enabled.
 
 webNotificationsPermissionUi:
   description: >-
@@ -6106,9 +6258,17 @@ webNotificationsPermissionUi:
     logoUrl:
       type: string
       description: >-
-        Optional logo URL used as the prompt's icon. Must be a chrome://,
-        resource:// or https:// URL; any other scheme is rejected and the
-        default icon is shown.
+        Optional logo URL used as the prompt's icon. Must be a chrome:// or
+        resource:// URL; any other scheme is rejected and the default icon is
+        shown.
+    useSiteFavicon:
+      type: boolean
+      description: >-
+        When true, use the requesting site's own favicon as the prompt icon
+        (no logoUrl needed). Prefers the site's cached favicon and falls back to
+        the tab's currently loaded icon (so it still shows on a first-time
+        private-browsing visit), or the default favicon if neither is available.
+        Ignored when a valid logoUrl is set.
     activationTargeting:
       type: string
       description: >-
@@ -6141,3 +6301,27 @@ webNotificationsPermissionUi:
         Fluent message id for the (Always) Block button, resolved in-tree.
         Takes precedence over secondaryCtaLabel; its .accesskey attribute, if
         present, sets the access key. Not applied in private browsing.
+
+editContext:
+  description: EditContext API
+  owner: ltenenbaum@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: default
+        pref: dom.editcontext.enabled
+      description: Whether the EditContext API is enabled.
+
+nova:
+  description: Nova UI
+  owner: dtownsend@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: default
+        pref: browser.nova.enabled
+      description: Whether Nova is enabled.

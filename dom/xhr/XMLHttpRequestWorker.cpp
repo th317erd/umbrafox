@@ -2098,6 +2098,15 @@ void XMLHttpRequestWorker::Abort(ErrorResult& aRv) {
   WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
   RefPtr<AbortRunnable> runnable = new AbortRunnable(workerPrivate, mProxy);
   runnable->Dispatch(workerPrivate, Canceling, aRv);
+  if (aRv.Failed()) {
+    return;
+  }
+
+  // Dispatch() spun the event loop, so we may have been canceled and released.
+  if (!mProxy) {
+    MOZ_LOG(gXMLHttpRequestLog, LogLevel::Debug, ("Abort(no proxy)"));
+    return;
+  }
 
   // Spec step 2
   if ((mStateData->mReadyState == XMLHttpRequest_Binding::OPENED &&
@@ -2142,7 +2151,7 @@ void XMLHttpRequestWorker::GetResponseHeader(const nsACString& aHeader,
   if (aRv.Failed()) {
     return;
   }
-  aResponseHeader = responseHeader;
+  aResponseHeader = std::move(responseHeader);
 }
 
 void XMLHttpRequestWorker::GetAllResponseHeaders(nsACString& aResponseHeaders,
@@ -2169,7 +2178,7 @@ void XMLHttpRequestWorker::GetAllResponseHeaders(nsACString& aResponseHeaders,
     return;
   }
 
-  aResponseHeaders = responseHeaders;
+  aResponseHeaders = std::move(responseHeaders);
 }
 
 void XMLHttpRequestWorker::OverrideMimeType(const nsAString& aMimeType,

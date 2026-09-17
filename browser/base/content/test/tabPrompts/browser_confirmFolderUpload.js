@@ -56,7 +56,7 @@ add_setup(async function () {
  * @returns {Promise} - Resolves once the prompt has been closed.
  */
 async function testUploadPrompt(confirmUpload) {
-  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+  // eslint-disable-next-line sdl/no-insecure-url
   await BrowserTestUtils.withNewTab("http://example.com", async browser => {
     // Create file input element
     await SpecialPowers.spawn(browser, [], () => {
@@ -152,12 +152,6 @@ async function testUploadPrompt(confirmUpload) {
     });
   });
 }
-
-add_setup(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["test.wait300msAfterTabSwitch", true]],
-  });
-});
 
 // Tests the confirmation prompt that shows after the user picked a folder.
 

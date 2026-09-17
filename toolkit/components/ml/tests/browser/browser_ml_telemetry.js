@@ -273,9 +273,9 @@ add_task(async function test_model_download_telemetry_success() {
 
   await createEngine({
     engineId: "main",
-    taskName: "real-wllama-text-generation",
+    taskName: "real-llama-text-generation",
     featureId: "link-preview",
-    backend: "wllama",
+    backend: "llama.cpp",
     modelId: "acme/bert",
     modelHubUrlTemplate: "{model}/resolve/{revision}",
     modelRevision: "v0.1",
@@ -344,9 +344,9 @@ add_task(async function test_model_download_telemetry_fail() {
   await EngineProcess.destroyMLEngine();
   await createEngine({
     engineId: "main",
-    taskName: "real-wllama-text-generation",
+    taskName: "real-llama-text-generation",
     featureId: "link-preview",
-    backend: "wllama",
+    backend: "llama.cpp",
     modelId: "acme-not-found/bert",
     modelHubUrlTemplate: "{model}/resolve/{revision}",
     modelRevision: "v0.1",
@@ -403,9 +403,9 @@ add_task(async function test_model_download_telemetry_mixed() {
 
   await createEngine({
     engineId: "main",
-    taskName: "real-wllama-text-generation",
+    taskName: "real-llama-text-generation",
     featureId: "link-preview",
-    backend: "wllama",
+    backend: "llama.cpp",
     modelId: "acme/bert",
     modelHubUrlTemplate: "{model}/resolve/{revision}",
     modelRevision: "v0.4",
@@ -438,6 +438,61 @@ add_task(async function test_model_download_telemetry_mixed() {
 
   wasmBufferStub.restore();
   promiseStub.restore();
+});
+
+/**
+ * Check that downloads started through the model hub service, which native
+ * callers use, are attributed to the task that asked for them.
+ */
+add_task(async function test_model_hub_service_download_attribution() {
+  Services.env.set("MOZ_ALLOW_EXTERNAL_ML_HUB", "true");
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [
+        "browser.ml.modelHubRootUrl",
+        "chrome://mochitests/content/browser/toolkit/components/ml/tests/browser/data",
+      ],
+      ["browser.ml.modelHubUrlTemplate", "{model}/resolve/{revision}"],
+    ],
+  });
+  await IndexedDBCache.init({ reset: true });
+
+  let initialModelDownloadsCount =
+    Glean.firefoxAiRuntime.modelDownload.testGetValue()?.length || 0;
+
+  let hub = Cc["@mozilla.org/ml-modelhub;1"].getService(Ci.nsIMLModelHub);
+  await new Promise((resolve, reject) => {
+    hub.downloadModel(
+      "main",
+      "speech-recognition",
+      "acme/bert",
+      "v0.1",
+      ["onnx/config.json"],
+      "progress-token",
+      null,
+      {
+        QueryInterface: ChromeUtils.generateQI([
+          "nsIMLModelDownloadCompletionCallback",
+        ]),
+        onSuccess: resolve,
+        onError: reject,
+      }
+    );
+  });
+
+  let observed = Glean.firefoxAiRuntime.modelDownload
+    .testGetValue()
+    .slice(initialModelDownloadsCount);
+
+  Assert.greater(observed.length, 0, "The download was measured");
+  Assert.deepEqual(
+    Array.from(new Set(observed.map(obj => obj.extra.featureId))),
+    ["speech-recognition"],
+    "Every step of the download is attributed to the task that asked for it"
+  );
+
+  await IndexedDBCache.init({ reset: true });
+  await SpecialPowers.popPrefEnv();
 });
 
 function getLastEvent(gleanMetric) {

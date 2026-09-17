@@ -15,6 +15,8 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
@@ -25,6 +27,7 @@ import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.mediasession.MediaSession.PlaybackState.PAUSED
 import mozilla.components.concept.engine.mediasession.MediaSession.PlaybackState.PLAYING
+import mozilla.components.feature.media.ext.MS_PER_SECOND
 import mozilla.components.feature.media.ext.getArtistOrUrl
 import mozilla.components.feature.media.ext.getNonPrivateIcon
 import mozilla.components.feature.media.ext.getTitleOrUrl
@@ -44,8 +47,6 @@ import mozilla.components.support.base.ids.SharedIdsHelper
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.utils.ext.registerReceiverCompat
 import mozilla.components.support.utils.ext.stopForegroundCompat
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.EmptyCoroutineContext
 
 @VisibleForTesting
 internal class BecomingNoisyReceiver(private val controller: MediaSession.Controller?) : BroadcastReceiver() {
@@ -77,41 +78,42 @@ internal class MediaSessionServiceDelegate(
 ) : MediaSessionDelegate {
     private val logger = Logger("MediaSessionService")
 
-    @VisibleForTesting
-    internal var notificationHelper = MediaNotification(context, service::class.java)
+    @VisibleForTesting internal var notificationHelper = MediaNotification(context, service::class.java)
+
+    @VisibleForTesting internal var mediaSession = MediaSessionCompat(context, "MozacMediaSession")
 
     @VisibleForTesting
-    internal var mediaSession = MediaSessionCompat(context, "MozacMediaSession")
-
-    @VisibleForTesting
-    internal var audioFocus = AudioFocus(
-        context.getSystemService(Context.AUDIO_SERVICE) as AudioManager,
-        store,
-        onTransientFocusLoss = { isTransientAudioFocusLoss = it },
-    )
+    internal var audioFocus =
+        AudioFocus(
+            context.getSystemService(Context.AUDIO_SERVICE) as AudioManager,
+            store,
+            onTransientFocusLoss = { isTransientAudioFocusLoss = it },
+        )
 
     @VisibleForTesting
     internal val notificationId by lazy {
         SharedIdsHelper.getIdForTag(context, AbstractMediaSessionService.NOTIFICATION_TAG)
     }
 
-    @VisibleForTesting
-    internal var controller: MediaSession.Controller? = null
+    @VisibleForTesting internal var controller: MediaSession.Controller? = null
 
-    @VisibleForTesting
-    internal var notificationScope: CoroutineScope? = null
+    @VisibleForTesting internal var notificationScope: CoroutineScope? = null
 
-    @VisibleForTesting
-    internal val intentFilter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+    @VisibleForTesting internal val intentFilter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
 
-    @VisibleForTesting
-    internal var noisyAudioStreamReceiver: BecomingNoisyReceiver? = null
+    @VisibleForTesting internal var noisyAudioStreamReceiver: BecomingNoisyReceiver? = null
 
-    @VisibleForTesting
-    internal var isForegroundService: Boolean = false
+    @VisibleForTesting internal var isForegroundService: Boolean = false
 
-    @VisibleForTesting
-    internal var isTransientAudioFocusLoss: Boolean = false
+    @VisibleForTesting internal var isTransientAudioFocusLoss: Boolean = false
+
+    // On a track change the page often keeps reporting the previous track's positionState for a
+    // short while before pushing a fresh one. While that stale value persists we report a position
+    // of 0 instead of the outgoing track's position. hasTrackedMedia lets the very first update
+    // through, where a non-zero start position is legitimate.
+    private var hasTrackedMedia: Boolean = false
+    private var lastTitle: String? = null
+    private var stalePositionState: MediaSession.PositionState? = null
 
     fun onCreate() {
         logger.debug("Service created")
@@ -172,8 +174,7 @@ internal class MediaSessionServiceDelegate(
             // silently returns AUDIOFOCUS_REQUEST_FAILED.
             audioFocus.request(
                 sessionState.id,
-                sessionState.mediaSessionState?.audioSessionType
-                    ?: MediaSession.AudioSessionType.AUTO,
+                sessionState.mediaSessionState?.audioSessionType ?: MediaSession.AudioSessionType.AUTO,
             )
             updateNotification(sessionState)
         } else {
@@ -224,7 +225,8 @@ internal class MediaSessionServiceDelegate(
     internal fun updateNotification(sessionState: SessionState) {
         notificationScope?.launch {
             when (sessionState.mediaSessionState?.playbackState) {
-                PLAYING, PAUSED -> {
+                PLAYING,
+                PAUSED -> {
                     val notification = notificationHelper.create(sessionState, mediaSession)
                     notificationsDelegate.notify(
                         notificationId = notificationId,
@@ -249,10 +251,7 @@ internal class MediaSessionServiceDelegate(
             try {
                 service.startForeground(notificationId, notification)
             } catch (e: Exception) {
-                if (
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                    e is ForegroundServiceStartNotAllowedException
-                ) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && e is ForegroundServiceStartNotAllowedException) {
                     // We should not encounter this exception if `android:foregroundServiceType="mediaPlayback"`
                     // is added to the service. The crash reporter loses the stack trace for this
                     // exception so we want to be able to track this crash independently to ensure
@@ -271,31 +270,57 @@ internal class MediaSessionServiceDelegate(
             // the Android 15+ requirement that audio focus requests must come from an app that
             // is either visible or running a foreground service with WIU (While In Use)
             // capabilities, i.e. one that was started while the app was visible to the user.
-            audioFocus.request(sessionState.id)
+            audioFocus.request(
+                sessionState.id,
+                sessionState.mediaSessionState?.audioSessionType ?: MediaSession.AudioSessionType.AUTO,
+            )
         }
     }
 
     @VisibleForTesting
     internal fun updateMediaSession(sessionState: SessionState) {
-        mediaSession.setPlaybackState(sessionState.mediaSessionState?.toPlaybackState())
+        val mss = sessionState.mediaSessionState
+
+        val newTitle = mss?.metadata?.title
+        val currentPositionState = mss?.positionState
+        if (hasTrackedMedia && newTitle != lastTitle) {
+            stalePositionState = currentPositionState
+        }
+        hasTrackedMedia = true
+        lastTitle = newTitle
+        val resetPosition: Boolean =
+            if (stalePositionState != null && currentPositionState == stalePositionState) {
+                true
+            } else {
+                stalePositionState = null
+                false
+            }
+
+        mediaSession.setPlaybackState(mss?.toPlaybackState(resetPosition))
         mediaSession.isActive = true
+        val duration =
+            mss?.positionState?.duration?.takeIf { it > 0 } ?: mss?.elementMetadata?.duration?.takeIf { it > 0 }
+        val durationMs = duration?.times(MS_PER_SECOND)?.toLong() ?: -1L
         notificationScope?.launch {
             mediaSession.setMetadata(
                 MediaMetadataCompat.Builder()
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_TITLE,
-                        sessionState.getTitleOrUrl(context, sessionState.mediaSessionState?.metadata?.title),
+                        sessionState.getTitleOrUrl(context, mss?.metadata?.title),
                     )
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_ARTIST,
-                        sessionState.getArtistOrUrl(sessionState.mediaSessionState?.metadata?.artist),
+                        sessionState.getArtistOrUrl(mss?.metadata?.artist),
                     )
                     .putBitmap(
                         MediaMetadataCompat.METADATA_KEY_ART,
-                        sessionState.getNonPrivateIcon(sessionState.mediaSessionState?.metadata?.getArtwork),
+                        sessionState.getNonPrivateIcon(mss?.metadata?.getArtwork),
                     )
-                    .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, -1)
-                    .build(),
+                    .putLong(
+                        MediaMetadataCompat.METADATA_KEY_DURATION,
+                        durationMs,
+                    )
+                    .build()
             )
         }
     }

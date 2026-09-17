@@ -101,7 +101,6 @@ Preferences.addAll([
 
   // Browser layout
   { id: "sidebar.verticalTabs", type: "bool" },
-  { id: "sidebar.revamp", type: "bool" },
 ]);
 
 if (lazy.AppConstants.platform === "win") {
@@ -277,6 +276,8 @@ Preferences.addSetting({
 Preferences.addSetting({
   id: "tabGroupDragToCreate",
   pref: "browser.tabs.dragDrop.createGroup.enabled",
+  deps: ["tabGroups"],
+  visible: ({ tabGroups }) => !!tabGroups.value,
 });
 if (lazy.AppConstants.platform === "win") {
   /**
@@ -559,18 +560,6 @@ Preferences.addSetting({
   set: value => value === "true",
 });
 
-Preferences.addSetting({
-  id: "browserLayoutShowSidebar",
-  pref: "sidebar.revamp",
-  onUserChange(checked) {
-    if (checked) {
-      window.browsingContext.topChromeWindow.SidebarController?.enabledViaSettings(
-        true
-      );
-    }
-  },
-});
-
 SettingGroupManager.registerGroups({
   browserLayout: {
     subcategory: "layout",
@@ -603,10 +592,6 @@ SettingGroupManager.registerGroups({
             },
           },
         ],
-      },
-      {
-        id: "browserLayoutShowSidebar",
-        l10nId: "browser-layout-show-sidebar2",
       },
     ],
   },
@@ -786,7 +771,7 @@ SettingGroupManager.registerGroups({
   recommendations: {
     l10nId: "recommendations-group",
     headingLevel: 2,
-    iconSrc: "chrome://browser/skin/trending.svg",
+    iconSrc: "chrome://browser/skin/lightning-bolt.svg",
     items: [
       {
         id: "cfrRecommendations",

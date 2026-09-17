@@ -1057,6 +1057,16 @@ ImageTestCase LargeJXLTestCase() {
                        TEST_CASE_IGNORE_OUTPUT);
 }
 
+// The pixels of large.jxl, as a known good jxl-rs decodes them, in a lossless
+// format some other decoder can read back exactly. Matches libjxl's decode to
+// within 1 per channel, the two dithering 8-bit output differently. Regenerate
+// with `jxl_cli --data-type u8 large.jxl ref.png` and `cwebp -z 9 ref.png -o
+// large-jxl-reference.webp`.
+ImageTestCase LargeJXLReferenceWebPTestCase() {
+  return ImageTestCase("large-jxl-reference.webp", "image/webp",
+                       IntSize(1200, 660), TEST_CASE_IGNORE_OUTPUT);
+}
+
 ImageTestCase TransparentJXLTestCase() {
   auto testCase = ImageTestCase("transparent.jxl", "image/jxl",
                                 IntSize(100, 100), TEST_CASE_IS_TRANSPARENT);
@@ -1087,10 +1097,28 @@ ImageTestCase PerfRgbAlphaLossyJXLTestCase() {
   return ImageTestCase("perf_srgb_alpha_lossy.jxl", "image/jxl",
                        IntSize(1000, 1000), TEST_CASE_IS_TRANSPARENT);
 }
+
+// Progressive (multi-pass) lossy RGBA encoding spanning more than one
+// 256px coded group; regression test for bug 2054317 (a group's already-
+// finalized modular alpha buffer being incorrectly re-flushed once later
+// passes for the same group arrive).
+ImageTestCase ProgressiveAlphaMultiGroupJXLTestCase() {
+  return ImageTestCase("progressive_alpha_multigroup.jxl", "image/jxl",
+                       IntSize(257, 64),
+                       TEST_CASE_IGNORE_OUTPUT | TEST_CASE_IS_TRANSPARENT);
+}
 #endif
 
 ImageTestCase ExifResolutionTestCase() {
   return ImageTestCase("exif_resolution.jpg", "image/jpeg", IntSize(100, 50));
+}
+
+ImageTestCase ExifOrientationDownscaleJPGTestCase() {
+  // EXIF orientation 6 (rotate 90 CW): stored 48x160, oriented 160x48. The
+  // 8x32 output is a non-aspect-preserving downscale exercising libjpeg-turbo
+  // IDCT scale-factor selection across the orientation axis swap (bug 2033250).
+  return ImageTestCase("green-exif-orient6.jpg", "image/jpeg", IntSize(160, 48),
+                       IntSize(8, 32), TEST_CASE_IS_FUZZY);
 }
 
 RefPtr<Image> TestCaseToDecodedImage(const ImageTestCase& aTestCase) {

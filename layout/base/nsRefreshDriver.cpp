@@ -1443,19 +1443,7 @@ nsRefreshDriver::nsRefreshDriver(nsPresContext* aPresContext)
       mFreezeCount(0),
       mThrottledFrameRequestInterval(
           TimeDuration::FromMilliseconds(GetThrottledTimerInterval())),
-      mMinRecomputeVisibilityInterval(GetMinRecomputeVisibilityInterval()),
-      mThrottled(false),
-      mNeedToRecomputeVisibility(false),
-      mTestControllingRefreshes(false),
-      mInRefresh(false),
-      mWaitingForTransaction(false),
-      mSkippedPaints(false),
-      mResizeSuppressed(false),
-      mInNormalTick(false),
-      mAttemptedExtraTickSinceLastVsync(false),
-      mHasExceededAfterLoadTickPeriod(false),
-      mHasImageAnimations(false),
-      mHasStartedTimerAtLeastOnce(false) {
+      mMinRecomputeVisibilityInterval(GetMinRecomputeVisibilityInterval()) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mPresContext,
              "Need a pres context to tell us to call Disconnect() later "
@@ -1849,6 +1837,14 @@ void nsRefreshDriver::EnsureTimerStarted(EnsureTimerStartedFlags aFlags) {
   if (mMostRecentRefresh != mActiveTimer->MostRecentRefresh()) {
     mMostRecentRefresh = mActiveTimer->MostRecentRefresh();
   }
+}
+
+void nsRefreshDriver::NotifyWidgetAttached() {
+  if (mOwnTimer || !mActiveTimer) {
+    return;
+  }
+  // We might get a widget timer now, if we have a timer ticking.
+  EnsureTimerStarted(eForceAdjustTimer);
 }
 
 void nsRefreshDriver::StopTimer() {

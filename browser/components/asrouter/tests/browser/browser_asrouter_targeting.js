@@ -11,23 +11,34 @@ ChromeUtils.defineESModuleGetters(this, {
   BrowserInitState: "resource:///modules/BrowserGlue.sys.mjs",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   BuiltInThemes: "resource:///modules/BuiltInThemes.sys.mjs",
-  CFRMessageProvider: "resource:///modules/asrouter/CFRMessageProvider.sys.mjs",
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  FormHistory: "resource://gre/modules/FormHistory.sys.mjs",
   FxAccounts: "resource://gre/modules/FxAccounts.sys.mjs",
   HomePage: "resource:///modules/HomePage.sys.mjs",
   InfoBar: "resource:///modules/asrouter/InfoBar.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusTestUtils: "resource://testing-common/NimbusTestUtils.sys.mjs",
+  OnboardingMessageProvider:
+    "resource:///modules/asrouter/OnboardingMessageProvider.sys.mjs",
+  PanelTestProvider: "resource:///modules/asrouter/PanelTestProvider.sys.mjs",
+  PermissionTestUtils: "resource://testing-common/PermissionTestUtils.sys.mjs",
   PlacesTestUtils: "resource://testing-common/PlacesTestUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   ProfileAge: "resource://gre/modules/ProfileAge.sys.mjs",
   QueryCache: "resource:///modules/asrouter/ASRouterTargeting.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
+  ReinstallCheck: "moz-src:///browser/components/ReinstallCheck.sys.mjs",
+  ResetProfile: "resource://gre/modules/ResetProfile.sys.mjs",
   SearchService: "moz-src:///toolkit/components/search/SearchService.sys.mjs",
+  DEFAULT_FORM_HISTORY_PARAM:
+    "moz-src:///toolkit/components/search/SearchSuggestionController.sys.mjs",
   SelectableProfileService:
     "resource:///modules/profiles/SelectableProfileService.sys.mjs",
+  SessionStartup:
+    "moz-src:///browser/components/sessionstore/SessionStartup.sys.mjs",
   ShellService: "moz-src:///browser/components/shell/ShellService.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
   Spotlight: "resource:///modules/asrouter/Spotlight.sys.mjs",
@@ -91,12 +102,12 @@ const testCrashDumpFiles = [
   {
     path: "/path/to/crash1.dmp",
     id: "crash1",
-    date: new Date(2026, 1, 1).getTime(), // Feb 1, 2026
+    date: Date.now() - 30 * 24 * 60 * 60 * 1000, // 30 days ago
   },
   {
     path: "/path/to/crash2.dmp",
     id: "crash2",
-    date: new Date(2026, 2, 1).getTime(), // Mar 1, 2026
+    date: Date.now() - 30 * 24 * 60 * 60 * 1000, // 30 days ago
   },
   {
     path: "/path/to/crash3.dmp",
@@ -353,6 +364,83 @@ add_task(async function check_canCreateSelectableProfiles() {
   await SpecialPowers.popPrefEnv();
 });
 
+add_task(async function check_canResetProfile() {
+  const sandbox = sinon.createSandbox();
+  const resetSupported = sandbox.stub(ResetProfile, "resetSupported");
+
+  resetSupported.returns(true);
+  is(
+    await ASRouterTargeting.Environment.canResetProfile,
+    true,
+    "should be true when the profile supports being reset"
+  );
+
+  const message = { id: "foo", targeting: "canResetProfile" };
+  is(
+    await ASRouterTargeting.findMatchingMessage({ messages: [message] }),
+    message,
+    "should select the right item by canResetProfile"
+  );
+
+  resetSupported.returns(false);
+  is(
+    await ASRouterTargeting.Environment.canResetProfile,
+    false,
+    "should be false when the profile doesn't support being reset"
+  );
+
+  sandbox.restore();
+});
+
+add_task(async function check_profileLastUse() {
+  is(
+    await ASRouterTargeting.Environment.profileLastUse,
+    Math.max(
+      Services.appinfo.replacedLockTime,
+      Services.prefs.userPrefsFileLastModifiedAtStartup
+    ),
+    "should be the most recent lock file and prefs.js timestamps"
+  );
+
+  const message = {
+    id: "foo",
+    targeting: "profileLastUse <= currentDate|date",
+  };
+  is(
+    await ASRouterTargeting.findMatchingMessage({ messages: [message] }),
+    message,
+    "should select correct item by profileLastUse"
+  );
+});
+
+add_task(async function check_isFirefoxReinstalled() {
+  const sandbox = sinon.createSandbox();
+  const wasReinstalled = sandbox.stub(ReinstallCheck, "wasReinstalled");
+
+  wasReinstalled.get(() => true);
+  is(
+    await ASRouterTargeting.Environment.isFirefoxReinstalled,
+    true,
+    "should be true when a reinstall was detected"
+  );
+
+  const message = { id: "foo", targeting: "isFirefoxReinstalled" };
+  is(
+    await ASRouterTargeting.findMatchingMessage({ messages: [message] }),
+    message,
+    "should select correct item by isFirefoxReinstalled"
+  );
+
+  wasReinstalled.get(() => false);
+  is(
+    await ASRouterTargeting.Environment.isFirefoxReinstalled,
+    false,
+    "should be false when no reinstall was detected"
+  );
+
+  sandbox.restore();
+});
+
 add_task(async function check_hasSelectableProfiles() {
   is(
     await ASRouterTargeting.Environment.hasSelectableProfiles,
@@ -507,6 +595,45 @@ add_task(async function check_totalBookmarksCount() {
   await PlacesUtils.bookmarks.remove(bookmark.guid);
 });
 
+add_task(async function check_allowedNotificationOrigins() {
+  const message = { id: "foo", targeting: "allowedNotificationOrigins > 0" };
+
+  ok(
+    !(await ASRouterTargeting.findMatchingMessage({ messages: [message] })),
+    "Should not match when no origin is allowed"
+  );
+
+  PermissionTestUtils.add(
+    "https://example.com",
+    "desktop-notification",
+    Services.perms.DENY_ACTION
+  );
+  ok(
+    !(await ASRouterTargeting.findMatchingMessage({ messages: [message] })),
+    "Should not count a blocked origin"
+  );
+
+  PermissionTestUtils.add(
+    "https://example.org",
+    "desktop-notification",
+    Services.perms.ALLOW_ACTION
+  );
+  is(
+    await ASRouterTargeting.findMatchingMessage({ messages: [message] }),
+    message,
+    "Should match once an origin is allowed"
+  );
+  is(
+    await ASRouterTargeting.Environment.allowedNotificationOrigins,
+    1,
+    "Should count the allowed origin but not the blocked one"
+  );
+
+  // Cleanup
+  PermissionTestUtils.remove("https://example.com", "desktop-notification");
+  PermissionTestUtils.remove("https://example.org", "desktop-notification");
+});
+
 add_task(async function check_needsUpdate() {
   QueryCache.queries.CheckBrowserNeedsUpdate.setUp(true);
 
@@ -595,6 +722,73 @@ add_task(async function checksearchEngines() {
     message3,
     "should select correct item by searchEngines.hasEnteredSearchMode"
   );
+});
+
+add_task(async function check_recentSearchCount() {
+  const FIELDNAME = DEFAULT_FORM_HISTORY_PARAM;
+  const message = { id: "foo", targeting: "recentSearchCount > 2" };
+
+  const clear = () =>
+    FormHistory.update({ op: "remove", fieldname: FIELDNAME });
+  await clear();
+  registerCleanupFunction(clear);
+
+  is(
+    await ASRouterTargeting.Environment.recentSearchCount,
+    0,
+    "recentSearchCount should be 0 with no search history"
+  );
+
+  await FormHistory.update([
+    { op: "bump", fieldname: FIELDNAME, value: "cats" },
+    { op: "bump", fieldname: FIELDNAME, value: "dogs" },
+    { op: "bump", fieldname: FIELDNAME, value: "weather" },
+  ]);
+
+  is(
+    await ASRouterTargeting.Environment.recentSearchCount,
+    3,
+    "recentSearchCount should count the three distinct recent searches"
+  );
+  is(
+    await ASRouterTargeting.findMatchingMessage({ messages: [message] }),
+    message,
+    "Should select message because recentSearchCount > 2"
+  );
+
+  // Since form history dedupes, repeating a term should not increase the count.
+  await FormHistory.update({ op: "bump", fieldname: FIELDNAME, value: "cats" });
+  is(
+    await ASRouterTargeting.Environment.recentSearchCount,
+    3,
+    "Repeated searches of the same term should not increase the count"
+  );
+
+  // Exclude searches outside the recency window (28 days). Use a margin
+  // beyond the window rather than landing exactly on the cutoff, since the
+  // getter computes its own Date.now()-based cutoff a moment later and an
+  // exact boundary value can land on either side of it. The lastUsed time
+  // is in microseconds, so we need to multiply by 1000 to get the correct
+  // time.
+  const RECENT_SEARCH_WINDOW_DAYS = 28;
+  const STALE_MARGIN_DAYS = 1;
+  const oldLastUsed =
+    (Date.now() -
+      (RECENT_SEARCH_WINDOW_DAYS + STALE_MARGIN_DAYS) * 24 * 60 * 60 * 1000) *
+    1000;
+  await FormHistory.update({
+    op: "add",
+    fieldname: FIELDNAME,
+    value: "stale",
+    lastUsed: oldLastUsed,
+  });
+  is(
+    await ASRouterTargeting.Environment.recentSearchCount,
+    3,
+    "Searches older than the recency window should be excluded"
+  );
+
+  await clear();
 });
 
 add_task(async function checkisDefaultBrowser() {
@@ -1504,12 +1698,15 @@ add_task(async function checkPatternMatches() {
 });
 
 add_task(async function checkPatternsValid() {
-  const messages = (await CFRMessageProvider.getMessages()).filter(
-    m => m.trigger?.patterns
-  );
+  const messages = [
+    ...(await OnboardingMessageProvider.getMessages()),
+    ...(await PanelTestProvider.getMessages()),
+  ].filter(m => m.trigger?.patterns);
+
+  Assert.greater(messages.length, 0, "Found messages with trigger patterns");
 
   for (const message of messages) {
-    Assert.ok(new MatchPatternSet(message.trigger.patterns));
+    Assert.ok(new MatchPatternSet(message.trigger.patterns), message.id);
   }
 });
 
@@ -1659,9 +1856,8 @@ add_task(async function check_newTabSettings_webExtension() {
 
 add_task(async function check_openUrlTrigger_context() {
   const message = {
-    ...(await CFRMessageProvider.getMessages()).find(
-      m => m.id === "YOUTUBE_ENHANCE_3"
-    ),
+    id: "check_openUrlTrigger_context",
+    trigger: { id: "openURL", params: ["www.youtube.com", "youtube.com"] },
     targeting: "visitsCount == 3",
   };
   const trigger = {
@@ -2417,7 +2613,7 @@ add_task(
 
 add_task(async function check_activeNotifications_infobar_shown() {
   let message = {
-    ...(await CFRMessageProvider.getMessages()).find(
+    ...(await PanelTestProvider.getMessages()).find(
       m => m.id === "INFOBAR_ACTION_86"
     ),
   };
@@ -2489,10 +2685,6 @@ add_task(async function activeNotifications_default_prompt_shown() {
 
   const win = await BrowserTestUtils.openNewBrowserWindow();
 
-  let visibilityChange = new Promise(res =>
-    win.document.addEventListener("visibilitychange", res, { once: true })
-  );
-
   sb.stub(DefaultBrowserCheck, "willCheckDefaultBrowser").returns(true);
   const promptSpy = sb.spy(DefaultBrowserCheck, "prompt");
 
@@ -2500,15 +2692,31 @@ add_task(async function activeNotifications_default_prompt_shown() {
 
   Assert.equal(promptSpy.callCount, 1, "default prompt should be called");
 
-  // activeNotifications are updated by visibilitychanges, so make sure we get
-  // one before testing it.
-  await visibilityChange;
+  // BrowserGlue doesn't await the prompt, and the dialog only opens after
+  // some some async things happen (eg pin checks, localization), so we should
+  // wait for it to actually be showing in the window that received it
+  const [promptWin] = promptSpy.firstCall.args;
+  await TestUtils.waitForCondition(
+    () => promptWin.gDialogBox?.isOpen,
+    "Waiting for the default browser prompt to open",
+    100,
+    100
+  );
+  // activeNotifications only inspects the top window, so make sure that's the
+  // window showing the prompt.
+  await SimpleTest.promiseFocus(promptWin);
 
   is(
     await ASRouterTargeting.Environment.activeNotifications,
     true,
     "activeNotifications should be true if the set to default prompt is being shown"
   );
+  let dialogClosed = BrowserTestUtils.waitForEvent(
+    promptWin,
+    "DOMModalDialogClosed"
+  );
+  promptWin.gDialogBox.dialog?.close();
+  await dialogClosed;
   await BrowserTestUtils.closeWindow(win);
   sb.restore();
 });
@@ -3106,6 +3314,119 @@ add_task(async function check_daysSinceLastCrash_returnsDaysSinceLastCrash() {
       await ASRouterTargeting.Environment.daysSinceLastCrash,
       10,
       "should return 10 for most recent crash from 10 days ago"
+    );
+  } finally {
+    sandbox.restore();
+  }
+});
+
+add_task(async function check_crashCountInLastDay_noCrashesReturnsZero() {
+  const sandbox = sinon.createSandbox();
+  try {
+    sandbox.stub(QueryCache.getters.crashData, "get").resolves([]);
+    is(
+      await ASRouterTargeting.Environment.crashCountInLastDay,
+      0,
+      "should return 0 for empty crash dumps"
+    );
+  } finally {
+    sandbox.restore();
+  }
+});
+
+add_task(async function check_crashCountInLastDay_onlyCountsRecentCrashes() {
+  const sandbox = sinon.createSandbox();
+  try {
+    sandbox.stub(QueryCache.getters.crashData, "get").resolves([
+      ...testCrashDumpFiles,
+      {
+        path: "/path/to/crash4.dmp",
+        id: "crash4",
+        date: new Date().getTime() - 60 * 60 * 1000,
+      },
+    ]);
+    is(
+      await ASRouterTargeting.Environment.crashCountInLastDay,
+      1,
+      "should only count the crash from within the last 24 hours"
+    );
+  } finally {
+    sandbox.restore();
+  }
+});
+
+add_task(async function check_crashCountInLastWeek_noCrashesReturnsZero() {
+  const sandbox = sinon.createSandbox();
+  try {
+    sandbox.stub(QueryCache.getters.crashData, "get").resolves([]);
+    is(
+      await ASRouterTargeting.Environment.crashCountInLastWeek,
+      0,
+      "should return 0 for empty crash dumps"
+    );
+  } finally {
+    sandbox.restore();
+  }
+});
+
+add_task(async function check_crashCountInLastWeek_onlyCountsRecentCrashes() {
+  const sandbox = sinon.createSandbox();
+  try {
+    sandbox.stub(QueryCache.getters.crashData, "get").resolves([
+      ...testCrashDumpFiles,
+      {
+        path: "/path/to/crash4.dmp",
+        id: "crash4",
+        date: new Date().getTime() - 2 * 24 * 60 * 60 * 1000,
+      },
+      {
+        path: "/path/to/crash5.dmp",
+        id: "crash5",
+        date: new Date().getTime() - 5 * 24 * 60 * 60 * 1000,
+      },
+    ]);
+    is(
+      await ASRouterTargeting.Environment.crashCountInLastWeek,
+      2,
+      "should only count crashes from within the last 7 days"
+    );
+  } finally {
+    sandbox.restore();
+  }
+});
+
+add_task(async function check_previousSessionCrashed() {
+  const sandbox = sinon.createSandbox();
+  try {
+    sandbox.stub(SessionStartup, "previousSessionCrashed").get(() => true);
+    is(
+      ASRouterTargeting.Environment.previousSessionCrashed,
+      true,
+      "should be true when the previous session crashed"
+    );
+
+    const message = {
+      id: "check_previousSessionCrashed",
+      targeting: "previousSessionCrashed",
+    };
+    is(
+      (await ASRouterTargeting.findMatchingMessage({ messages: [message] }))
+        ?.id,
+      message.id,
+      "should select message targeting previousSessionCrashed when it is true"
+    );
+
+    sandbox.restore();
+    sandbox.stub(SessionStartup, "previousSessionCrashed").get(() => false);
+    is(
+      ASRouterTargeting.Environment.previousSessionCrashed,
+      false,
+      "should be false when the previous session did not crash"
+    );
+    is(
+      await ASRouterTargeting.findMatchingMessage({ messages: [message] }),
+      null,
+      "should not select message targeting previousSessionCrashed when it is false"
     );
   } finally {
     sandbox.restore();

@@ -12,6 +12,7 @@
   border: 0;
   border-radius: var(--border-radius-small);
   background-color: var(--button-background-color, rgba(21, 20, 26, 7%));
+  color: var(--button-text-color);
   box-shadow: 0 0.8px 1.6px 0 rgba(58, 57, 68, 20%);
   padding: calc(5 * var(--space-xxsmall));
   position: relative;
@@ -302,6 +303,24 @@
   display: contents;
 }
 
+.appearance-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-medium);
+
+  h2 {
+    margin: 0;
+    font-weight: var(--font-weight-heading);
+    font-size: var(--font-size-root);
+  }
+
+  // Reduce the swatch gap for both the compact row picker and the full picker
+  // in ThemesManagementPanel (both use the compact-view spacing).
+  theme-picker {
+    --theme-picker-gap-column: var(--space-small);
+  }
+}
+
 .home-section {
   display: grid;
   grid-template-columns: 1fr;
@@ -479,7 +498,8 @@
 }
 
 .sections-mgmt-panel,
-.widgets-mgmt-panel {
+.widgets-mgmt-panel,
+.themes-mgmt-panel {
   // Width of panel minus the margins
   height: 100%;
   inset-inline-start: var(--space-xlarge);
@@ -536,26 +556,10 @@
     }
   }
 
-  // @nova-cleanup(remove-conditional): Remove .nova-enabled & selector, keep .panel-content and .arrow-wrapper as default
+  // @nova-cleanup(remove-conditional): Remove .nova-enabled & selector, keep .panel-content as default
   .nova-enabled & {
     .panel-content {
       padding: var(--space-xlarge);
-    }
-
-    .arrow-wrapper {
-      display: flex;
-      align-items: center;
-      margin-block-end: var(--space-xlarge);
-
-      .arrow-button {
-        margin-inline-end: var(--space-small);
-      }
-
-      h2 {
-        font-size: var(--font-size-heading-medium);
-        margin-block: 0;
-        font-weight: var(--button-font-weight);
-      }
     }
   }
 
@@ -567,7 +571,11 @@
     &.widgets-mgmt-panel-enter,
     &.widgets-mgmt-panel-exit,
     &.widgets-mgmt-panel-enter-done,
-    &.widgets-mgmt-panel-exit-done {
+    &.widgets-mgmt-panel-exit-done,
+    &.themes-mgmt-panel-enter,
+    &.themes-mgmt-panel-exit,
+    &.themes-mgmt-panel-enter-done,
+    &.themes-mgmt-panel-exit-done {
       transition: transform 300ms;
     }
   }
@@ -575,8 +583,29 @@
   &.sections-mgmt-panel-enter-done,
   &.sections-mgmt-panel-enter-active,
   &.widgets-mgmt-panel-enter-done,
-  &.widgets-mgmt-panel-enter-active {
+  &.widgets-mgmt-panel-enter-active,
+  &.themes-mgmt-panel-enter-done,
+  &.themes-mgmt-panel-enter-active {
     transform: translateX(0);
+  }
+}
+
+// Header row of a customize subpanel: a back button followed by the panel
+// title. Shared by the management panels and the wallpaper category list.
+// @nova-cleanup(remove-conditional): Remove the .nova-enabled ancestor, keep .arrow-wrapper as default
+.nova-enabled .arrow-wrapper {
+  display: flex;
+  align-items: center;
+  margin-block-end: var(--space-xlarge);
+
+  .arrow-button {
+    margin-inline-end: var(--space-small);
+  }
+
+  h2 {
+    font-size: var(--font-size-heading-medium);
+    margin-block: 0;
+    font-weight: var(--button-font-weight);
   }
 }
 
@@ -677,6 +706,14 @@
 
 .widgets-mgmt-panel-container {
   padding-block: var(--space-medium);
+}
+
+.themes-mgmt-panel {
+  // Match the about:addons themes (paintbrush) icon.
+  .external-link {
+    margin-block-start: var(--space-large);
+    background-image: url('chrome://mozapps/skin/extensions/category-themes.svg');
+  }
 }
 
 // @nova-cleanup(remove-conditional): Remove .nova-enabled selector, make default behavior for #shortcuts-section, #widgets-section and #row-selector

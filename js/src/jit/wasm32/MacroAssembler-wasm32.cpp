@@ -106,7 +106,9 @@ void MacroAssembler::wasmBoundsCheck64(Condition cond, Register64 index,
 
 void MacroAssembler::oolWasmTruncateCheckF32ToI32(
     FloatRegister input, Register output, TruncFlags flags,
-    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
+    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin,
+    wasm::StackMap* stackMapForTraps,
+    wasm::StackMapRegistry* stackMapRegistry) {
   MOZ_CRASH();
 }
 
@@ -124,7 +126,9 @@ void MacroAssembler::wasmTruncateDoubleToUInt64(
 
 void MacroAssembler::oolWasmTruncateCheckF64ToI64(
     FloatRegister input, Register64 output, TruncFlags flags,
-    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
+    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin,
+    wasm::StackMap* stackMapForTraps,
+    wasm::StackMapRegistry* stackMapRegistry) {
   MOZ_CRASH();
 }
 
@@ -142,13 +146,17 @@ void MacroAssembler::wasmTruncateFloat32ToUInt64(
 
 void MacroAssembler::oolWasmTruncateCheckF32ToI64(
     FloatRegister input, Register64 output, TruncFlags flags,
-    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
+    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin,
+    wasm::StackMap* stackMapForTraps,
+    wasm::StackMapRegistry* stackMapRegistry) {
   MOZ_CRASH();
 }
 
 void MacroAssembler::oolWasmTruncateCheckF64ToI32(
     FloatRegister input, Register output, TruncFlags flags,
-    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin) {
+    const wasm::TrapSiteDesc& trapSiteDesc, Label* rejoin,
+    wasm::StackMap* stackMapForTraps,
+    wasm::StackMapRegistry* stackMapRegistry) {
   MOZ_CRASH();
 }
 
@@ -232,7 +240,7 @@ CodeOffset MacroAssembler::nopPatchableToCall() {
   return CodeOffset(0);
 }
 
-FaultingCodeOffset MacroAssembler::wasmTrapInstruction() {
+FaultingCodeRange MacroAssembler::wasmTrapInstruction() {
   MOZ_CRASH();
   return FaultingCodeOffset();
 }
@@ -406,6 +414,11 @@ void MacroAssembler::branchTestValue(Condition cond, const ValueOperand& lhs,
 
 void MacroAssembler::branchTestNaNValue(Condition cond, const ValueOperand& val,
                                         Register temp, Label* label) {
+  MOZ_CRASH();
+}
+
+void MacroAssembler::testValueSet(Condition cond, const ValueOperand& lhs,
+                                  const Value& rhs, Register dest) {
   MOZ_CRASH();
 }
 

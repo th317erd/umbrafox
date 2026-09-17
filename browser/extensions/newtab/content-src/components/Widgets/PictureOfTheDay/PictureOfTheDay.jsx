@@ -68,7 +68,7 @@ const PictureOfTheDay = ({
   const [imageFailed, setImageFailed] = useState(false);
   useEffect(() => {
     setImageFailed(false);
-  }, [pictureData.imageUrl]);
+  }, [pictureData.thumbnailUrl]);
 
   // Dismissal is keyed to the picture's date so a new day's picture shows again
   // automatically (Bug 2050972). Edge case: Merino may omit published_date, and
@@ -87,7 +87,7 @@ const PictureOfTheDay = ({
     Boolean(prefs["newtabWallpapers.user.enabled"]) &&
     pictureDate === prefs["widgets.pictureOfTheDay.wallpaperActive"];
   const hasPicture =
-    Boolean(pictureData.imageUrl) && !dismissed && !imageFailed;
+    Boolean(pictureData.thumbnailUrl) && !dismissed && !imageFailed;
 
   // Show the "New" badge until the user first interacts with the widget;
   // handleInteraction flips widgets.pictureOfTheDay.interaction on any action,
@@ -329,7 +329,7 @@ const PictureOfTheDay = ({
   const pictureImage = (
     <img
       className="picture-of-the-day-image"
-      src={pictureData.imageUrl}
+      src={pictureData.thumbnailUrl}
       alt={imageAlt}
       onError={() => setImageFailed(true)}
     />
@@ -376,7 +376,10 @@ const PictureOfTheDay = ({
             menuId="picture-of-the-day-context-menu"
             type="ghost"
           />
-          <panel-list id="picture-of-the-day-context-menu">
+          <panel-list
+            className="panel-list-no-icons"
+            id="picture-of-the-day-context-menu"
+          >
             <panel-item
               data-l10n-id="newtab-picture-menu-manage-wallpaper"
               onClick={handleManageWallpaper}

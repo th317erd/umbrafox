@@ -133,10 +133,8 @@ const char* const XPCJSRuntime::mStrings[] = {
     "indexedDB",        // IDX_INDEXEDDB
     "structuredClone",  // IDX_STRUCTUREDCLONE
     "locks",            // IDX_LOCKS
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-    "suppressed",  // IDX_SUPPRESSED
-    "error",       // IDX_ERROR
-#endif
+    "suppressed",       // IDX_SUPPRESSED
+    "error",            // IDX_ERROR
 };
 
 /***************************************************************************/
@@ -155,7 +153,7 @@ class AsyncFreeSnowWhite : public Runnable {
     auto timerId =
         glean::cycle_collector::async_snow_white_freeing.ProcessGet().Start();
     // 2 ms budget, given that kICCSliceBudget is only 3 ms
-    SliceBudget budget = SliceBudget(TimeBudget(2));
+    SliceBudget budget = SliceBudget(TimeDuration::FromMilliseconds(2));
     bool hadSnowWhiteObjects =
         nsCycleCollector_doDeferredDeletionWithBudget(budget);
     glean::cycle_collector::async_snow_white_freeing.ProcessGet()
@@ -650,6 +648,28 @@ JSObject* SandboxPrototypeOrNull(JSContext* aCx, JSObject* aObj) {
   }
 
   return js::CheckedUnwrapDynamic(proto, aCx, /* stopAtWindowProxy = */ false);
+}
+
+already_AddRefed<nsGlobalWindowInner> SandboxAssociatedWindowOrNull(
+    JSObject* aObj) {
+  MOZ_ASSERT(aObj);
+
+  if (!IsSandbox(aObj)) {
+    return nullptr;
+  }
+
+  SandboxPrivate* priv = SandboxPrivate::GetPrivate(aObj);
+  if (!priv) {
+    return nullptr;
+  }
+
+  nsCOMPtr<nsPIDOMWindowInner> window = priv->GetAssociatedWindow();
+  if (!window) {
+    return nullptr;
+  }
+
+  RefPtr<nsGlobalWindowInner> win = nsGlobalWindowInner::Cast(window);
+  return win.forget();
 }
 
 nsGlobalWindowInner* CurrentWindowOrNull(JSContext* cx) {
@@ -1456,9 +1476,6 @@ static void ReportZoneStats(const JS::ZoneStats& zStats,
 
   ZRREPORT_BYTES(pathPrefix + "jit-zone"_ns, zStats.jitZone, "The JIT zone.");
 
-  ZRREPORT_BYTES(pathPrefix + "cacheir-stubs"_ns, zStats.cacheIRStubs,
-                 "The JIT's IC stubs (excluding code).");
-
   ZRREPORT_BYTES(pathPrefix + "object-fuses"_ns, zStats.objectFuses,
                  "Information about constant object properties.");
 
@@ -1815,6 +1832,10 @@ static void ReportRealmStats(const JS::RealmStats& realmStats,
 
   ZRREPORT_BYTES(realmJSPathPrefix + "alloc-sites"_ns, realmStats.allocSites,
                  "GC allocation site data associated with IC stubs.");
+
+  ZRREPORT_BYTES(realmJSPathPrefix + "cacheir-stubs"_ns,
+                 realmStats.cacheIRStubs,
+                 "The JIT's IC stubs (excluding code).");
 
   ZRREPORT_BYTES(realmJSPathPrefix + "ion-data"_ns, realmStats.ionData,
                  "The IonMonkey JIT's compilation data (IonScripts).");
@@ -2698,6 +2719,14 @@ static void AccumulateTelemetryCallback(JSMetric id,
       glean::javascript_gc::effectiveness.AccumulateSingleSample(
           sample.as<size_t>());
       break;
+    case JSMetric::GC_BUFFER_ALLOC_HEAP_BYTES:
+      glean::javascript_gc::buffer_alloc_heap_bytes.ProcessGet().Accumulate(
+          sample.as<size_t>());
+      break;
+    case JSMetric::GC_BUFFER_ALLOC_HEAP_DENSITY:
+      glean::javascript_gc::buffer_alloc_heap_density.AccumulateSingleSample(
+          sample.as<size_t>());
+      break;
     case JSMetric::GC_ZONE_COUNT:
       glean::javascript_gc::zone_count.AccumulateSingleSample(
           sample.as<size_t>());
@@ -2708,6 +2737,10 @@ static void AccumulateTelemetryCallback(JSMetric id,
       break;
     case JSMetric::GC_PRETENURE_COUNT_2:
       glean::javascript_gc::pretenure_count.AccumulateSingleSample(
+          sample.as<size_t>());
+      break;
+    case JSMetric::GC_MARK_STACK_MAX_CAPACITY:
+      glean::javascript_gc::mark_stack_max_capacity.ProcessGet().Accumulate(
           sample.as<size_t>());
       break;
     case JSMetric::GC_MARK_RATE_2:
@@ -2914,19 +2947,6 @@ static void SetUseCounterCallback(JSObject* obj, JSUseCounter counter) {
       return;
     case JSUseCounter::DATEPARSE_IMPL_DEF:
       SetUseCounter(obj, eUseCounter_custom_JS_dateparse_impl_def);
-      return;
-    case JSUseCounter::GENERATOR_FUNCTION_CREATED:
-      SetUseCounter(obj, eUseCounter_custom_JS_generatorFunctionCreated);
-      return;
-    case JSUseCounter::ASYNC_GENERATOR_FUNCTION_CREATED:
-      SetUseCounter(obj, eUseCounter_custom_JS_asyncGeneratorFunctionCreated);
-      return;
-    case JSUseCounter::GENERATOR_FUNCTION_ION_ELIGIBLE:
-      SetUseCounter(obj, eUseCounter_custom_JS_generatorFunctionIonEligible);
-      return;
-    case JSUseCounter::ASYNC_GENERATOR_FUNCTION_ION_ELIGIBLE:
-      SetUseCounter(obj,
-                    eUseCounter_custom_JS_asyncGeneratorFunctionIonEligible);
       return;
     case JSUseCounter::COUNT:
       break;
@@ -3305,6 +3325,10 @@ bool XPCJSRuntime::DescribeCustomObjects(JSObject* obj, const JSClass* clasp,
   }
 
   XPCWrappedNativeProto* p = XPCWrappedNativeProto::Get(obj);
+  if (!p) {
+    // Can be null if XPC shutdown has already happened.
+    return false;
+  }
   // Nothing here can GC. The analysis would otherwise think that ~nsCOMPtr
   // could GC, but that's only possible if nsIXPCScriptable::GetJSClass()
   // somehow released a reference to the nsIXPCScriptable, which isn't going to

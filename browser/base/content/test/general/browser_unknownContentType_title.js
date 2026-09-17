@@ -1,7 +1,7 @@
 const url =
   "data:text/html;charset=utf-8,%3C%21DOCTYPE%20html%3E%3Chtml%3E%3Chead%3E%3Ctitle%3ETest%20Page%3C%2Ftitle%3E%3C%2Fhead%3E%3C%2Fhtml%3E";
 const unknown_url =
-  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+  // eslint-disable-next-line sdl/no-insecure-url
   "http://example.com/browser/browser/base/content/test/general/unknownContentType_file.pif";
 
 function waitForNewWindow() {
@@ -83,6 +83,16 @@ add_task(async function unknownContentType_title_with_pref_disabled() {
   let panelShown = await waitForPanelShown;
   is(panelShown, "panel-shown", "The downloads panel is shown");
   is(gBrowser.contentTitle, "Test Page", "Should still have the right title.");
+
+  // isPanelShowing is already true while the panel is still opening, so wait
+  // for the popup to be fully open before closing it.
+  await BrowserTestUtils.waitForPopupEvent(DownloadsPanel.panel, "shown");
+  let panelHidden = BrowserTestUtils.waitForPopupEvent(
+    DownloadsPanel.panel,
+    "hidden"
+  );
+  DownloadsPanel.hidePanel();
+  await panelHidden;
 
   gBrowser.removeCurrentTab();
 });

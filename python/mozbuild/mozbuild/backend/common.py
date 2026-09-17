@@ -5,6 +5,7 @@
 import itertools
 import json
 import os
+import pathlib
 from collections import defaultdict
 from operator import itemgetter
 
@@ -42,6 +43,11 @@ from mozbuild.frontend.data import (
     WebIDLCollection,
     XPCOMComponentManifests,
     XPIDLModule,
+)
+from mozbuild.frontend.l10n_manifest import (
+    L10nManifestContext,
+    build_l10n_manifest_from_substs,
+    write_l10n_manifest,
 )
 from mozbuild.jar import DeprecatedJarManifest, JarManifestParser
 from mozbuild.preprocessor import Preprocessor
@@ -109,6 +115,7 @@ class CommonBackend(BuildBackend):
         self._binaries = BinariesCollection()
         self._configs = set()
         self._generated_sources = set()
+        self._l10n_manifest_data = []
 
     def consume_object(self, obj):
         self._configs.add(obj.config)
@@ -212,6 +219,9 @@ class CommonBackend(BuildBackend):
         elif isinstance(obj, JsShellArchive):
             self._process_js_shell_archive(obj)
 
+        elif isinstance(obj, L10nManifestContext):
+            self._l10n_manifest_data.append(obj.data)
+
         else:
             return False
 
@@ -251,6 +261,12 @@ class CommonBackend(BuildBackend):
         with self._write_file(mozpath.join(topobjdir, "generated-sources.json")) as fh:
             d = {"sources": sorted(self._generated_sources)}
             json.dump(d, fh, sort_keys=True, indent=4)
+
+        if self._l10n_manifest_data:
+            manifest = build_l10n_manifest_from_substs(
+                self.environment.substs, self._l10n_manifest_data
+            )
+            write_l10n_manifest(manifest, pathlib.Path(topobjdir, "l10n-manifest.json"))
 
     def _expand_libs(self, input_bin):
         os_libs = []
@@ -385,6 +401,11 @@ class CommonBackend(BuildBackend):
             )
         )
 
+        self._handle_generated_sources([
+            mozpath.join(bindings_rt_dir, "all.rs"),
+            mozpath.join(bindings_bt_dir, "all.rs"),
+        ])
+
     def _handle_webidl_collection(self, webidls):
         bindings_dir = mozpath.join(self.environment.topobjdir, "dom", "bindings")
 
@@ -469,8 +490,10 @@ class CommonBackend(BuildBackend):
                 # Prefer a relative path to make the output not depend on the sourcedir.
                 # This makes caching across worktrees possible.
                 if os.path.isabs(s):
-                    s = mozpath.relpath(s, output_directory)
-                f.write(includeTemplate % {"cppfile": s})
+                    rel_path = mozpath.relpath(s, output_directory)
+                else:
+                    rel_path = s
+                f.write(includeTemplate % {"cppfile": rel_path})
                 f.write("\n")
 
     def _write_unified_files(

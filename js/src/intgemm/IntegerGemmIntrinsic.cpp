@@ -457,6 +457,27 @@ int32_t js::intgemm::IntrI8SelectColumnsOfB(wasm::Instance* instance,
   const uint32_t* colIndexListPtr =
       reinterpret_cast<const uint32_t*>(&memBase[colIndexList]);
   int8_t* outputPtr = reinterpret_cast<int8_t*>(&memBase[output]);
+
+  // Every selected column index must reference a valid column of B. Otherwise
+  // SelectColumnsB would read outside the bounds-checked input matrix, since it
+  // uses each index to compute an offset into inputMatrixBPrepared.
+  for (uint32_t i = 0; i < sizeColIndexList; i++) {
+    if (colIndexListPtr[i] >= colsB) {
+      return -1;
+    }
+  }
+
+  // The index list and output regions must not overlap. gemmology reads indices
+  // in groups of 8 while writing output incrementally, so overlap would allow
+  // output writes to corrupt not-yet-read indices, bypassing the validation
+  // above and enabling out-of-bounds reads into the input matrix.
+  uint64_t colIndexListEnd =
+      (uint64_t)colIndexList + (uint64_t)sizeColIndexList * sizeof(uint32_t);
+  uint64_t outputEnd = (uint64_t)output + sizeOutput;
+  if (colIndexList < outputEnd && output < colIndexListEnd) {
+    return -1;
+  }
+
   AutoProfilerMarker marker(cx->runtime()->geckoProfiler(),
                             "integemm::SelectColumnsB",
                             "rowsB: {} colsB: {} sizecolList: {}, sizeB: {}",

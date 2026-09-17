@@ -19,7 +19,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
   SearchSERPTelemetryUtils:
     "moz-src:///browser/components/search/SearchSERPTelemetry.sys.mjs",
-  SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
+  SessionStore:
+    "moz-src:///browser/components/sessionstore/SessionStore.sys.mjs",
   TabMetrics: "moz-src:///browser/components/tabbrowser/TabMetrics.sys.mjs",
   WindowsInstallsInfo:
     "resource://gre/modules/components-utils/WindowsInstallsInfo.sys.mjs",
@@ -67,6 +68,7 @@ const TELEMETRY_SUBSESSIONSPLIT_TOPIC =
 const DOMWINDOW_OPENED_TOPIC = "domwindowopened";
 const SESSION_STORE_SAVED_TAB_GROUPS_TOPIC =
   "sessionstore-saved-tab-groups-changed";
+const IDLE_DAILY_TOPIC = "idle-daily";
 
 export const MINIMUM_TAB_COUNT_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes, in ms
 
@@ -533,10 +535,10 @@ export let BrowserUsageTelemetry = {
     this._inited = true;
 
     Services.prefs.addObserver("browser.tabs.inTitlebar", this);
-    Services.prefs.addObserver("idle-daily", this);
+    Services.obs.addObserver(this, IDLE_DAILY_TOPIC, true);
 
     this._recordUITelemetry();
-    this._recordInitialPrefValues();
+    this._recordPrefValues();
     this.recordPinnedTabsCount();
 
     this._onTabsOpenedTask = new lazy.DeferredTask(
@@ -623,6 +625,7 @@ export let BrowserUsageTelemetry = {
     Services.obs.removeObserver(this, DOMWINDOW_OPENED_TOPIC);
     Services.obs.removeObserver(this, TELEMETRY_SUBSESSIONSPLIT_TOPIC);
     Services.obs.removeObserver(this, SESSION_STORE_SAVED_TAB_GROUPS_TOPIC);
+    Services.obs.removeObserver(this, IDLE_DAILY_TOPIC);
   },
 
   observe(subject, topic, data) {
@@ -636,6 +639,9 @@ export let BrowserUsageTelemetry = {
       case SESSION_STORE_SAVED_TAB_GROUPS_TOPIC:
         this._onSavedTabGroupsChange();
         break;
+      case IDLE_DAILY_TOPIC:
+        this._recordPrefValues();
+        break;
       case "nsPref:changed":
         switch (data) {
           case "browser.tabs.inTitlebar":
@@ -644,9 +650,6 @@ export let BrowserUsageTelemetry = {
               Services.appinfo.drawInTitlebar ? "off" : "on",
               "pref"
             );
-            break;
-          case "idle-daily":
-            this._recordInitialPrefValues();
             break;
         }
         break;
@@ -1274,11 +1277,13 @@ export let BrowserUsageTelemetry = {
   },
 
   /**
-   * Records the startup values of prefs that govern important browser behavior
-   * options.
+   * Records the current values of prefs that govern important browser behavior
+   * options. Runs at startup and again on each daily idle, so mid-session
+   * changes are picked up.
    */
-  _recordInitialPrefValues() {
+  _recordPrefValues() {
     this._recordOpenNextToActiveTabSettingValue();
+    this._recordNovaEnabledValue();
   },
 
   /**
@@ -1297,6 +1302,12 @@ export let BrowserUsageTelemetry = {
   _recordOpenNextToActiveTabSettingValue() {
     Glean.linkHandling.openNextToActiveTabSettingsEnabled.set(
       this._isOpenNextToActiveTabSettingEnabled()
+    );
+  },
+
+  _recordNovaEnabledValue() {
+    Glean.nova.enabled.set(
+      Services.prefs.getBoolPref("browser.nova.enabled", false)
     );
   },
 
@@ -1400,6 +1411,7 @@ export let BrowserUsageTelemetry = {
     if (userContextId) {
       Glean.containers.containerTabOpened.record({
         container_id: String(userContextId),
+        source: event.detail?.containerSource ?? "unknown",
       });
     }
 
@@ -2114,7 +2126,7 @@ export let BrowserUsageTelemetry = {
       if (data?.installer_type) {
         let { installer_type, extra } = data;
 
-        // Record the event (mirrored to legacy telemetry using GIFFT)
+        // Record the event
         if (installer_type == "full") {
           Glean.installation.firstSeenFull.record(extra);
         } else if (installer_type == "stub") {

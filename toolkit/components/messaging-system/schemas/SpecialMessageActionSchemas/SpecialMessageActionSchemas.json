@@ -350,7 +350,7 @@
           },
           "required": ["type"],
           "additionalProperties": false,
-          "description": "Minimize the CFR doorhanger back into the URLbar"
+          "description": "Minimize the notification"
         },
         {
           "type": "object",
@@ -432,6 +432,10 @@
                 "privatePin": {
                   "type": "boolean",
                   "description": "Whether or not to pin private browsing mode"
+                },
+                "fireAndForget": {
+                  "type": "boolean",
+                  "description": "Whether or not to wait for user confirmation before resolving the action"
                 }
               },
               "additionalProperties": false
@@ -452,6 +456,32 @@
           "required": ["type"],
           "additionalProperties": false,
           "description": "Pin the app to Windows Start Menu"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["PIN_AND_DEFAULT"]
+            },
+            "data": {
+              "type": "object",
+              "properties": {
+                "privatePin": {
+                  "type": "boolean",
+                  "description": "Whether or not to pin private browsing mode"
+                },
+                "fireAndForget": {
+                  "type": "boolean",
+                  "description": "Whether or not to wait for user confirmation before resolving the action"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false,
+          "description": "Pin the app to taskbar and set as default browser"
         },
         {
           "type": "object",
@@ -488,6 +518,18 @@
           "required": ["type"],
           "additionalProperties": false,
           "description": "Message action to set Firefox as default browser"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["SET_DEFAULT_BROWSER_OPEN_WITH"]
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false,
+          "description": "Message action to set Firefox as the default browser via the OS \"Open with\" picker (IOpenWithLauncher), guaranteeing an OS-level prompt. Windows only."
         },
         {
           "type": "object",
@@ -842,6 +884,18 @@
           "properties": {
             "type": {
               "type": "string",
+              "enum": ["RESET_PROFILE"]
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false,
+          "description": "Opens the refresh confirmation dialog, which resets the current profile and restarts the browser"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
               "enum": ["SUBMIT_ONBOARDING_OPT_OUT_PING"]
             }
           },
@@ -905,6 +959,28 @@
         {
           "type": "object",
           "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["OPEN_ORGANIZE_TABS_PANEL"]
+            },
+            "data": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "description": "Identifies the surface that opened the panel, recorded as the `source` extra key on the panel's telemetry. Defaults to \"message\"."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false,
+          "description": "Opens the Smart Window \"Organize Tabs\" panel."
+        },
+        {
+          "type": "object",
+          "properties": {
             "data": {
               "anchor_id": {
                 "type": "string",
@@ -934,6 +1010,16 @@
             "type": {
               "type": "string",
               "enum": ["FXA_AIWINDOW_SIGNIN_FLOW"]
+            },
+            "data": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "description": "Identifies the surface that requested the launch, recorded as the `trigger` extra key on Smart Window telemetry. Defaults to \"asrouter\"."
+                }
+              },
+              "additionalProperties": false
             }
           },
           "required": ["type"],
@@ -987,6 +1073,51 @@
           "required": ["type"],
           "additionalProperties": false,
           "description": "Enrolls the user in IP Protection by initiating sign-in and entitlement."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "The id of the icon to switch to, as listed in the CustomIconManager ICON_CATALOG. Unknown ids are ignored."
+                }
+              },
+              "required": ["id"],
+              "additionalProperties": false
+            },
+            "type": {
+              "type": "string",
+              "enum": ["SET_BROWSER_ICON"]
+            }
+          },
+          "required": ["data", "type"],
+          "additionalProperties": false,
+          "description": "Changes the browser icon using CustomIconManager. Windows only, and not supported on MSIX (packaged) builds."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["GET_REFERRAL_CODE"]
+            },
+            "data": {
+              "entrypoint": {
+                "type": "string",
+                "description": "An entrypoint name to add to the params of the created URL"
+              },
+              "where": {
+                "type": "string",
+                "description": "where to open the created URL, defaults to tab"
+              }
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false,
+          "description": "Gets the user's referral code or generates one if it doesn't exist, and opens about:referrals with the code as a param"
         }
       ]
     }

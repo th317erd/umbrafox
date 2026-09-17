@@ -84,6 +84,8 @@
         <item name="colorOnInformationContainer">@color/fx_mobile_on_information_container</item>
         <item name="colorSuccess">@color/fx_mobile_success</item>
         <item name="colorOnSuccess">@color/fx_mobile_on_success</item>
+        <item name="colorSuccessContainer">@color/fx_mobile_success_container</item>
+        <item name="colorOnSuccessContainer">@color/fx_mobile_on_success_container</item>
         <item name="colorWarning">@color/fx_mobile_warning</item>
         <item name="colorOnWarning">@color/fx_mobile_on_warning</item>
         <item name="colorWarningContainer">@color/fx_mobile_warning_container</item>
@@ -97,9 +99,11 @@
         <item name="colorSurfaceContainerHighest">@color/fx_mobile_surface_container_highest</item>
         <item name="colorSurfaceContainerLow">@color/fx_mobile_surface_container_low</item>
         <item name="colorSurfaceContainerLowest">@color/fx_mobile_surface_container_lowest</item>
+        <item name="colorSurfaceContainerSelected">@color/fx_mobile_surface_container_selected</item>
         <item name="colorAutofillText">@color/fx_mobile_autofill_text</item>
         <item name="colorSelectedText">@color/fx_mobile_selected_text</item>
         <item name="colorIconPrivate">@color/fx_mobile_icon_private</item>
+        <item name="colorSheetOutline">@color/fx_mobile_sheet_outline</item>
         <item name="scrim">@color/fx_mobile_scrim</item>
 
         <!-- Design system color attributes -->
@@ -162,7 +166,6 @@
         <item name="fenixLogo">@drawable/ic_logo_wordmark_normal</item>
         <item name="fenixWordmarkText">@drawable/ic_wordmark_text_normal</item>
         <item name="fenixWordmarkLogo">@drawable/ic_wordmark_logo</item>
-        <item name="fenixWordmarkSportLogo">@drawable/ic_wordmark_sport_logo</item>
         <item name="bottomBarBackground">@drawable/home_bottom_bar_background</item>
         <item name="bottomBarBackgroundTop">@drawable/home_bottom_bar_background_top</item>
         <item name="mozac_ic_private_mode_circle_fill_background_color">@android:color/transparent</item>
@@ -209,11 +212,15 @@
     <style name="NormalTheme" parent="NormalThemeBase" />
 
     <style name="BaseDialogStyle.Private" parent="BaseDialogStyle">
-        <item name="android:background">?attr/layer2</item>
+        <item name="alertDialogStyle">@style/MaterialAlertDialog.App.Private</item>
         <item name="materialAlertDialogTitleTextStyle">@style/MaterialAlertDialog.App.Title.Text.Private</item>
         <item name="buttonBarPositiveButtonStyle">@style/PrivateDialogButtonStyle</item>
         <item name="buttonBarNegativeButtonStyle">@style/PrivateDialogButtonStyle</item>
         <item name="materialAlertDialogBodyTextStyle">@style/MaterialAlertDialog.App.Body.Text.Private</item>
+    </style>
+
+    <style name="MaterialAlertDialog.App.Private" parent="MaterialAlertDialog.Material3">
+        <item name="backgroundTint">?attr/layer2</item>
     </style>
 
     <style name="PrivateDialogButtonStyle" parent="Widget.Material3.Button.TextButton.Dialog">
@@ -251,7 +258,6 @@
     <style name="BaseDialogStyle" parent="ThemeOverlay.Material3.MaterialAlertDialog">
         <item name="materialAlertDialogTitleTextStyle">@style/MaterialAlertDialog.App.Title.Text</item>
         <item name="materialAlertDialogBodyTextStyle">@style/MaterialAlertDialog.App.Body.Text</item>
-        <item name="android:background">?attr/colorSurfaceContainerHigh</item>
         <item name="colorAccent">?accent</item>
         <item name="buttonBarPositiveButtonStyle">@style/DialogButtonStyle</item>
         <item name="buttonBarNegativeButtonStyle">@style/DialogButtonStyle</item>
@@ -375,6 +381,8 @@
         <item name="colorOnInformationContainer">@color/fx_mobile_private_on_information_container</item>
         <item name="colorSuccess">@color/fx_mobile_private_success</item>
         <item name="colorOnSuccess">@color/fx_mobile_private_on_success</item>
+        <item name="colorSuccessContainer">@color/fx_mobile_private_success_container</item>
+        <item name="colorOnSuccessContainer">@color/fx_mobile_private_on_success_container</item>
         <item name="colorWarning">@color/fx_mobile_private_warning</item>
         <item name="colorOnWarning">@color/fx_mobile_private_on_warning</item>
         <item name="colorWarningContainer">@color/fx_mobile_private_warning_container</item>
@@ -388,9 +396,11 @@
         <item name="colorSurfaceContainerHighest">@color/fx_mobile_private_surface_container_highest</item>
         <item name="colorSurfaceContainerLow">@color/fx_mobile_private_surface_container_low</item>
         <item name="colorSurfaceContainerLowest">@color/fx_mobile_private_surface_container_lowest</item>
+        <item name="colorSurfaceContainerSelected">@color/fx_mobile_private_surface_container_selected</item>
         <item name="colorAutofillText">@color/fx_mobile_private_autofill_text</item>
         <item name="colorSelectedText">@color/fx_mobile_private_selected_text</item>
         <item name="colorIconPrivate">@color/fx_mobile_private_icon_private</item>
+        <item name="colorSheetOutline">@color/fx_mobile_private_sheet_outline</item>
         <item name="scrim">@color/fx_mobile_private_scrim</item>
 
         <!-- Design system color attributes -->
@@ -450,7 +460,6 @@
         <item name="fenixLogo">@drawable/ic_logo_wordmark_private</item>
         <item name="fenixWordmarkText">@drawable/ic_wordmark_text_private</item>
         <item name="fenixWordmarkLogo">@drawable/ic_wordmark_logo</item>
-        <item name="fenixWordmarkSportLogo">@drawable/ic_wordmark_sport_logo</item>
         <item name="bottomBarBackground">@drawable/private_home_bottom_bar_background_gradient</item>
         <item name="bottomBarBackgroundTop">@drawable/private_home_bottom_bar_background_gradient_top</item>
         <item name="mozac_ic_private_mode_circle_fill_background_color">@color/novaWhite</item>
@@ -706,11 +715,14 @@
         <item name="android:textSize">14sp</item>
     </style>
 
-    <style name="Theme.LensCamera" parent="Theme.AppCompat.NoActionBar">
+    <!-- Material DayNight parent so bottom sheets hosted here resolve the same day/night dialog
+       - theme as the rest of the app; the camera surface itself stays black via the items below. -->
+    <style name="Theme.LensCamera" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowBackground">@android:color/black</item>
         <item name="android:navigationBarColor">@android:color/black</item>
         <item name="android:statusBarColor">@android:color/black</item>
+        <item name="bottomSheetDialogTheme">@style/BottomSheet</item>
     </style>
 
     <style name="Theme.Transparent" parent="android:Theme">

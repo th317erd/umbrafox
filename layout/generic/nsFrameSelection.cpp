@@ -27,6 +27,7 @@
 #include "mozilla/StaticPrefs_bidi.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_layout.h"
+#include "mozilla/TextControlElement.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/intl/BidiEmbeddingLevel.h"
 #include "nsBidiPresUtils.h"
@@ -478,6 +479,16 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsFrameSelection)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mLimiters.mAncestorLimiter)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
+nsISelectionController* nsFrameSelection::GetSelectionController() const {
+  if (IsIndependentSelection()) {
+    auto* const textControlElement = TextControlElement::FromNodeOrNull(
+        GetIndependentSelectionRootParentElement());
+    return textControlElement ? textControlElement->GetSelectionController()
+                              : nullptr;
+  }
+  return mPresShell;
+}
+
 // static
 void nsFrameSelection::WillFocusDocument(PresShell& aPresShell,
                                          Document& aDocument) {
@@ -790,6 +801,21 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
   }
 
   const RefPtr<Selection> sel = &NormalSelection();
+  if (const nsRange* anchorFocusRange = sel->GetAnchorFocusRange()) {
+    if (NS_WARN_IF(!anchorFocusRange->IsPositioned())) {
+      return NS_ERROR_FAILURE;
+    }
+    // If the selection range to be modified is outside the limiters, we should
+    // not touch it.
+    if (!mLimiters.RangeInLimiters(*anchorFocusRange)) [[unlikely]] {
+      // We don't want the caller to fall the per line move back to a complete
+      // move in this case. So, let's return "did nothing".
+      return NS_SUCCESS_DOM_NO_OPERATION;
+    }
+  } else {
+    // No range to modify.
+    return NS_ERROR_FAILURE;
+  }
 
   auto scrollFlags = ScrollFlags::None;
   if (sel->IsEditorSelection()) {

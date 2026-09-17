@@ -9,6 +9,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -40,8 +41,12 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import kotlin.collections.mapNotNullTo
+import kotlin.collections.orEmpty
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import mozilla.components.compose.base.theme.Theme
+import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.support.ktx.android.net.hostWithoutCommonPrefixes
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.History
@@ -52,17 +57,19 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.ShortcutAction
 import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistState
-import org.mozilla.fenix.components.appstate.sports.SportsWidgetState
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.compose.MessageCard
 import org.mozilla.fenix.compose.home.HomeSectionHeader
-import org.mozilla.fenix.debugsettings.sportswidget.SportsWidgetDebugTool
+import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.bookmarks.interactor.BookmarksInteractor
 import org.mozilla.fenix.home.bookmarks.view.Bookmarks
 import org.mozilla.fenix.home.bookmarks.view.BookmarksMenuItem
 import org.mozilla.fenix.home.collections.Collections
+import org.mozilla.fenix.home.collections.CollectionsMigrationPromoCard
 import org.mozilla.fenix.home.collections.CollectionsState
+import org.mozilla.fenix.home.collections.migration.CollectionsMigrationCardAction
+import org.mozilla.fenix.home.collections.migration.CollectionsMigrationCardAction.ViewTabGroupsClicked
 import org.mozilla.fenix.home.fake.FakeHomepagePreview
 import org.mozilla.fenix.home.interactor.HomepageInteractor
 import org.mozilla.fenix.home.pocket.ui.PocketSection
@@ -80,10 +87,6 @@ import org.mozilla.fenix.home.recentvisits.view.RecentlyVisited
 import org.mozilla.fenix.home.sessioncontrol.CollectionInteractor
 import org.mozilla.fenix.home.sessioncontrol.MessageCardInteractor
 import org.mozilla.fenix.home.setup.ui.SetupChecklist
-import org.mozilla.fenix.home.sports.CountrySelectorSource
-import org.mozilla.fenix.home.sports.hasWorldCupEnded
-import org.mozilla.fenix.home.sports.ui.SportsCountrySelectorBottomSheet
-import org.mozilla.fenix.home.sports.ui.SportsWidget
 import org.mozilla.fenix.home.store.HeaderState
 import org.mozilla.fenix.home.store.HomepageState
 import org.mozilla.fenix.home.store.MiddleSearchState
@@ -98,12 +101,12 @@ import org.mozilla.fenix.home.topsites.TopSiteState
 import org.mozilla.fenix.home.topsites.TopSites
 import org.mozilla.fenix.home.topsites.interactor.TopSiteInteractor
 import org.mozilla.fenix.home.topsites.store.DialogState
+import org.mozilla.fenix.home.topsites.store.PopularSite
 import org.mozilla.fenix.home.topsites.store.toPopularSite
 import org.mozilla.fenix.home.topsites.ui.AddShortcutBottomSheet
 import org.mozilla.fenix.home.topsites.ui.AddShortcutDialog
 import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE
 import org.mozilla.fenix.theme.FirefoxTheme
-import org.mozilla.fenix.theme.Theme
 import org.mozilla.fenix.trackingprotection.TrackersBlockedCard
 import org.mozilla.fenix.utils.isLargeScreenSize
 import org.mozilla.fenix.wallpapers.WallpaperTheme
@@ -115,6 +118,7 @@ private const val POPULAR_SITES_TO_SHOW = 8
  *
  * @param state State representing the homepage.
  * @param interactor [HomepageInteractor] for interactions with the homepage UI.
+ * @param onCollectionsMigrationCardAction Invoked with the [CollectionsMigrationCardAction] to dispatch.
  * @param onTopSitesItemBound Invoked during the composition of a top site item.
  * @param modifier [Modifier] to be applied to the layout.
  */
@@ -123,34 +127,31 @@ private const val POPULAR_SITES_TO_SHOW = 8
 internal fun Homepage(
     state: HomepageState,
     interactor: HomepageInteractor,
+    onCollectionsMigrationCardAction: (CollectionsMigrationCardAction) -> Unit,
     onTopSitesItemBound: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
     val browsingModeChanged = interactor::onPrivateModeButtonClicked
-    var showSportsCountrySelector by remember { mutableStateOf(false) }
     var shortcutsDialogState by remember { mutableStateOf<DialogState>(DialogState.Closed) }
 
-    BoxWithConstraints(
-        modifier = modifier
-            .fillMaxSize(),
-    ) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .semantics {
-                    testTagsAsResourceId = true
-                    testTag = HOMEPAGE
-                }
-                .pointerInput(state.isSearchInProgress) {
-                    if (state.isSearchInProgress) {
-                        awaitEachGesture {
-                            awaitFirstDown(false, PointerEventPass.Initial)
-                            interactor.onHomeContentFocusedWhileSearchIsActive()
+            modifier =
+                Modifier.fillMaxSize()
+                    .semantics {
+                        testTagsAsResourceId = true
+                        testTag = HOMEPAGE
+                    }
+                    .pointerInput(state.isSearchInProgress) {
+                        if (state.isSearchInProgress) {
+                            awaitEachGesture {
+                                awaitFirstDown(false, PointerEventPass.Initial)
+                                interactor.onHomeContentFocusedWhileSearchIsActive()
+                            }
                         }
                     }
-                }
-                .verticalScroll(scrollState),
+                    .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             if (state is HomepageState.Normal) {
@@ -165,48 +166,24 @@ internal fun Homepage(
             when (val headerState = state.headerState) {
                 is HeaderState.Experimental.Normal -> {
                     val settings = components.settings
-                    val shouldDisplaySportsLogo =
-                        settings.enableHomepageSportsWidget && settings.showHomepageSportsWidget &&
-                            !hasWorldCupEnded()
 
                     ExperimentalHomepageHeader(
                         showStoriesButton = headerState.showStoriesButton,
                         showButtonAnimation = headerState.showButtonAnimation,
-                        isSportsWidgetEnabled = shouldDisplaySportsLogo,
                         onPrivateModeTapped = { browsingModeChanged(BrowsingMode.Private) },
                         onStoriesTapped = { interactor.onDiscoverMoreClicked() },
                         onNewsAnimationShown = { settings.recordNewsButtonAnimationShown() },
-                        onLogoClicked = {
-                            if (settings.showHomepageSportsWidget) {
-                                interactor.onCountrySelectorShown(CountrySelectorSource.SPORTS_LOGO)
-                                showSportsCountrySelector = true
-                            }
-                        },
                     )
                 }
 
                 is HeaderState.Experimental.Private -> {
-                    ExperimentalPrivateHomepageHeader(
-                        onHomeTapped = { browsingModeChanged(BrowsingMode.Normal) },
-                    )
+                    ExperimentalPrivateHomepageHeader(onHomeTapped = { browsingModeChanged(BrowsingMode.Normal) })
                 }
 
                 is HeaderState.Normal -> {
-                    val settings = components.settings
-                    val shouldDisplaySportsLogo =
-                        settings.enableHomepageSportsWidget && settings.showHomepageSportsWidget &&
-                            !hasWorldCupEnded()
-
                     HomepageHeader(
                         browsingMode = state.browsingMode,
                         browsingModeChanged = browsingModeChanged,
-                        isSportsWidgetEnabled = shouldDisplaySportsLogo,
-                        onLogoClicked = {
-                            if (settings.showHomepageSportsWidget) {
-                                interactor.onCountrySelectorShown(CountrySelectorSource.SPORTS_LOGO)
-                                showSportsCountrySelector = true
-                            }
-                        },
                     )
                 }
             }
@@ -215,20 +192,18 @@ internal fun Homepage(
                 with(state) {
                     when (this) {
                         is HomepageState.Private -> {
-                            PrivateBrowsingDescription(
-                                onLearnMoreClick = interactor::onLearnMoreClicked,
-                            )
+                            PrivateBrowsingDescription(onLearnMoreClick = interactor::onLearnMoreClicked)
                         }
 
                         is HomepageState.Normal -> {
-                            val settings = components.settings
-                            val appStore = components.appStore
+                            val context = LocalContext.current
+
                             LaunchedEffect(showLongfoxAnimation) {
                                 if (showLongfoxAnimation) {
-                                    settings.longfoxPeekAnimationShownCount++
-                                    appStore.dispatch(
-                                        AppAction.UpdateShowFoxPeekAnimation(false),
-                                    )
+                                    with(context.components) {
+                                        settings.longfoxPeekAnimationShownCount++
+                                        appStore.dispatch(AppAction.UpdateShowFoxPeekAnimation(false))
+                                    }
                                 }
                             }
 
@@ -246,10 +221,10 @@ internal fun Homepage(
                                     interactor = interactor,
                                     onTopSitesItemBound = onTopSitesItemBound,
                                     onAddShortcutClicked = {
-                                        appStore.dispatch(
+                                        context.components.appStore.dispatch(
                                             ShortcutAction.AddShortcutSheetShown(
-                                                entryPoint = AddShortcutEntryPoint.HOMEPAGE,
-                                            ),
+                                                entryPoint = AddShortcutEntryPoint.HOMEPAGE
+                                            )
                                         )
                                         shortcutsDialogState = DialogState.AddShortcutBottomSheet
                                     },
@@ -267,29 +242,6 @@ internal fun Homepage(
                                 )
                             }
 
-                            if (sportsWidgetState.isShown) {
-                                SportsWidget(
-                                    sportsWidgetState = sportsWidgetState,
-                                    onDismiss = interactor::onSportsWidgetDismissed,
-                                    onCountdownWidgetDismiss = interactor::onCountdownWidgetDismissed,
-                                    onViewSchedule = interactor::onViewScheduleClicked,
-                                    onFollowTeam = { source ->
-                                        interactor.onCountrySelectorShown(source)
-                                        showSportsCountrySelector = true
-                                    },
-                                    onSkip = interactor::onSkippedFollowTeam,
-                                    onGetCustomWallpaper = interactor::onGetCustomWallpaperClicked,
-                                    onShare = interactor::onSportsWidgetShareClicked,
-                                    onRefresh = { source ->
-                                        interactor.onRefreshClicked(source)
-                                    },
-                                    onMatchClicked = { homeTeam, awayTeam, date ->
-                                        interactor.onMatchClicked(homeTeam, awayTeam, date)
-                                    },
-                                    onCardShown = interactor::onSportsWidgetCardShown,
-                                )
-                            }
-
                             MaybeAddSetupChecklist(setupChecklistState, interactor)
 
                             if (recentTabs != null) {
@@ -302,24 +254,24 @@ internal fun Homepage(
                                 when (val syncedTabState = recentSyncedTabSectionState) {
                                     RecentSyncedTabSectionState.Gone -> Unit
                                     RecentSyncedTabSectionState.Loading,
-                                    is RecentSyncedTabSectionState.Visible,
-                                        -> {
-                                        val syncedTab =
-                                            (syncedTabState as? RecentSyncedTabSectionState.Visible)?.tab
+                                    is RecentSyncedTabSectionState.Visible -> {
+                                        val syncedTab = (syncedTabState as? RecentSyncedTabSectionState.Visible)?.tab
                                         Box(
-                                            modifier = Modifier.padding(
-                                                start = horizontalMargin,
-                                                end = horizontalMargin,
-                                                top = verticalMargin,
-                                            ),
+                                            modifier =
+                                                Modifier.padding(
+                                                    start = horizontalMargin,
+                                                    end = horizontalMargin,
+                                                    top = verticalMargin,
+                                                )
                                         ) {
                                             RecentSyncedTab(
                                                 tab = syncedTab,
-                                                buttonBackgroundColor = if (syncedTab != null) {
-                                                    WallpaperTheme.buttonBackgroundColor
-                                                } else {
-                                                    MaterialTheme.colorScheme.surfaceContainerHighest
-                                                },
+                                                buttonBackgroundColor =
+                                                    if (syncedTab != null) {
+                                                        WallpaperTheme.buttonBackgroundColor
+                                                    } else {
+                                                        MaterialTheme.colorScheme.surfaceContainerHighest
+                                                    },
                                                 buttonTextColor = WallpaperTheme.buttonTextColor,
                                                 onRecentSyncedTabClick = interactor::onRecentSyncedTabClicked,
                                                 onSeeAllSyncedTabsButtonClick = interactor::onSyncedTabShowAllClicked,
@@ -347,15 +299,17 @@ internal fun Homepage(
                             CollectionsSection(
                                 collectionsState = collectionsState,
                                 interactor = interactor,
+                                onCollectionsMigrationCardAction = onCollectionsMigrationCardAction,
                             )
 
                             if (pocketState != null) {
                                 Spacer(
-                                    modifier = if (isMinimalLayout()) {
-                                        Modifier.weight(1f)
-                                    } else {
-                                        Modifier.padding(top = 72.dp)
-                                    },
+                                    modifier =
+                                        if (isMinimalLayout()) {
+                                            Modifier.weight(1f)
+                                        } else {
+                                            Modifier.padding(top = 72.dp)
+                                        }
                                 )
 
                                 PocketSection(
@@ -366,50 +320,15 @@ internal fun Homepage(
 
                             Spacer(Modifier.height(bottomPadding.dp))
 
-                            if (showSportsCountrySelector) {
-                                val selectedCountryCode = sportsWidgetState.countriesSelected.firstOrNull()
-                                SportsCountrySelectorBottomSheet(
-                                    selectedCountryCode = selectedCountryCode,
-                                    eliminatedCountryCodes = sportsWidgetState.eliminatedCountries,
-                                    onCountrySelected = { countryCode ->
-                                        val selection = if (countryCode == selectedCountryCode) {
-                                            emptySet()
-                                        } else {
-                                            setOf(countryCode)
-                                        }
-                                        interactor.onCountriesSelected(selection)
-                                        showSportsCountrySelector = false
-                                    },
-                                    onDismiss = { showSportsCountrySelector = false },
-                                )
-                            }
+                            val popularSites = observePopularSites(topSites = topSiteState?.topSites)
 
                             when (shortcutsDialogState) {
                                 DialogState.AddShortcutBottomSheet -> {
-                                    val merinoManifestProvider = components.core.merinoManifestProvider
-                                    val popularSites by produceState(
-                                        initialValue = emptyList(),
-                                        key1 = merinoManifestProvider,
-                                        key2 = topSiteState?.topSites,
-                                    ) {
-                                        value = withContext(Dispatchers.IO) {
-                                            merinoManifestProvider.getTopDomains(
-                                                limit = POPULAR_SITES_TO_SHOW,
-                                                excludedDomains = topSiteState?.topSites.orEmpty()
-                                                    .mapNotNullTo(mutableSetOf()) {
-                                                    it.url.toUri().hostWithoutCommonPrefixes
-                                                },
-                                            ).map { it.toPopularSite() }
-                                        }
-                                    }
-
                                     AddShortcutBottomSheet(
                                         popularSites = popularSites,
                                         onDismiss = { shortcutsDialogState = DialogState.Closed },
                                         onAddWebsiteClicked = {
-                                            appStore.dispatch(
-                                                ShortcutAction.AddWebsiteDialogShown,
-                                            )
+                                            context.components.appStore.dispatch(ShortcutAction.AddWebsiteDialogShown)
                                             shortcutsDialogState = DialogState.AddShortcut
                                         },
                                         onAddPopularSiteClick = { site ->
@@ -440,13 +359,6 @@ internal fun Homepage(
                                 }
 
                                 DialogState.Closed -> Unit
-                            }
-
-                            if (sportsWidgetState.isDebugToolVisible) {
-                                SportsWidgetDebugTool(
-                                    state = sportsWidgetState,
-                                    appStore = components.appStore,
-                                )
                             }
                         }
                     }
@@ -510,7 +422,12 @@ internal fun TopSitesSection(
             headerText = stringResource(R.string.homepage_shortcuts_title),
             modifier = Modifier.padding(horizontal = horizontalMargin),
             description = stringResource(R.string.homepage_shortcuts_show_all_content_description),
-            onButtonClick = interactor::onShowAllTopSitesClicked,
+            onButtonClick =
+                if (state.showShortcutsLibraryButton) {
+                    interactor::onShowAllTopSitesClicked
+                } else {
+                    null
+                },
         )
 
         Spacer(Modifier.height(16.dp))
@@ -521,7 +438,6 @@ internal fun TopSitesSection(
         interactor = interactor,
         onTopSitesItemBound = onTopSitesItemBound,
         onAddShortcutClicked = onAddShortcutClicked,
-        isPager = components.settings.topSitesPager,
     )
 }
 
@@ -535,23 +451,20 @@ private fun RecentTabsSection(
     Spacer(modifier = Modifier.height(topSpacing))
 
     Column(modifier = Modifier.padding(horizontal = horizontalMargin)) {
-        HomeSectionHeader(
-            headerText = stringResource(R.string.recent_tabs_header),
-            description = stringResource(R.string.recent_tabs_show_all_content_description_2),
-            onButtonClick = interactor::onRecentTabShowAllClicked,
-        )
+        HomeSectionHeader(headerText = stringResource(R.string.recent_tabs_header_2))
 
         Spacer(Modifier.height(16.dp))
 
         RecentTabs(
             recentTabs = recentTabs,
             onRecentTabClick = { interactor.onRecentTabClicked(it) },
-            menuItems = listOf(
-                RecentTabMenuItem(
-                    title = stringResource(id = R.string.recent_tab_menu_item_remove),
-                    onClick = interactor::onRemoveRecentTab,
+            menuItems =
+                listOf(
+                    RecentTabMenuItem(
+                        title = stringResource(id = R.string.recent_tab_menu_item_remove),
+                        onClick = interactor::onRemoveRecentTab,
+                    )
                 ),
-            ),
         )
     }
 }
@@ -578,12 +491,13 @@ private fun BookmarksSection(
 
     Bookmarks(
         bookmarks = bookmarks,
-        menuItems = listOf(
-            BookmarksMenuItem(
-                stringResource(id = R.string.home_bookmarks_menu_item_remove),
-                onClick = interactor::onBookmarkRemoved,
+        menuItems =
+            listOf(
+                BookmarksMenuItem(
+                    stringResource(id = R.string.home_bookmarks_menu_item_remove),
+                    onClick = interactor::onBookmarkRemoved,
+                )
             ),
-        ),
         onBookmarkClick = interactor::onBookmarkClicked,
     )
 }
@@ -607,19 +521,18 @@ private fun RecentlyVisitedSection(
 
     RecentlyVisited(
         recentVisits = recentVisits,
-        menuItems = listOfNotNull(
-            RecentVisitMenuItem(
-                title = stringResource(R.string.recently_visited_menu_item_remove),
-                onClick = { visit ->
-                    when (visit) {
-                        is RecentHistoryGroup -> interactor.onRemoveRecentHistoryGroup(visit.title)
-                        is RecentHistoryHighlight -> interactor.onRemoveRecentHistoryHighlight(
-                            visit.url,
-                        )
-                    }
-                },
+        menuItems =
+            listOfNotNull(
+                RecentVisitMenuItem(
+                    title = stringResource(R.string.recently_visited_menu_item_remove),
+                    onClick = { visit ->
+                        when (visit) {
+                            is RecentHistoryGroup -> interactor.onRemoveRecentHistoryGroup(visit.title)
+                            is RecentHistoryHighlight -> interactor.onRemoveRecentHistoryHighlight(visit.url)
+                        }
+                    },
+                )
             ),
-        ),
         onRecentVisitClick = { recentlyVisitedItem, pageNumber ->
             when (recentlyVisitedItem) {
                 is RecentHistoryHighlight -> {
@@ -629,11 +542,7 @@ private fun RecentlyVisitedSection(
 
                 is RecentHistoryGroup -> {
                     RecentlyVisitedHomepage.searchGroupOpened.record(NoExtras())
-                    History.recentSearchesTapped.record(
-                        History.RecentSearchesTappedExtra(
-                            pageNumber.toString(),
-                        ),
-                    )
+                    History.recentSearchesTapped.record(History.RecentSearchesTappedExtra(pageNumber.toString()))
                     interactor.onRecentHistoryGroupClicked(recentlyVisitedItem)
                 }
             }
@@ -645,28 +554,65 @@ private fun RecentlyVisitedSection(
 private fun CollectionsSection(
     collectionsState: CollectionsState,
     interactor: CollectionInteractor,
+    onCollectionsMigrationCardAction: (CollectionsMigrationCardAction) -> Unit,
 ) {
     when (collectionsState) {
         is CollectionsState.Content -> {
-            Column(modifier = Modifier.padding(horizontal = horizontalMargin)) {
-                Spacer(Modifier.height(56.dp))
+            CollectionsSectionContent {
+                Collections(
+                    collections = collectionsState.collections,
+                    expandedCollections = collectionsState.expandedCollections,
+                    showAddTabToCollection = collectionsState.showSaveTabsToCollection,
+                    interactor = interactor,
+                )
+            }
+        }
 
-                HomeSectionHeader(headerText = stringResource(R.string.collections_header))
-
-                Spacer(Modifier.height(10.dp))
-
-                with(collectionsState) {
-                    Collections(
-                        collections = collections,
-                        expandedCollections = expandedCollections,
-                        showAddTabToCollection = showSaveTabsToCollection,
-                        interactor = interactor,
-                    )
-                }
+        CollectionsState.MigrationCard -> {
+            CollectionsSectionContent {
+                CollectionsMigrationPromoCard(onClick = { onCollectionsMigrationCardAction(ViewTabGroupsClicked) })
             }
         }
 
         CollectionsState.Gone -> {} // no-op. Nothing is shown where there are no collections.
+    }
+}
+
+@Composable
+private fun observePopularSites(topSites: List<TopSite>?): List<PopularSite> {
+    val merinoManifestProvider = components.core.merinoManifestProvider
+    val popularSites by
+        produceState(
+            initialValue = emptyList(),
+            key1 = merinoManifestProvider,
+            key2 = topSites,
+        ) {
+            value =
+                withContext(Dispatchers.IO) {
+                    merinoManifestProvider
+                        .getTopDomains(
+                            limit = POPULAR_SITES_TO_SHOW,
+                            excludedDomains =
+                                topSites.orEmpty().mapNotNullTo(mutableSetOf()) {
+                                    it.url.toUri().hostWithoutCommonPrefixes
+                                },
+                        )
+                        .map { it.toPopularSite() }
+                }
+        }
+    return popularSites
+}
+
+@Composable
+private fun CollectionsSectionContent(content: @Composable ColumnScope.() -> Unit) {
+    Column(modifier = Modifier.padding(horizontal = horizontalMargin)) {
+        Spacer(Modifier.height(56.dp))
+
+        HomeSectionHeader(headerText = stringResource(R.string.collections_header))
+
+        Spacer(Modifier.height(10.dp))
+
+        content()
     }
 }
 
@@ -676,35 +622,36 @@ private fun HomepagePreview() {
     FirefoxTheme {
         Surface {
             Homepage(
-                state = HomepageState.Normal(
-                    shouldShowPrivacyNoticeBanner = false,
-                    nimbusMessage = null,
-                    topSiteState = TopSiteState(
-                        topSites = FakeHomepagePreview.topSites(),
-                        colors = TopSiteColors.colors(),
+                state =
+                    HomepageState.Normal(
+                        shouldShowPrivacyNoticeBanner = false,
+                        nimbusMessage = null,
+                        topSiteState =
+                            TopSiteState(
+                                topSites = FakeHomepagePreview.topSites(),
+                                colors = TopSiteColors.colors(),
+                            ),
+                        recentTabs = FakeHomepagePreview.recentTabs(),
+                        recentSyncedTabSectionState =
+                            RecentSyncedTabSectionState.Visible(FakeHomepagePreview.recentSyncedTab()),
+                        bookmarks = FakeHomepagePreview.bookmarks(),
+                        recentlyVisited = FakeHomepagePreview.recentHistory(),
+                        collectionsState = CollectionsState.Gone,
+                        pocketState = FakeHomepagePreview.pocketState(),
+                        showPrivacyReport = true,
+                        longfoxEnabled = false,
+                        showLongfoxAnimation = false,
+                        trackersBlockedCount = 754,
+                        headerState = HeaderState.Normal,
+                        middleSearchState = MiddleSearchState(searchBarVisible = true, searchBarEnabled = false),
+                        firstFrameDrawn = true,
+                        setupChecklistState = null,
+                        isSearchInProgress = false,
+                        bottomPadding = 68,
+                        showTopSitesHeader = true,
                     ),
-                    recentTabs = FakeHomepagePreview.recentTabs(),
-                    recentSyncedTabSectionState = RecentSyncedTabSectionState.Visible(
-                        FakeHomepagePreview.recentSyncedTab(),
-                    ),
-                    bookmarks = FakeHomepagePreview.bookmarks(),
-                    recentlyVisited = FakeHomepagePreview.recentHistory(),
-                    collectionsState = CollectionsState.Gone,
-                    pocketState = FakeHomepagePreview.pocketState(),
-                    showPrivacyReport = true,
-                    longfoxEnabled = false,
-                    showLongfoxAnimation = false,
-                    trackersBlockedCount = 754,
-                    sportsWidgetState = SportsWidgetState(),
-                    headerState = HeaderState.Normal,
-                    middleSearchState = MiddleSearchState(searchBarVisible = true, searchBarEnabled = false),
-                    firstFrameDrawn = true,
-                    setupChecklistState = null,
-                    isSearchInProgress = false,
-                    bottomPadding = 68,
-                    showTopSitesHeader = true,
-                ),
                 interactor = FakeHomepagePreview.homepageInteractor,
+                onCollectionsMigrationCardAction = {},
                 onTopSitesItemBound = {},
                 modifier = Modifier.fillMaxSize(),
             )
@@ -718,35 +665,36 @@ private fun HomepageBannerPreview() {
     FirefoxTheme {
         Surface {
             Homepage(
-                state = HomepageState.Normal(
-                    shouldShowPrivacyNoticeBanner = true,
-                    nimbusMessage = null,
-                    topSiteState = TopSiteState(
-                        topSites = FakeHomepagePreview.topSites(),
-                        colors = TopSiteColors.colors(),
+                state =
+                    HomepageState.Normal(
+                        shouldShowPrivacyNoticeBanner = true,
+                        nimbusMessage = null,
+                        topSiteState =
+                            TopSiteState(
+                                topSites = FakeHomepagePreview.topSites(),
+                                colors = TopSiteColors.colors(),
+                            ),
+                        recentTabs = FakeHomepagePreview.recentTabs(),
+                        recentSyncedTabSectionState =
+                            RecentSyncedTabSectionState.Visible(FakeHomepagePreview.recentSyncedTab()),
+                        bookmarks = FakeHomepagePreview.bookmarks(),
+                        recentlyVisited = FakeHomepagePreview.recentHistory(),
+                        collectionsState = CollectionsState.Gone,
+                        pocketState = FakeHomepagePreview.pocketState(),
+                        showPrivacyReport = true,
+                        longfoxEnabled = false,
+                        showLongfoxAnimation = false,
+                        trackersBlockedCount = 754,
+                        headerState = HeaderState.Normal,
+                        middleSearchState = MiddleSearchState(searchBarVisible = true, searchBarEnabled = false),
+                        firstFrameDrawn = true,
+                        setupChecklistState = null,
+                        isSearchInProgress = false,
+                        bottomPadding = 68,
+                        showTopSitesHeader = true,
                     ),
-                    recentTabs = FakeHomepagePreview.recentTabs(),
-                    recentSyncedTabSectionState = RecentSyncedTabSectionState.Visible(
-                        FakeHomepagePreview.recentSyncedTab(),
-                    ),
-                    bookmarks = FakeHomepagePreview.bookmarks(),
-                    recentlyVisited = FakeHomepagePreview.recentHistory(),
-                    collectionsState = CollectionsState.Gone,
-                    pocketState = FakeHomepagePreview.pocketState(),
-                    showPrivacyReport = true,
-                    longfoxEnabled = false,
-                    showLongfoxAnimation = false,
-                    trackersBlockedCount = 754,
-                    sportsWidgetState = SportsWidgetState(),
-                    headerState = HeaderState.Normal,
-                    middleSearchState = MiddleSearchState(searchBarVisible = true, searchBarEnabled = false),
-                    firstFrameDrawn = true,
-                    setupChecklistState = null,
-                    isSearchInProgress = false,
-                    bottomPadding = 68,
-                    showTopSitesHeader = true,
-                ),
                 interactor = FakeHomepagePreview.homepageInteractor,
+                onCollectionsMigrationCardAction = {},
                 onTopSitesItemBound = {},
                 modifier = Modifier.fillMaxSize(),
             )
@@ -760,26 +708,61 @@ private fun HomepagePreviewCollections() {
     FirefoxTheme {
         Surface {
             Homepage(
-                state = HomepageState.Normal(
-                    shouldShowPrivacyNoticeBanner = false,
-                    nimbusMessage = null,
-                    recentlyVisited = FakeHomepagePreview.recentHistory(),
-                    collectionsState = FakeHomepagePreview.collectionState(),
-                    pocketState = FakeHomepagePreview.pocketState(),
-                    showPrivacyReport = true,
-                    longfoxEnabled = false,
-                    showLongfoxAnimation = false,
-                    trackersBlockedCount = 754,
-                    sportsWidgetState = SportsWidgetState(),
-                    headerState = HeaderState.Normal,
-                    middleSearchState = MiddleSearchState(searchBarVisible = true, searchBarEnabled = false),
-                    firstFrameDrawn = true,
-                    setupChecklistState = null,
-                    isSearchInProgress = false,
-                    bottomPadding = 68,
-                    showTopSitesHeader = true,
-                ),
+                state =
+                    HomepageState.Normal(
+                        shouldShowPrivacyNoticeBanner = false,
+                        nimbusMessage = null,
+                        recentlyVisited = FakeHomepagePreview.recentHistory(),
+                        collectionsState = FakeHomepagePreview.collectionState(),
+                        pocketState = FakeHomepagePreview.pocketState(),
+                        showPrivacyReport = true,
+                        longfoxEnabled = false,
+                        showLongfoxAnimation = false,
+                        trackersBlockedCount = 754,
+                        headerState = HeaderState.Normal,
+                        middleSearchState = MiddleSearchState(searchBarVisible = true, searchBarEnabled = false),
+                        firstFrameDrawn = true,
+                        setupChecklistState = null,
+                        isSearchInProgress = false,
+                        bottomPadding = 68,
+                        showTopSitesHeader = true,
+                    ),
                 interactor = FakeHomepagePreview.homepageInteractor,
+                onCollectionsMigrationCardAction = {},
+                onTopSitesItemBound = {},
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
+}
+
+@Composable
+@PreviewLightDark
+private fun HomepageCollectionsMigrationCardPreview() {
+    FirefoxTheme {
+        Surface {
+            Homepage(
+                state =
+                    HomepageState.Normal(
+                        shouldShowPrivacyNoticeBanner = false,
+                        nimbusMessage = null,
+                        recentlyVisited = FakeHomepagePreview.recentHistory(),
+                        collectionsState = CollectionsState.MigrationCard,
+                        pocketState = FakeHomepagePreview.pocketState(),
+                        showPrivacyReport = true,
+                        longfoxEnabled = false,
+                        showLongfoxAnimation = false,
+                        trackersBlockedCount = 754,
+                        headerState = HeaderState.Normal,
+                        middleSearchState = MiddleSearchState(searchBarVisible = true, searchBarEnabled = false),
+                        firstFrameDrawn = true,
+                        setupChecklistState = null,
+                        isSearchInProgress = false,
+                        bottomPadding = 68,
+                        showTopSitesHeader = true,
+                    ),
+                interactor = FakeHomepagePreview.homepageInteractor,
+                onCollectionsMigrationCardAction = {},
                 onTopSitesItemBound = {},
                 modifier = Modifier.fillMaxSize(),
             )
@@ -793,28 +776,30 @@ private fun MinimalHomepagePreview() {
     FirefoxTheme {
         Surface {
             Homepage(
-                state = HomepageState.Normal(
-                    shouldShowPrivacyNoticeBanner = false,
-                    nimbusMessage = null,
-                    topSiteState = TopSiteState(
-                        topSites = FakeHomepagePreview.topSites(),
-                        colors = TopSiteColors.colors(),
+                state =
+                    HomepageState.Normal(
+                        shouldShowPrivacyNoticeBanner = false,
+                        nimbusMessage = null,
+                        topSiteState =
+                            TopSiteState(
+                                topSites = FakeHomepagePreview.topSites(),
+                                colors = TopSiteColors.colors(),
+                            ),
+                        collectionsState = CollectionsState.Gone,
+                        pocketState = FakeHomepagePreview.pocketState(),
+                        showPrivacyReport = true,
+                        longfoxEnabled = false,
+                        showLongfoxAnimation = false,
+                        trackersBlockedCount = 754,
+                        headerState = HeaderState.Normal,
+                        firstFrameDrawn = true,
+                        setupChecklistState = null,
+                        isSearchInProgress = false,
+                        bottomPadding = 68,
+                        showTopSitesHeader = true,
                     ),
-                    collectionsState = CollectionsState.Gone,
-                    pocketState = FakeHomepagePreview.pocketState(),
-                    showPrivacyReport = true,
-                    longfoxEnabled = false,
-                    showLongfoxAnimation = false,
-                    trackersBlockedCount = 754,
-                    sportsWidgetState = SportsWidgetState(),
-                    headerState = HeaderState.Normal,
-                    firstFrameDrawn = true,
-                    setupChecklistState = null,
-                    isSearchInProgress = false,
-                    bottomPadding = 68,
-                    showTopSitesHeader = true,
-                ),
                 interactor = FakeHomepagePreview.homepageInteractor,
+                onCollectionsMigrationCardAction = {},
                 onTopSitesItemBound = {},
                 modifier = Modifier.fillMaxSize(),
             )
@@ -827,12 +812,14 @@ private fun MinimalHomepagePreview() {
 private fun PrivateHomepagePreview() {
     FirefoxTheme(theme = Theme.Private) {
         Homepage(
-            state = HomepageState.Private(
-                headerState = HeaderState.Normal,
-                firstFrameDrawn = true,
-                isSearchInProgress = false,
-            ),
+            state =
+                HomepageState.Private(
+                    headerState = HeaderState.Normal,
+                    firstFrameDrawn = true,
+                    isSearchInProgress = false,
+                ),
             interactor = FakeHomepagePreview.homepageInteractor,
+            onCollectionsMigrationCardAction = {},
             onTopSitesItemBound = {},
             modifier = Modifier.fillMaxSize(),
         )
@@ -840,11 +827,7 @@ private fun PrivateHomepagePreview() {
 }
 
 internal val horizontalMargin: Dp
-    @Composable
-    @ReadOnlyComposable
-    get() = dimensionResource(R.dimen.home_item_horizontal_margin)
+    @Composable @ReadOnlyComposable get() = dimensionResource(R.dimen.home_item_horizontal_margin)
 
 private val verticalMargin: Dp
-    @Composable
-    @ReadOnlyComposable
-    get() = dimensionResource(R.dimen.home_item_vertical_margin)
+    @Composable @ReadOnlyComposable get() = dimensionResource(R.dimen.home_item_vertical_margin)

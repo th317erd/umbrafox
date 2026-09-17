@@ -6,8 +6,8 @@
 const { InfoBar } = ChromeUtils.importESModule(
   "resource:///modules/asrouter/InfoBar.sys.mjs"
 );
-const { CFRMessageProvider } = ChromeUtils.importESModule(
-  "resource:///modules/asrouter/CFRMessageProvider.sys.mjs"
+const { PanelTestProvider } = ChromeUtils.importESModule(
+  "resource:///modules/asrouter/PanelTestProvider.sys.mjs"
 );
 const { ASRouter } = ChromeUtils.importESModule(
   "resource:///modules/asrouter/ASRouter.sys.mjs"
@@ -51,7 +51,7 @@ registerCleanupFunction(() => {
 });
 
 add_task(async function show_and_send_telemetry() {
-  let message = (await CFRMessageProvider.getMessages()).find(
+  let message = (await PanelTestProvider.getMessages()).find(
     m => m.id === "INFOBAR_ACTION_86"
   );
 
@@ -105,7 +105,7 @@ add_task(async function show_and_send_telemetry() {
 
 add_task(async function dismiss_telemetry() {
   let message = {
-    ...(await CFRMessageProvider.getMessages()).find(
+    ...(await PanelTestProvider.getMessages()).find(
       m => m.id === "INFOBAR_ACTION_86"
     ),
   };
@@ -172,7 +172,7 @@ add_task(async function dismiss_telemetry() {
 });
 
 add_task(async function prevent_multiple_messages() {
-  let message = (await CFRMessageProvider.getMessages()).find(
+  let message = (await PanelTestProvider.getMessages()).find(
     m => m.id === "INFOBAR_ACTION_86"
   );
 
@@ -216,7 +216,7 @@ add_task(async function prevent_multiple_messages() {
 });
 
 add_task(async function default_dismissable_button_shows() {
-  let message = (await CFRMessageProvider.getMessages()).find(
+  let message = (await PanelTestProvider.getMessages()).find(
     m => m.id === "INFOBAR_ACTION_86"
   );
   Assert.ok(message, "Found the message");
@@ -243,7 +243,7 @@ add_task(async function default_dismissable_button_shows() {
 
 add_task(
   async function non_dismissable_notification_does_not_show_close_button() {
-    let baseMessage = (await CFRMessageProvider.getMessages()).find(
+    let baseMessage = (await PanelTestProvider.getMessages()).find(
       m => m.id === "INFOBAR_ACTION_86"
     );
     Assert.ok(baseMessage, "Found the base message");
@@ -338,10 +338,13 @@ add_task(async function test_formatMessageConfig_array() {
   const browser = win.gBrowser.selectedBrowser;
   const box = win.gNotificationBox;
 
+  // Any Fluent ID that exists works here: this only checks that a string_id
+  // part becomes a <remote-text> carrying that ID, never what it renders as.
+  const sampleFluentId = "pdf-default-notification-message";
   let parts = [
     "A",
     { raw: "B" },
-    { string_id: "launch-on-login-infobar-message" },
+    { string_id: sampleFluentId },
     { href: "https://x.test/", raw: "LINK" },
     "Z",
   ];
@@ -354,7 +357,7 @@ add_task(async function test_formatMessageConfig_array() {
   Assert.equal(nodes[2].localName, "remote-text", "L10n element");
   Assert.equal(
     nodes[2].getAttribute("fluent-remote-id"),
-    "launch-on-login-infobar-message",
+    sampleFluentId,
     "Fluent ID"
   );
   const [, , , a] = nodes;
@@ -433,7 +436,7 @@ add_task(async function test_showInfoBarMessage_skipsPrivateWindow() {
 });
 
 add_task(async function test_non_dismissable_button_action() {
-  let baseMessage = (await CFRMessageProvider.getMessages()).find(
+  let baseMessage = (await PanelTestProvider.getMessages()).find(
     m => m.id === "INFOBAR_ACTION_86"
   );
   Assert.ok(baseMessage, "Found the base message");
@@ -502,7 +505,7 @@ add_task(async function test_non_dismissable_button_action() {
 
 // Default experience
 add_task(async function test_dismissable_button_action() {
-  let baseMessage = (await CFRMessageProvider.getMessages()).find(
+  let baseMessage = (await PanelTestProvider.getMessages()).find(
     m => m.id === "INFOBAR_ACTION_86"
   );
   Assert.ok(baseMessage, "Found the base message");
@@ -565,8 +568,157 @@ add_task(async function test_dismissable_button_action() {
   Assert.ok(!infobar.notification, "Infobar was dismissed after button click");
 });
 
+// Two buttons that are both non-primary produce the same event name, so the
+// button identity has to come from event_context.source.
+add_task(async function test_button_click_telemetry_source() {
+  let baseMessage = (await PanelTestProvider.getMessages()).find(
+    m => m.id === "INFOBAR_ACTION_86"
+  );
+
+  let message = {
+    ...baseMessage,
+    content: {
+      ...baseMessage.content,
+      type: "tab",
+      dismissable: true,
+      // dismiss: false keeps the infobar open so both buttons can be clicked.
+      buttons: [
+        { label: "Keep on", action: { type: "CANCEL", dismiss: false } },
+        {
+          label: "Turn off",
+          id: "turn_off",
+          action: { type: "CANCEL", dismiss: false },
+        },
+      ],
+    },
+  };
+
+  let dispatchStub = sinon.stub();
+  let infobar = await InfoBar.showInfoBarMessage(
+    BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser,
+    message,
+    dispatchStub
+  );
+
+  let buttons = infobar.notification.buttonContainer.querySelectorAll(
+    ".notification-button"
+  );
+  Assert.equal(buttons.length, 2, "Found both buttons");
+
+  buttons[0].click();
+
+  Assert.ok(
+    dispatchStub.calledWith(
+      sinon.match({
+        type: "INFOBAR_TELEMETRY",
+        data: sinon.match({
+          event: "CLICK_SECONDARY_BUTTON",
+          event_context: sinon.match({ source: "button_0" }),
+        }),
+      })
+    ),
+    "Button without an id falls back to its index"
+  );
+
+  buttons[1].click();
+
+  Assert.ok(
+    dispatchStub.calledWith(
+      sinon.match({
+        type: "INFOBAR_TELEMETRY",
+        data: sinon.match({
+          event: "CLICK_SECONDARY_BUTTON",
+          event_context: sinon.match({ source: "turn_off" }),
+        }),
+      })
+    ),
+    "Button with an id reports that id"
+  );
+
+  infobar.notification.closeButton.click();
+  await TestUtils.waitForCondition(() => !InfoBar._activeInfobar);
+});
+
+add_task(async function test_dismiss_telemetry_source() {
+  let message = {
+    ...(await PanelTestProvider.getMessages()).find(
+      m => m.id === "INFOBAR_ACTION_86"
+    ),
+  };
+  message.content = { ...message.content, type: "tab", dismissable: true };
+
+  let dispatchStub = sinon.stub();
+  let infobar = await InfoBar.showInfoBarMessage(
+    BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser,
+    message,
+    dispatchStub
+  );
+
+  infobar.notification.closeButton.click();
+  await TestUtils.waitForCondition(() => !InfoBar._activeInfobar);
+
+  Assert.ok(
+    dispatchStub.calledWith(
+      sinon.match({
+        type: "INFOBAR_TELEMETRY",
+        data: sinon.match({
+          event: "DISMISSED",
+          event_context: sinon.match({ source: "dismiss_button" }),
+        }),
+      })
+    ),
+    "Dismissing via the X reports the dismiss_button source"
+  );
+});
+
+// A teardown the user did not ask for must not be reported as a dismiss button
+// click.
+add_task(async function test_disconnected_telemetry_source() {
+  let message = {
+    ...(await PanelTestProvider.getMessages()).find(
+      m => m.id === "INFOBAR_ACTION_86"
+    ),
+  };
+  message.content = { ...message.content, type: "tab", dismissable: true };
+
+  let dispatchStub = sinon.stub();
+  let infobar = await InfoBar.showInfoBarMessage(
+    BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser,
+    message,
+    dispatchStub
+  );
+
+  // Detaching the element fires the notification's disconnectedCallback.
+  infobar.notification.remove();
+  await TestUtils.waitForCondition(() => !InfoBar._activeInfobar);
+
+  Assert.ok(
+    dispatchStub.calledWith(
+      sinon.match({
+        type: "INFOBAR_TELEMETRY",
+        data: sinon.match({
+          event: "DISMISSED",
+          event_context: sinon.match({ source: "disconnected" }),
+        }),
+      })
+    ),
+    "Disconnecting the notification reports the disconnected source"
+  );
+  Assert.ok(
+    !dispatchStub.calledWith(
+      sinon.match({
+        type: "INFOBAR_TELEMETRY",
+        data: sinon.match({
+          event_context: sinon.match({ source: "dismiss_button" }),
+        }),
+      })
+    ),
+    "Disconnecting is not reported as a dismiss button click"
+  );
+});
+
 add_task(async function clear_activeInfobar_on_window_close() {
-  let message = (await CFRMessageProvider.getMessages()).find(
+  let message = (await PanelTestProvider.getMessages()).find(
     m => m.id === "INFOBAR_ACTION_86"
   );
   Assert.ok(message.id, "Found the message");
@@ -916,7 +1068,7 @@ add_task(async function test_infobar_css_background_fallback_var() {
 add_task(async function test_impression_action_handling() {
   const handleStub = sinon.stub(SpecialMessageActions, "handleAction");
 
-  let message = (await CFRMessageProvider.getMessages()).find(
+  let message = (await PanelTestProvider.getMessages()).find(
     m => m.id === "INFOBAR_ACTION_86"
   );
   Assert.ok(message, "Found base message");
@@ -963,7 +1115,7 @@ add_task(
   async function test_impression_action_once_allowed_only_on_first_impression() {
     const handleStub = sinon.stub(SpecialMessageActions, "handleAction");
 
-    let message = (await CFRMessageProvider.getMessages()).find(
+    let message = (await PanelTestProvider.getMessages()).find(
       m => m.id === "INFOBAR_ACTION_86"
     );
     Assert.ok(message, "Found base message");
@@ -1025,7 +1177,7 @@ add_task(
 add_task(async function test_impression_action_multi_action_once_and_every() {
   const handleStub = sinon.stub(SpecialMessageActions, "handleAction");
 
-  let message = (await CFRMessageProvider.getMessages()).find(
+  let message = (await PanelTestProvider.getMessages()).find(
     m => m.id === "INFOBAR_ACTION_86"
   );
   Assert.ok(message, "Found base message");
@@ -1089,6 +1241,197 @@ add_task(async function test_impression_action_multi_action_once_and_every() {
   );
 
   handleStub.restore();
+});
+
+add_task(async function test_dismiss_action_on_user_dismissal() {
+  let message = {
+    ...(await PanelTestProvider.getMessages()).find(
+      m => m.id === "INFOBAR_ACTION_86"
+    ),
+  };
+  message.content = {
+    ...message.content,
+    type: "tab",
+    dismiss_action: {
+      type: "OPEN_URL",
+      data: { args: "https://example.com/", where: "tab" },
+    },
+  };
+
+  let dispatchStub = sinon.stub();
+  let infobar = await InfoBar.showInfoBarMessage(
+    BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser,
+    message,
+    dispatchStub
+  );
+
+  // Remove any IMPRESSION pings
+  dispatchStub.reset();
+
+  infobar.notification.closeButton.click();
+
+  await TestUtils.waitForCondition(
+    () => infobar.notification === null,
+    "Set to null by `removed` event"
+  );
+
+  let userActionCall = dispatchStub
+    .getCalls()
+    .find(c => c.args[0].type === "USER_ACTION");
+  Assert.ok(userActionCall, "Dispatched a USER_ACTION on dismiss");
+  Assert.deepEqual(
+    userActionCall.args[0].data,
+    message.content.dismiss_action,
+    "USER_ACTION carries the dismiss_action"
+  );
+  Assert.ok(
+    dispatchStub.getCalls().some(c => c.args[0].data?.event === "DISMISSED"),
+    "DISMISSED telemetry still sent"
+  );
+});
+
+add_task(async function test_dismiss_action_multi_action() {
+  let message = {
+    ...(await PanelTestProvider.getMessages()).find(
+      m => m.id === "INFOBAR_ACTION_86"
+    ),
+  };
+  message.content = {
+    ...message.content,
+    type: "tab",
+    dismiss_action: {
+      type: "MULTI_ACTION",
+      data: {
+        actions: [
+          {
+            type: "SET_PREF",
+            data: { pref: { name: "dismissMulti", value: true } },
+          },
+          {
+            type: "OPEN_URL",
+            data: { args: "https://example.com/", where: "tab" },
+          },
+        ],
+      },
+    },
+  };
+
+  let dispatchStub = sinon.stub();
+  let infobar = await InfoBar.showInfoBarMessage(
+    BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser,
+    message,
+    dispatchStub
+  );
+
+  // Remove any IMPRESSION pings
+  dispatchStub.reset();
+
+  infobar.notification.closeButton.click();
+
+  await TestUtils.waitForCondition(
+    () => infobar.notification === null,
+    "Set to null by `removed` event"
+  );
+
+  let userActionCalls = dispatchStub
+    .getCalls()
+    .filter(c => c.args[0].type === "USER_ACTION");
+  Assert.equal(
+    userActionCalls.length,
+    1,
+    "Dispatched a single USER_ACTION carrying the MULTI_ACTION"
+  );
+  Assert.deepEqual(
+    userActionCalls[0].args[0].data,
+    message.content.dismiss_action,
+    "USER_ACTION carries the whole MULTI_ACTION object"
+  );
+});
+
+add_task(async function test_dismiss_action_not_fired_on_tab_close() {
+  let message = {
+    ...(await PanelTestProvider.getMessages()).find(
+      m => m.id === "INFOBAR_ACTION_86"
+    ),
+  };
+  message.content = {
+    ...message.content,
+    type: "tab",
+    dismiss_action: {
+      type: "OPEN_URL",
+      data: { args: "https://example.com/", where: "tab" },
+    },
+  };
+
+  let dispatchStub = sinon.stub();
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "about:blank"
+  );
+  let infobar = await InfoBar.showInfoBarMessage(
+    BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser,
+    message,
+    dispatchStub
+  );
+
+  await TestUtils.waitForCondition(
+    () => dispatchStub.callCount > 0,
+    "Wait for impression ping"
+  );
+
+  // Remove IMPRESSION pings
+  dispatchStub.reset();
+  BrowserTestUtils.removeTab(tab);
+
+  await TestUtils.waitForCondition(
+    () => infobar.notification === null,
+    "Set to null by `disconnect` event"
+  );
+
+  Assert.ok(
+    dispatchStub.getCalls().some(c => c.args[0].data?.event === "DISMISSED"),
+    "DISMISSED telemetry sent on tab close"
+  );
+  Assert.ok(
+    !dispatchStub.getCalls().some(c => c.args[0].type === "USER_ACTION"),
+    "dismiss_action NOT dispatched on tab close (disconnected)"
+  );
+});
+
+add_task(async function test_no_dismiss_action() {
+  let message = {
+    ...(await PanelTestProvider.getMessages()).find(
+      m => m.id === "INFOBAR_ACTION_86"
+    ),
+  };
+  message.content = { ...message.content, type: "tab" };
+  delete message.content.dismiss_action;
+
+  let dispatchStub = sinon.stub();
+  let infobar = await InfoBar.showInfoBarMessage(
+    BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser,
+    message,
+    dispatchStub
+  );
+
+  // Remove any IMPRESSION pings
+  dispatchStub.reset();
+
+  infobar.notification.closeButton.click();
+
+  await TestUtils.waitForCondition(
+    () => infobar.notification === null,
+    "Set to null by `removed` event"
+  );
+
+  Assert.ok(
+    !dispatchStub.getCalls().some(c => c.args[0].type === "USER_ACTION"),
+    "No USER_ACTION dispatched when no dismiss_action is set"
+  );
+  Assert.ok(
+    dispatchStub.getCalls().some(c => c.args[0].data?.event === "DISMISSED"),
+    "DISMISSED telemetry still sent"
+  );
 });
 
 add_task(

@@ -262,6 +262,11 @@ During upstream updates, inspect conflicts in:
 - `toolkit/actors/UmbrafoxUserlandParent.sys.mjs` and
   `toolkit/actors/UmbrafoxUserlandChild.sys.mjs` if upstream changes
   `JSWindowActor` query behavior.
+- `toolkit/modules/ActorManagerParent.sys.mjs` actor URIs. The Umbrafox toolkit
+  actors are `MOZ_SRC_FILES`; register them as
+  `moz-src:///toolkit/actors/<Actor>.sys.mjs` unless they are deliberately moved
+  to `FINAL_TARGET_FILES.actors`. A wrong `resource://gre/actors/...` URI may
+  pass compile/package and then crash packaged browser startup.
 - networking observer behavior around `http-on-modify-request`, especially if
   upstream changes channel suspension, `nsILoadInfo` browsing-context ids, or
   data-URI redirect allowances.

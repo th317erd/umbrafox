@@ -1,4 +1,4 @@
-# Preferences
+# IP Protection preferences
 
 This document describes preferences affecting Firefox's IP Protection.
 These preferences are normally hidden and should not be used unless you really
@@ -26,6 +26,10 @@ know what you are doing.
 `browser.ipProtection.features.siteExceptions` (boolean, default: `false`)
 
 : Feature flag enabling the site exceptions capability.
+
+`browser.ipProtection.features.siteInclusions` (boolean, default: `false`)
+
+: Feature flag enabling the site inclusions capability.
 
 `browser.ipProtection.optedOut` (boolean, default: `false`)
 
@@ -171,6 +175,28 @@ know what you are doing.
 `browser.ipProtection.everOpenedPanel` (boolean, default: `false`)
 
 : Tracks if the user has ever opened the VPN panel.
+
+`browser.ipProtection.hasSeenFeature` (boolean, default: `false`, `true` on
+Nightly)
+
+: Tracks if the VPN UI has ever been exposed to the user; `IPPL10nHelper` sets
+  it to `true` as soon as that happens. While it is `true` the UI is shown
+  regardless of the localization coverage of `browser/ipProtection.ftl`. A
+  profile data upgrade sets it to `true` on profiles created before Firefox 155,
+  which are assumed to have already seen the feature, so the gate only applies
+  to newer ones.
+  The gate is off on Nightly, where translations always lag behind. To test the
+  feature on another channel in a locale still below the coverage threshold, set
+  it to `true` in `about:config` and restart; conversely, to exercise the gate
+  itself, set it to `false`.
+
+`browser.ipProtection.l10nGateVersion` (integer, default: `0`)
+
+: Firefox major version the l10n coverage gate was last enforced for; `0` while
+  the gate never hid the feature. `IPPL10nHelper` records the current major
+  version the first time it hides the UI and stops gating as soon as the browser
+  is updated to a different major version, so a profile is never withheld the
+  feature for more than one release cycle.
 
 ## Android / GPI
 

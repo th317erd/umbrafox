@@ -154,6 +154,9 @@ class NeckoParent : public PNeckoParent {
       const nsIDNSService::DNSFlags& flags, const nsresult& reason);
   PWebSocketEventListenerParent* AllocPWebSocketEventListenerParent(
       const uint64_t& aInnerWindowID);
+  virtual mozilla::ipc::IPCResult RecvPWebSocketEventListenerConstructor(
+      PWebSocketEventListenerParent* aActor,
+      const uint64_t& aInnerWindowID) override;
   bool DeallocPWebSocketEventListenerParent(PWebSocketEventListenerParent*);
 
   mozilla::ipc::IPCResult RecvConnectBaseChannel(const uint32_t& channelId);
@@ -202,6 +205,12 @@ class NeckoParent : public PNeckoParent {
   mozilla::ipc::IPCResult RecvGetMozNewTabWallpaperStream(
       nsIURI* aURI, const LoadInfoArgs& aLoadInfoArgs,
       GetMozNewTabWallpaperStreamResolver&& aResolve);
+
+#ifdef MOZ_THUNDERBIRD
+  mozilla::ipc::IPCResult RecvGetMailMessageStream(
+      nsIURI* aURI, const LoadInfoArgs& aLoadInfoArgs,
+      GetMailMessageStreamResolver&& aResolve);
+#endif
 
   mozilla::ipc::IPCResult RecvInitSocketProcessBridge(
       InitSocketProcessBridgeResolver&& aResolver);

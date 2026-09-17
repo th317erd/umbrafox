@@ -77,24 +77,27 @@ static bool GetMaxRowBSize(nsIFrame* aContainer, WritingMode aWM,
                            nscoord* aResult) {
   bool found = false;
   for (nsIFrame* child : aContainer->PrincipalChildList()) {
-    if (child->GetContent()->IsHTMLElement(nsGkAtoms::optgroup)) {
-      // An optgroup; drill through any scroll frame and recurse.  |inner| might
-      // be null here though if |inner| is an anonymous leaf frame of some sort.
+    nsIContent* content = child->GetContent();
+    bool isOptGroupLabel =
+        child->Style()->IsPseudoElement() &&
+        aContainer->GetContent()->IsHTMLElement(nsGkAtoms::optgroup);
+    if (!isOptGroupLabel && content->IsElement() &&
+        !content->IsAnyOfHTMLElements(nsGkAtoms::option, nsGkAtoms::hr)) {
+      // An optgroup or a wrapper element, both of which can contain options;
+      // drill through any scroll frame and recurse.  |inner| might be null here
+      // though if |inner| is an anonymous leaf frame of some sort.
       auto inner = child->GetContentInsertionFrame();
       if (inner && GetMaxRowBSize(inner, aWM, aResult)) {
         found = true;
       }
-    } else {
-      // an option or optgroup label
-      bool isOptGroupLabel =
-          child->Style()->IsPseudoElement() &&
-          aContainer->GetContent()->IsHTMLElement(nsGkAtoms::optgroup);
-      nscoord childBSize = child->BSize(aWM);
-      // XXX bug 1499176: skip empty <optgroup> labels (zero bsize) for now
-      if (!isOptGroupLabel || childBSize > nscoord(0)) {
-        found = true;
-        *aResult = std::max(childBSize, *aResult);
-      }
+      continue;
+    }
+    // an option, an <hr> or an optgroup label
+    nscoord childBSize = child->BSize(aWM);
+    // XXX bug 1499176: skip empty <optgroup> labels (zero bsize) for now
+    if (!isOptGroupLabel || childBSize > nscoord(0)) {
+      found = true;
+      *aResult = std::max(childBSize, *aResult);
     }
   }
   return found;
@@ -243,7 +246,7 @@ void nsListControlFrame::Reflow(nsPresContext* aPresContext,
   mMightNeedSecondPass = false;
 
   // Now see whether we need a second pass.  If we do, our
-  // nsSelectsAreaFrame will have suppressed the scrollbar update.
+  // scrolled frame will have suppressed the scrollbar update.
   if (mBSizeOfARow == oldBSizeOfARow) {
     return;
   }
@@ -271,32 +274,8 @@ void nsListControlFrame::Reflow(nsPresContext* aPresContext,
       !hadPendingInterrupt && aPresContext->HasPendingInterrupt();
 }
 
-static uint32_t CountOptionsAndOptgroups(nsIFrame* aFrame) {
-  uint32_t count = 0;
-  for (nsIFrame* child : aFrame->PrincipalChildList()) {
-    nsIContent* content = child->GetContent();
-    if (content) {
-      if (content->IsHTMLElement(nsGkAtoms::option)) {
-        ++count;
-      } else {
-        RefPtr<HTMLOptGroupElement> optgroup =
-            HTMLOptGroupElement::FromNode(content);
-        if (optgroup) {
-          nsAutoString label;
-          optgroup->GetLabel(label);
-          if (label.Length() > 0) {
-            ++count;
-          }
-          count += CountOptionsAndOptgroups(child);
-        }
-      }
-    }
-  }
-  return count;
-}
-
 uint32_t nsListControlFrame::GetNumberOfRows() {
-  return ::CountOptionsAndOptgroups(GetContentInsertionFrame());
+  return Select().CountRenderedRows();
 }
 
 //---------------------------------------------------------
@@ -426,19 +405,6 @@ nsresult nsListControlFrame::GetFrameName(nsAString& aResult) const {
 
 nscoord nsListControlFrame::GetBSizeOfARow() { return BSizeOfARow(); }
 
-bool nsListControlFrame::IsOptionInteractivelySelectable(int32_t aIndex) const {
-  auto& select = Select();
-  if (HTMLOptionElement* item = select.Item(aIndex)) {
-    return IsOptionInteractivelySelectable(&select, item);
-  }
-  return false;
-}
-
-bool nsListControlFrame::IsOptionInteractivelySelectable(
-    HTMLSelectElement* aSelect, HTMLOptionElement* aOption) {
-  return !aSelect->IsOptionDisabled(aOption) && aOption->GetPrimaryFrame();
-}
-
 nscoord nsListControlFrame::CalcFallbackRowBSize(float aFontSizeInflation) {
   RefPtr<nsFontMetrics> fontMet =
       nsLayoutUtils::GetFontMetricsForFrame(this, aFontSizeInflation);
@@ -457,23 +423,6 @@ nscoord nsListControlFrame::CalcIntrinsicBSize(nscoord aBSizeOfARow,
     mNumDisplayRows = 4;
   }
   return mNumDisplayRows * aBSizeOfARow;
-}
-
-//----------------------------------------------------------------------
-// Scroll helpers.
-//----------------------------------------------------------------------
-void nsListControlFrame::ScrollToIndex(int32_t aIndex) {
-  if (aIndex < 0) {
-    // XXX shouldn't we just do nothing if we're asked to scroll to
-    // kNothingSelected?
-    ScrollTo(nsPoint(0, 0), ScrollMode::Instant);
-  } else {
-    RefPtr<dom::HTMLOptionElement> option =
-        GetOption(AssertedCast<uint32_t>(aIndex));
-    if (option) {
-      ScrollToFrame(*option);
-    }
-  }
 }
 
 void nsListControlFrame::ScrollToFrame(dom::HTMLOptionElement& aOptElement) {

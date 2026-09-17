@@ -59,6 +59,28 @@ interface AddonsInfoResponse {
   hasInstalledAddons: boolean;
 }
 ```
+### `allowedNotificationOrigins`
+
+The number of origins the user has allowed to send web notifications. Origins the
+user has explicitly blocked are not counted. A count rather than a boolean, so it
+can also be used to distinguish users with a single allowed site from those with
+many.
+
+#### Examples
+* Has the user allowed any site to send notifications?
+```java
+allowedNotificationOrigins > 0
+```
+* Has the user allowed five or more sites?
+```java
+allowedNotificationOrigins >= 5
+```
+
+#### Definition
+```ts
+declare const allowedNotificationOrigins: number;
+```
+
 ### `attributionData`
 
 An object containing information on exactly how Firefox was downloaded
@@ -179,6 +201,32 @@ devToolsOpenedCount > 10
 declare const devToolsOpenedCount: number;
 ```
 
+### `recentSearchCount`
+
+Number of distinct search terms submitted from a Search Access Point (SAP) in the last 28 days based on form history. Excludes private-browsing searches.
+
+#### Definition
+
+```ts
+declare const recentSearchCount: Promise<number>;
+```
+
+#### Examples
+* Has the user performed more than one SAP search in the last 28 days?
+```ts
+recentSearchCount > 1
+```
+
+* Has the user performed no SAP searches in the last 28 days?
+```ts
+recentSearchCount == 0
+```
+
+* Has the user performed between 1 to 10 SAP searches in the last 28 days?
+```ts
+recentSearchCount >= 1 && recentSearchCount <= 10
+```
+
 ### `isDefaultBrowser`
 
 Is Firefox the user's default browser?
@@ -192,6 +240,32 @@ declare const isDefaultBrowser: boolean;
 ### `isDefaultBrowserUncached`
 
 Behaves the same as `isDefaultBrowser`, but retrieves the current value directly from shell service instead of using the cached value. This may not be as performant.
+
+### `isOneClickSetDefaultEnabled`
+
+Windows only. Can Firefox currently make itself the default browser by writing
+the Windows UserChoice registry keys, instead of having to send the user into the
+Windows Settings app to do it manually. Accounts for the
+`browser.shell.setDefaultBrowserUserChoice` and
+`browser.shell.setDefaultBrowserUserChoice.regRename` prefs as well as whether
+Windows will currently accept a UserChoice change from a third-party browser.
+
+`true` means a set-default request would be honored or that Firefox is already the default (the latter is a shortcut to `true` to avoid the risk of a UserChoice write when we don't need to attempt to set to default anyway).
+
+
+If the UserChoice Protection Driver (UCPD) is running and Firefox isn't already
+the default, this temporarily renames the `http` association key and renames it
+back. UCPD versions where one-click still works permit this rename, while those where it doesn't do not.
+
+
+Always `false` on macOS and Linux. Neither goes through UserChoice, and neither
+is reliably one-click, since both can (but don't always) defer to an OS consent prompt. Supporting them needs its own handling (see bug 2060879).
+
+#### Definition
+
+```ts
+declare const isOneClickSetDefaultEnabled: boolean;
+```
 
 ### `isDefaultHandler`
 
@@ -294,6 +368,18 @@ Is the launch on login option enabled?
 
 ```ts
 declare const launchOnLoginEnabled: boolean;
+```
+
+### `launchOnLoginAllowedByPolicy`
+
+Whether launch on login is allowed to be enabled, i.e. it has not been overridden
+by Windows Settings or enterprise policy. Mirrors the `isAllowedByPolicy` value
+from `getLaunchOnLoginEnablementDetails()`. Always `false` on non-Windows
+platforms. Use together with `launchOnLoginEnabled` to target users who do not
+have launch on login enabled but for whom it could be enabled.
+
+```ts
+declare const launchOnLoginAllowedByPolicy: boolean;
 ```
 
 ### `locale`
@@ -434,6 +520,25 @@ declare const profileAgeReset: undefined | UnixEpochNumber;
 type UnixEpochNumber = number;
 ```
 
+### `profileLastUse`
+
+The date the profile was last used before the current session, as a UNIX Epoch
+timestamp. This is the more recent of the previous session's lock file time and
+the `prefs.js` modification time, and is `0` when neither is available.
+
+#### Examples
+* Has the profile been unused for at least 60 days?
+```java
+profileLastUse && currentDate|date - profileLastUse >= 5184000000
+```
+
+#### Definition
+```ts
+declare const profileLastUse: UnixEpochNumber;
+// UnixEpochNumber is UNIX Epoch timestamp, e.g. 1522843725924
+type UnixEpochNumber = number;
+```
+
 ### `providerCohorts`
 
 Information about cohort settings (from prefs, including shield studies) for each provider.
@@ -541,7 +646,7 @@ Information about the browser's top 25 frecent sites.
 
 #### Examples
 * Is any of a broad set of shopping-related domains in the user's top frecent sites with a last visit date greater than April 4th, 2018 (UNIX Epoch timestamp 1522843725924)?
-```java
+```js
 (["amazon.com", "ebay.com", "etsy.com", "walmart.com", "target.com",
   "bestbuy.com", "newegg.com", "costco.com", "homedepot.com", "wayfair.com"
   ] intersect topFrecentSites[.lastVisitDate > 1522843725924]|mapToProperty('host'))|length > 1
@@ -999,6 +1104,27 @@ or equivalently
 (isAIWindow || !isAIWindow)
 ```
 
+### `isSmartTabGroupingAllowed`
+
+Whether Smart Tab Grouping is available to this user, delegating to
+`SmartTabGroupingManager.isAllowed`. Smart Tab Grouping is currently gated on an
+English application locale, but that rule lives in the feature itself, so prefer
+this attribute over a hand-written locale check: messages that depend on the
+feature then stay in sync when the gate changes.
+
+#### Definition
+
+```ts
+declare const isSmartTabGroupingAllowed: boolean;
+```
+
+#### Examples
+
+* Only show a message when the feature can actually run:
+```javascript
+isSmartTabGroupingAllowed
+```
+
 ### `userId`
 
 A unique user id generated by Normandy (note that this is not clientId).
@@ -1275,6 +1401,16 @@ restore the previous session on startup; `false` otherwise.
 
 A boolean. `true` when both the current install and current profile support creating additional profiles using the `SelectableProfileService`; `false` otherwise.
 
+### `canResetProfile`
+
+A boolean. `true` when the current profile can be refreshed.
+
+Any message using the `RESET_PROFILE` action should include this in its targeting.
+
+### `isFirefoxReinstalled`
+
+Windows-only. A boolean. `true` when Firefox was uninstalled and then reinstalled over an existing profile since the previous run; `false` otherwise.
+
 ### `hasSelectableProfiles`
 
 A boolean. `true` when the `toolkit.profiles.storeID` pref has a value. Indicates that the profile is part of a profile group managed by the `SelectableProfileService`, and the user has used the multiple profiles feature. `false` otherwise.
@@ -1443,7 +1579,7 @@ Boolean that's true once Nimbus has loaded remote experiments from Remote Settin
 
 ### `crashCount`
 
-The total number of crashes the user has experienced, as recorded in the [dump files corresponding to submitted crashes](https://searchfox.org/firefox-main/source/toolkit/components/crashes/CrashManager.in.sys.mjs#297-322). This targeting is only available for Mac and Windows users; Linux users will always return a `crashCount` of 0.
+The total number of crashes per 180 days the user has experienced, as recorded by the [crash manager](https://searchfox.org/firefox-main/source/toolkit/components/crashes/CrashManager.in.sys.mjs#1006-1016) at crash time, independent of whether a crash report was submitted.
 
 #### Definition
 
@@ -1453,12 +1589,42 @@ declare const crashCount: Promise<number>;
 
 ### `daysSinceLastCrash`
 
-The number of days since the most recent crash, as recorded in the [dump files corresponding to submitted crashes](https://searchfox.org/firefox-main/source/toolkit/components/crashes/CrashManager.in.sys.mjs#297-322). If there are no recorded crashes, returns `null`. This targeting is only available for Mac and Windows users; Linux users will always return null for `daysSinceLastCrash`.
+The number of days since the most recent crash, as recorded by the [crash manager](https://searchfox.org/firefox-main/source/toolkit/components/crashes/CrashManager.in.sys.mjs#1006-1016) at crash time, independent of whether a crash report was submitted. If there are no recorded crashes, returns `null`.
 
 #### Definition
 
 ```ts
 declare const daysSinceLastCrash: Promise<number|null>;
+```
+
+### `crashCountInLastDay`
+
+The number of crashes the user has experienced in the last 24 hours, as recorded by the [crash manager](https://searchfox.org/firefox-main/source/toolkit/components/crashes/CrashManager.in.sys.mjs#1006-1016) at crash time, independent of whether a crash report was submitted.
+
+#### Definition
+
+```ts
+declare const crashCountInLastDay: Promise<number>;
+```
+
+### `crashCountInLastWeek`
+
+The number of crashes the user has experienced in the last 7 days, as recorded by the [crash manager](https://searchfox.org/firefox-main/source/toolkit/components/crashes/CrashManager.in.sys.mjs#1006-1016) at crash time, independent of whether a crash report was submitted.
+
+#### Definition
+
+```ts
+declare const crashCountInLastWeek: Promise<number>;
+```
+
+### `previousSessionCrashed`
+
+`true` if the previous browser session ended in a crash, as reported by [`SessionStartup`](https://searchfox.org/firefox-main/source/browser/components/sessionstore/SessionStartup.sys.mjs#437).
+
+#### Definition
+
+```ts
+declare const previousSessionCrashed: boolean;
 ```
 
 ### `isLaunchOnLogin`

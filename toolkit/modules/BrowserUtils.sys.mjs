@@ -6,18 +6,18 @@ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
-const lazy = {};
-ChromeUtils.defineESModuleGetters(lazy, {
+const lazy = XPCOMUtils.declareLazy({
   ReaderMode: "moz-src:///toolkit/components/reader/ReaderMode.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
+  IDNService: {
+    service: "@mozilla.org/network/idn-service;1",
+    iid: Ci.nsIIDNService,
+  },
+  mathMLNonAnchorLinksDisabled: {
+    pref: "mathml.href_link_on_non_anchor_element.disabled",
+    default: false,
+  },
 });
-
-XPCOMUtils.defineLazyServiceGetter(
-  lazy,
-  "IDNService",
-  "@mozilla.org/network/idn-service;1",
-  Ci.nsIIDNService
-);
 
 ChromeUtils.defineLazyGetter(lazy, "CatManListenerManager", () => {
   const CatManListenerManager = {
@@ -553,15 +553,18 @@ export var BrowserUtils = {
       if (
         aElement.localName == "a" ||
         (content.MathMLElement.isInstance(aElement) &&
-          !Services.prefs.getBoolPref(
-            "mathml.href_link_on_non_anchor_element.disabled"
-          ))
+          !lazy.mathMLNonAnchorLinksDisabled)
       ) {
         let href =
-          aElement.getAttribute("href") ||
+          aElement.getAttribute("href") ??
           aElement.getAttributeNS("http://www.w3.org/1999/xlink", "href");
+        // Note that empty string hrefs are valid, and distinct from missing
+        // attributes (null). Passing null to `URL.parse` will be stringified
+        // to "null" and when a base URI is present this may form a valid yet
+        // unintentional URL. So we explicitly check that we got a string.
         href =
-          URL.parse(href, aElement.ownerDocument.baseURIObject.spec)?.href ??
+          (typeof href == "string" &&
+            URL.parse(href, aElement.ownerDocument.baseURI)?.href) ??
           null;
         if (href) {
           // Don't return the aElement we got href from since callers expect
@@ -729,7 +732,9 @@ export var BrowserUtils = {
    * @param {string} options.categoryName
    *        What category's consumers to call.
    * @param {boolean} [options.idleDispatch=false]
-   *        If set to true, call each consumer in an idle task.
+   *        If set to true, call each consumer in an idle task. If jsGlobal is a
+   *        window that has closed by the time the idle task runs, the consumer
+   *        is dropped, so we don't initialize (and leak) a closing window.
    * @param {string} [options.profilerMarker=""]
    *        If specified, will create a profiler marker with the provided
    *        identifier for each consumer.
@@ -800,6 +805,12 @@ export var BrowserUtils = {
         allTasks.push(
           new Promise(resolve => {
             ChromeUtils.idleDispatch(() => {
+              // Drop the task if it targets a window that has closed in the
+              // meantime, to avoid initializing (and leaking) a closing window.
+              if (jsGlobal?.closed) {
+                resolve();
+                return;
+              }
               resolve(callSingleListener(listener));
             });
           })
@@ -819,9 +830,7 @@ export var BrowserUtils = {
     DEFAULT: 0, // invalid
     VPN: 1,
     RELAY: 2,
-    FOCUS: 3,
     PIN: 4,
-    COOKIE_BANNERS: 5,
   },
 
   /**
@@ -842,10 +851,8 @@ export var BrowserUtils = {
   shouldShowPromo(promoType) {
     switch (promoType) {
       case this.PromoType.VPN:
-      case this.PromoType.FOCUS:
       case this.PromoType.PIN:
       case this.PromoType.RELAY:
-      case this.PromoType.COOKIE_BANNERS:
         break;
       default:
         throw new Error("Unknown promo type: ", promoType);
@@ -941,18 +948,6 @@ let PromoInfo = {
       "tr",
     ],
   },
-  [BrowserUtils.PromoType.FOCUS]: {
-    enabledPref: "browser.promo.focus.enabled",
-    lazyStringSetPrefs: {
-      // there are no particular limitions to where it is "supported",
-      // so we leave out the supported pref
-      disallowedRegions: {
-        name: "browser.promo.focus.disallowed_regions",
-        default: "cn",
-      },
-    },
-    illegalRegions: ["cn"],
-  },
   [BrowserUtils.PromoType.PIN]: {
     enabledPref: "browser.promo.pin.enabled",
     lazyStringSetPrefs: {},
@@ -974,12 +969,6 @@ let PromoInfo = {
         "identity.fxaccounts.remote.pairing.uri",
         "identity.sync.tokenserver.uri",
       ].every(pref => !Services.prefs.prefHasUserValue(pref)),
-  },
-  [BrowserUtils.PromoType.COOKIE_BANNERS]: {
-    enabledPref: "browser.promo.cookiebanners.enabled",
-    lazyStringSetPrefs: {},
-    illegalRegions: [],
-    showForEnterprise: true,
   },
 };
 

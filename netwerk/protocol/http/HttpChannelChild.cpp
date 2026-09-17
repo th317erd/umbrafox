@@ -999,7 +999,11 @@ void HttpChannelChild::OnStopRequest(
         mLastStatusReported, now, mTransferSize, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(), this, mStatus,
-        &mTransactionTimings, std::move(mSource), httpVersion, responseStatus,
+        GetSecPurpose(), mLoadInfo->GetActivatedFromNavigationalPrefetch(),
+        &mTransactionTimings, std::move(mSource),
+        // Skip the version for a cached response: it reflects the original
+        // fetch, not this request's connection.
+        mIsFromCache ? Nothing() : httpVersion, responseStatus,
         Some(nsDependentCString(contentType.get())));
   }
 
@@ -1693,6 +1697,7 @@ void HttpChannelChild::Redirect1Begin(
         NetworkLoadType::LOAD_REDIRECT, mLastStatusReported, TimeStamp::Now(),
         0, kCacheUnknown, mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(), this, mStatus,
+        GetSecPurpose(), mLoadInfo->GetActivatedFromNavigationalPrefetch(),
         &mTransactionTimings, std::move(mSource), Some(responseHead.Version()),
         Some(responseHead.Status()),
         Some(nsDependentCString(contentType.get())), newOriginalURI,
@@ -1917,7 +1922,8 @@ HttpChannelChild::ConnectParent(uint32_t registrarId) {
     return NS_ERROR_FAILURE;
   }
 
-  ContentChild* cc = static_cast<ContentChild*>(gNeckoChild->Manager());
+  ContentChild* cc =
+      mozilla::ipc::ActorCast<ContentChild>(gNeckoChild->Manager());
   if (cc->IsShuttingDown()) {
     return NS_ERROR_FAILURE;
   }
@@ -2019,7 +2025,8 @@ HttpChannelChild::CompleteRedirectSetup(nsIStreamListener* aListener) {
         mURI, requestMethod, mPriority, mChannelId, NetworkLoadType::LOAD_START,
         mChannelCreationTimestamp, mLastStatusReported, 0, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
-        mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(), this, mStatus);
+        mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(), this, mStatus,
+        GetSecPurpose(), mLoadInfo->GetActivatedFromNavigationalPrefetch());
   }
   StoreIsPending(true);
   StoreWasOpened(true);
@@ -2236,7 +2243,8 @@ HttpChannelChild::Resume() {
       rv = neckoTarget->Dispatch(
           NS_NewRunnableFunction(
               "net::HttpChannelChild::mCallOnResume",
-              [callOnResume, self{std::move(self)}]() { callOnResume(self); }),
+              [callOnResume = std::move(callOnResume),
+               self{std::move(self)}]() { callOnResume(self); }),
           NS_DISPATCH_NORMAL);
     }
   }
@@ -2358,7 +2366,7 @@ nsresult HttpChannelChild::AsyncOpenInternal(nsIStreamListener* aListener) {
 
   nsAutoCString cookie;
   if (NS_SUCCEEDED(mRequestHead.GetHeader(nsHttp::Cookie, cookie))) {
-    mUserSetCookieHeader = cookie;
+    mUserSetCookieHeader = std::move(cookie);
   }
 
   DebugOnly<nsresult> check = AddCookiesToRequest();
@@ -2384,7 +2392,8 @@ nsresult HttpChannelChild::AsyncOpenInternal(nsIStreamListener* aListener) {
         mURI, requestMethod, mPriority, mChannelId, NetworkLoadType::LOAD_START,
         mChannelCreationTimestamp, mLastStatusReported, 0, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
-        mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(), this, mStatus);
+        mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(), this, mStatus,
+        GetSecPurpose(), mLoadInfo->GetActivatedFromNavigationalPrefetch());
   }
   StoreIsPending(true);
   StoreWasOpened(true);
@@ -2483,7 +2492,8 @@ nsresult HttpChannelChild::ContinueAsyncOpen() {
     return NS_ERROR_FAILURE;
   }
 
-  ContentChild* cc = static_cast<ContentChild*>(gNeckoChild->Manager());
+  ContentChild* cc =
+      mozilla::ipc::ActorCast<ContentChild>(gNeckoChild->Manager());
   if (cc->IsShuttingDown()) {
     return NS_ERROR_FAILURE;
   }
@@ -2528,6 +2538,7 @@ nsresult HttpChannelChild::ContinueAsyncOpen() {
 
   openArgs.preflightArgs() = optionalCorsPreflightArgs;
 
+  openArgs.uploadStreamIsStreaming() = LoadUploadStreamIsStreaming();
   openArgs.priority() = mPriority;
   openArgs.classOfService() = mClassOfService;
   openArgs.redirectionLimit() = mRedirectionLimit;
@@ -2886,7 +2897,8 @@ CacheEntryWriteHandleChild::OpenAlternativeOutputStream(
   if (!CanSend()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
-  if (static_cast<ContentChild*>(gNeckoChild->Manager())->IsShuttingDown()) {
+  if (mozilla::ipc::ActorCast<ContentChild>(gNeckoChild->Manager())
+          ->IsShuttingDown()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
@@ -2910,7 +2922,8 @@ HttpChannelChild::GetCacheEntryWriteHandle(nsICacheEntryWriteHandle** _retval) {
   if (!CanSend()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
-  if (static_cast<ContentChild*>(gNeckoChild->Manager())->IsShuttingDown()) {
+  if (mozilla::ipc::ActorCast<ContentChild>(gNeckoChild->Manager())
+          ->IsShuttingDown()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
@@ -2938,7 +2951,8 @@ HttpChannelChild::OpenAlternativeOutputStream(const nsACString& aType,
   if (!CanSend()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
-  if (static_cast<ContentChild*>(gNeckoChild->Manager())->IsShuttingDown()) {
+  if (mozilla::ipc::ActorCast<ContentChild>(gNeckoChild->Manager())
+          ->IsShuttingDown()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
@@ -3342,9 +3356,9 @@ void HttpChannelChild::CancelOnMainThread(nsresult aRv,
   // any ODA/OnStopRequest callbacks.
   nsCString reason(aReason);
   mEventQ->PrependEvent(MakeUnique<NeckoTargetChannelFunctionEvent>(
-      this, [self = UnsafePtr<HttpChannelChild>(this), aRv, reason]() {
-        self->CancelWithReason(aRv, reason);
-      }));
+      this,
+      [self = UnsafePtr<HttpChannelChild>(this), aRv,
+       reason = std::move(reason)]() { self->CancelWithReason(aRv, reason); }));
   mEventQ->Resume();
 }
 

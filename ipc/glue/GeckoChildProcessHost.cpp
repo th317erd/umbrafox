@@ -126,6 +126,8 @@ extern char** environ;
 namespace mozilla {
 namespace ipc {
 
+LazyLogModule gChildProcessLifecycleLog("ChildProcessLifecycle");
+
 struct LaunchResults {
   base::ProcessHandle mHandle = 0;
 #ifdef XP_MACOSX
@@ -321,7 +323,8 @@ class AndroidProcessLauncher : public PosixProcessLauncher {
  protected:
   virtual RefPtr<ProcessLaunchPromise> DoLaunch() override;
   RefPtr<ProcessHandlePromise> LaunchAndroidService(
-      const GeckoProcessType aType, const geckoargs::ChildProcessArgs& args);
+      const GeckoProcessType aType, const GeckoChildID aChildID,
+      const geckoargs::ChildProcessArgs& args);
 };
 typedef AndroidProcessLauncher ProcessLauncher;
 // NB: Technically Android is linux (i.e. XP_LINUX is defined), but we want
@@ -440,6 +443,12 @@ GeckoChildProcessHost::~GeckoChildProcessHost() {
 #endif
 
     if (mChildProcessHandle != 0) {
+      MOZ_LOG(
+          gChildProcessLifecycleLog, LogLevel::Info,
+          ("--PROCESS [pid = %" PRIPID "] [childID = %" PRIi32 "] [type = %s]",
+           base::GetProcId(mChildProcessHandle), mChildID,
+           XRE_GeckoProcessTypeToString(mProcessType)));
+
       ProcessWatcher::EnsureProcessTerminated(mChildProcessHandle);
       mChildProcessHandle = 0;
     }
@@ -802,6 +811,12 @@ bool GeckoChildProcessHost::AsyncLaunch(
                   this->mSandboxBroker = std::move(aResults.mSandboxBroker);
 #endif
 
+                  MOZ_LOG(gChildProcessLifecycleLog, LogLevel::Info,
+                          ("++PROCESS [pid = %" PRIPID "] [childID = %" PRIi32
+                           "] [type = %s]",
+                           GetChildProcessId(), mChildID,
+                           XRE_GeckoProcessTypeToString(mProcessType)));
+
                   glean::process::child_launch.AccumulateRawDuration(
                       TimeStamp::Now() - startTimeStamp);
 
@@ -934,6 +949,14 @@ void GeckoChildProcessHost::SetAlreadyDead() {
   mozilla::AutoWriteLock handleLock(mHandleLock);
   if (mChildProcessHandle &&
       mChildProcessHandle != base::kInvalidProcessHandle) {
+    // The destructor logs this too, but only one of the two runs, as both are
+    // guarded on still holding the handle.
+    MOZ_LOG(
+        gChildProcessLifecycleLog, LogLevel::Info,
+        ("--PROCESS [pid = %" PRIPID "] [childID = %" PRIi32 "] [type = %s]",
+         base::GetProcId(mChildProcessHandle), mChildID,
+         XRE_GeckoProcessTypeToString(mProcessType)));
+
     base::CloseProcessHandle(mChildProcessHandle);
   }
 
@@ -1324,7 +1347,7 @@ Result<Ok, LaunchError> PosixProcessLauncher::DoSetup() {
 
 #if defined(MOZ_WIDGET_ANDROID)
 RefPtr<ProcessLaunchPromise> AndroidProcessLauncher::DoLaunch() {
-  return LaunchAndroidService(mProcessType, mChildArgs)
+  return LaunchAndroidService(mProcessType, mChildID, mChildArgs)
       ->Then(
           mLaunchThread, __func__,
           [self = RefPtr{this}](ProcessHandle aHandle) {
@@ -1802,7 +1825,8 @@ RefPtr<ProcessHandlePromise> GeckoChildProcessHost::WhenProcessHandleReady() {
 
 #ifdef MOZ_WIDGET_ANDROID
 RefPtr<ProcessHandlePromise> AndroidProcessLauncher::LaunchAndroidService(
-    const GeckoProcessType aType, const geckoargs::ChildProcessArgs& args) {
+    const GeckoProcessType aType, const GeckoChildID aChildId,
+    const geckoargs::ChildProcessArgs& args) {
   JNIEnv* const env = mozilla::jni::GetEnvForThread();
   MOZ_ASSERT(env);
 
@@ -1820,7 +1844,8 @@ RefPtr<ProcessHandlePromise> AndroidProcessLauncher::LaunchAndroidService(
   jni::IntArray::LocalRef jfds = jni::IntArray::New(fds.data(), fds.size());
 
   auto type = java::GeckoProcessType::FromInt(aType);
-  auto genericResult = java::GeckoProcessManager::Start(type, jargs, jfds);
+  auto genericResult =
+      java::GeckoProcessManager::Start(type, aChildId, jargs, jfds);
   auto typedResult = java::GeckoResult::LocalRef(std::move(genericResult));
   return ProcessHandlePromise::FromGeckoResult(typedResult);
 }

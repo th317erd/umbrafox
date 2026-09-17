@@ -4,10 +4,12 @@
 
 use jxl::api::{
     Endianness, JxlBitstreamInput, JxlColorEncoding, JxlColorProfile, JxlColorType, JxlDataFormat,
-    JxlDecoderInner, JxlDecoderOptions, JxlOutputBuffer, JxlPixelFormat, ProcessingResult,
-    VisibleFrameInfo,
+    JxlDecoderInner, JxlDecoderOptions, JxlOutputBuffer, JxlPixelFormat, JxlPrimaries,
+    JxlTransferFunction, JxlWhitePoint, ProcessingResult, VisibleFrameInfo,
 };
 use jxl::headers::extra_channels::ExtraChannel;
+
+use crate::runner::{as_dyn, PoolRunner};
 
 pub struct JxlApiDecoder {
     pub inner: JxlDecoderInner,
@@ -67,6 +69,7 @@ enum BufMode<'a> {
 
 impl JxlApiDecoder {
     pub fn new(metadata_only: bool, has_cms: bool) -> Self {
+        log::debug!("JxlApiDecoder::new metadata_only={metadata_only} has_cms={has_cms}");
         let options = JxlDecoderOptions::default();
         let inner = JxlDecoderInner::new(options);
 
@@ -84,6 +87,7 @@ impl JxlApiDecoder {
     }
 
     pub fn new_scanner() -> Self {
+        log::debug!("JxlApiDecoder::new_scanner");
         let mut options = JxlDecoderOptions::default();
         options.scan_frames_only = true;
 
@@ -138,6 +142,44 @@ impl JxlApiDecoder {
         &self.icc_profile_cache
     }
 
+    /// Returns the CICP (colour_primaries, transfer_characteristics,
+    /// rendering_intent) codes for the output color profile when it is a simple
+    /// RGB encoding that maps to standard CICP values. Returns None for embedded
+    /// ICC profiles, grayscale, XYB, and custom primaries / white points / gamma
+    /// that don't correspond to a CICP enum value. The rendering_intent uses the
+    /// ICC codes (0=perceptual, 1=relative, 2=saturation, 3=absolute).
+    pub fn get_output_cicp(&self) -> Option<(u8, u8, u8)> {
+        let JxlColorProfile::Simple(JxlColorEncoding::RgbColorSpace {
+            white_point,
+            primaries,
+            transfer_function,
+            rendering_intent,
+        }) = self.inner.output_color_profile()?
+        else {
+            return None;
+        };
+
+        let primaries_val: u8 = match (white_point, primaries) {
+            (JxlWhitePoint::D65, JxlPrimaries::SRGB) => 1,
+            (JxlWhitePoint::D65, JxlPrimaries::BT2100) => 9,
+            (JxlWhitePoint::D65, JxlPrimaries::P3) => 12,
+            (JxlWhitePoint::DCI, JxlPrimaries::P3) => 11,
+            _ => return None,
+        };
+        let transfer_val: u8 = match transfer_function {
+            JxlTransferFunction::BT709 => 1,
+            JxlTransferFunction::Linear => 8,
+            JxlTransferFunction::SRGB => 13,
+            JxlTransferFunction::PQ => 16,
+            JxlTransferFunction::DCI => 17,
+            JxlTransferFunction::HLG => 18,
+            // Custom gamma has no CICP code.
+            JxlTransferFunction::Gamma(_) => return None,
+        };
+
+        Some((primaries_val, transfer_val, *rendering_intent as u8))
+    }
+
     /// Flush partially-decoded pixels into `output_buffer`. Returns true if any new
     /// pixels were written since the previous call; false if nothing new was
     /// rendered and the buffer is unchanged.
@@ -156,25 +198,31 @@ impl JxlApiDecoder {
             .checked_mul(self.bytes_per_pixel())
             .ok_or(Error::Overflow)?;
 
-        match k_buffer {
+        log::trace!("flush_pixels: {width}x{height} bytes_per_row={bytes_per_row}");
+
+        let mut runner = PoolRunner::new();
+        let result = match k_buffer {
             Some(k) if self.has_black_channel => {
                 let mut bufs = [
                     JxlOutputBuffer::new(output_buffer, height, bytes_per_row),
                     JxlOutputBuffer::new(k, height, width),
                 ];
-                self.inner.flush_pixels(&mut bufs).map_err(Error::from)
+                self.inner
+                    .flush_pixels(&mut bufs, as_dyn(&mut runner))
+                    .map_err(Error::from)
             }
             _ => {
                 let mut buf = JxlOutputBuffer::new(output_buffer, height, bytes_per_row);
                 self.inner
-                    .flush_pixels(std::slice::from_mut(&mut buf))
+                    .flush_pixels(std::slice::from_mut(&mut buf), as_dyn(&mut runner))
                     .map_err(Error::from)
             }
+        };
+        match &result {
+            Ok(rendered) => log::trace!("flush_pixels: rendered_new={rendered}"),
+            Err(e) => log::debug!("flush_pixels: error: {e:?}"),
         }
-    }
-
-    pub fn num_completed_passes(&self) -> usize {
-        self.inner.num_completed_passes().unwrap_or(0)
+        result
     }
 
     pub fn get_basic_info(&self) -> Option<BasicInfo> {
@@ -201,7 +249,7 @@ impl JxlApiDecoder {
         })
     }
 
-    fn set_pixel_format(&mut self) {
+    fn set_pixel_format(&mut self) -> Result<(), Error> {
         debug_assert!(self.inner.basic_info().is_some());
         let basic_info = self.inner.basic_info().unwrap();
 
@@ -248,6 +296,15 @@ impl JxlApiDecoder {
         // Request f16 output only when CMS is available; without CMS, u8 output
         // lets jxl-rs convert HDR → sRGB u8 so the user sees something.
         self.use_f16 = is_hdr && self.has_cms;
+        log::debug!(
+            "set_pixel_format: {}x{} is_hdr={is_hdr} has_cms={} has_black_channel={} \
+             color_type={color_type:?} use_f16={}",
+            basic_info.size.0,
+            basic_info.size.1,
+            self.has_cms,
+            self.has_black_channel,
+            self.use_f16
+        );
         let pixel_format = JxlPixelFormat {
             color_type,
             color_data_format: Some(if self.use_f16 {
@@ -259,8 +316,9 @@ impl JxlApiDecoder {
             }),
             extra_channel_format,
         };
-        self.inner.set_pixel_format(pixel_format);
+        self.inner.set_pixel_format(pixel_format)?;
         self.pixel_format_set = true;
+        Ok(())
     }
 
     /// Process JXL data. Pass output_buffer once frame_ready is true.
@@ -295,19 +353,25 @@ impl JxlApiDecoder {
             _ => BufMode::None,
         };
 
+        let mut runner = PoolRunner::new();
+
         loop {
             let bufs: Option<&mut [JxlOutputBuffer]> = match &mut buf_mode {
                 BufMode::Two(arr) => Some(arr.as_mut_slice()),
                 BufMode::Single(buf) => Some(std::slice::from_mut(buf)),
                 BufMode::None => None,
             };
-            let result = self.inner.process(data, bufs);
+            let result = self.inner.process(data, bufs, as_dyn(&mut runner));
 
             let need_more = match result {
-                Err(e) => return Err(e.into()),
+                Err(e) => {
+                    log::debug!("process_data: decode error: {e:?}");
+                    return Err(e.into());
+                }
                 Ok(ProcessingResult::Complete { .. }) => false,
                 Ok(ProcessingResult::NeedsMoreInput { .. }) => true,
             };
+            log::trace!("process_data: inner.process -> need_more={need_more}");
 
             // For metadata-only decode of non-animated images, return once
             // we have basic_info. For animated images, continue until frame
@@ -326,7 +390,7 @@ impl JxlApiDecoder {
             // unwraps it).
             if !self.pixel_format_set && self.inner.basic_info().is_some() {
                 debug_assert!(self.inner.embedded_color_profile().is_some());
-                self.set_pixel_format();
+                self.set_pixel_format()?;
                 debug_assert!(self.pixel_format_set);
                 debug_assert!(self.inner.current_pixel_format().is_some());
                 if !need_more {
@@ -344,10 +408,15 @@ impl JxlApiDecoder {
             if let Some(frame_header) = frame_header {
                 self.frame_duration = frame_header.duration.or(Some(0.0));
                 self.frame_ready = true;
+                log::debug!(
+                    "process_data: frame header ready, duration={:?}ms",
+                    self.frame_duration
+                );
                 return Ok(true);
             } else if self.frame_ready {
                 // Frame was rendered
                 self.frame_ready = false;
+                log::trace!("process_data: frame rendered");
                 return Ok(true);
             }
             // No frame yet, need more data

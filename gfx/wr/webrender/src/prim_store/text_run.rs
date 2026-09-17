@@ -3,13 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use api::{ColorF, FontInstanceFlags, GlyphInstance, RasterSpace};
-use api::units::{LayoutToWorldTransform, DevicePixelScale};
+use api::units::LayoutToWorldTransform;
 use api::units::*;
+use crate::space::SpaceSnapper;
 use crate::scene_building::{IsVisible};
 use glyph_rasterizer::{FontInstance, FontTransform, GlyphKey, SubpixelDirection, FONT_SIZE_LIMIT};
 use crate::intern;
 use crate::internal_types::LayoutPrimitiveInfo;
-use crate::picture::SurfaceInfo;
+use crate::surface::SurfaceInfo;
 use crate::prim_store::PrimitiveScratchBuffer;
 use crate::prim_store::{PrimitiveStore, PrimKeyCommonData, PrimTemplateCommonData};
 use crate::renderer::{GpuBufferAddress, GpuBufferBuilderF, MAX_VERTEX_TEXTURE_WIDTH};
@@ -185,9 +186,6 @@ impl intern::Internable for TextRun {
 }
 
 impl InternablePrimitive for TextRun {
-    // Text renders in device space; its clips must not snap (bug 2050692).
-    const SNAP_CLIPS: bool = false;
-
     fn into_key(
         self,
         info: &LayoutPrimitiveInfo,
@@ -232,9 +230,14 @@ pub struct TextRunScratch {
     /// Normalized prim local rect for this run. `.min` is the run anchor:
     /// the shader transforms it to device space and adds the per-glyph
     /// device offsets. Stored here so batching emits the identical anchor
-    /// in `PrimitiveHeader.local_rect` that `request_resources` used to
+    /// in `PrimitiveHeader.pattern_rect` that `request_resources` used to
     /// compute those offsets.
-    pub local_rect: LayoutRect,
+    pub pattern_rect: LayoutRect,
+    /// The run's clip rect, quantised to the device grid on the axes the glyph
+    /// pen is snapped on (see `snap_bias`). This is the rect the shader clamps
+    /// the glyph quad to: the clamp is a hard, pixel-centre test, so it is only
+    /// lossless if the clip sits on the same grid the glyphs landed on.
+    pub snapped_clip_rect: LayoutRect,
     /// Per-instance GPU buffer address for the color block followed by the
     /// per-glyph offset blocks (two glyphs per block). In device mode these are
     /// glyph pen positions snapped to the device grid, relative to the
@@ -267,7 +270,22 @@ impl TextRunTemplate {
         //           will implicitly be part of the device pixel ratio for
         //           the (cached) local space surface, and so this code
         //           will no longer be required.
-        let raster_scale_input = raster_space.local_scale().unwrap_or(1.0).max(0.001);
+        // A bitmap-strike run rasterizes with an identity glyph shape (see below),
+        // so the only way the transform's scale can reach the rasterizer is through
+        // the raster scale. Without it the glyph is rendered at its untransformed
+        // size and the shader scales that, which on the backends that resample at
+        // rasterization time (Core Text, DirectWrite) is visibly soft when scaling
+        // up (bug 2064316). Only screen raster space needs this: a requested - or
+        // zoom/animation derived - local raster space carries its own scale, which
+        // is deliberately decoupled from the current transform.
+        let raster_scale_input = if has_bitmap_strikes && raster_space == RasterSpace::Screen {
+            transform
+                .coplanar_scale_factors()
+                .map_or(1.0, |(sx, sy)| sx.max(sy))
+        } else {
+            raster_space.local_scale().unwrap_or(1.0)
+        }
+        .max(0.001);
 
         let dps = surface.device_pixel_scale.0;
         let font_size = specified_font.size.to_f32_px();
@@ -284,31 +302,38 @@ impl TextRunTemplate {
         // Only support transforms that can be coerced to simple 2D transforms.
         // Add texture padding to the rasterized glyph buffer when one anticipates
         // the glyph will need to be scaled when rendered.
-        // A perspective component that only involves m34/m44 maps the glyphs'
-        // (coplanar, z=0) plane affinely, so they can still be rasterized and
-        // device-snapped in screen space; only a perspective that varies across
-        // the plane (m14/m24, a true keystone) needs local-raster rasterization.
-        // Using `has_2d_plane_perspective` instead of `has_perspective_component`
-        // keeps flat `perspective` ancestors on the sharp device path (bug 2052019)
-        // while genuinely 3D-transformed text still falls back to local raster.
+        // Glyphs are coplanar, so the device path only needs the transform to be
+        // 2D on their z=0 plane rather than 2D outright: `is_2d_on_z_plane` keeps
+        // a flat `perspective` ancestor sharp there (bug 2052019) while sending
+        // the transforms whose device round-trip the shader can't invert - a
+        // `translateZ` under that perspective, or a 3D rotation - back to local
+        // raster, instead of displacing every glyph and shaving a slice off it
+        // (bug 2060342).
         // Color bitmap glyphs (Apple Color Emoji and any CBDT/sbix font with
-        // embedded bitmap strikes) can't have a rotation or skew baked into their
-        // rasterization: the platform backends force an identity glyph shape for
-        // bitmap fonts and only fold the uniform scale into the point size. On the
-        // screen-space TRANSFORM_GLYPHS path that leaves a rotated/skewed emoji
-        // drawn axis-aligned while still positioned at its transformed pen, so it
-        // looks unrotated and displaced (bug 2055177). `has_bitmap_strikes` is
-        // computed by the caller from the real font face (the EMBEDDED_BITMAPS
-        // instance flag alone is unreliable: on unix it only reflects a fontconfig
-        // preference and is set even for ordinary outline fonts) and is only true
-        // for a genuine bitmap font under a non-axis-aligned transform. Route those
-        // through the local-raster fallback so the shader applies the full transform
-        // to the emoji image, the same way vector glyphs and the manual
-        // filter/isolated-surface workaround do. A pure axis-aligned
-        // scale+translation is fine on the device path (the uniform scale already
-        // folds into the font size), so those are left untouched.
+        // embedded bitmap strikes) can't have any part of the transform baked into
+        // their rasterization: the platform backends force an identity glyph shape
+        // for bitmap fonts, so a rotation or skew is dropped outright and the scale
+        // survives only as the scalar `RasterizedGlyph::scale`, which the device
+        // path multiplies into the atlas footprint. That scalar cannot express a
+        // transform scale at all, so on the device path a scaled emoji is painted
+        // at its untransformed size (too small when scaling up, too big and clipped
+        // when scaling down - bugs 2061411, 2062234), and a rotated one is drawn
+        // axis-aligned at its transformed pen (bug 2055177). Before bug 2044211 the
+        // GPU routed these by glyph format - `GlyphFormat::Bitmap`/`ColorBitmap`
+        // have no `Transformed` variant, so bitmap glyphs never reached the
+        // transform shader and always had the transform applied in local space.
+        // `has_bitmap_strikes` restores that: the caller computes it from the real
+        // font face (the EMBEDDED_BITMAPS instance flag alone is unreliable - on
+        // unix it only reflects a fontconfig preference and is set even for
+        // ordinary outline fonts) and it is true only for a genuine bitmap font
+        // under a transform that isn't a pure translation. Route those through the
+        // local-raster fallback so the shader applies the full transform to the
+        // emoji image, the same way vector glyphs and the manual
+        // filter/isolated-surface workaround do. A pure translation is fine on the
+        // device path, where the scalar scale already lands the glyph at the right
+        // size, so that - the common case - is left untouched.
         let (use_subpixel_aa, transform_glyphs, texture_padding, oversized) = if raster_space != RasterSpace::Screen ||
-            transform.has_2d_plane_perspective() || !transform.has_2d_inverse() ||
+            !transform.is_2d_on_z_plane() || !transform.has_2d_inverse() ||
             has_bitmap_strikes
         {
             (false, false, true, device_font_size > FONT_SIZE_LIMIT)
@@ -383,9 +408,10 @@ impl TextRunTemplate {
         &self,
         prim_spatial_node_index: SpatialNodeIndex,
         low_quality_pinch_zoom: bool,
-        device_pixel_scale: DevicePixelScale,
+        surface: &SurfaceInfo,
         spatial_tree: &SpatialTree,
     ) -> RasterSpace {
+        let device_pixel_scale = surface.device_pixel_scale;
         let prim_spatial_node = spatial_tree.get_spatial_node(prim_spatial_node_index);
         if prim_spatial_node.is_ancestor_or_self_zooming && low_quality_pinch_zoom {
             // In low-quality mode, we set the scale to be 1.0. However, the device-pixel
@@ -407,15 +433,22 @@ impl TextRunTemplate {
             // glyphs jitter as they cross pixel boundaries (bug 637852 - the device
             // text path added in bug 2044211 otherwise misses that policy). Quantize
             // the scale up to the nearest power of 2 (capped at 8) so the glyphs
-            // aren't re-rasterized as the scale sweeps through fractional values,
-            // and undo the device-pixel scale since the picture cache tiles are
-            // raster roots.
-            let root_spatial_node_index = spatial_tree.root_reference_frame_index();
+            // aren't re-rasterized as the scale sweeps through fractional values.
+            //
+            // The scale to quantize is the one the glyphs are composited at: the
+            // prim to raster transform of the surface being drawn into, times that
+            // surface's device pixel scale. `compute_font_instance` multiplies the
+            // local scale returned here by that device pixel scale, so divide it
+            // back out.
             let scale_factors = spatial_tree
-                .get_relative_transform(prim_spatial_node_index, root_spatial_node_index)
+                .get_relative_transform(
+                    prim_spatial_node_index,
+                    surface.raster_spatial_node_index,
+                )
                 .scale_factors();
 
-            let scale = scale_factors.0.max(scale_factors.1).min(8.0).max(1.0);
+            let device_scale = scale_factors.0.max(scale_factors.1) * device_pixel_scale.0;
+            let scale = device_scale.min(8.0).max(1.0);
             let rounded_up = 2.0f32.powf(scale.log2().ceil());
 
             RasterSpace::Local(rounded_up / device_pixel_scale.0)
@@ -431,7 +464,8 @@ impl TextRunTemplate {
 
     pub fn request_resources(
         &self,
-        local_rect: LayoutRect,
+        pattern_rect: LayoutRect,
+        local_clip_rect: LayoutRect,
         transform: &LayoutToWorldTransform,
         surface: &SurfaceInfo,
         spatial_node_index: SpatialNodeIndex,
@@ -445,16 +479,17 @@ impl TextRunTemplate {
         let raster_space = self.get_raster_space_for_prim(
             spatial_node_index,
             low_quality_pinch_zoom,
-            surface.device_pixel_scale,
+            surface,
             spatial_tree,
         );
 
-        // Only bitmap fonts drawn under a non-axis-aligned transform need the
-        // local-raster fallback (bug 2055177). Gate on the cheap transform and
-        // instance-flag checks first so that axis-aligned text - the common case -
-        // does no extra work, and only then consult the cached per-font
-        // bitmap-strike info (a lock-free lookup populated when the font was added).
-        let has_bitmap_strikes = !transform.is_2d_scale_translation()
+        // Bitmap fonts need the local-raster fallback under any transform that
+        // isn't a pure translation - a scale as much as a rotation or skew
+        // (bugs 2055177, 2061411). Gate on the cheap transform and instance-flag
+        // checks first so that untransformed text - the common case - does no
+        // extra work, and only then consult the cached per-font bitmap-strike
+        // info (a lock-free lookup populated when the font was added).
+        let has_bitmap_strikes = !transform.is_simple_2d_translation()
             && self.font.flags.contains(FontInstanceFlags::EMBEDDED_BITMAPS)
             && resource_cache.font_has_bitmap_strikes(self.font.font_key);
 
@@ -495,14 +530,52 @@ impl TextRunTemplate {
         let local_raster = raster_space != RasterSpace::Screen
             || used_font.flags.contains(FontInstanceFlags::TEXTURE_PADDING);
 
+        // Only the local-raster branch below snaps on the CPU; device mode hands
+        // the exact pen to the shader, which applies the matching bias itself.
+        // `Mixed` never reaches local-raster mode (that path rasterizes with an
+        // identity `FontTransform`, so its subpx dir is always `Horizontal`).
         let snap_bias = match subpx_dir {
             SubpixelDirection::None => DeviceVector2D::new(0.5, 0.5),
             SubpixelDirection::Horizontal => DeviceVector2D::new(0.125, 0.5),
             SubpixelDirection::Vertical => DeviceVector2D::new(0.5, 0.125),
+            SubpixelDirection::Mixed => DeviceVector2D::new(0.125, 0.125),
+        };
+
+        // Quantise the clip the way the glyphs are quantised, per axis. A 0.5
+        // bias above means the pen is rounded to a whole device pixel on that
+        // axis, so round the clip to nearest there too and the shader's hard
+        // clamp lands on the same grid the glyphs did; a 0.125 bias means the
+        // axis carries a quarter-pixel offset in the glyph key, so the clip has
+        // to stay exact or it cuts sub-pixel positioned ink (bug 2050692).
+        //
+        // Local-raster mode snaps in raster space rather than on the device
+        // grid, so leave its clip alone.
+        //
+        // A bitmap-strike run is really `None` (both axes grid-placed), but that
+        // needs the resolved glyph format, so it is treated as its unlimited
+        // direction here. That only leaves the horizontal clip exact, i.e.
+        // today's behaviour, so it is safe - just not the additional fix a
+        // strike's grid-placed pen would allow (bug 2056856).
+        let (snap_clip_x, snap_clip_y) = if local_raster {
+            (false, false)
+        } else {
+            match subpx_dir {
+                SubpixelDirection::None => (true, true),
+                SubpixelDirection::Horizontal => (false, true),
+                SubpixelDirection::Vertical => (true, false),
+                SubpixelDirection::Mixed => (false, false),
+            }
+        };
+        let snapped_clip_rect = if snap_clip_x || snap_clip_y {
+            let mut snapper = SpaceSnapper::new(surface, spatial_tree);
+            snapper.set_target_spatial_node(spatial_node_index, spatial_tree);
+            snapper.snap_rect_axes(&local_clip_rect, snap_clip_x, snap_clip_y)
+        } else {
+            local_clip_rect
         };
 
         // World-space run anchor (device mode only).
-        let anchor_world = transform.transform_point2d(local_rect.min);
+        let anchor_world = transform.transform_point2d(pattern_rect.min);
 
         let mut glyph_offsets: Vec<DeviceVector2D> = Vec::new();
         let glyph_keys_range = if local_raster {
@@ -514,7 +587,7 @@ impl TextRunTemplate {
             glyph_offsets.reserve(self.glyphs.len());
 
             scratch.frame.glyph_keys.extend(self.glyphs.iter().map(|src| {
-                let pos = local_rect.min + src.point.to_vector();
+                let pos = pattern_rect.min + src.point.to_vector();
                 let raster_pos = DevicePoint::new(pos.x * glyph_raster_scale, pos.y * glyph_raster_scale);
                 let snapped = (raster_pos + snap_bias).floor();
                 glyph_offsets.push(snapped.to_vector());
@@ -522,30 +595,35 @@ impl TextRunTemplate {
             }))
         } else if let Some(anchor_world) = anchor_world {
             // Device mode.
-            let anchor_device = anchor_world * dps;
-
+            //
             // No run-level snap. Each glyph is placed at its exact device
-            // position; the per-glyph floor + subpixel GlyphKey carry the
+            // position; the per-glyph snap + subpixel GlyphKey carry the
             // fractional part, so the glyph renders exactly where Gecko put it
             // (bug 2050692). The run has no single snapped anchor to fold into the
             // glyphs, so a run never shifts relative to its clip/box. Stability
             // under scrolling comes from the spatial tree, which already snaps
             // scroll offsets (and should_snap frame transforms) to the device grid.
+            //
+            // Store the *unsnapped* absolute device pen and let the shader snap
+            // it. Which bias to use isn't known here: a glyph that rasterizes
+            // from an embedded bitmap strike ignores the sub-pixel offset the
+            // key asks for and lands on the grid, so it must round to nearest
+            // rather than floor with the sub-pixel bias (bug 2056856). That is
+            // only known once the glyph is rasterized, which happens after this
+            // point. Snapping a value the shader receives verbatim keeps the
+            // arithmetic exact - re-deriving the pen from the transform GPU-side
+            // would risk landing on the wrong side of a `floor` boundary at the
+            // exactly-representable fractions layout produces (x.5, x.875).
             glyph_offsets.reserve(self.glyphs.len());
 
             scratch.frame.glyph_keys.extend(self.glyphs.iter().map(|src| {
                 // Exact glyph pen position in absolute device space.
                 let glyph_world = transform
-                    .transform_point2d(local_rect.min + src.point.to_vector())
+                    .transform_point2d(pattern_rect.min + src.point.to_vector())
                     .unwrap_or(anchor_world);
                 let device_pen = glyph_world * dps;
 
-                // Floor to the device grid and store relative to the unsnapped
-                // anchor; the shader re-adds the unsnapped anchor, recovering this
-                // position. The subpixel GlyphKey (fractional part of `device_pen`)
-                // rasterizes the glyph at its exact sub-pixel offset.
-                let snapped = (device_pen + snap_bias).floor();
-                glyph_offsets.push(snapped - anchor_device);
+                glyph_offsets.push(device_pen.to_vector());
 
                 GlyphKey::new(src.index, device_pen, subpx_dir)
             }))
@@ -565,7 +643,8 @@ impl TextRunTemplate {
         scratch.frame.text_runs.push(TextRunScratch {
             used_font,
             glyph_keys_range,
-            local_rect,
+            pattern_rect,
+            snapped_clip_rect,
             gpu_address,
             raster_scale,
             local_raster,
@@ -585,6 +664,6 @@ fn test_struct_sizes() {
     // (b) You made a structure larger. This is not necessarily a problem, but should only
     //     be done with care, and after checking if talos performance regresses badly.
     assert_eq!(mem::size_of::<TextRun>(), 80, "TextRun size changed");
-    assert_eq!(mem::size_of::<TextRunTemplate>(), 80, "TextRunTemplate size changed");
-    assert_eq!(mem::size_of::<TextRunKey>(), 80, "TextRunKey size changed");
+    assert_eq!(mem::size_of::<TextRunTemplate>(), 112, "TextRunTemplate size changed");
+    assert_eq!(mem::size_of::<TextRunKey>(), 112, "TextRunKey size changed");
 }

@@ -385,10 +385,21 @@ def get_treeherder_link(config) -> str:
     return f"{TREEHERDER_ROOT_URL}/#/jobs?repo={th_project}&revision={branch_rev}&selectedTaskRun=<self>"
 
 
+def get_task_source_url(config, task):
+    clone_with = task.get("attributes", {}).get("clone_with")
+    if config.params["repository_type"] == "hg" and clone_with == "git":
+        repo = config.params["head_git_repository"].rstrip("/")
+        rev = config.params["head_git_rev"]
+        return f"{repo}/blob/{rev}/{config.path}"
+    return config.params.file_url(config.path, pretty=True)
+
+
 @functools.cache
-def get_default_priority(graph_config, project):
+def get_default_priority(graph_config, project, shipping):
     return evaluate_keyed_by(
-        graph_config["task-priority"], "Graph Config", {"project": project}
+        graph_config["task-priority"],
+        "Graph Config",
+        {"project": project, "shipping": str(shipping).lower()},
     )
 
 
@@ -1681,7 +1692,8 @@ class L10nBumpInfo(Schema):
 
 class TagConfig(Schema):
     types: list[Literal["buildN", "release"]]
-    hg_repo_url: str
+    revision: str
+    hg_repo_url: Optional[str]
 
 
 class VersionBumpConfig(Schema):
@@ -1710,6 +1722,7 @@ class EsrBumpConfig(Schema):
     fetch_version_from: str
     version_files: list[VersionFileStrict]
     to_revision: str = ""
+    update_clobber_file: Optional[bool] = None
 
 
 class MainBumpConfig(Schema):
@@ -1720,16 +1733,7 @@ class MainBumpConfig(Schema):
     replacements: Optional[list[list[str]]] = None
     regex_replacements: Optional[list[list[str]]] = None
     end_tag: Optional[str] = None
-
-
-class EarlyToLateBetaConfig(Schema):
-    to_branch: str
-    # technically not used, but passing it keeps landoscript
-    # code cleaner, so we may as well require a real value
-    # for it.
-    fetch_version_from: str
-    to_revision: str = ""
-    replacements: Optional[list[list[str]]] = None
+    update_clobber_file: Optional[bool] = None
 
 
 class UpliftConfig(Schema):
@@ -1743,6 +1747,7 @@ class UpliftConfig(Schema):
     base_tag: Optional[str] = None
     end_tag: Optional[str] = None
     l10n_bump_info: Optional[list[L10nBumpInfo]] = None
+    update_clobber_file: Optional[bool] = None
 
 
 class MergeDayConfig(Schema):
@@ -1769,7 +1774,6 @@ class LandoAction(Schema, forbid_unknown_fields=False, kw_only=True):
     version_bump: Optional[VersionBumpConfig] = None
     esr_bump: Optional[EsrBumpConfig] = None
     main_bump: Optional[MainBumpConfig] = None
-    early_to_late_beta: Optional[EarlyToLateBetaConfig] = None
     uplift: Optional[UpliftConfig] = None
     merge_day: Optional[MergeDayConfig] = None
 
@@ -1842,11 +1846,11 @@ def build_lando_payload(config, task, task_def):
                 tag_names.extend([f"{product}_{version}_RELEASE"])
             tag_info = {
                 "tags": tag_names,
-                "hg_repo_url": info["hg-repo-url"],
-                "revision": config.params[
-                    "{}head_rev".format(worker.get("repo-param-prefix", ""))
-                ],
+                "revision": info["revision"],
             }
+            if repo_url := info.get("hg-repo-url"):
+                tag_info["hg_repo_url"] = repo_url
+
             task_def["payload"]["tag_info"] = tag_info
             actions.append("tag")
 
@@ -1872,10 +1876,6 @@ def build_lando_payload(config, task, task_def):
                 dash_to_underscore(vf) for vf in info["version-files"]
             ]
             task_def["payload"]["merge_info"] = merge_info
-            actions.append("merge_day")
-
-        if info := action.get("early-to-late-beta"):
-            task_def["payload"]["merge_info"] = dash_to_underscore(info)
             actions.append("merge_day")
 
         if info := action.get("uplift"):
@@ -2073,6 +2073,13 @@ def validate_shipping_product(config, product):
 
 @transforms.add
 def validate(config, tasks):
+    # Schema validation is a no-op in fast mode (see validate_schema), so skip
+    # this whole transform, including the costly per-task worker schema
+    # construction whose result would only be discarded.
+    if taskgraph.fast:
+        yield from tasks
+        return
+
     for task in tasks:
         validate_schema(
             TaskDescriptionSchema,
@@ -2383,7 +2390,18 @@ def try_task_config_env(config, tasks):
     }
     for task in tasks:
         if task["worker"]["implementation"] in implementations:
-            task["worker"]["env"].update(env)
+            task_env = task["worker"]["env"]
+            # A test task whose manifests were restricted to what try asked for
+            # holds the share of the request that its own chunk runs, which is
+            # narrower than the request itself. Every other task needs the
+            # request, as the harness is what filters the suite down for it.
+            attributes = task.get("attributes") or {}
+            keep_test_paths = attributes.get("test-manifests-restricted", False)
+            task_env.update({
+                name: value
+                for name, value in env.items()
+                if name != "MOZHARNESS_TEST_PATHS" or not keep_test_paths
+            })
         yield task
 
 
@@ -2428,6 +2446,7 @@ def set_task_and_artifact_expiry(config, jobs):
         job_expiry_from_now = fromNow(job_expiry, now)
         if cap and job_expiry_from_now > cap_from_now:
             job_expiry, job_expiry_from_now = cap, cap_from_now
+            job["expires-after"] = job_expiry
         # If the task has no explicit expiration-policy, but has an expires-after,
         # we use that as the default artifact expiry.
         artifact_expires = expires if "expiration-policy" in job else job_expiry
@@ -2447,11 +2466,11 @@ def set_task_and_artifact_expiry(config, jobs):
         yield job
 
 
-def group_name_variant(group_names, groupSymbol):
-    # iterate through variants, allow for Base-[variant_list]
+@functools.cache
+def _variant_symbols():
     # sorting longest->shortest allows for finding variants when
     # other variants have a suffix that is a subset
-    variant_symbols = sorted(
+    return sorted(
         [
             (
                 v,
@@ -2464,6 +2483,11 @@ def group_name_variant(group_names, groupSymbol):
         key=lambda tup: len(tup[1]),
         reverse=True,
     )
+
+
+def group_name_variant(group_names, groupSymbol):
+    # iterate through variants, allow for Base-[variant_list]
+    variant_symbols = _variant_symbols()
 
     # strip known variants
     # build a list of known variants
@@ -2554,7 +2578,9 @@ def build_task(config, tasks):
 
         if "priority" not in task:
             task["priority"] = get_default_priority(
-                config.graph_config, config.params["project"]
+                config.graph_config,
+                config.params["project"],
+                config.params["shipping"],
             )
 
         tags = task.get("tags", {})
@@ -2581,7 +2607,7 @@ def build_task(config, tasks):
                 "description": task["description"],
                 "name": task["label"],
                 "owner": config.params["owner"],
-                "source": config.params.file_url(config.path, pretty=True),
+                "source": get_task_source_url(config, task),
             },
             "extra": extra,
             "tags": tags,

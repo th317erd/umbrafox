@@ -5,7 +5,7 @@
 @import url("chrome://browser/skin/tabbrowser/tab.tokens.css");
 
 #fxview-tab-row-secondary-button {
-  visibility: hidden;
+  visibility: collapse;
 
   :host(:hover) & {
     visibility: visible;
@@ -20,6 +20,7 @@
   --favicon-badge-color: var(--color-accent-attention);
 
   display: flex;
+  contain: size layout;
 }
 
 :host([selected]) {
@@ -115,11 +116,24 @@
   -moz-context-properties: fill;
   fill: var(--identity-icon-color);
   margin-inline-end: 8px;
+
+  /* Match the container context-menu items: fill-color icon inside a round
+     15% tinted background. */
+  @media -moz-pref("browser.nova.enabled") {
+    box-sizing: content-box;
+    padding: var(--identity-icon-inset);
+    border-radius: var(--border-radius-circle);
+    background-color: var(--identity-fill-tint);
+    background-origin: content-box;
+    background-repeat: no-repeat;
+    background-position: center;
+    fill: var(--identity-fill-color);
+  }
 }
 
 :host([current]) {
   @media -moz-pref("browser.nova.enabled") {
-    outline: 1px solid var(--tab-selected-outline-color);
+    outline: 1px solid var(--tab-border-color-selected);
     outline-offset: -1px;
 
     @media (not (prefers-contrast)) {
@@ -127,7 +141,16 @@
       background:
         var(--tab-border-color-accent) border-box border-area,
         var(--tab-background-color-selected) padding-box;
+      color: var(--tab-text-color-selected);
     }
+  }
+}
+
+:host([current][inactive-window]) {
+  @media -moz-pref("browser.nova.enabled") {
+    outline-color: color-mix(in srgb, var(--tab-border-color-selected) 60%, transparent);
+    --tab-border-color-selected-leading: color-mix(in srgb, var(--color-violet-30) 60%, transparent);
+    --tab-border-color-selected-trailing: color-mix(in srgb, light-dark(var(--color-orange-30), var(--color-violet-50)) 60%, transparent);
   }
 }
 
@@ -175,7 +198,6 @@
 }
 
 :host([medium-view]) #fxview-tab-row-secondary-button {
-  display: inline;
   visibility: hidden;
 }
 

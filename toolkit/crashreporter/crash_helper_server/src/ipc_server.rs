@@ -78,10 +78,9 @@ impl IPCServer {
         client_pid: Pid,
         client_handle: Option<ProcessHandle>,
         listener: IPCListener,
-        connector: IPCConnector,
+        mut connector: IPCConnector,
         breakpad_data: BreakpadData,
         minidump_path: OsString,
-        build_id: String,
     ) -> Result<IPCServer> {
         // If the client process handle was not provided at launch then it will
         // be sent by the client using a regular `ProcessRendezVous` message.
@@ -92,11 +91,11 @@ impl IPCServer {
                 .context("Client failed to rendez-vous")?
                 .get_process_handle(),
         };
+        connector.set_process(client_handle.clone());
 
         let crash_generator = Box::new(Mutex::new(CrashGenerator::new(
             client_handle.clone(),
             minidump_path.clone(),
-            build_id,
         )));
 
         // SAFETY: We widen the lifetime of this crash generator reference

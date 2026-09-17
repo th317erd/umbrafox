@@ -30,6 +30,8 @@ prefs = [
 
 ["browser_ipprotection_content_site_exclusion.js"]
 
+["browser_ipprotection_content_site_rules.js"]
+
 ["browser_ipprotection_content_unauthenticated.js"]
 
 ["browser_ipprotection_header.js"]
@@ -68,3 +70,5 @@ skip-if = [
 ["browser_ipprotection_utils.js"]
 
 ["browser_ipprotection_viewer_site_exclusion.js"]
+
+["browser_ipprotection_window_close.js"]

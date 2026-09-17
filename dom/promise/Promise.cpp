@@ -466,6 +466,17 @@ void Promise::MaybeReject(JSContext* aCx, JS::Handle<JS::Value> aValue) {
   }
 }
 
+void Promise::MaybeSafeResolve(JSContext* aCx, JS::Handle<JS::Value> aValue) {
+  NS_ASSERT_OWNINGTHREAD(Promise);
+
+  JS::Rooted<JSObject*> p(aCx, PromiseObj());
+  const bool ok = p && JS::SafeResolve(aCx, p, aValue);
+  if (!ok) {
+    // Now what?  There's nothing sane to do here.
+    JS_ClearPendingException(aCx);
+  }
+}
+
 #define SLOT_NATIVEHANDLER 0
 #define SLOT_NATIVEHANDLER_TASK 1
 
@@ -807,7 +818,12 @@ void Promise::ReportRejectedPromise(JSContext* aCx,
     } else {
       // Use the resolution site as the exception stack
       JS::ExceptionStack exnStack(aCx, unwrapped, resolutionSite);
-      if (!report.init(aCx, exnStack, JS::ErrorReportBuilder::NoSideEffects)) {
+      // This report only ends up in the console, so it's not observable by web
+      // content and we can afford to list the rejection value's own property
+      // names instead of reporting a bare "Object".
+      if (!report.init(
+              aCx, exnStack,
+              JS::ErrorReportBuilder::NoSideEffectsListPropertyNames)) {
         JS_ClearPendingException(aCx);
         return;
       }

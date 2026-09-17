@@ -329,10 +329,10 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
     }
   }
 
-  CanvasFontStretch FontStretch() { return CurrentState().fontStretch; }
-  void SetFontStretch(const CanvasFontStretch& aFontStretch) {
-    if (CurrentState().fontStretch != aFontStretch) {
-      CurrentState().fontStretch = aFontStretch;
+  CanvasFontStretch FontStretch() { return CurrentState().fontWidth; }
+  void SetFontStretch(const CanvasFontStretch& aFontWidth) {
+    if (CurrentState().fontWidth != aFontWidth) {
+      CurrentState().fontWidth = aFontWidth;
       CurrentState().fontGroup = nullptr;
     }
   }
@@ -693,6 +693,10 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
   // Returns whether the font was successfully updated.
   bool SetFontInternal(const nsACString& aFont, mozilla::ErrorResult& aError);
 
+  // Can we skip parsing and resolving the font, because it is the same as last
+  // time and no other relevant attributes have changed?
+  bool FontIsUnchanged(const nsACString& aFont, gfxUserFontSet* aFontSet);
+
   // Helper for SetFontInternal in the case where we have no PresShell.
   bool SetFontInternalDisconnected(const nsACString& aFont,
                                    mozilla::ErrorResult& aError);
@@ -858,7 +862,7 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
     // will initialize the value if not set, else does nothing
     GetCurrentFontStyle();
 
-    return CurrentState().font;
+    return CurrentState().resolvedFont;
   }
 
   bool UseSoftwareRendering() const;
@@ -970,12 +974,15 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
    */
   RefPtr<mozilla::gfx::Path> mPath;
   RefPtr<mozilla::gfx::PathBuilder> mPathBuilder;
+  RefPtr<mozilla::gfx::PathBuilder> mRecycledPathBuilder;
   mozilla::gfx::BackendType mPathType = mozilla::gfx::BackendType::NONE;
   bool mPathPruned = false;
   mozilla::gfx::Matrix mPathTransform;
   bool mPathTransformDirty = false;
 
   void FlushPathTransform();
+  already_AddRefed<mozilla::gfx::PathBuilder> CreateOrRecyclePathBuilder(
+      mozilla::gfx::FillRule aFillRule);
 
   /**
    * Number of times we've invalidated before calling redraw
@@ -1004,6 +1011,10 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
    * drawn with a filter.
    */
   bool NeedToApplyFilter() {
+    // Avoid trying to update filter state if no filter chain has ever been set.
+    if (CurrentState().filterChain.IsEmpty()) {
+      return false;
+    }
     return EnsureUpdatedFilter().mPrimitives.Length() > 0;
   }
 
@@ -1069,9 +1080,10 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
   // state stack handling
   class ContextState {
    public:
-    ContextState();
+    ContextState() = default;
     ContextState(const ContextState& aOther);
-    ~ContextState();
+
+    ~ContextState() = default;
 
     void SetColorStyle(Style aWhichStyle, nscolor aColor);
     void SetPatternStyle(Style aWhichStyle, CanvasPattern* aPat);
@@ -1107,12 +1119,13 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
         patternStyles;
     EnumeratedArray<Style, nscolor, size_t(Style::MAX)> colorStyles;
 
-    nsCString font;
+    nsCString specifiedFont;  // `font` as specified by the caller
+    nsCString resolvedFont;   // parsed & re-serialized value of `font`
     CanvasTextAlign textAlign = CanvasTextAlign::Start;
     CanvasTextBaseline textBaseline = CanvasTextBaseline::Alphabetic;
     CanvasDirection textDirection = CanvasDirection::Inherit;
     CanvasFontKerning fontKerning = CanvasFontKerning::Auto;
-    CanvasFontStretch fontStretch = CanvasFontStretch::Normal;
+    CanvasFontStretch fontWidth = CanvasFontStretch::Normal;
     CanvasFontVariantCaps fontVariantCaps = CanvasFontVariantCaps::Normal;
     CanvasTextRendering textRendering = CanvasTextRendering::Auto;
 
@@ -1199,6 +1212,8 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
   class FontStyleCache
       : public MruCache<FontStyleCacheKey, FontStyleData, FontStyleCache> {
    public:
+    // A cached failure has a null mStyle, but every live entry has a lang.
+    static bool IsEmpty(const FontStyleData& aVal) { return !aVal.mKey.mLang; }
     static HashNumber Hash(const FontStyleCacheKey& aKey) {
       HashNumber hash = HashString(aKey.mFont);
       hash = AddToHash(hash, aKey.mLang->hash());
@@ -1211,7 +1226,72 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
     }
   };
 
-  FontStyleCache mFontStyleCache;
+  mozilla::UniquePtr<FontStyleCache> mFontStyleCache;
+
+  struct FontGroupCacheKey {
+    FontGroupCacheKey() = default;
+    FontGroupCacheKey(const nsACString& aStr, nsAtom* aLang,
+                      CanvasFontStretch aStretch, CanvasFontVariantCaps aCaps,
+                      CanvasFontKerning aKerning, uint64_t aGen)
+        : mSpecifiedFont(aStr),
+          mLang(aLang),
+          mStretch(aStretch),
+          mCaps(aCaps),
+          mKerning(aKerning),
+          mGeneration(aGen) {}
+
+    nsCString mSpecifiedFont;
+    RefPtr<nsAtom> mLang;
+    CanvasFontStretch mStretch;
+    CanvasFontVariantCaps mCaps;
+    CanvasFontKerning mKerning;
+    uint64_t mGeneration = 0;
+  };
+
+  struct FontGroupCacheData {
+    FontGroupCacheData() = default;
+    FontGroupCacheData(const FontGroupCacheKey& aKey,
+                       RefPtr<gfxFontGroup> aFontGroup,
+                       const nsACString& aResolvedFont, const nsFont& aFont)
+        : mKey(aKey),
+          mFontGroup(aFontGroup),
+          mResolvedFont(aResolvedFont),
+          mFont(aFont) {}
+
+    FontGroupCacheKey mKey;
+    RefPtr<gfxFontGroup> mFontGroup;
+    nsCString mResolvedFont;
+    nsFont mFont;
+  };
+
+  class FontGroupCache
+      : public MruCache<FontGroupCacheKey, FontGroupCacheData, FontGroupCache> {
+   public:
+    static bool IsEmpty(const FontGroupCacheData& aVal) {
+      return !aVal.mFontGroup;
+    }
+    static HashNumber Hash(const FontGroupCacheKey& aKey) {
+      HashNumber hash = HashString(aKey.mSpecifiedFont);
+      hash = AddToHash(hash, aKey.mLang->hash());
+      hash = AddToHash(hash, aKey.mStretch);
+      hash = AddToHash(hash, aKey.mCaps);
+      hash = AddToHash(hash, aKey.mKerning);
+      hash = AddToHash(hash, aKey.mGeneration);
+      return hash;
+    }
+    static bool Match(const FontGroupCacheKey& aKey,
+                      const FontGroupCacheData& aVal) {
+      return aVal.mKey.mGeneration == aKey.mGeneration &&
+             aVal.mKey.mSpecifiedFont == aKey.mSpecifiedFont &&
+             aVal.mKey.mLang == aKey.mLang &&
+             aVal.mKey.mStretch == aKey.mStretch &&
+             aVal.mKey.mCaps == aKey.mCaps &&
+             aVal.mKey.mKerning == aKey.mKerning;
+    }
+  };
+
+  mozilla::UniquePtr<FontGroupCache> mFontGroupCache;
+
   const ComputedStyle* GetCurrentFontComputedStyle() {
     GetCurrentFontStyle();
     return CurrentState().fontComputedStyle;
@@ -1225,6 +1305,9 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
   class ColorStyleCache
       : public MruCache<nsACString, ColorStyleCacheEntry, ColorStyleCache> {
    public:
+    static bool IsEmpty(const ColorStyleCacheEntry& aVal) {
+      return aVal.mKey.IsEmpty();
+    }
     static HashNumber Hash(const nsACString& aKey) { return HashString(aKey); }
     static bool Match(const nsACString& aKey,
                       const ColorStyleCacheEntry& aVal) {

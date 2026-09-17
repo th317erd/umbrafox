@@ -11,6 +11,7 @@ mozapps/extensions/addon-manager/index
 components/autocomplete/docs/index
 components/backgroundtasks/index
 components/crashes/crash-manager/index
+components/downloads/index
 crashreporter/crashreporter/index
 internal-urls
 search/index
@@ -26,7 +27,6 @@ components/glean/index
 modules/toolkit_modules/index
 content/toolkit_widgets/index
 components/resistfingerprinting/resistfingerprinting/index
-components/url-classifier/url-classifier/index
 components/extensions/webextensions/index
 /extensions/spellcheck/index
 mozapps/dmgInstallHelper/docs/index
@@ -34,4 +34,7 @@ mozapps/update/docs/index
 components/antitracking/anti-tracking/index
 components/translations/index
 components/sessionstore/index
+actors/actors/picture-in-picture-child-video-wrapper-api
+components/captchadetection/captcha-detection/index
+components/contentrelevancy/index
 ```

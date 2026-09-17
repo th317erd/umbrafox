@@ -482,11 +482,11 @@ void HTMLEditor::PreDestroy() {
 }
 
 bool HTMLEditor::IsStyleEditable(const Element* aEditingHost) const {
-  if (IsInDesignMode()) {
-    return true;
-  }
   if (IsPlaintextMailComposer()) {
     return false;
+  }
+  if (IsInDesignMode()) {
+    return true;
   }
   const Element* const editingHost =
       aEditingHost ? aEditingHost : ComputeEditingHost(LimitInBodyElement::No);
@@ -604,8 +604,8 @@ bool HTMLEditor::UpdateMetaCharsetWithTransaction(
     nsAutoString currentValue;
     metaElement->GetAttr(nsGkAtoms::httpEquiv, currentValue);
 
-    if (!FindInReadable(u"content-type"_ns, currentValue,
-                        nsCaseInsensitiveStringComparator)) {
+    // XXX: Should this use AsciiCaseInsensitive?
+    if (!CaseInsensitiveFindInReadable(u"content-type"_ns, currentValue)) {
       continue;
     }
 
@@ -615,8 +615,7 @@ bool HTMLEditor::UpdateMetaCharsetWithTransaction(
     nsAString::const_iterator originalStart, start, end;
     originalStart = currentValue.BeginReading(start);
     currentValue.EndReading(end);
-    if (!FindInReadable(charsetEquals, start, end,
-                        nsCaseInsensitiveStringComparator)) {
+    if (!CaseInsensitiveFindInReadable(charsetEquals, start, end)) {
       continue;
     }
 
@@ -671,7 +670,7 @@ NS_IMETHODIMP HTMLEditor::NotifySelectionChanged(Document* aDocument,
   }
 
   if (mHasFocus) {
-    if (auto focusedElement = GetFocusedElement()) {
+    if (RefPtr focusedElement = GetFocusedElement()) {
       // Selection may have moved into/out of contenteditable=false, so
       // we should update IME state to reflect that.
       auto newStateOrError = GetPreferredIMEState();
@@ -865,7 +864,8 @@ nsresult HTMLEditor::OnFocus(const nsINode& aOriginalEventTargetNode) {
   mIsInDesignMode = aOriginalEventTargetNode.IsInDesignMode();
   if (StaticPrefs::dom_editcontext_enabled() && EditContext::IsAnyAttached()) {
     // Active EditContext may have changed
-    aOriginalEventTargetNode.OwnerDoc()->UpdateTextEditContext();
+    RefPtr doc = aOriginalEventTargetNode.OwnerDoc();
+    doc->UpdateTextEditContext();
   }
 
   return NS_OK;
@@ -1026,7 +1026,8 @@ nsresult HTMLEditor::OnBlur(const EventTarget* aEventTarget) {
   if (StaticPrefs::dom_editcontext_enabled() && EditContext::IsAnyAttached() &&
       eventTargetAsElement) {
     // Active EditContext may have changed
-    eventTargetAsElement->OwnerDoc()->UpdateTextEditContext();
+    RefPtr doc = eventTargetAsElement->OwnerDoc();
+    doc->UpdateTextEditContext();
   }
 
   return rv;
@@ -1072,11 +1073,11 @@ dom::EditContext* HTMLEditor::ComputeEditContext() const {
       !EditContext::IsAnyAttached()) {
     return nullptr;
   }
-  if (auto* element = nsGenericHTMLElement::FromNodeOrNull(
-          ComputeEditingHost(LimitInBodyElement::No))) {
-    return element->GetEditContext();
+  Document* document = GetDocument();
+  if (!document) {
+    return nullptr;
   }
-  return nullptr;
+  return document->GetActiveEditContext();
 }
 
 bool HTMLEditor::IsFiringTextUpdate() const {
@@ -4030,11 +4031,12 @@ Result<CaretPoint, nsresult> HTMLEditor::DeleteTextWithTransaction(
 }
 
 Result<InsertTextResult, nsresult> HTMLEditor::ReplaceTextWithTransaction(
-    dom::Text& aTextNode, const ReplaceWhiteSpacesData& aData) {
+    dom::Text& aTextNode, const ReplaceWhiteSpacesData& aData,
+    InsertTextFor aPurpose) {
   Result<InsertTextResult, nsresult> insertTextResultOrError =
       ReplaceTextWithTransaction(aTextNode, aData.mReplaceStartOffset,
-                                 aData.ReplaceLength(),
-                                 aData.mNormalizedString);
+                                 aData.ReplaceLength(), aData.mNormalizedString,
+                                 aPurpose);
   if (MOZ_UNLIKELY(insertTextResultOrError.isErr()) ||
       aData.mNewOffsetAfterReplace > aTextNode.TextDataLength()) {
     return insertTextResultOrError;
@@ -4048,7 +4050,7 @@ Result<InsertTextResult, nsresult> HTMLEditor::ReplaceTextWithTransaction(
 
 Result<InsertTextResult, nsresult> HTMLEditor::ReplaceTextWithTransaction(
     Text& aTextNode, uint32_t aOffset, uint32_t aLength,
-    const nsAString& aStringToInsert) {
+    const nsAString& aStringToInsert, InsertTextFor aPurpose) {
   MOZ_ASSERT(IsEditActionDataAvailable());
   MOZ_ASSERT(aLength > 0 || !aStringToInsert.IsEmpty());
 
@@ -4065,9 +4067,9 @@ Result<InsertTextResult, nsresult> HTMLEditor::ReplaceTextWithTransaction(
 
   if (!aLength) {
     Result<InsertTextResult, nsresult> insertTextResult =
-        InsertTextWithTransaction(aStringToInsert,
-                                  EditorDOMPoint(&aTextNode, aOffset),
-                                  InsertTextTo::ExistingTextNodeIfAvailable);
+        InsertTextWithTransaction(
+            aStringToInsert, EditorDOMPoint(&aTextNode, aOffset),
+            InsertTextTo::ExistingTextNodeIfAvailable, aPurpose);
     NS_WARNING_ASSERTION(insertTextResult.isOk(),
                          "HTMLEditor::InsertTextWithTransaction() failed");
     return insertTextResult;
@@ -4151,18 +4153,18 @@ Result<InsertTextResult, nsresult> HTMLEditor::ReplaceTextWithTransaction(
 Result<InsertTextResult, nsresult>
 HTMLEditor::InsertOrReplaceTextWithTransaction(
     const EditorDOMPoint& aPointToInsert,
-    const NormalizedStringToInsertText& aData) {
+    const NormalizedStringToInsertText& aData, InsertTextFor aPurpose) {
   MOZ_ASSERT(aPointToInsert.IsInContentNodeAndValid());
   MOZ_ASSERT_IF(aData.ReplaceLength(), aPointToInsert.IsInTextNode());
 
   Result<InsertTextResult, nsresult> insertTextResultOrError =
       !aData.ReplaceLength()
           ? InsertTextWithTransaction(aData.mNormalizedString, aPointToInsert,
-                                      InsertTextTo::SpecifiedPoint)
+                                      InsertTextTo::SpecifiedPoint, aPurpose)
           : ReplaceTextWithTransaction(
                 MOZ_KnownLive(*aPointToInsert.ContainerAs<Text>()),
                 aData.mReplaceStartOffset, aData.ReplaceLength(),
-                aData.mNormalizedString);
+                aData.mNormalizedString, aPurpose);
   if (MOZ_UNLIKELY(insertTextResultOrError.isErr())) {
     NS_WARNING(!aData.ReplaceLength()
                    ? "HTMLEditor::InsertTextWithTransaction() failed"
@@ -4201,7 +4203,7 @@ HTMLEditor::InsertOrReplaceTextWithTransaction(
 
 Result<InsertTextResult, nsresult> HTMLEditor::InsertTextWithTransaction(
     const nsAString& aStringToInsert, const EditorDOMPoint& aPointToInsert,
-    InsertTextTo aInsertTextTo) {
+    InsertTextTo aInsertTextTo, InsertTextFor aPurpose) {
   if (NS_WARN_IF(!aPointToInsert.IsSet())) {
     return Err(NS_ERROR_INVALID_ARG);
   }
@@ -4213,7 +4215,7 @@ Result<InsertTextResult, nsresult> HTMLEditor::InsertTextWithTransaction(
   }
 
   return EditorBase::InsertTextWithTransaction(aStringToInsert, aPointToInsert,
-                                               aInsertTextTo);
+                                               aInsertTextTo, aPurpose);
 }
 
 Result<EditorDOMPoint, nsresult> HTMLEditor::PrepareToInsertLineBreak(
@@ -7286,6 +7288,15 @@ Element* HTMLEditor::ComputeEditingHostInternal(
     if (aContent) {
       return aContent;
     }
+    // If an EditContext is active, always return its associated element.
+    // (The selection may be set in accessible content for <canvas>-based
+    //  EditContext for example, so we shouldn't look at it.)
+    if (EditContext* editContext = document->GetActiveEditContext()) {
+      MOZ_ASSERT(
+          editContext->GetAssociatedElement(),
+          "EditContext should not be active without an associated element.");
+      return editContext->GetAssociatedElement();
+    }
     // If there are selection ranges, let's look for their common ancestor's
     // editing host because selection ranges may be visible for users.
     nsIContent* selectionCommonAncestor = nullptr;
@@ -7401,7 +7412,7 @@ void HTMLEditor::NotifyEditingHostMaybeChanged() {
   }
 
   // Compute current editing host.
-  Element* const editingHost = ComputeEditingHost();
+  const RefPtr<Element> editingHost = ComputeEditingHost();
   if (NS_WARN_IF(!editingHost)) {
     return;
   }
@@ -7599,6 +7610,10 @@ bool HTMLEditor::IsAcceptableInputEvent(WidgetGUIEvent* aGUIEvent) const {
 Result<widget::IMEState, nsresult> HTMLEditor::GetPreferredIMEState() const {
   // HTML editor don't prefer the CSS ime-mode because IE didn't do so too.
   bool enableIME = [&]() {
+    if (ComputeEditContext()) {
+      // Always enable IME if EditContext is active, regardless of selection.
+      return true;
+    }
     if (IsReadonly()) {
       return false;
     }

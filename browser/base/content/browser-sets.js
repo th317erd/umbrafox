@@ -10,6 +10,8 @@ document.addEventListener(
       TranslationsParent: "resource://gre/actors/TranslationsParent.sys.mjs",
       AIWindowUI:
         "moz-src:///browser/components/aiwindow/ui/modules/AIWindowUI.sys.mjs",
+      ContainerCreationPanel:
+        "chrome://browser/content/usercontext/ContainerCreationPanel.mjs",
       Referrals: "resource:///modules/referrals/Referrals.sys.mjs",
     });
 
@@ -147,7 +149,7 @@ document.addEventListener(
             switchToTabHavingURI("about:pdf", true);
             break;
           case "cmd_openReferrals":
-            lazy.Referrals.openReferralsTab(window);
+            lazy.Referrals.openReferralsTab(window, "app_menu");
             break;
           case "Browser:AddBookmarkAs":
             PlacesCommandHook.bookmarkPage();
@@ -244,10 +246,18 @@ document.addEventListener(
             openNewUserContextTab(event.sourceEvent);
             break;
           case "Browser:AddContainer":
-            gContainerCreation.open();
+            lazy.ContainerCreationPanel.open(
+              window,
+              event.sourceEvent?.target?.dataset.containerEntrypoint
+            );
             break;
           case "Browser:OpenAboutContainers":
-            openPreferences("paneContainers");
+            openPreferences("paneContainers", {
+              urlParams: {
+                entrypoint:
+                  event.sourceEvent?.target?.dataset.containerEntrypoint,
+              },
+            });
             break;
           // deliberate fallthrough
           case "Profiles:CreateProfile":

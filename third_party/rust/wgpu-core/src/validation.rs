@@ -16,7 +16,8 @@ use wgt::{
 };
 
 use crate::{
-    command::ColorAttachmentError, device::bgl, resource::InvalidResourceError,
+    command::ColorAttachmentError, device::bgl, pipeline::ColorStateError,
+    resource::InvalidResourceError,
     validation::shader_io_deductions::MaxFragmentShaderInputDeduction, FastHashMap, FastHashSet,
 };
 
@@ -25,7 +26,7 @@ pub mod shader_io_deductions;
 #[derive(Debug)]
 enum ResourceType {
     Buffer {
-        size: wgt::BufferSize,
+        minimum_binding_size: wgt::BufferSize,
     },
     Texture {
         dim: naga::ImageDimension,
@@ -150,9 +151,26 @@ impl fmt::Display for InterfaceVar {
     }
 }
 
+/// An [inter-stage input or output value][io].
+///
+/// A value of this type describes one value to be passed to or returned from
+/// some entry point.
+///
+/// [io]: https://www.w3.org/TR/WGSL/#stage-inputs-outputs
 #[derive(Debug, Eq, PartialEq)]
 enum Varying {
-    Local { location: u32, iv: InterfaceVar },
+    /// A [user-defined input or output][uio].
+    ///
+    /// In WGSL, this is a value with a `@location` attribute.
+    ///
+    /// [uio]: https://www.w3.org/TR/WGSL/#user-defined-inputs-outputs
+    UserDefined { location: u32, iv: InterfaceVar },
+
+    /// A [built-in input or output][bio].
+    ///
+    /// In WGSL, this is a value with a `@builtin` attribute.
+    ///
+    /// [bio]: https://www.w3.org/TR/WGSL/#builtin-inputs-outputs
     BuiltIn(BuiltIn),
 }
 
@@ -207,6 +225,7 @@ enum BuiltIn {
     ObjectToWorld,
     WorldToObject,
     HitKind,
+    HitBarycentrics,
 }
 
 impl BuiltIn {
@@ -263,15 +282,9 @@ impl BuiltIn {
             Self::ObjectToWorld => naga::BuiltIn::ObjectToWorld,
             Self::WorldToObject => naga::BuiltIn::WorldToObject,
             Self::HitKind => naga::BuiltIn::HitKind,
+            Self::HitBarycentrics => naga::BuiltIn::HitBarycentrics,
         }
     }
-}
-
-#[allow(unused)]
-#[derive(Debug)]
-struct SpecializationConstant {
-    id: u32,
-    ty: NumericType,
 }
 
 #[derive(Debug)]
@@ -281,20 +294,66 @@ struct EntryPointMeshInfo {
     primitive_topology: wgt::PrimitiveTopology,
 }
 
+/// The [shader interface][si] of an entry point in a [`naga::Module`].
+///
+/// [si]: https://www.w3.org/TR/WGSL/#shader-interface
 #[derive(Debug, Default)]
 struct EntryPoint {
+    /// The builtin and user-defined values passed to the entry point.
+    ///
+    /// In WGSL, these can be either passed directly as arguments or
+    /// gathered up in structs that are passed; here, they are all
+    /// flattened out.
     inputs: Vec<Varying>,
+
+    /// The builtin and user-defined values returned by the entry point.
+    ///
+    /// In WGSL, a function either returns a single varying directly,
+    /// or returns a struct of varyings; here, they are all flattened
+    /// out.
+    ///
+    /// For mesh shaders, this also includes the vertex and primitive outputs.
     outputs: Vec<Varying>,
+
+    /// This entry point's [resource interface][ri].
+    ///
+    /// This lists all the bound resources (that is, global variables with
+    /// `@group` and `@binding` attributes) that this entry point statically
+    /// uses.
+    ///
+    /// Handles here refer to elements of [`Interface::resources`].
+    ///
+    /// [ri]: https://www.w3.org/TR/WGSL/#resource-interface
     resources: Vec<naga::Handle<Resource>>,
-    #[allow(unused)]
-    spec_constants: Vec<SpecializationConstant>,
+
+    /// Pairs of (texture, sampler) handles that this entry point uses
+    /// together.
+    ///
+    /// This is the same information that Naga provides in
+    /// [`naga::valid::FunctionInfo::sampling_set`] (used for generating GLSL),
+    /// but adjusted to use handles referring to [`Interface::resources`].
     sampling_pairs: FastHashSet<(naga::Handle<Resource>, naga::Handle<Resource>)>,
+
+    /// This entry point's workgroup size, if it is a [compute-like] shader
+    /// (`compute`, `task`, or `mesh`).
+    ///
+    /// For non-compute-like entry points, this is `[0, 0, 0]`.
+    ///
+    /// [compute-like]: naga::ShaderStage::compute_like
     workgroup_size: [u32; 3],
+
+    /// Indicates that the entry point uses dual source blending.
     dual_source_blending: bool,
+
+    /// For task shaders and mesh shaders, the size of the task payload global
+    /// they use to communicate.
     task_payload_size: Option<u32>,
+
+    /// Additional information for mesh shader entry points.
     mesh_info: Option<EntryPointMeshInfo>,
-    immediate_slots: naga::valid::ImmediateSlots,
-    immediate_size: u32,
+
+    /// Size of the immediate data, and which slots this entry point uses.
+    immediate_usage: naga::valid::ImmediateUsage,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq)]
@@ -309,10 +368,35 @@ impl hashbrown::Equivalent<EntryPointKey> for EntryPointKeyRef<'_> {
     }
 }
 
+/// A summary of the [shader interfaces][si] of the entry points in a [`naga::Module`].
+///
+/// [si]: https://www.w3.org/TR/WGSL/#shader-interface
 #[derive(Debug)]
 pub struct Interface {
+    /// A clone of the limits of the [`Device`] this module was created from.
+    ///
+    /// [`Interface::check_stage`] consults this for workgroup size checks.
+    ///
+    /// [`Device`]: crate::device::Device
     limits: wgt::Limits,
+
+    /// All the resources the module cites as global variables.
+    ///
+    /// This lists all the module's bound resources: global variables with
+    /// `@group` and `@binding` attributes.
+    ///
+    /// Fields of [`EntryPoint`] like [`resources`] and [`sampling_pairs`] refer to
+    /// elements in this arena by [`naga::Handle`].
+    ///
+    /// [`resources`]: EntryPoint::resources
+    /// [`sampling_pairs`]: EntryPoint::sampling_pairs
     resources: naga::Arena<Resource>,
+
+    /// The shader interface of each [`naga::EntryPoint`] in the module.
+    ///
+    /// This table is keyed by (stage, name) pairs: [`naga::Module`]s are
+    /// allowed to contain multiple entry points with the same name, as long as
+    /// they are for different shader stages.
     entry_points: FastHashMap<EntryPointKey, EntryPoint>,
 }
 
@@ -594,7 +678,9 @@ pub use wgpu_naga_bridge::map_storage_format_to_naga;
 impl Resource {
     fn check_binding_use(&self, entry: &BindGroupLayoutEntry) -> Result<(), BindingError> {
         match self.ty {
-            ResourceType::Buffer { size } => {
+            ResourceType::Buffer {
+                minimum_binding_size,
+            } => {
                 let min_size = match entry.ty {
                     BindingType::Buffer {
                         ty,
@@ -627,9 +713,9 @@ impl Resource {
                     }
                 };
                 match min_size {
-                    Some(non_zero) if non_zero < size => {
+                    Some(non_zero) if non_zero < minimum_binding_size => {
                         return Err(BindingError::WrongBufferSize {
-                            buffer_size: size,
+                            buffer_size: minimum_binding_size,
                             min_binding_size: non_zero,
                         })
                     }
@@ -797,7 +883,9 @@ impl Resource {
         is_reffed_by_sampler_in_entrypoint: bool,
     ) -> Result<BindingType, BindingError> {
         Ok(match self.ty {
-            ResourceType::Buffer { size } => BindingType::Buffer {
+            ResourceType::Buffer {
+                minimum_binding_size,
+            } => BindingType::Buffer {
                 ty: match self.class {
                     naga::AddressSpace::Uniform => wgt::BufferBindingType::Uniform,
                     naga::AddressSpace::Storage { access } => wgt::BufferBindingType::Storage {
@@ -806,7 +894,7 @@ impl Resource {
                     _ => return Err(BindingError::WrongBufferAddressSpace { space: self.class }),
                 },
                 has_dynamic_offset: false,
-                min_binding_size: Some(size),
+                min_binding_size: Some(minimum_binding_size),
             },
             ResourceType::Sampler { comparison } => BindingType::Sampler(if comparison {
                 wgt::SamplerBindingType::Comparison
@@ -1017,14 +1105,11 @@ impl NumericType {
         }
     }
 
-    fn is_subtype_of(&self, other: &NumericType) -> bool {
-        if self.scalar.width > other.scalar.width {
+    fn compatible_with_shader_output(self, shader: NumericType) -> bool {
+        if self.scalar.kind != shader.scalar.kind {
             return false;
         }
-        if self.scalar.kind != other.scalar.kind {
-            return false;
-        }
-        match (self.dim, other.dim) {
+        match (self.dim, shader.dim) {
             (NumericDimension::Scalar, NumericDimension::Scalar) => true,
             (NumericDimension::Scalar, NumericDimension::Vector(_)) => true,
             (NumericDimension::Vector(s0), NumericDimension::Vector(s1)) => s0 <= s1,
@@ -1037,16 +1122,34 @@ impl NumericType {
 }
 
 /// Return true if the fragment `format` is covered by the provided `output`.
-pub fn check_texture_format(
-    format: wgt::TextureFormat,
-    output: &NumericType,
-) -> Result<(), NumericType> {
-    let nt = NumericType::from_texture_format(format);
-    if nt.is_subtype_of(output) {
-        Ok(())
-    } else {
-        Err(nt)
+pub fn check_color_attachment_compatibility(
+    state: &wgt::ColorTargetState,
+    output_ty: NumericType,
+) -> Result<(), ColorStateError> {
+    let pipeline_ty = NumericType::from_texture_format(state.format);
+    if !pipeline_ty.compatible_with_shader_output(output_ty) {
+        return Err(ColorStateError::IncompatibleFormat {
+            pipeline: pipeline_ty,
+            shader: output_ty,
+        });
     }
+    if let Some(blend) = state.blend {
+        for (factor, name) in [
+            (blend.color.src_factor, "source"),
+            (blend.color.dst_factor, "destination"),
+        ] {
+            if factor.uses_source_alpha()
+                && output_ty.dim != NumericDimension::Vector(naga::VectorSize::Quad)
+            {
+                return Err(ColorStateError::InvalidAlphaBlend {
+                    which: name,
+                    factor,
+                });
+            }
+        }
+    }
+
+    Ok(())
 }
 
 pub enum BindingLayoutSource {
@@ -1081,11 +1184,23 @@ pub struct StageIo {
     ///
     /// This is Some if it was a mesh shader.
     pub primitive_index: Option<bool>,
-    pub immediate_slots_required: naga::valid::ImmediateSlots,
-    pub immediate_size_required: u32,
+    pub immediates: naga::valid::ImmediateUsage,
 }
 
 impl Interface {
+    /// Build some entry point's list of inputs or outputs.
+    ///
+    /// Given `ty` and `binding` that describe an entry point's argument or
+    /// return value, figure out which builtins or locations are involved and
+    /// add them to `list`, which is either [`EntryPoint::inputs`] or
+    /// [`EntryPoint::outputs`].
+    ///
+    /// - If `ty` is a struct type, visit its members to find
+    ///   individual bindings, and add them to `list`.
+    ///
+    /// - Otherwise, `binding` must be `Some(b)` where `b` describes a
+    ///   binding's builtin or location, and `ty` gives its type. Add
+    ///   this binding to `list`.
     fn populate(
         list: &mut Vec<Varying>,
         binding: Option<&naga::Binding>,
@@ -1143,12 +1258,7 @@ impl Interface {
                 return;
             }
             ref other => {
-                //Note: technically this should be at least `log::error`, but
-                // the reality is - every shader coming from `glslc` outputs an array
-                // of clip distances and hits this path :(
-                // So we lower it to `log::debug` to be less annoying as
-                // there's nothing the user can do about it.
-                log::debug!("Unexpected varying type: {other:?}");
+                log::error!("Unexpected varying type: {other:?}");
                 return;
             }
         };
@@ -1160,7 +1270,7 @@ impl Interface {
                 sampling,
                 per_primitive,
                 blend_src: _,
-            }) => Varying::Local {
+            }) => Varying::UserDefined {
                 location,
                 iv: InterfaceVar {
                     ty: numeric_ty,
@@ -1219,6 +1329,7 @@ impl Interface {
                 naga::BuiltIn::ObjectToWorld => BuiltIn::ObjectToWorld,
                 naga::BuiltIn::WorldToObject => BuiltIn::WorldToObject,
                 naga::BuiltIn::HitKind => BuiltIn::HitKind,
+                naga::BuiltIn::HitBarycentrics => BuiltIn::HitBarycentrics,
             }),
             None => {
                 log::error!("Missing binding for a varying");
@@ -1228,6 +1339,11 @@ impl Interface {
         list.push(varying);
     }
 
+    /// Construct an [`Interface`] value describing `module`.
+    ///
+    /// The `info` argument must be the results from validating `module`, and
+    /// `limits` must be the limits for the device that we will use to create
+    /// this shader module.
     pub fn new(module: &naga::Module, info: &naga::valid::ModuleInfo, limits: wgt::Limits) -> Self {
         let mut resources = naga::Arena::new();
         let mut resource_mapping = FastHashMap::default();
@@ -1258,7 +1374,8 @@ impl Interface {
                     ResourceType::AccelerationStructure { vertex_return }
                 }
                 ref other => ResourceType::Buffer {
-                    size: wgt::BufferSize::new(other.size(module.to_ctx()) as u64).unwrap(),
+                    minimum_binding_size: wgt::BufferSize::new(other.size(module.to_ctx()) as u64)
+                        .unwrap(),
                 },
             };
             let handle = resources.append(
@@ -1303,7 +1420,6 @@ impl Interface {
             }
             ep.dual_source_blending = func_info.dual_source_blending;
             ep.workgroup_size = entry_point.workgroup_size;
-            ep.immediate_slots = func_info.immediate_slots_used;
 
             // Find the used immediates. Naga should have validated that
             // at most one immediate is used by the entry point.
@@ -1313,12 +1429,16 @@ impl Interface {
                 .filter(|&(_, var)| var.space == naga::AddressSpace::Immediate)
                 .map(|(handle, _)| handle)
                 .filter(|&handle| !func_info[handle].is_empty());
-            ep.immediate_size = if let Some(immediate) = used_immediates.next() {
-                let ty = &module.types[module.global_variables[immediate].ty];
-                ty.inner.size(module.to_ctx())
-            } else {
-                0
-            };
+            ep.immediate_usage = used_immediates
+                .next()
+                .map(|handle| {
+                    naga::valid::ImmediateUsage::from_type(
+                        &module.types[module.global_variables[handle].ty].inner,
+                        &module.types,
+                        module.to_ctx(),
+                    )
+                })
+                .unwrap_or_default();
             assert!(used_immediates.next().is_none());
 
             if let Some(task_payload) = entry_point.task_payload {
@@ -1365,18 +1485,22 @@ impl Interface {
         }
     }
 
-    fn immediate_size_and_slots_required(
+    fn immediate_usage(
         &self,
         stage: naga::ShaderStage,
         entry_point_name: &str,
-    ) -> (u32, naga::valid::ImmediateSlots) {
+    ) -> naga::valid::ImmediateUsage {
         self.entry_points
             .get(&EntryPointKeyRef(stage, entry_point_name))
-            .map_or(Default::default(), |ep| {
-                (ep.immediate_size, ep.immediate_slots)
-            })
+            .map(|ep| ep.immediate_usage)
+            .unwrap_or_default()
     }
 
+    /// Select an entry point name, given an optional name and a shader stage.
+    ///
+    /// See [`ShaderModule::finalize_entry_point_name`] for details.
+    ///
+    /// [`ShaderModule::finalize_entry_point_name`]: crate::pipeline::ShaderModule::finalize_entry_point_name
     pub fn finalize_entry_point_name(
         &self,
         stage: naga::ShaderStage,
@@ -1400,12 +1524,31 @@ impl Interface {
             })
     }
 
-    /// Among other things, this implements some validation logic defined by the WebGPU spec. at
-    /// <https://www.w3.org/TR/webgpu/#abstract-opdef-validating-inter-stage-interfaces>.
+    /// Analyze and validate an entry point for use as a given shader stage.
+    ///
+    /// Validate the entry point named `entry_point_name` for use in
+    /// `shader_stage`:
+    ///
+    /// - Apply the WebGPU specification's [validating inter-stage interfaces]
+    ///   algorithm.
+    ///
+    /// - Enforce workgroup size limits.
+    ///
+    /// - Check bind group layouts, and fill in derived bind group layouts.
+    ///
+    /// - Compute the minimum binding sizes, given the shader's resource
+    ///   interface.
+    ///
+    /// - Check the compatibility between textures and samplers.
+    ///
+    /// Given `inputs`, describing this stage's inputs, return a [`StageIo`]
+    /// describing its outputs.
+    ///
+    /// [validating inter-stage interfaces]: https://www.w3.org/TR/webgpu/#abstract-opdef-validating-inter-stage-interfaces
     pub fn check_stage(
         &self,
         layouts: &mut BindingLayoutSource,
-        shader_binding_sizes: &mut FastHashMap<naga::ResourceBinding, wgt::BufferSize>,
+        minimum_binding_sizes: &mut FastHashMap<naga::ResourceBinding, wgt::BufferSize>,
         entry_point_name: &str,
         shader_stage: ShaderStageForValidation,
         inputs: StageIo,
@@ -1429,13 +1572,16 @@ impl Interface {
                 match layouts {
                     BindingLayoutSource::Provided(pipeline_layout) => {
                         // update the required binding size for this buffer
-                        if let ResourceType::Buffer { size } = res.ty {
-                            match shader_binding_sizes.entry(res.bind) {
+                        if let ResourceType::Buffer {
+                            minimum_binding_size,
+                        } = res.ty
+                        {
+                            match minimum_binding_sizes.entry(res.bind) {
                                 Entry::Occupied(e) => {
-                                    *e.into_mut() = size.max(*e.get());
+                                    *e.into_mut() = minimum_binding_size.max(*e.get());
                                 }
                                 Entry::Vacant(e) => {
-                                    e.insert(size);
+                                    e.insert(minimum_binding_size);
                                 }
                             }
                         }
@@ -1590,7 +1736,7 @@ impl Interface {
         // check inputs compatibility
         for input in entry_point.inputs.iter() {
             match *input {
-                Varying::Local { location, ref iv } => {
+                Varying::UserDefined { location, ref iv } => {
                     let result = inputs
                         .varyings
                         .get(&location)
@@ -1617,7 +1763,7 @@ impl Interface {
                                         ));
                                     }
                                     (
-                                        iv.ty.is_subtype_of(&provided.ty),
+                                        iv.ty == provided.ty,
                                         iv.per_primitive == provided.per_primitive,
                                     )
                                 }
@@ -1708,7 +1854,7 @@ impl Interface {
 
                 for output in entry_point.outputs.iter() {
                     match *output {
-                        Varying::Local { ref iv, location } => {
+                        Varying::UserDefined { ref iv, location } => {
                             if location > max_vertex_shader_output_location {
                                 return Err(StageError::VertexOutputLocationTooLarge {
                                     location,
@@ -1761,7 +1907,7 @@ impl Interface {
                     self.limits.max_inter_stage_shader_variables;
 
                 let deductions = entry_point.inputs.iter().filter_map(|output| match output {
-                    Varying::Local { .. } => None,
+                    Varying::UserDefined { .. } => None,
                     Varying::BuiltIn(builtin) => {
                         MaxFragmentShaderInputDeduction::from_inter_stage_builtin(builtin.to_naga())
                             .or_else(|| {
@@ -1788,7 +1934,7 @@ impl Interface {
 
                 for output in entry_point.inputs.iter() {
                     match *output {
-                        Varying::Local { ref iv, location } => {
+                        Varying::UserDefined { ref iv, location } => {
                             if location >= self.limits.max_inter_stage_shader_variables {
                                 return Err(StageError::FragmentInputLocationTooLarge {
                                     location,
@@ -1812,7 +1958,7 @@ impl Interface {
                 }
 
                 for output in &entry_point.outputs {
-                    let &Varying::Local { location, ref iv } = output else {
+                    let &Varying::UserDefined { location, ref iv } = output else {
                         continue;
                     };
                     if location >= self.limits.max_color_attachments {
@@ -1911,22 +2057,21 @@ impl Interface {
             .outputs
             .iter()
             .filter_map(|output| match *output {
-                Varying::Local { location, ref iv } => Some((location, iv.clone())),
+                Varying::UserDefined { location, ref iv } => Some((location, iv.clone())),
                 Varying::BuiltIn(_) => None,
             })
             .collect();
 
-        let (immediate_size_required, immediate_slots_required) =
-            self.immediate_size_and_slots_required(shader_stage.to_naga(), entry_point_name);
-        let immediate_slots_required = immediate_slots_required | inputs.immediate_slots_required;
-        let immediate_size_required = immediate_size_required.max(inputs.immediate_size_required);
+        let immediate_usage = self
+            .immediate_usage(shader_stage.to_naga(), entry_point_name)
+            .merge(&inputs.immediates);
 
         // Check pipeline layout immediate size
         if let BindingLayoutSource::Provided(pipeline_layout) = layouts {
-            if pipeline_layout.immediate_size < immediate_size_required {
+            if pipeline_layout.immediate_size < immediate_usage.size() {
                 return Err(StageError::LayoutImmediateSize {
                     layout: pipeline_layout.immediate_size,
-                    required: immediate_size_required,
+                    required: immediate_usage.size(),
                 });
             }
         }
@@ -1939,8 +2084,7 @@ impl Interface {
             } else {
                 None
             },
-            immediate_slots_required,
-            immediate_size_required,
+            immediates: immediate_usage,
         })
     }
 }

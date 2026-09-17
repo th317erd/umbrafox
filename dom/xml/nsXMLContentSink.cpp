@@ -127,7 +127,8 @@ NS_IMPL_RELEASE_INHERITED(nsXMLContentSink, nsContentSink)
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(nsXMLContentSink, nsContentSink,
                                    mCurrentHead, mDocElement, mLastTextNode,
-                                   mContentStack, mDocumentChildren)
+                                   mContentStack, mDocumentChildren,
+                                   mXSLTResultDocument)
 
 // nsIContentSink
 NS_IMETHODIMP
@@ -270,6 +271,7 @@ nsXMLContentSink::DidBuildModel(bool aTerminated) {
       }
     }
 
+    mDocumentChildren.Clear();
     mXSLTProcessor->SetSourceContentModel(source);
     // Since the processor now holds a reference to us we drop our reference
     // to it to avoid owning cycles
@@ -328,7 +330,10 @@ nsresult nsXMLContentSink::OnDocumentCreated(Document* aSourceDocument,
   // Make sure that we haven't loaded a new document into the documentviewer
   // after starting the XSLT transform.
   if (viewer && viewer->GetDocument() == aSourceDocument) {
-    return viewer->SetDocumentInternal(aResultDocument, true);
+    nsresult rv = viewer->SetDocumentInternal(aResultDocument, true);
+    NS_ENSURE_SUCCESS(rv, rv);
+    mXSLTResultDocument = aResultDocument;
+    aResultDocument->BeginLoad();
   }
   return NS_OK;
 }
@@ -339,6 +344,7 @@ nsresult nsXMLContentSink::OnTransformDone(Document* aSourceDocument,
   MOZ_ASSERT(aResultDocument,
              "Don't notify about transform end without a document.");
 
+  RefPtr<Document> transformedDocument = mXSLTResultDocument.forget();
   mDocumentChildren.Clear();
 
   nsCOMPtr<nsIDocumentViewer> viewer;
@@ -407,6 +413,10 @@ nsresult nsXMLContentSink::OnTransformDone(Document* aSourceDocument,
     // nsContentSink::WillBuildModelImpl.
     originalDocument->UnblockOnload(true);
   }
+  // On failure, aResultDocument is a separate error document.
+  if (transformedDocument && transformedDocument->IsExpectingEndLoad()) {
+    transformedDocument->EndLoad();
+  }
 
   DropParserAndPerfHint();
 
@@ -466,6 +476,23 @@ static bool FindIsAttrValue(const char16_t** aAtts, const char16_t** aResult) {
   return false;
 }
 
+// https://github.com/whatwg/html/pull/12000
+// https://html.spec.whatwg.org/#create-an-element-for-the-token
+// Step 6: Check for the customelementregistry content attribute.
+static bool HasCustomElementRegistryAttr(const char16_t** aAtts) {
+  RefPtr<nsAtom> prefix, localName;
+  for (; *aAtts; aAtts += 2) {
+    int32_t nameSpaceID;
+    nsContentUtils::SplitExpatName(aAtts[0], getter_AddRefs(prefix),
+                                   getter_AddRefs(localName), &nameSpaceID);
+    if (nameSpaceID == kNameSpaceID_None &&
+        localName == nsGkAtoms::customelementregistry) {
+      return true;
+    }
+  }
+  return false;
+}
+
 nsresult nsXMLContentSink::CreateElement(
     const char16_t** aAtts, uint32_t aAttsCount,
     mozilla::dom::NodeInfo* aNodeInfo, uint32_t aLineNumber,
@@ -500,9 +527,19 @@ nsresult nsXMLContentSink::CreateElement(
   //
   // Note that the check that the parser was not created as part of the HTML
   // fragment parsing algorithm is done by the check for a non-null mDocument.
+  // https://github.com/whatwg/html/pull/12000
+  // https://html.spec.whatwg.org/#create-an-element-for-the-token
+  // Step 6: "Let registry be null if customelementregistry attribute exists."
+  bool hasCustomElementRegistryAttr =
+      isXHTMLOrXUL &&
+      StaticPrefs::dom_scoped_custom_element_registries_enabled() &&
+      HasCustomElementRegistryAttr(aAtts);
+
+  // Step 7: Look up a custom element definition.
   CustomElementDefinition* customElementDefinition = nullptr;
   nsAtom* nameAtom = ni->NameAtom();
-  if (mDocument && !mDocument->IsLoadedAsData() && isXHTMLOrXUL &&
+  if (!hasCustomElementRegistryAttr && mDocument &&
+      !mDocument->IsLoadedAsData() && isXHTMLOrXUL &&
       (isAtom || nsContentUtils::IsCustomElementName(nameAtom, namespaceID))) {
     nsAtom* typeAtom = is ? isAtom.get() : nameAtom;
 
@@ -530,6 +567,12 @@ nsresult nsXMLContentSink::CreateElement(
                        isAtom);
   }
   NS_ENSURE_SUCCESS(rv, rv);
+
+  // https://github.com/whatwg/html/pull/12000
+  // Set null registry on elements with customelementregistry attribute.
+  if (hasCustomElementRegistryAttr && element) {
+    element->SetNullCustomElementRegistry();
+  }
 
   if (aNodeInfo->Equals(nsGkAtoms::script, kNameSpaceID_XHTML) ||
       aNodeInfo->Equals(nsGkAtoms::script, kNameSpaceID_SVG)) {
@@ -917,6 +960,12 @@ bool nsXMLContentSink::SetDocElement(int32_t aNameSpaceID, nsAtom* aTagName,
     if (linkStyle) {
       linkStyle->DisableUpdates();
     }
+    if (MOZ_UNLIKELY(child->GetParentNode())) {
+      child->Remove();
+      if (MOZ_UNLIKELY(child->GetParentNode())) {
+        return false;
+      }
+    }
     mDocument->AppendChildTo(child, false, IgnoreErrors());
     if (linkStyle) {
       auto updateOrError = linkStyle->EnableUpdatesAndUpdateStyleSheet(
@@ -954,7 +1003,7 @@ bool nsXMLContentSink::SetDocElement(int32_t aNameSpaceID, nsAtom* aTagName,
   }
 
   IgnoredErrorResult rv;
-  mDocument->AppendChildTo(mDocElement, NotifyForDocElement(), rv);
+  mDocument->AppendChild(*mDocElement, rv);
   if (rv.Failed()) {
     // If we return false here, the caller will bail out because it won't
     // find a parent content node to append to, which is fine.
@@ -1030,6 +1079,12 @@ nsresult nsXMLContentSink::HandleStartElement(
     if (!SetDocElement(nameSpaceID, localName, content) && appendContent) {
       NS_ENSURE_TRUE(parent, NS_ERROR_UNEXPECTED);
 
+      if (MOZ_UNLIKELY(content->GetParentNode())) {
+        content->Remove();
+        if (MOZ_UNLIKELY(content->GetParentNode())) {
+          return NS_ERROR_UNEXPECTED;
+        }
+      }
       parent->AppendChildTo(content, false, IgnoreErrors());
     }
   }

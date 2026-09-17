@@ -9,6 +9,7 @@
 #include "gfxFont.h"
 #include "gfxPlatform.h"
 #include "mozilla/Components.h"
+#include "mozilla/FileUtils.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Sprintf.h"
@@ -235,37 +236,36 @@ static FontWeight MapFcWeight(int aFcWeight) {
 }
 
 // TODO(emilio, jfkthame): I think this can now be more fine-grained.
-static FontStretch MapFcWidth(int aFcWidth) {
+static FontWidth MapFcWidth(int aFcWidth) {
   if (aFcWidth <= (FC_WIDTH_ULTRACONDENSED + FC_WIDTH_EXTRACONDENSED) / 2) {
-    return FontStretch::ULTRA_CONDENSED;
+    return FontWidth::ULTRA_CONDENSED;
   }
   if (aFcWidth <= (FC_WIDTH_EXTRACONDENSED + FC_WIDTH_CONDENSED) / 2) {
-    return FontStretch::EXTRA_CONDENSED;
+    return FontWidth::EXTRA_CONDENSED;
   }
   if (aFcWidth <= (FC_WIDTH_CONDENSED + FC_WIDTH_SEMICONDENSED) / 2) {
-    return FontStretch::CONDENSED;
+    return FontWidth::CONDENSED;
   }
   if (aFcWidth <= (FC_WIDTH_SEMICONDENSED + FC_WIDTH_NORMAL) / 2) {
-    return FontStretch::SEMI_CONDENSED;
+    return FontWidth::SEMI_CONDENSED;
   }
   if (aFcWidth <= (FC_WIDTH_NORMAL + FC_WIDTH_SEMIEXPANDED) / 2) {
-    return FontStretch::NORMAL;
+    return FontWidth::NORMAL;
   }
   if (aFcWidth <= (FC_WIDTH_SEMIEXPANDED + FC_WIDTH_EXPANDED) / 2) {
-    return FontStretch::SEMI_EXPANDED;
+    return FontWidth::SEMI_EXPANDED;
   }
   if (aFcWidth <= (FC_WIDTH_EXPANDED + FC_WIDTH_EXTRAEXPANDED) / 2) {
-    return FontStretch::EXPANDED;
+    return FontWidth::EXPANDED;
   }
   if (aFcWidth <= (FC_WIDTH_EXTRAEXPANDED + FC_WIDTH_ULTRAEXPANDED) / 2) {
-    return FontStretch::EXTRA_EXPANDED;
+    return FontWidth::EXTRA_EXPANDED;
   }
-  return FontStretch::ULTRA_EXPANDED;
+  return FontWidth::ULTRA_EXPANDED;
 }
 
 static void GetFontProperties(FcPattern* aFontPattern, WeightRange* aWeight,
-                              StretchRange* aStretch,
-                              SlantStyleRange* aSlantStyle,
+                              WidthRange* aWidth, SlantStyleRange* aSlantStyle,
                               uint16_t* aSize = nullptr) {
   // weight
   int weight;
@@ -280,7 +280,7 @@ static void GetFontProperties(FcPattern* aFontPattern, WeightRange* aWeight,
   if (FcPatternGetInteger(aFontPattern, FC_WIDTH, 0, &width) != FcResultMatch) {
     width = FC_WIDTH_NORMAL;
   }
-  *aStretch = StretchRange(MapFcWidth(width));
+  *aWidth = WidthRange(MapFcWidth(width));
 
   // italic
   int slant;
@@ -328,19 +328,17 @@ void gfxFontconfigFontEntry::GetUserFontFeatures(FcPattern* aPattern) {
 }
 
 gfxFontconfigFontEntry::gfxFontconfigFontEntry(const nsACString& aFaceName,
-                                               FcPattern* aFontPattern,
-                                               bool aIgnoreFcCharmap)
+                                               FcPattern* aFontPattern)
     : gfxFT2FontEntryBase(aFaceName),
       mFontPattern(aFontPattern),
-      mFTFaceInitialized(false),
-      mIgnoreFcCharmap(aIgnoreFcCharmap) {
-  GetFontProperties(aFontPattern, &mWeightRange, &mStretchRange, &mStyleRange);
+      mFTFaceInitialized(false) {
+  GetFontProperties(aFontPattern, &mWeightRange, &mWidthRange, &mStyleRange);
   GetUserFontFeatures(mFontPattern);
 }
 
 gfxFontEntry* gfxFontconfigFontEntry::Clone() const {
   MOZ_ASSERT(!IsUserFont(), "we can only clone installed fonts!");
-  return new gfxFontconfigFontEntry(Name(), mFontPattern, mIgnoreFcCharmap);
+  return new gfxFontconfigFontEntry(Name(), mFontPattern);
 }
 
 static already_AddRefed<FcPattern> CreatePatternForFace(FT_Face aFace) {
@@ -370,60 +368,59 @@ static already_AddRefed<FcPattern> CreatePatternForFace(FT_Face aFace) {
   return pattern.forget();
 }
 
-static already_AddRefed<SharedFTFace> CreateFaceForPattern(
-    FcPattern* aPattern) {
+static FcChar8* GetPatternFilename(FcPattern* aPattern) {
   FcChar8* filename;
   if (FcPatternGetString(aPattern, FC_FILE, 0, &filename) != FcResultMatch) {
-    return nullptr;
+    filename = nullptr;
   }
+  return filename;
+}
+
+static int GetPatternIndex(FcPattern* aPattern) {
   int index;
   if (FcPatternGetInteger(aPattern, FC_INDEX, 0, &index) != FcResultMatch) {
     index = 0;  // default to 0 if not found in pattern
   }
+  return index;
+}
+
+static already_AddRefed<SharedFTFace> CreateFaceForPattern(
+    FcPattern* aPattern) {
+  FcChar8* const filename = GetPatternFilename(aPattern);
+  if (!filename) {
+    return nullptr;
+  }
+  const int index = GetPatternIndex(aPattern);
   return Factory::NewSharedFTFace(nullptr, ToCharPtr(filename), index);
 }
 
 gfxFontconfigFontEntry::gfxFontconfigFontEntry(const nsACString& aFaceName,
                                                WeightRange aWeight,
-                                               StretchRange aStretch,
+                                               WidthRange aWidth,
                                                SlantStyleRange aStyle,
                                                RefPtr<SharedFTFace>&& aFace)
     : gfxFT2FontEntryBase(aFaceName),
       mFontPattern(CreatePatternForFace(aFace->GetFace())),
       mFTFace(aFace.forget().take()),
-      mFTFaceInitialized(true),
-      mIgnoreFcCharmap(true) {
+      mFTFaceInitialized(true) {
   mWeightRange = aWeight;
   mStyleRange = aStyle;
-  mStretchRange = aStretch;
+  mWidthRange = aWidth;
   mIsDataUserFont = true;
 }
 
 gfxFontconfigFontEntry::gfxFontconfigFontEntry(const nsACString& aFaceName,
                                                FcPattern* aFontPattern,
                                                WeightRange aWeight,
-                                               StretchRange aStretch,
+                                               WidthRange aWidth,
                                                SlantStyleRange aStyle)
     : gfxFT2FontEntryBase(aFaceName),
       mFontPattern(aFontPattern),
       mFTFaceInitialized(false) {
   mWeightRange = aWeight;
   mStyleRange = aStyle;
-  mStretchRange = aStretch;
+  mWidthRange = aWidth;
   mIsLocalUserFont = true;
-
-  // The proper setting of mIgnoreFcCharmap is tricky for fonts loaded
-  // via src:local()...
-  // If the local font happens to come from the application fontset,
-  // we want to set it to true so that color/svg fonts will work even
-  // if the default glyphs are blank; but if the local font is a non-
-  // sfnt face (e.g. legacy type 1) then we need to set it to false
-  // because our cmap-reading code will fail and we depend on FT+Fc to
-  // determine the coverage.
-  // We set the flag here, but may flip it the first time TestCharacterMap
-  // is called, at which point we'll look to see whether a 'cmap' is
-  // actually present in the font.
-  mIgnoreFcCharmap = true;
 
   GetUserFontFeatures(mFontPattern);
 }
@@ -495,10 +492,10 @@ gfxFontconfigFontEntry::AutoHBFace gfxFontconfigFontEntry::GetHBFace() {
       // hb_face_create to wrap that.
       if (mFTFaceInitialized) {
         if (const FTUserFontData* ufd = GetUserFontData()) {
-          if (ufd->FontData()) {
-            hb_blob_t* blob = hb_blob_create(
-                (const char*)ufd->FontData(), ufd->FontDataLength(),
-                HB_MEMORY_MODE_READONLY, nullptr, nullptr);
+          if (const auto* data = ufd->GetData()) {
+            hb_blob_t* blob =
+                hb_blob_create((const char*)data, ufd->Length(),
+                               HB_MEMORY_MODE_READONLY, nullptr, nullptr);
             // Currently the face index is always zero, as we don't support
             // collections as webfonts.
             face = hb_face_create(blob, 0);
@@ -538,12 +535,12 @@ gfxFontconfigFontEntry::AutoHBFace gfxFontconfigFontEntry::GetHBFace() {
 
 nsresult gfxFontconfigFontEntry::ReadCMAP(FontInfoData* aFontInfoData) {
   // attempt this once, if errors occur leave a blank cmap
-  if (mCharacterMap) {
+  if (HasCharacterMap()) {
     return NS_OK;
   }
 
   RefPtr<gfxCharacterMap> charmap;
-  nsresult rv;
+  nsresult rv = NS_ERROR_NOT_AVAILABLE;
 
   uint32_t uvsOffset = 0;
   if (aFontInfoData &&
@@ -560,7 +557,69 @@ nsresult gfxFontconfigFontEntry::ReadCMAP(FontInfoData* aFontInfoData) {
           hb_blob_get_data(cmapTable, &cmapLen));
       rv = gfxFontUtils::ReadCMAP(cmapData, cmapLen, *charmap, uvsOffset);
     } else {
-      rv = NS_ERROR_NOT_AVAILABLE;
+      // Read the FcCharSet and store as a gfxCharacterMap, so that we can take
+      // advantage of moving it to the shared font list.
+      FcCharSet* charset = nullptr;
+      if (FcPatternGetCharSet(mFontPattern, FC_CHARSET, 0, &charset) !=
+              FcResultTypeMismatch &&
+          charset) {
+        charmap = new gfxCharacterMap(64);
+        FcChar32 next = 0;
+        FcChar32 map[FC_CHARSET_MAP_SIZE];
+        bool inRange = false;
+        uint32_t rangeStart = 0;
+        uint32_t codepoint = 0;
+        auto StartRange = [&]() {
+          // If not already within a range, start one at current codepoint.
+          if (!inRange) {
+            rangeStart = codepoint;
+            inRange = true;
+          }
+        };
+        auto FinishRange = [&]() {
+          // If currently within a range, end it at current codepoint - 1.
+          if (inRange) {
+            if (codepoint == rangeStart + 1) {
+              charmap->set(rangeStart);
+            } else {
+              charmap->SetRange(rangeStart, codepoint - 1);
+            }
+            inRange = false;
+          }
+        };
+        for (FcChar32 base = FcCharSetFirstPage(charset, map, &next);
+             base != FC_CHARSET_DONE;
+             base = FcCharSetNextPage(charset, map, &next)) {
+          if (base != codepoint) {
+            // FcCharSet map ranges were not contiguous: force a gap.
+            FinishRange();
+          }
+          codepoint = base;
+          for (const uint32_t i : IntegerRange(FC_CHARSET_MAP_SIZE)) {
+            if (!map[i]) {
+              FinishRange();
+              codepoint += 32;
+              continue;
+            }
+            if (map[i] == 0xffffffff) {
+              StartRange();
+              codepoint += 32;
+              continue;
+            }
+            for (uint32_t bit = 0x00000001; bit; bit <<= 1) {
+              if (map[i] & bit) {
+                StartRange();
+              } else {
+                FinishRange();
+              }
+              ++codepoint;
+            }
+          }
+        }
+        FinishRange();
+        charmap->Compact();
+        rv = NS_OK;
+      }
     }
   }
   mUVSOffset.exchange(uvsOffset);
@@ -577,13 +636,12 @@ nsresult gfxFontconfigFontEntry::ReadCMAP(FontInfoData* aFontInfoData) {
     } else {
       charmap = pfl->FindCharMap(charmap);
     }
-    mHasCmapTable = true;
   } else {
     // if error occurred, initialize to null cmap
     charmap = new gfxCharacterMap(0);
-    mHasCmapTable = false;
   }
   if (setCharMap) {
+    AutoWriteLock lock(mLock);
     if (mCharacterMap.compareExchange(nullptr, charmap.get())) {
       charmap.get()->AddRef();
     }
@@ -591,7 +649,7 @@ nsresult gfxFontconfigFontEntry::ReadCMAP(FontInfoData* aFontInfoData) {
 
   LOG_FONTLIST(("(fontlist-cmap) name: %s, size: %zu hash: %8.8x%s\n",
                 mName.get(), charmap->SizeOfIncludingThis(moz_malloc_size_of),
-                charmap->mHash, mCharacterMap == charmap ? " new" : ""));
+                charmap->mHash, GetCharacterMapRaw() == charmap ? " new" : ""));
   if (LOG_CMAPDATA_ENABLED()) {
     char prefix[256];
     SprintfLiteral(prefix, "(cmapdata) name: %.220s", mName.get());
@@ -601,52 +659,26 @@ nsresult gfxFontconfigFontEntry::ReadCMAP(FontInfoData* aFontInfoData) {
   return rv;
 }
 
-static bool HasChar(FcPattern* aFont, FcChar32 aCh) {
-  FcCharSet* charset = nullptr;
-  FcPatternGetCharSet(aFont, FC_CHARSET, 0, &charset);
-  return charset && FcCharSetHasChar(charset, aCh);
-}
-
-bool gfxFontconfigFontEntry::TestCharacterMap(uint32_t aCh) {
-  // For user fonts, or for fonts bundled with the app (which might include
-  // color/svg glyphs where the default glyphs may be blank, and thus confuse
-  // fontconfig/freetype's char map checking), we instead check the cmap
-  // directly for character coverage.
-  if (mIgnoreFcCharmap) {
-    // If it does not actually have a cmap, switch our strategy to use
-    // fontconfig's charmap after all (except for data fonts, which must
-    // always have a cmap to have passed OTS validation).
-    if (!mIsDataUserFont && !HasFontTable(TRUETYPE_TAG('c', 'm', 'a', 'p'))) {
-      mIgnoreFcCharmap = false;
-      // ...and continue with HasChar() below.
-    } else {
-      return gfxFontEntry::TestCharacterMap(aCh);
-    }
-  }
-  // otherwise (for system fonts), use the charmap in the pattern
-  return HasChar(mFontPattern, aCh);
-}
-
-bool gfxFontconfigFontEntry::HasFontTable(uint32_t aTableTag) {
+bool gfxFontconfigFontEntry::HasFontTableInternal(uint32_t aTableTag) {
   if (FTUserFontData* ufd = GetUserFontData()) {
-    if (ufd->FontData()) {
-      return !!gfxFontUtils::FindTableDirEntry(ufd->FontData(), aTableTag);
+    if (const auto* data = ufd->GetData()) {
+      return !!gfxFontUtils::FindTableDirEntry(data, aTableTag);
     }
   }
   return gfxFT2FontEntryBase::FaceHasTable(GetFTFace(), aTableTag);
 }
 
-hb_blob_t* gfxFontconfigFontEntry::GetFontTable(uint32_t aTableTag) {
+hb_blob_t* gfxFontconfigFontEntry::GetFontTableInternal(uint32_t aTableTag) {
   // for data fonts, read directly from the font data
   if (FTUserFontData* ufd = GetUserFontData()) {
-    if (ufd->FontData()) {
-      return gfxFontUtils::GetTableFromFontData(ufd->FontData(), aTableTag);
+    if (const auto* data = ufd->GetData()) {
+      return gfxFontUtils::GetTableFromFontData(data, aTableTag);
     }
   }
 
   // Use the cache only if it has already been created.
   if (mFontTableCache) {
-    return gfxFontEntry::GetFontTable(aTableTag);
+    return gfxFontEntry::GetFontTableInternal(aTableTag);
   }
 
   auto* table = hb_face_reference_table(GetHBFace(), aTableTag);
@@ -1079,9 +1111,38 @@ gfxFont* gfxFontconfigFontEntry::CreateFontInstance(
   return newFont;
 }
 
+#ifdef MOZ_FONTATIONS
+void gfxFontconfigFontEntry::InitSkrifaFont(FcPattern* aPattern) {
+  using mozilla::MemoryMappedFile;
+  using mozilla::gfx::SkrifaFontRef;
+
+  // Try to load the file.
+  const FcChar8* const filenameBytes = GetPatternFilename(aPattern);
+  if (!filenameBytes) {
+    return;
+  }
+  AutoFDClose fd(PR_Open(ToCharPtr(filenameBytes), PR_RDONLY, 0));
+  MemoryMappedFile file = MemoryMappedFile::Open(fd.get());
+  if (!file.IsValid()) {
+    return;
+  }
+
+  const int index = GetPatternIndex(aPattern);
+  const uint8_t* data = static_cast<const uint8_t*>(file.Data());
+  const size_t size = file.Size();
+  if (SkrifaFontRef* font = skrifa_font_new_from_index(data, size, index)) {
+    SetSkrifaFont(font, std::move(file));
+  }
+}
+#endif
+
 SharedFTFace* gfxFontconfigFontEntry::GetFTFace() {
   if (!mFTFaceInitialized) {
+#ifdef MOZ_FONTATIONS
+    InitSkrifaFont(mFontPattern);
+#endif
     RefPtr<SharedFTFace> face = CreateFaceForPattern(mFontPattern);
+
     if (face) {
       if (mFTFace.compareExchange(nullptr, face.get())) {
         face.forget().leak();  // The reference is now owned by mFTFace.
@@ -1102,7 +1163,7 @@ FTUserFontData* gfxFontconfigFontEntry::GetUserFontData() {
   return nullptr;
 }
 
-bool gfxFontconfigFontEntry::HasVariations() {
+bool gfxFontconfigFontEntry::HasVariationsInternal() {
   // If the answer is already cached, just return it.
   switch (mHasVariations) {
     case HasVariationsState::No:
@@ -1170,7 +1231,7 @@ FT_MM_Var* gfxFontconfigFontEntry::GetMMVar() {
   return mMMVar;
 }
 
-void gfxFontconfigFontEntry::GetVariationAxes(
+void gfxFontconfigFontEntry::GetVariationAxesInternal(
     nsTArray<gfxFontVariationAxis>& aAxes) {
   if (!HasVariations()) {
     return;
@@ -1178,7 +1239,7 @@ void gfxFontconfigFontEntry::GetVariationAxes(
   gfxFT2Utils::GetVariationAxes(GetMMVar(), aAxes);
 }
 
-void gfxFontconfigFontEntry::GetVariationInstances(
+void gfxFontconfigFontEntry::GetVariationInstancesInternal(
     nsTArray<gfxFontVariationInstance>& aInstances) {
   if (!HasVariations()) {
     return;
@@ -1212,7 +1273,7 @@ void gfxFontconfigFontFamily::FindStyleVariationsLocked(
     const nsAutoCString& faceName = !psname.IsEmpty() ? psname : fullname;
 
     gfxFontconfigFontEntry* fontEntry =
-        new gfxFontconfigFontEntry(faceName, face, mContainsAppFonts);
+        new gfxFontconfigFontEntry(faceName, face);
 
     if (gfxPlatform::HasVariationFontSupport()) {
       fontEntry->SetupVariationRanges();
@@ -1227,17 +1288,16 @@ void gfxFontconfigFontFamily::FindStyleVariationsLocked(
     if (LOG_FONTLIST_ENABLED()) {
       nsAutoCString weightString;
       fontEntry->Weight().ToString(weightString);
-      nsAutoCString stretchString;
-      fontEntry->Stretch().ToString(stretchString);
+      nsAutoCString widthString;
+      fontEntry->Width().ToString(widthString);
       nsAutoCString styleString;
       fontEntry->SlantStyle().ToString(styleString);
-      LOG_FONTLIST(
-          ("(fontlist) added (%s) to family (%s)"
-           " with style: %s weight: %s stretch: %s"
-           " psname: %s fullname: %s",
-           fontEntry->Name().get(), Name().get(), styleString.get(),
-           weightString.get(), stretchString.get(), psname.get(),
-           fullname.get()));
+      LOG_FONTLIST((
+          "(fontlist) added (%s) to family (%s)"
+          " with style: %s weight: %s width: %s"
+          " psname: %s fullname: %s",
+          fontEntry->Name().get(), Name().get(), styleString.get(),
+          weightString.get(), widthString.get(), psname.get(), fullname.get()));
     }
   }
 
@@ -1336,7 +1396,7 @@ void gfxFontconfigFontFamily::FindAllFontsForStyle(
         SizeDistance(entry, aFontStyle, mForceScalable || aIgnoreSizeTolerance);
     // If the entry is scalable or has a style that does not match
     // the group of unscalable fonts, then start a new group.
-    if (dist < 0.0 || !bestEntry || bestEntry->Stretch() != entry->Stretch() ||
+    if (dist < 0.0 || !bestEntry || bestEntry->Width() != entry->Width() ||
         bestEntry->Weight() != entry->Weight() ||
         bestEntry->SlantStyle() != entry->SlantStyle()) {
       // If the best entry in this group is still outside the tolerance,
@@ -1527,6 +1587,30 @@ gfxFcPlatformFontList::~gfxFcPlatformFontList() {
 #endif
 }
 
+static bool IsTrueTypeOrOpenTypeFont(FcPattern* aPattern) {
+  FcChar8* format;
+  if (FcPatternGetString(aPattern, FC_FONTFORMAT, 0, &format) !=
+      FcResultMatch) {
+    return false;
+  }
+  return !FcStrCmp(format, ToFcChar8Ptr("TrueType")) ||
+         !FcStrCmp(format, ToFcChar8Ptr("CFF"));
+}
+
+// Whether to keep a legacy font out of the font list altogether.
+static bool ShouldSkipLegacyFont(FcPattern* aPattern) {
+  if (!StaticPrefs::gfx_font_rendering_fontconfig_skip_legacy_fonts()) {
+    return false;
+  }
+  FcChar8* format;
+  if (FcPatternGetString(aPattern, FC_FONTFORMAT, 0, &format) !=
+      FcResultMatch) {
+    return false;
+  }
+  return !FcStrCmp(format, ToFcChar8Ptr("Type 1")) ||
+         !FcStrCmp(format, ToFcChar8Ptr("PCF"));
+}
+
 void gfxFcPlatformFontList::AddFontSetFamilies(FcFontSet* aFontSet,
                                                const SandboxPolicy* aPolicy,
                                                bool aAppFonts) {
@@ -1564,6 +1648,10 @@ void gfxFcPlatformFontList::AddFontSetFamilies(FcFontSet* aFontSet,
       continue;
     }
 #endif
+
+    if (ShouldSkipLegacyFont(pattern)) {
+      continue;
+    }
 
     AddPatternToFontList(pattern, lastFamilyName, familyName, fontFamily,
                          aAppFonts);
@@ -1932,13 +2020,13 @@ void gfxFcPlatformFontList::InitSharedFontListForPlatform() {
     }
 
     WeightRange weight(FontWeight::NORMAL);
-    StretchRange stretch(FontStretch::NORMAL);
+    WidthRange width(FontWidth::NORMAL);
     SlantStyleRange style(FontSlantStyle::NORMAL);
     uint16_t size;
-    GetFontProperties(aPattern, &weight, &stretch, &style, &size);
+    GetFontProperties(aPattern, &weight, &width, &style, &size);
 
-    auto initData = fontlist::Face::InitData{descriptor, 0,       size, false,
-                                             weight,     stretch, style};
+    auto initData = fontlist::Face::InitData{descriptor, 0,     size, false,
+                                             weight,     width, style};
 
     // Add entries for any other localized family names. (Most fonts only have
     // a single family name, so the first call to GetString will usually fail).
@@ -2035,6 +2123,10 @@ void gfxFcPlatformFontList::InitSharedFontListForPlatform() {
       }
 #endif
 
+      if (ShouldSkipLegacyFont(pattern)) {
+        continue;
+      }
+
       // Clone the pattern, because we can't operate on the one belonging to
       // the FcFontSet directly.
       FcPattern* clone = FcPatternDuplicate(pattern);
@@ -2055,20 +2147,12 @@ void gfxFcPlatformFontList::InitSharedFontListForPlatform() {
       // (which may be very large), because we'll read the 'cmap' directly.
       // This substantially reduces the pressure on shared memory (bug 1664151)
       // due to the large font descriptors (serialized patterns).
-      FcChar8* fontFormat;
       MOZ_PUSH_IGNORE_THREAD_SAFETY
-      if (FcPatternGetString(clone, FC_FONTFORMAT, 0, &fontFormat) ==
-              FcResultMatch &&
-          (!FcStrCmp(fontFormat, (const FcChar8*)"TrueType") ||
-           !FcStrCmp(fontFormat, (const FcChar8*)"CFF"))) {
+      if (IsTrueTypeOrOpenTypeFont(clone)) {
         FcPatternDel(clone, FC_CHARSET);
-        if (addPattern(clone, lastFamilyName, familyName, aAppFonts)) {
-          ++count;
-        }
-      } else {
-        if (addPattern(clone, lastFamilyName, familyName, aAppFonts)) {
-          ++count;
-        }
+      }
+      if (addPattern(clone, lastFamilyName, familyName, aAppFonts)) {
+        ++count;
       }
       MOZ_POP_THREAD_SAFETY
 
@@ -2146,15 +2230,14 @@ FontVisibility gfxFcPlatformFontList::GetVisibilityForFamily(
       return FontVisibility::User;
 
     case Device::Linux_Fedora_any:
+      // We have no font list for this Fedora version
+      return FontVisibility::Unknown;
+
     case Device::Linux_Fedora_39:
       if (FamilyInList(aName, kBaseFonts_Fedora_39)) {
         return FontVisibility::Base;
       }
-      if (sFontVisibilityDevice == Device::Linux_Fedora_39) {
-        return FontVisibility::User;
-      }
-      // For Fedora_any, fall through to also check Fedora 38 list.
-      [[fallthrough]];
+      return FontVisibility::User;
 
     case Device::Linux_Fedora_38:
       if (FamilyInList(aName, kBaseFonts_Fedora_38)) {
@@ -2192,11 +2275,13 @@ gfxFcPlatformFontList::GetFilteredPlatformFontLists() {
       break;
 
     case Device::Linux_Fedora_any:
+      // No font list for this Fedora version; see GetVisibilityForFamily().
+      break;
+
     case Device::Linux_Fedora_39:
       fontLists.AppendElement(std::make_pair(kBaseFonts_Fedora_39,
                                              std::size(kBaseFonts_Fedora_39)));
-      // For Fedora_any, fall through to also check Fedora 38 list.
-      [[fallthrough]];
+      break;
 
     case Device::Linux_Fedora_38:
       fontLists.AppendElement(std::make_pair(kBaseFonts_Fedora_38,
@@ -2215,7 +2300,7 @@ already_AddRefed<gfxFontEntry> gfxFcPlatformFontList::CreateFontEntry(
     fontlist::Face* aFace, const fontlist::Family* aFamily) {
   nsAutoCString desc(aFace->mDescriptor.AsString(SharedFontList()));
   FcPattern* pattern = FcNameParse((const FcChar8*)desc.get());
-  RefPtr fe = MakeRefPtr<gfxFontconfigFontEntry>(desc, pattern, true);
+  RefPtr fe = MakeRefPtr<gfxFontconfigFontEntry>(desc, pattern);
   FcPatternDestroy(pattern);
   fe->InitializeFrom(aFace, aFamily);
   return fe.forget();
@@ -2233,7 +2318,9 @@ static void GetSystemFontList(nsTArray<nsString>& aListOfFonts,
     return;
   }
 
-  UniquePtr<FcObjectSet> os(FcObjectSetBuild(FC_FAMILY, nullptr));
+  // We need FC_FONTFORMAT for ShouldSkipLegacyFont() below.
+  UniquePtr<FcObjectSet> os(
+      FcObjectSetBuild(FC_FAMILY, FC_FONTFORMAT, nullptr));
   if (!os) {
     return;
   }
@@ -2253,6 +2340,10 @@ static void GetSystemFontList(nsTArray<nsString>& aListOfFonts,
 
   for (int i = 0; i < fs->nfont; i++) {
     char* family;
+
+    if (ShouldSkipLegacyFont(fs->fonts[i])) {
+      continue;
+    }
 
     if (FcPatternGetString(fs->fonts[i], FC_FAMILY, 0, (FcChar8**)&family) !=
         FcResultMatch) {
@@ -2328,7 +2419,7 @@ FontFamily gfxFcPlatformFontList::GetDefaultFontForPlatform(
 already_AddRefed<gfxFontEntry> gfxFcPlatformFontList::LookupLocalFont(
     FontVisibilityProvider* aFontVisibilityProvider,
     const nsACString& aFontName, WeightRange aWeightForEntry,
-    StretchRange aStretchForEntry, SlantStyleRange aStyleForEntry) {
+    WidthRange aWidthForEntry, SlantStyleRange aStyleForEntry) {
   AutoLock lock(mLock);
 
   nsAutoCString keyName(aFontName);
@@ -2336,7 +2427,7 @@ already_AddRefed<gfxFontEntry> gfxFcPlatformFontList::LookupLocalFont(
 
   if (SharedFontList()) {
     return LookupInSharedFaceNameList(aFontVisibilityProvider, aFontName,
-                                      aWeightForEntry, aStretchForEntry,
+                                      aWeightForEntry, aWidthForEntry,
                                       aStyleForEntry);
   }
 
@@ -2347,21 +2438,20 @@ already_AddRefed<gfxFontEntry> gfxFcPlatformFontList::LookupLocalFont(
   }
 
   return MakeAndAddRef<gfxFontconfigFontEntry>(
-      aFontName, *fontPattern, aWeightForEntry, aStretchForEntry,
-      aStyleForEntry);
+      aFontName, *fontPattern, aWeightForEntry, aWidthForEntry, aStyleForEntry);
 }
 
 already_AddRefed<gfxFontEntry> gfxFcPlatformFontList::MakePlatformFont(
     const nsACString& aFontName, WeightRange aWeightForEntry,
-    StretchRange aStretchForEntry, SlantStyleRange aStyleForEntry,
-    const uint8_t* aFontData, uint32_t aLength) {
-  RefPtr<FTUserFontData> ufd = new FTUserFontData(aFontData, aLength);
+    WidthRange aWidthForEntry, SlantStyleRange aStyleForEntry,
+    FontData* aFontData) {
+  RefPtr<FTUserFontData> ufd = new FTUserFontData(aFontData);
   RefPtr<SharedFTFace> face = ufd->CloneFace();
   if (!face) {
     return nullptr;
   }
   return MakeAndAddRef<gfxFontconfigFontEntry>(aFontName, aWeightForEntry,
-                                               aStretchForEntry, aStyleForEntry,
+                                               aWidthForEntry, aStyleForEntry,
                                                std::move(face));
 }
 

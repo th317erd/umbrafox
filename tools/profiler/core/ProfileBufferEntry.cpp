@@ -26,6 +26,7 @@
 #include "nsXULAppAPI.h"
 #include "ProfilerCodeAddressService.h"
 
+#include <algorithm>
 #include <type_traits>
 
 using namespace mozilla;
@@ -336,11 +337,7 @@ bool UniqueStacks::FrameKey::NormalFrameData::operator==(
 }
 
 bool UniqueStacks::FrameKey::JITFrameData::operator==(
-    const JITFrameData& aOther) const {
-  return mCanonicalAddress == aOther.mCanonicalAddress &&
-         mDepth == aOther.mDepth && mRangeIndex == aOther.mRangeIndex &&
-         mLine == aOther.mLine && mColumn == aOther.mColumn;
-}
+    const JITFrameData& aOther) const = default;
 
 // Consume aJITFrameInfo by stealing its string table and its JIT frame info
 // ranges. The JIT frame info contains JSON which refers to strings from the
@@ -744,13 +741,14 @@ static void WriteSample(SpliceableJSONWriter& aWriter,
 
 static void StreamMarkerAfterKind(
     ProfileBufferEntryReader& aER,
-    ProcessStreamingContext& aProcessStreamingContext) {
+    ProcessStreamingContext& aProcessStreamingContext,
+    uint64_t aEntryPosition) {
   ThreadStreamingContext* threadData = nullptr;
   mozilla::base_profiler_markers_detail::DeserializeAfterKindAndStream(
       aER,
       [&](ProfilerThreadId aThreadId) -> baseprofiler::SpliceableJSONWriter* {
-        threadData =
-            aProcessStreamingContext.GetThreadStreamingContext(aThreadId);
+        threadData = aProcessStreamingContext.GetThreadStreamingContext(
+            aThreadId, aEntryPosition);
         return threadData ? &threadData->mMarkersDataWriter : nullptr;
       },
       [&](ProfileChunkedBuffer& aChunkedBuffer) {
@@ -882,7 +880,7 @@ class EntryGetter {
     if (type >= ProfileBufferEntry::Kind::LEGACY_LIMIT) {
       if (type == ProfileBufferEntry::Kind::Marker &&
           mStreamingContextForMarkers) {
-        StreamMarkerAfterKind(er, *mStreamingContextForMarkers);
+        StreamMarkerAfterKind(er, *mStreamingContextForMarkers, CurPos());
         if (!Has()) {
           return true;
         }
@@ -1108,8 +1106,13 @@ void ProfileBuffer::MaybeStreamExecutionTraceToJSON(
   }
 
   for (const JS::ExecutionTrace::TracedJSContext& context : trace.contexts) {
+    // An ExecutionTracer is owned by its JSContext and deregisters itself when
+    // that context is destroyed, so a traced context id always belongs to a
+    // thread that is still registered with the profiler. Trace events carry no
+    // buffer position, so use the maximum position to select that still-
+    // registered (latest-window) context for the thread id.
     Maybe<StreamingParametersForThread> streamingParameters =
-        aGetStreamingParametersForThreadCallback(context.id);
+        aGetStreamingParametersForThreadCallback(context.id, UINT64_MAX);
 
     // Ignore samples that are for the wrong thread.
     if (!streamingParameters) {
@@ -1272,7 +1275,12 @@ void ProfileBuffer::MaybeStreamExecutionTraceToJSON(
           &trace.stringBuffer[stringBufferOffset], classNameLength));
       stringBufferOffset += classNameLength + 1;
 
-      for (uint32_t propertyIndex = 0; propertyIndex < shape.numProperties;
+      // At most MAX_COLLECTION_VALUES property keys are recorded in the
+      // string buffer, even though numProperties is the full count.
+      const uint32_t recordedProperties =
+          std::min(shape.numProperties,
+                   uint32_t(JS::ValueSummary::MAX_COLLECTION_VALUES));
+      for (uint32_t propertyIndex = 0; propertyIndex < recordedProperties;
            propertyIndex++) {
         size_t len = strlen(&trace.stringBuffer[stringBufferOffset]);
         shapesWriter.StringElement(
@@ -1334,10 +1342,14 @@ ProfilerThreadId ProfileBuffer::DoStreamSamplesAndMarkersToJSON(
       MOZ_ASSERT(e.Get().IsThreadId());
 
       ProfilerThreadId threadId = e.Get().GetThreadId();
+      // Buffer position of this sample's ThreadId entry. OS thread ids are
+      // recycled across short-lived threads, so this position is needed to
+      // attribute the sample to the thread whose lifetime covers it.
+      const uint64_t entryPosition = e.CurPos();
       e.Next();
 
       Maybe<StreamingParametersForThread> streamingParameters =
-          aGetStreamingParametersForThreadCallback(threadId);
+          aGetStreamingParametersForThreadCallback(threadId, entryPosition);
 
       // Ignore samples that are for the wrong thread.
       if (!streamingParameters) {
@@ -1614,7 +1626,9 @@ ProfilerThreadId ProfileBuffer::DoStreamSamplesAndMarkersToJSON(
 
           if (kind == ProfileBufferEntry::Kind::Marker &&
               aStreamingContextForMarkers) {
-            StreamMarkerAfterKind(er, *aStreamingContextForMarkers);
+            StreamMarkerAfterKind(
+                er, *aStreamingContextForMarkers,
+                it.CurrentBlockIndex().ConvertToProfileBufferIndex());
             continue;
           }
 
@@ -1682,7 +1696,9 @@ ProfilerThreadId ProfileBuffer::DoStreamSamplesAndMarkersToJSON(
 
           if (kind == ProfileBufferEntry::Kind::Marker &&
               aStreamingContextForMarkers) {
-            StreamMarkerAfterKind(er, *aStreamingContextForMarkers);
+            StreamMarkerAfterKind(
+                er, *aStreamingContextForMarkers,
+                it.CurrentBlockIndex().ConvertToProfileBufferIndex());
             continue;
           }
 
@@ -1717,7 +1733,9 @@ ProfilerThreadId ProfileBuffer::StreamSamplesToJSON(
 
   return DoStreamSamplesAndMarkersToJSON(
       aWriter.SourceFailureLatch(),
-      [&](ProfilerThreadId aReadThreadId) {
+      [&](ProfilerThreadId aReadThreadId, uint64_t /* aEntryPosition */) {
+        // This path streams a single, already-selected thread, so the sample
+        // position isn't needed to disambiguate thread ids.
         Maybe<StreamingParametersForThread> streamingParameters;
 #ifdef DEBUG
         ++processedCount;
@@ -1739,10 +1757,12 @@ ProfilerThreadId ProfileBuffer::StreamSamplesToJSON(
 void ProfileBuffer::StreamSamplesAndMarkersToJSON(
     ProcessStreamingContext& aProcessStreamingContext,
     mozilla::ProgressLogger aProgressLogger) const {
-  auto getStreamingParamsCallback = [&](ProfilerThreadId aReadThreadId) {
+  auto getStreamingParamsCallback = [&](ProfilerThreadId aReadThreadId,
+                                        uint64_t aEntryPosition) {
     Maybe<StreamingParametersForThread> streamingParameters;
     ThreadStreamingContext* threadData =
-        aProcessStreamingContext.GetThreadStreamingContext(aReadThreadId);
+        aProcessStreamingContext.GetThreadStreamingContext(aReadThreadId,
+                                                           aEntryPosition);
     if (threadData) {
       streamingParameters.emplace(
           threadData->mSamplesDataWriter, *threadData->mUniqueStacks,

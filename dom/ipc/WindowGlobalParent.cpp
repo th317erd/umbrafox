@@ -6,6 +6,14 @@
 
 #include <algorithm>
 
+#ifdef ACCESSIBILITY
+#  include "mozilla/a11y/DocAccessibleParent.h"
+#  include "mozilla/a11y/Platform.h"
+#  include "nsAccessibilityService.h"
+#  if defined(XP_WIN)
+#    include "mozilla/a11y/nsWinUtils.h"
+#  endif
+#endif
 #include "MMPrinter.h"
 #include "mozilla/AntiTrackingUtils.h"
 #include "mozilla/AsyncEventDispatcher.h"
@@ -30,6 +38,7 @@
 #include "mozilla/dom/ChromeUtils.h"
 #include "mozilla/dom/ClientIPCTypes.h"
 #include "mozilla/dom/ClientInfo.h"
+#include "mozilla/dom/ClientValidation.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/DOMException.h"
@@ -47,6 +56,9 @@
 #include "mozilla/dom/NavigatorLogin.h"
 #include "mozilla/dom/PBackgroundSessionStorageCache.h"
 #include "mozilla/dom/ParentProcessChannelHandle.h"
+#include "mozilla/dom/PrefetchLog.h"
+#include "mozilla/dom/PrefetchMatchWaiter.h"
+#include "mozilla/dom/PrefetchRecordParent.h"
 #include "mozilla/dom/SerialManagerParent.h"
 #include "mozilla/dom/UseCounterMetrics.h"
 #include "mozilla/dom/WebAuthnTransactionParent.h"
@@ -213,16 +225,7 @@ void WindowGlobalParent::Init() {
   if (!IsInProcess()) {
     cp = static_cast<ContentParent*>(Manager()->Manager());
     processId = cp->ChildID();
-
-    // Ensure the content process has permissions for this principal.
-    cp->TransmitPermissionsForPrincipal(mDocumentPrincipal);
   }
-
-  MOZ_DIAGNOSTIC_ASSERT(
-      !BrowsingContext()->GetParent() ||
-          BrowsingContext()->GetEmbedderInnerWindowId(),
-      "When creating a non-root WindowGlobalParent, the WindowGlobalParent "
-      "for our embedder should've already been created.");
 
   // Ensure we have a document URI
   if (!mDocumentURI) {
@@ -314,6 +317,12 @@ already_AddRefed<WindowGlobalParent> WindowGlobalParent::GetByInnerWindowId(
   }
 
   return WindowContext::GetById(aInnerWindowId).downcast<WindowGlobalParent>();
+}
+
+/* static */
+WindowGlobalParent* WindowGlobalParent::Cast(WindowContext* aContext) {
+  MOZ_RELEASE_ASSERT(XRE_IsParentProcess());
+  return static_cast<WindowGlobalParent*>(aContext);
 }
 
 already_AddRefed<WindowGlobalChild> WindowGlobalParent::GetChildActor() {
@@ -563,6 +572,42 @@ mozilla::ipc::IPCResult WindowGlobalParent::RecvUpdateHttpsOnlyStatus(
   return IPC_OK();
 }
 
+already_AddRefed<Promise> WindowGlobalParent::RequestDocumentLanguageMetadata(
+    const DocumentLanguageMetadataRequestOptions& aOptions, ErrorResult& aRv) {
+  nsIGlobalObject* global = GetParentObject();
+  RefPtr<Promise> domPromise = Promise::Create(global, aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
+  MOZ_ASSERT(aOptions.mTextSampleMinCodeUnits <=
+             aOptions.mTextSampleTargetCodeUnits);
+
+  if (!IsCurrentGlobal()) {
+    domPromise->MaybeResolve(JS::NullHandleValue);
+    return domPromise.forget();
+  }
+
+  auto ipcPromise = SendRequestDocumentLanguageMetadata(
+      aOptions.mTextSampleMinCodeUnits, aOptions.mTextSampleTargetCodeUnits);
+  ipcPromise->Then(
+      GetMainThreadSerialEventTarget(), __func__,
+      [domPromise,
+       self = RefPtr{this}](const Maybe<DocumentLanguageMetadata>& aMetadata) {
+        if (!self->IsCurrentGlobal() || aMetadata.isNothing()) {
+          domPromise->MaybeResolve(JS::NullHandleValue);
+          return;
+        }
+
+        domPromise->MaybeResolve(*aMetadata);
+      },
+      [domPromise](ResponseRejectReason&&) {
+        domPromise->MaybeResolve(JS::NullHandleValue);
+      });
+
+  return domPromise.forget();
+}
+
 IPCResult WindowGlobalParent::RecvUpdateDocumentHasLoaded(
     bool aDocumentHasLoaded) {
   mDocumentHasLoaded = aDocumentHasLoaded;
@@ -589,6 +634,11 @@ IPCResult WindowGlobalParent::RecvUpdateDocumentCspSettings(
 
 mozilla::ipc::IPCResult WindowGlobalParent::RecvSetClientInfo(
     const IPCClientInfo& aIPCClientInfo) {
+  if (!ClientIsValidPrincipalInfo(
+          aIPCClientInfo.principalInfo(),
+          GetContentParent() ? GetContentParent()->LoadedOrigins() : nullptr)) {
+    return IPC_FAIL(this, "SetClientInfo principal not valid for remote type");
+  }
   mClientInfo = Some(ClientInfo(aIPCClientInfo));
   return IPC_OK();
 }
@@ -601,6 +651,18 @@ IPCResult WindowGlobalParent::RecvDestroy() {
   if (CanSend()) {
     RefPtr<BrowserParent> browserParent = GetBrowserParent();
     if (!browserParent || !browserParent->IsDestroyed()) {
+#ifdef ACCESSIBILITY
+      // Destroy the accessibility actor (if any) before we start tearing down
+      // this instance so that accessibility can still access information such
+      // as the owner element. For example, this allows us to gracefully fire
+      // accessibility events notifying of the destruction.
+      if (auto* docAcc = a11y::DocAccessibleParent::GetFrom(this)) {
+#  if defined(ANDROID)
+        MonitorAutoLock mal(nsAccessibilityService::GetAndroidMonitor());
+#  endif
+        docAcc->Destroy();
+      }
+#endif
       (void)Send__delete__(this);
     }
   }
@@ -614,16 +676,16 @@ IPCResult WindowGlobalParent::RecvRawMessage(const JSActorMessageMeta& aMeta,
   return IPC_OK();
 }
 
-const nsACString& WindowGlobalParent::GetRemoteType() const {
+const RemoteType& WindowGlobalParent::GetRemoteType() const {
   if (RefPtr<BrowserParent> browserParent = GetBrowserParent()) {
     return browserParent->Manager()->GetRemoteType();
   }
 
-  return NOT_REMOTE_TYPE;
+  return RemoteType::NotRemote();
 }
 
 void WindowGlobalParent::GetRemoteType(nsACString& aRemoteType) const {
-  aRemoteType = GetRemoteType();
+  aRemoteType = GetRemoteType().Stringify();
 }
 
 void WindowGlobalParent::NotifyContentBlockingEvent(
@@ -842,19 +904,64 @@ already_AddRefed<nsIChannel> WindowGlobalParent::GetFailedChannel() {
 }
 
 dom::NoCorsMediaRequestState WindowGlobalParent::NoCorsMediaRequestState(
-    nsIURI* aURI) const {
+    nsIURI* aURI) {
   nsCString uri;
   return (NS_SUCCEEDED(aURI->GetSpecIgnoringRef(uri)) &&
-          mNoCorsMediaRequestURIs.Contains(uri))
+          EnsureKnownAllowedSubsequentRequests()
+              ->mNoCorsMediaRequestURIs.Contains(uri))
              ? dom::NoCorsMediaRequestState::Subsequent
              : dom::NoCorsMediaRequestState::Initial;
 }
 
+StaticAutoPtr<WindowGlobalParent::AllKnownAllowedSubsequentRequests>
+    WindowGlobalParent::sAllKnownSubsequentRequests;
+
+/* static */ WindowGlobalParent::AllKnownAllowedSubsequentRequests&
+WindowGlobalParent::GetAllKnownAllowedSubsequentRequests() {
+  if (!sAllKnownSubsequentRequests) {
+    sAllKnownSubsequentRequests =
+        new nsTHashMap<PrincipalHashKey,
+                       WeakPtr<KnownAllowedSubsequentRequests>>;
+  }
+
+  return *sAllKnownSubsequentRequests;
+}
+
+WindowGlobalParent::KnownAllowedSubsequentRequests::
+    ~KnownAllowedSubsequentRequests() {
+  if (!sAllKnownSubsequentRequests) {
+    return;
+  }
+
+  auto& allKnownRequests = GetAllKnownAllowedSubsequentRequests();
+  allKnownRequests.Remove(mPrincipal);
+}
+
+WindowGlobalParent::KnownAllowedSubsequentRequests*
+WindowGlobalParent::EnsureKnownAllowedSubsequentRequests() {
+  if (!mKnownAllowedSubsequentRequests) {
+    auto& allKnownRequests = GetAllKnownAllowedSubsequentRequests();
+    RefPtr<KnownAllowedSubsequentRequests> knownAllowedSubsequentRequests;
+    mKnownAllowedSubsequentRequests = allKnownRequests.LookupOrInsertWith(
+        mDocumentPrincipal, [knownAllowedSubsequentRequests,
+                             principal = mDocumentPrincipal]() mutable {
+          knownAllowedSubsequentRequests =
+              MakeAndAddRef<KnownAllowedSubsequentRequests>();
+          knownAllowedSubsequentRequests->mPrincipal = principal;
+          return knownAllowedSubsequentRequests;
+        });
+  }
+
+  return mKnownAllowedSubsequentRequests;
+}
+
 void WindowGlobalParent::RecordSubsequentNoCorsRequestState(nsIURI* aURI) {
   nsCString uri;
-  if (NS_SUCCEEDED(aURI->GetSpecIgnoringRef(uri)) && !uri.IsEmpty()) {
-    mNoCorsMediaRequestURIs.PutEntry(uri);
+  if (NS_FAILED(aURI->GetSpecIgnoringRef(uri)) || uri.IsEmpty()) {
+    return;
   }
+
+  EnsureKnownAllowedSubsequentRequests()->mNoCorsMediaRequestURIs.PutEntry(uri);
 }
 
 mozilla::ipc::IPCResult WindowGlobalParent::RecvShare(
@@ -1212,7 +1319,7 @@ void WindowGlobalParent::PermitUnloadChildNavigables(
 
 already_AddRefed<mozilla::dom::Promise> WindowGlobalParent::DrawSnapshot(
     const DOMRect* aRect, double aScale, const nsACString& aBackgroundColor,
-    bool aResetScrollPosition, mozilla::ErrorResult& aRv) {
+    const DrawSnapshotOptions& aOptions, mozilla::ErrorResult& aRv) {
   nsIGlobalObject* global = GetParentObject();
   RefPtr<Promise> promise = Promise::Create(global, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
@@ -1220,27 +1327,23 @@ already_AddRefed<mozilla::dom::Promise> WindowGlobalParent::DrawSnapshot(
   }
 
   nscolor color;
-  if (NS_WARN_IF(!ServoCSSParser::ComputeColor(nullptr, NS_RGB(0, 0, 0),
-                                               aBackgroundColor, &color,
-                                               nullptr, nullptr))) {
+  if (NS_WARN_IF(
+          !ServoCSSParser::ComputeColor(nullptr, aBackgroundColor, &color))) {
     aRv = NS_ERROR_FAILURE;
     return nullptr;
   }
 
   gfx::CrossProcessPaintFlags flags =
       gfx::CrossProcessPaintFlags::UseHighQualityScaling;
-  if (!aRect) {
+  if (!aRect || aOptions.mDrawView) {
     // If no explicit Rect was passed, we want the currently visible viewport.
     flags |= gfx::CrossProcessPaintFlags::DrawView;
-  } else if (aResetScrollPosition) {
+  } else if (aOptions.mResetScrollPosition) {
     flags |= gfx::CrossProcessPaintFlags::ResetScrollPosition;
   }
 
-  if (!gfx::CrossProcessPaint::Start(this, aRect, (float)aScale, color, flags,
-                                     promise)) {
-    aRv = NS_ERROR_FAILURE;
-    return nullptr;
-  }
+  gfx::CrossProcessPaint::Start(this, aRect, (float)aScale, color, flags,
+                                promise);
   return promise.forget();
 }
 
@@ -1276,8 +1379,7 @@ mozilla::ipc::IPCResult WindowGlobalParent::RecvExpectPageUseCounters(
   // page use counters.  This causes us to wait for this window to go away
   // (in WindowGlobalParent::ActorDestroy) before reporting the page use
   // counters via Telemetry.
-  RefPtr<WindowGlobalParent> page =
-      static_cast<WindowGlobalParent*>(aTop.GetMaybeDiscarded());
+  RefPtr<WindowGlobalParent> page = Cast(aTop.GetMaybeDiscarded());
   if (!page || page->mSentPageUseCounters) {
     MOZ_LOG(gUseCountersLog, LogLevel::Debug,
             (" > too late, won't report page use counters for this straggler"));
@@ -1561,8 +1663,8 @@ mozilla::ipc::IPCResult WindowGlobalParent::RecvSetDocumentDomain(
     return IPC_FAIL(this, "Sandbox disallows domain setting.");
   }
 
-  // Might need to do a featurepolicy check here, like we currently do in the
-  // child process?
+  // Might need to do a permissions policy check here, like we currently do in
+  // the child process?
 
   nsCOMPtr<nsIURI> uri;
   mDocumentPrincipal->GetDomain(getter_AddRefs(uri));
@@ -1781,40 +1883,6 @@ void WindowGlobalParent::ActorDestroy(ActorDestroyReason aWhy) {
 
   if (GetBrowsingContext()->IsTopContent() &&
       !mDocumentPrincipal->SchemeIs("about")) {
-    // Record the page load
-    uint32_t pageLoaded = 1;
-    glean::mixed_content::unblock_counter.AccumulateSingleSample(pageLoaded);
-
-    // Record the mixed content status of the docshell in Telemetry
-    enum {
-      NO_MIXED_CONTENT = 0,  // There is no Mixed Content on the page
-      MIXED_DISPLAY_CONTENT =
-          1,  // The page attempted to load Mixed Display Content
-      MIXED_ACTIVE_CONTENT =
-          2,  // The page attempted to load Mixed Active Content
-      MIXED_DISPLAY_AND_ACTIVE_CONTENT = 3  // The page attempted to load Mixed
-                                            // Display & Mixed Active Content
-    };
-
-    bool hasMixedDisplay =
-        mSecurityState &
-        (nsIWebProgressListener::STATE_LOADED_MIXED_DISPLAY_CONTENT |
-         nsIWebProgressListener::STATE_BLOCKED_MIXED_DISPLAY_CONTENT);
-    bool hasMixedActive =
-        mSecurityState &
-        (nsIWebProgressListener::STATE_LOADED_MIXED_ACTIVE_CONTENT |
-         nsIWebProgressListener::STATE_BLOCKED_MIXED_ACTIVE_CONTENT);
-
-    uint32_t mixedContentLevel = NO_MIXED_CONTENT;
-    if (hasMixedDisplay && hasMixedActive) {
-      mixedContentLevel = MIXED_DISPLAY_AND_ACTIVE_CONTENT;
-    } else if (hasMixedActive) {
-      mixedContentLevel = MIXED_ACTIVE_CONTENT;
-    } else if (hasMixedDisplay) {
-      mixedContentLevel = MIXED_DISPLAY_CONTENT;
-    }
-    glean::mixed_content::page_load.AccumulateSingleSample(mixedContentLevel);
-
     if (GetDocTreeHadMedia()) {
       glean::media::element_in_page_count.Add(1);
     }
@@ -1962,8 +2030,7 @@ bool WindowGlobalParent::ShouldTrackSiteOriginTelemetry() {
   }
 
   RefPtr<BrowserParent> browserParent = GetBrowserParent();
-  if (!browserParent ||
-      !IsWebRemoteType(browserParent->Manager()->GetRemoteType())) {
+  if (!browserParent || !browserParent->Manager()->GetRemoteType().IsWeb()) {
     return false;
   }
 
@@ -2160,6 +2227,375 @@ WindowGlobalParent::AllocPWebIdentityParent() {
 already_AddRefed<PDigitalCredentialParent>
 WindowGlobalParent::AllocPDigitalCredentialParent() {
   return MakeAndAddRef<DigitalCredentialParent>();
+}
+
+#ifdef ACCESSIBILITY
+already_AddRefed<a11y::PDocAccessibleParent>
+WindowGlobalParent::AllocPDocAccessibleParent(const uint64_t&, const bool&) {
+  return a11y::DocAccessibleParent::New();
+}
+
+mozilla::ipc::IPCResult WindowGlobalParent::RecvPDocAccessibleConstructor(
+    a11y::PDocAccessibleParent* aDoc, const uint64_t& aParentID,
+    const bool& aIsPrintDoc) {
+#  if defined(ANDROID)
+  MonitorAutoLock mal(nsAccessibilityService::GetAndroidMonitor());
+#  endif
+  if (ManagedPDocAccessibleParent().Count() > 1) {
+    return IPC_FAIL(
+        this, "Attempt to construct second PDocAccessible for a PWindowGlobal");
+  }
+  auto doc = static_cast<a11y::DocAccessibleParent*>(aDoc);
+  doc->SetIsPrintDoc(aIsPrintDoc);
+  auto allow = doc->ShouldAllowConstruction();
+  if (allow == a11y::DocAccessibleParent::AllowConstruction::Disallow) {
+    return IPC_FAIL(
+        this,
+        "Attempt to construct PDocAccessible when accessibility not in use");
+  } else if (allow ==
+             a11y::DocAccessibleParent::AllowConstruction::AllowButIgnore) {
+    doc->MarkAsShutdown();
+    return IPC_OK();
+  }
+
+  if (GetBrowsingContext()->IsDiscarded()) {
+    // This document is about to die, so ignore it. This is particularly
+    // important on Android because we must never have more than one active top
+    // level DocAccessible at the same time there.
+    doc->MarkAsShutdown();
+    return IPC_OK();
+  }
+
+  RefPtr<WindowGlobalParent> embedderWgp =
+      GetBrowsingContext()->GetEmbedderWindowGlobal();
+  if (NS_WARN_IF(!IsTop() && !embedderWgp)) {
+    // This is an iframe, but it doesn't have a valid embedder WindowGlobal.
+    // This can happen if the parent BrowsingContext navigated somewhere else
+    // while the embedded document was loading. This isn't an error, but it does
+    // mean this embedded document is about to die and its content process just
+    // hasn't caught up yet. Just ignore this document.
+    doc->MarkAsShutdown();
+    return IPC_OK();
+  }
+
+  if (!IsProcessRoot()) {
+    // Iframe document rendered in the same process as its embedder.
+    // A document should never directly be the parent of another document.
+    // There should always be an outer doc accessible child of the outer
+    // document containing the child.
+    MOZ_ASSERT(aParentID);
+    if (!aParentID) {
+      return IPC_FAIL(this, "No parent specified for same-process iframe");
+    }
+
+    MOZ_ASSERT(embedderWgp);
+    auto* parentDoc = a11y::DocAccessibleParent::GetFrom(
+        embedderWgp, /* aAllowShutdown */ true);
+    if (!parentDoc) {
+      return IPC_FAIL(this,
+                      "Same-process embedder's PDocAccessible doesn't exist");
+    }
+    if (parentDoc->IsShutdown()) {
+      // This can happen if parentDoc is an OOP iframe, but its embedder has
+      // been destroyed. (DocAccessibleParent::Destroy destroys any child
+      // documents.) The OOP iframe (and anything it embeds) will die soon
+      // anyway, so mark this document as shutdown and ignore it.
+      doc->MarkAsShutdown();
+      return IPC_OK();
+    }
+
+    mozilla::ipc::IPCResult added = parentDoc->AddChildDoc(doc, aParentID);
+    if (!added) {
+      return added;
+    }
+
+#  ifdef XP_WIN
+    if (a11y::nsWinUtils::IsWindowEmulationStarted()) {
+      doc->SetEmulatedWindowHandle(parentDoc->GetEmulatedWindowHandle());
+    }
+#  endif
+
+    return IPC_OK();
+  }
+
+  // This document is at the top level in its content process. That means it
+  // makes no sense to get an id for an accessible that is its parent.
+  MOZ_ASSERT(!aParentID);
+  if (aParentID) {
+    return IPC_FAIL(
+        this, "Doc at top level of its process shouldn't have a remote parent");
+  }
+  // Sometimes, we can get a new top level DocAccessibleParent before the
+  // previous WindowGlobalParent (and its own top level DocAccessibleParent)
+  // gets destroyed. The previous one will die pretty shortly anyway, so just
+  // destroy its DocAccessibleParent now. We do this because some platforms
+  // (e.g. Android) require that there is only ever a single platform wrapper
+  // for a top level document at a time.
+  for (dom::WindowContext* wc : GetBrowsingContext()->GetWindowContexts()) {
+    if (wc == this) {
+      continue;
+    }
+    WindowGlobalParent* otherWgp = wc->Canonical();
+    if (auto* otherDoc = a11y::DocAccessibleParent::GetFrom(otherWgp)) {
+      MOZ_ASSERT(otherDoc->IsTopLevelInContentProcess());
+      otherDoc->Destroy();
+    }
+  }
+
+  if (BrowserBridgeParent* bridge =
+          GetBrowserParent()->GetBrowserBridgeParent()) {
+    // Iframe document rendered in a different process to its embedder.
+    doc->SetTopLevelInContentProcess();
+    if (!doc->IsPrintDoc()) {
+      a11y::ProxyCreated(doc);
+    }
+    // It's possible the embedder accessible hasn't been set yet; e.g.
+    // a hidden iframe. In that case, embedderDoc will be null and this will
+    // be handled when the embedder is set.
+    if (a11y::DocAccessibleParent* embedderDoc =
+            bridge->GetEmbedderAccessibleDoc()) {
+      mozilla::ipc::IPCResult added = embedderDoc->AddChildDoc(bridge);
+      if (!added) {
+        return added;
+      }
+    }
+    return IPC_OK();
+  }
+
+  MOZ_ASSERT(IsTop());
+  doc->SetTopLevel();
+  a11y::DocManager::RemoteDocAdded(doc);
+#  ifdef XP_WIN
+  if (!aIsPrintDoc) {
+    doc->MaybeInitWindowEmulation();
+  }
+#  endif
+  return IPC_OK();
+}
+#endif  // ACCESSIBILITY
+
+already_AddRefed<PPrefetchRecordParent>
+WindowGlobalParent::AllocPPrefetchRecordParent(
+    const SpeculativePrefetchArgs& aArgs) {
+  RefPtr<PrefetchRecordParent> actor = MakeRefPtr<PrefetchRecordParent>();
+  actor->Init(this, aArgs);
+  return actor.forget();
+}
+
+RefPtr<PrefetchMatchPromise> WindowGlobalParent::WaitForMatchingPrefetchRecord(
+    nsIURI* aURI, TimeDuration aTimeout) {
+  // Implements "wait for a matching prefetch record". The full algorithm
+  // runs "in parallel" and loops until a match completes, no ongoing record
+  // could still satisfy the navigation, or aTimeout elapses. Since a
+  // navigation can only be delayed by prefetches that are still ongoing
+  // *right now*, we only need to register a waiter (below) when such a
+  // record exists; otherwise the loop's first iteration already resolves
+  // synchronously.
+  // Spec:
+  // https://wicg.github.io/nav-speculation/prefetch.html#wait-for-a-matching-prefetch-record
+
+  // Steps 5.1.1-5.1.2: "Let completeRecord be the result of finding a
+  // matching complete prefetch record ... If completeRecord is not null,
+  // return completeRecord."
+  if (PrefetchRecordParent* match = FindMatchingPrefetchRecord(aURI)) {
+    LOG_SPECRULES(
+        ("WindowGlobalParent::WaitForMatchingPrefetchRecord: "
+         "this=%p fast match rec=%p",
+         this, match));
+    return PrefetchMatchPromise::CreateAndResolve(RefPtr{match}, __func__);
+  }
+
+  // Steps 5.1.3-5.1.5: build potentialRecords (ongoing records that could
+  // still satisfy aURI) and, "if potentialRecords is empty, return null"
+  // without ever registering a waiter.
+  if (!HasPotentialPrefetchMatch(aURI)) {
+    LOG_SPECRULES(
+        ("WindowGlobalParent::WaitForMatchingPrefetchRecord: "
+         "this=%p no potential records, resolving nullptr",
+         this));
+    return PrefetchMatchPromise::CreateAndResolve(nullptr, __func__);
+  }
+
+  // Otherwise "wait until the state of any element of ... prefetch records
+  // changes" and re-run the loop: PrefetchMatchWaiter re-checks for a match
+  // (or gives up) each time NotifyPrefetchStateChanged fires, until aTimeout.
+  RefPtr<PrefetchMatchWaiter> waiter =
+      PrefetchMatchWaiter::Create(this, aURI, aTimeout);
+  mPrefetchWaiters.AppendElement(waiter);
+  LOG_SPECRULES(
+      ("WindowGlobalParent::WaitForMatchingPrefetchRecord: "
+       "this=%p registered waiter=%p",
+       this, waiter.get()));
+  return waiter->Promise();
+}
+
+bool WindowGlobalParent::HasPotentialPrefetchMatch(nsIURI* aURI) {
+  // Implements step 5.1.4 of "wait for a matching prefetch record": true if
+  // some ongoing record could still, once it completes, be a matching
+  // prefetch record for aURI.
+  // Spec:
+  // https://wicg.github.io/nav-speculation/prefetch.html#wait-for-a-matching-prefetch-record
+  nsTArray<PPrefetchRecordParent*> managed;
+  ManagedPPrefetchRecordParent(managed);
+  for (auto* p : managed) {
+    auto* rec = static_cast<PrefetchRecordParent*>(p);
+    if (rec->State() == PrefetchState::Ongoing &&
+        rec->IsExpectedToMatch(aURI)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void WindowGlobalParent::RemoveWaiter(PrefetchMatchWaiter* aWaiter) {
+  mPrefetchWaiters.RemoveElement(aWaiter);
+  LOG_SPECRULES(
+      ("WindowGlobalParent::RemoveWaiter: this=%p waiter=%p "
+       "remaining=%zu",
+       this, aWaiter, mPrefetchWaiters.Length()));
+}
+
+void WindowGlobalParent::NotifyPrefetchStateChanged(
+    PrefetchRecordParent* aRec) {
+  // Drives "wait for a matching prefetch record" waiters when a record's state
+  // changes.
+  // Spec:
+  // https://wicg.github.io/nav-speculation/prefetch.html#wait-for-a-matching-prefetch-record
+  for (RefPtr<PrefetchMatchWaiter>& waiter : mPrefetchWaiters.Clone()) {
+    waiter->OnRecordStateChanged(aRec);
+  }
+}
+
+// Cross-site privacy gate: whether conflicting credentials exist for an
+// exchange.
+// Spec:
+// https://wicg.github.io/nav-speculation/prefetch.html#conflicting-credentials-exist
+static bool ConflictingCredentialsExist(const ExchangeRecord& aExchange,
+                                        const nsString& aSourcePartitionKey) {
+  OriginAttributes attrs;
+  if (aExchange.mRequestURI) {
+    attrs.SetPartitionKey(aExchange.mRequestURI, false);
+  }
+  // Same-site: no conflict possible.
+  if (attrs.mPartitionKey == aSourcePartitionKey) {
+    return false;
+  }
+  // M1: same_origin_only gate prevents cross-site hops (see the cross-site
+  // redirect check in PrefetchRecordParent::AsyncOnChannelRedirect).
+  // M2: implement cookie presence check via nsICookieManager.
+  return false;
+}
+
+PrefetchRecordParent* WindowGlobalParent::FindMatchingPrefetchRecord(
+    nsIURI* aURI) {
+  // Implements "find a matching complete prefetch record".
+  // Spec:
+  // https://wicg.github.io/nav-speculation/prefetch.html#find-a-matching-complete-prefetch-record
+  // Steps 1-2: "Let exactRecord be null. Let inexactRecord be null."
+  nsTArray<PPrefetchRecordParent*> managed;
+  ManagedPPrefetchRecordParent(managed);
+
+  PrefetchRecordParent* exact = nullptr;
+  PrefetchRecordParent* inexact = nullptr;
+
+  // Step 3: "For each record of sourceSnapshotParams's prefetch records:"
+  for (auto* p : managed) {
+    auto* rec = static_cast<PrefetchRecordParent*>(p);
+    // Step 3a: "If record's state is not "completed", then continue."
+    if (rec->State() != PrefetchState::Completed) {
+      continue;
+    }
+
+    bool urlEquals = false;
+    if (rec->URL()) {
+      rec->URL()->Equals(aURI, &urlEquals);
+    }
+    // Step 3b: "If record's URL is equal to url: Set exactRecord to record.
+    // Break."
+    if (urlEquals) {
+      exact = rec;
+      break;
+    }
+
+    // Step 3c: "If inexactRecord is null and record matches a URL given url:
+    // Set inexactRecord to record."
+    if (!inexact && rec->MatchesURL(aURI)) {
+      inexact = rec;
+    }
+  }
+
+  // Step 4: "Let recordToUse be exactRecord if exactRecord is not null,
+  // otherwise inexactRecord."
+  PrefetchRecordParent* toUse = exact ? exact : inexact;
+  // Step 6: "Return null." (reached when recordToUse is null, so step 5's
+  // "If recordToUse is not null" guard doesn't apply.)
+  if (!toUse) {
+    return nullptr;  // Step 6: no match
+  }
+
+  // Step 5b: "If recordToUse's expiry time is less than currentTime: Trigger
+  // a prefetch status updated event ... "failure" status. Return null."
+  if (toUse->ExpiryTime() < TimeStamp::Now()) {
+    LOG_SPECRULES(
+        ("WindowGlobalParent::FindMatchingPrefetchRecord: "
+         "this=%p rec=%p expired",
+         this, toUse));
+    toUse->FirePrefetchStatusUpdated(false);
+    return nullptr;
+  }
+
+  // Step 5c: "For each exchangeRecord of recordToUse's redirect chain: If
+  // conflicting credentials exist ...: Trigger a prefetch status updated
+  // event ... "failure" status. Return null."
+  for (const auto& xr : toUse->RedirectChain()) {
+    if (ConflictingCredentialsExist(xr, toUse->SourcePartitionKey())) {
+      LOG_SPECRULES(
+          ("WindowGlobalParent::FindMatchingPrefetchRecord: "
+           "this=%p rec=%p credential conflict",
+           this, toUse));
+      toUse->FirePrefetchStatusUpdated(false);
+      return nullptr;
+    }
+  }
+
+  // Step 5d: "Return recordToUse."
+  LOG_SPECRULES(
+      ("WindowGlobalParent::FindMatchingPrefetchRecord: this=%p found rec=%p",
+       this, toUse));
+  return toUse;
+}
+
+void WindowGlobalParent::DedupePrefetchRecords(
+    PrefetchRecordParent* aJustCompleted) {
+  // Implements "complete a prefetch record" step 4: remove all other completed
+  // records with the same URL.
+  // Spec:
+  // https://wicg.github.io/nav-speculation/prefetch.html#prefetch-record-complete
+  // Note: parent cannot send __delete__ (parent: async __delete__() is
+  // child-initiated). Old records are marked Canceled so navigation matching
+  // skips them; DOM GC handles actor cleanup.
+  nsTArray<PPrefetchRecordParent*> managed;
+  ManagedPPrefetchRecordParent(managed);
+  for (auto* p : managed) {
+    auto* rec = static_cast<PrefetchRecordParent*>(p);
+    if (rec == aJustCompleted) {
+      continue;
+    }
+    if (rec->State() != PrefetchState::Completed) {
+      continue;
+    }
+    bool urlEquals = false;
+    if (rec->URL() && aJustCompleted->URL()) {
+      rec->URL()->Equals(aJustCompleted->URL(), &urlEquals);
+    }
+    if (urlEquals) {
+      LOG_SPECRULES(
+          ("WindowGlobalParent::DedupePrefetchRecords: this=%p evicting "
+           "older rec=%p",
+           this, rec));
+      rec->MarkCanceled();
+    }
+  }
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(WindowGlobalParent)

@@ -5,7 +5,8 @@
 plugins {
     `kotlin-dsl`
     alias(libs.plugins.android.lint.plugin)
-    alias(libs.plugins.kotlin.serialization)
+    // kotlin-dsl builds against Gradle's embedded Kotlin, and warns if another version is applied.
+    id("org.jetbrains.kotlin.plugin.serialization") version embeddedKotlinVersion
 }
 
 group = "org.mozilla"
@@ -43,6 +44,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 dependencies {
     implementation(libs.kaml)
     compileOnly(libs.android.gradle.plugin)
+    implementation(libs.spotless.plugin)
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)

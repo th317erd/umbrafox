@@ -337,7 +337,10 @@ uint64_t Http3WebTransportSession::GetStreamId() const {
 void Http3WebTransportSession::Close(nsresult aResult) {
   LOG(("Http3WebTransportSession::Close %p", this));
   if (RefPtr<WebTransportSessionEventListener> listener = TakeListener()) {
-    listener->OnSessionClosed(NS_SUCCEEDED(aResult), 0, ""_ns);
+    mozilla::dom::WebTransportStatsData emptyStats;
+    nsCOMPtr<nsIWebTransportSessionStats> statsWrapper =
+        new WebTransportSessionStatsWrapper(emptyStats);
+    listener->OnSessionClosed(NS_SUCCEEDED(aResult), 0, ""_ns, statsWrapper);
   }
   if (mTransaction) {
     mTransaction->Close(aResult);
@@ -353,7 +356,21 @@ void Http3WebTransportSession::Close(nsresult aResult) {
 }
 
 void Http3WebTransportSession::OnClosePending() {
-  mSession->CloseWebTransport(mStreamId, mStatus, mReason);
+  // Capture stats at the moment of close
+  mozilla::dom::WebTransportStatsData stats;
+  if (mSession->CloseWebTransport(mStreamId, mStatus, mReason, stats)) {
+    mCachedStats = stats;
+  }
+}
+
+void Http3WebTransportSession::OnSessionClosedWithStats(
+    bool aCleanly, uint32_t aStatus, const nsACString& aReason,
+    const mozilla::dom::WebTransportStatsData& aStats) {
+  // Cache stats for server-initiated close
+  mCachedStats = aStats;
+
+  // Call the existing OnSessionClosed which uses cached stats
+  OnSessionClosed(aCleanly, aStatus, aReason);
 }
 
 void Http3WebTransportSession::OnSessionClosed(bool aCleanly, uint32_t aStatus,
@@ -363,7 +380,10 @@ void Http3WebTransportSession::OnSessionClosed(bool aCleanly, uint32_t aStatus,
     mTransaction = nullptr;
   }
   if (RefPtr<WebTransportSessionEventListener> listener = TakeListener()) {
-    listener->OnSessionClosed(aCleanly, aStatus, aReason);
+    // Use cached stats captured at close time
+    nsCOMPtr<nsIWebTransportSessionStats> statsWrapper =
+        new WebTransportSessionStatsWrapper(mCachedStats);
+    listener->OnSessionClosed(aCleanly, aStatus, aReason, statsWrapper);
   }
   mRecvState = RECV_DONE;
   mSendState = SEND_DONE;
@@ -371,17 +391,77 @@ void Http3WebTransportSession::OnSessionClosed(bool aCleanly, uint32_t aStatus,
   mSession->CloseWebTransportConn();
 }
 
+void Http3WebTransportSession::OnSessionDraining() {
+  LOG(("Http3WebTransportSession::OnSessionDraining [this=%p]", this));
+  RefPtr<WebTransportSessionEventListener> listener = GetListener();
+  if (listener) {
+    listener->OnDraining();
+  }
+}
+
 void Http3WebTransportSession::CloseSession(uint32_t aStatus,
                                             const nsACString& aReason) {
   if ((mRecvState != CLOSE_PENDING) && (mRecvState != RECV_DONE)) {
     mStatus = aStatus;
     mReason = aReason;
+
+    // Capture stats before clearing the listener (client-initiated close)
+    if (mSession->CloseWebTransport(mStreamId, mStatus, mReason,
+                                    mCachedStats)) {
+      // Stats captured successfully
+    }
+
+    // Notify listener with cached stats before clearing it
+    RefPtr<WebTransportSessionEventListener> listener = GetListener();
+    if (listener) {
+      nsCOMPtr<nsIWebTransportSessionStats> statsWrapper =
+          new WebTransportSessionStatsWrapper(mCachedStats);
+      listener->OnSessionClosed(true, mStatus, mReason, statsWrapper);
+    }
+
     mSession->ConnectSlowConsumer(this);
     mRecvState = CLOSE_PENDING;
     mSendState = SEND_DONE;
   }
   RefPtr<WebTransportSessionEventListener> listener = TakeListener();
   // let it drop
+}
+
+bool Http3WebTransportSession::CloseSessionAndGetStats(
+    uint32_t aStatus, const nsACString& aReason,
+    mozilla::dom::WebTransportStatsData& aStats) {
+  LOG(("Http3WebTransportSession::CloseSessionAndGetStats stream=%llu",
+       (unsigned long long)mStreamId));
+  if ((mRecvState != CLOSE_PENDING) && (mRecvState != RECV_DONE)) {
+    // Match CloseSession()'s state-transition contract: mStatus/mReason must
+    // be set before entering CLOSE_PENDING, since OnClosePending() (invoked
+    // from WriteSegments() once ConnectSlowConsumer() schedules a revisit)
+    // uses them for its own CloseWebTransport() call that drives mRecvState
+    // to RECV_DONE. Without this, that call used stale (default) mStatus/
+    // mReason, and without ConnectSlowConsumer() the stream was never
+    // revisited at all, leaving it stuck at CLOSE_PENDING (Done() never
+    // becomes true, so Http3Session::CloseStreamInternal() never removes it).
+    mStatus = aStatus;
+    mReason = aReason;
+
+    // Get stats from neqo before closing
+    if (mSession->CloseWebTransport(mStreamId, mStatus, mReason, aStats)) {
+      LOG(("  Got stats: bytesSent=%llu, bytesReceived=%llu",
+           (unsigned long long)aStats.bytesSent(),
+           (unsigned long long)aStats.bytesReceived()));
+      mCachedStats = aStats;
+      RefPtr<WebTransportSessionEventListener> listener =
+          TakeListener();  // drop it
+      mSession->ConnectSlowConsumer(this);
+      mRecvState = CLOSE_PENDING;
+      mSendState = SEND_DONE;
+      return true;
+    }
+    LOG(("  CloseWebTransport failed"));
+  } else {
+    LOG(("  Wrong state: mRecvState=%d", mRecvState));
+  }
+  return false;
 }
 
 void Http3WebTransportSession::CreateOutgoingBidirectionalStream(
@@ -470,14 +550,30 @@ Http3WebTransportSession::OnIncomingWebTransportStream(
 }
 
 void Http3WebTransportSession::SendDatagram(nsTArray<uint8_t>&& aData,
-                                            uint64_t aTrackingId) {
+                                            uint64_t aTrackingId,
+                                            uint64_t aSendGroupId,
+                                            int64_t aSendOrder) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
-  LOG(("Http3WebTransportSession::SendDatagram this=%p", this));
+  LOG(("Http3WebTransportSession::SendDatagram this=%p, sendGroup=%" PRIu64
+       ", sendOrder=%" PRId64,
+       this, aSendGroupId, aSendOrder));
   if (mSendState != PROCESSING_DATAGRAM) {
     return;
   }
 
-  mSession->SendDatagram(this, aData, aTrackingId);
+  // SendDatagram() enqueues the datagram into neqo's per-session queue but
+  // does not send it immediately. The datagram is moved to the QUIC send
+  // queue during process_output() (called from ProcessOutput() in
+  // Http3Session::SendData()).
+  //
+  // StreamHasDataToWrite() triggers the chain:
+  //   StreamReadyToWrite() -> ForceSend() -> HttpConnectionUDP::ForceSend()
+  //     -> MaybeForceSendIO() -> [async dispatch] -> SendData()
+  //     -> ProcessOutput() -> neqo process_output()
+  //
+  // This means the datagram is actually transmitted after one event loop
+  // cycle (the async dispatch in ForceSend/MaybeForceSendIO).
+  mSession->SendDatagram(this, aData, aTrackingId, aSendGroupId, aSendOrder);
   mSession->StreamHasDataToWrite(this);
 }
 
@@ -504,6 +600,56 @@ void Http3WebTransportSession::GetMaxDatagramSize() {
 
   uint64_t size = mSession->MaxDatagramSize(mStreamId);
   listener->OnMaxDatagramSize(size);
+}
+
+nsresult Http3WebTransportSession::ExportKeyingMaterial(
+    const nsTArray<uint8_t>& aLabel, const nsTArray<uint8_t>& aContext,
+    nsTArray<uint8_t>& aKeyingMaterial) {
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
+  if (mRecvState != ACTIVE) {
+    return NS_ERROR_NOT_CONNECTED;
+  }
+  return mSession->ExportWebTransportKeyingMaterial(mStreamId, aLabel, aContext,
+                                                    aKeyingMaterial);
+}
+
+void Http3WebTransportSession::GetStats() {
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
+  RefPtr<WebTransportSessionEventListener> listener = GetListener();
+  if (!listener) {
+    // No one to report to either way.
+    return;
+  }
+
+  mozilla::dom::WebTransportStatsData stats;
+  if (mRecvState != ACTIVE ||
+      !mSession->GetWebTransportSessionStats(mStreamId, stats)) {
+    // Report the failure explicitly, so a pending getStats() request doesn't
+    // hang forever waiting for a callback that will never come.
+    listener->OnStatsAvailable(nullptr);
+    return;
+  }
+
+  nsCOMPtr<nsIWebTransportSessionStats> statsWrapper =
+      new WebTransportSessionStatsWrapper(stats);
+  listener->OnStatsAvailable(statsWrapper);
+}
+
+void Http3WebTransportSession::GetNegotiatedProtocol(nsACString& aProtocol) {
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
+  aProtocol.Truncate();
+  if (mRecvState != ACTIVE) {
+    return;
+  }
+  mSession->GetWebTransportSessionProtocol(mStreamId, aProtocol);
+}
+
+nsresult Http3WebTransportSession::RegisterSendGroup(uint64_t aGroupId) {
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
+  if (mRecvState != ACTIVE) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  return mSession->RegisterWebTransportSendGroup(mStreamId, aGroupId);
 }
 
 void Http3WebTransportSession::OnOutgoingDatagramOutCome(

@@ -7,6 +7,7 @@
 #include <math.h>
 
 #include <algorithm>
+#include <numbers>
 
 #include "CacheFileUtils.h"
 #include "CacheIndex.h"
@@ -210,7 +211,7 @@ uint64_t CacheEntry::GetNextId() {
   return ++id;
 }
 
-CacheEntry::CacheEntry(const nsACString& aStorageID, const nsACString& aURI,
+CacheEntry::CacheEntry(const nsACString& aStorageID, nsIURI* aURI,
                        const nsACString& aEnhanceID, bool aUseDisk,
                        bool aSkipSizeCheck, bool aPin)
     : mURI(aURI),
@@ -558,10 +559,8 @@ NS_IMETHODIMP CacheEntry::OnFileReady(nsresult aResult, bool aIsNew) {
 
   // Populate mNoVarySearchIndex now that mLock is released.
   if (!nvsVal.IsEmpty()) {
-    nsCOMPtr<nsIURI> uri;
     nsAutoCString basePath, entryKey;
-    if (NS_SUCCEEDED(NS_NewURI(getter_AddRefs(uri), mURI)) &&
-        NS_SUCCEEDED(ExtractNoVarySearchBasePath(uri, basePath)) &&
+    if (NS_SUCCEEDED(ExtractNoVarySearchBasePath(mURI, basePath)) &&
         NS_SUCCEEDED(HashingKey(""_ns, mEnhanceID, mURI, entryKey))) {
       if (auto* svc = CacheStorageService::Self()) {
         svc->NoteNoVarySearchEntry(mStorageID, basePath, entryKey);
@@ -705,7 +704,8 @@ bool CacheEntry::InvokeCallbacks(bool aReadOnly) MOZ_REQUIRES(mLock) {
     }
 
     if (mCallbacks[i].mReadAlways && mState == REVALIDATING) {
-      LOG(("Loading revalidating cache entry for %s", mURI.get()));
+      LOG(("Loading revalidating cache entry for %s",
+           mURI->GetSpecOrDefault().get()));
     }
     if (!mIsDoomed && (mState == WRITING || (!mCallbacks[i].mReadAlways &&
                                              mState == REVALIDATING))) {
@@ -785,7 +785,8 @@ bool CacheEntry::InvokeCallback(Callback& aCallback) MOZ_REQUIRES(mLock) {
     MOZ_ASSERT(mState > LOADING);
 
     if (aCallback.mReadAlways && mState == REVALIDATING) {
-      LOG(("Loading revalidating cache entry for %s", mURI.get()));
+      LOG(("Loading revalidating cache entry for %s",
+           mURI->GetSpecOrDefault().get()));
     }
     if (mState == WRITING ||
         (!aCallback.mReadAlways && mState == REVALIDATING)) {
@@ -1162,8 +1163,7 @@ nsresult CacheEntry::GetPersistent(bool* aPersistToDisk) {
 }
 
 nsresult CacheEntry::GetKey(nsACString& aKey) {
-  aKey.Assign(mURI);
-  return NS_OK;
+  return mURI->GetAsciiSpec(aKey);
 }
 
 nsresult CacheEntry::GetCacheEntryId(uint64_t* aCacheEntryId) {
@@ -1864,10 +1864,13 @@ void CacheEntry::DoomAlreadyRemoved() {
   // Remove from DictionaryCache immediately, to ensure the removal is
   // synchronous
   LOG(("DoomAlreadyRemoved [entry=%p removed]", this));
+  nsAutoCString uriSpec;
+  mURI->GetAsciiSpec(uriSpec);
+  nsCOMPtr<nsILoadContextInfo> lci = CacheFileUtils::ParseKey(mStorageID);
   if (mEnhanceID.EqualsLiteral("dict:")) {
-    DictionaryCache::RemoveOriginFor(mURI);
+    DictionaryCache::RemoveOriginFor(uriSpec, lci);
   } else {
-    DictionaryCache::RemoveDictionaryOMT(mURI);
+    DictionaryCache::RemoveDictionaryOMT(uriSpec, lci);
   }
 
   // Pretend pinning is know.  This entry is now doomed for good, so don't
@@ -1970,8 +1973,8 @@ void CacheEntry::BackgroundOp(uint32_t aOperations, bool aForceAsync)
       // Half-life is dynamic, in seconds.
       static double half_life = CacheObserver::HalfLifeSeconds();
       // Must convert from seconds to milliseconds since PR_Now() gives usecs.
-      static double const decay =
-          (M_LN2 / half_life) / static_cast<double>(PR_USEC_PER_SEC);
+      static double const decay = (std::numbers::ln2 / half_life) /
+                                  static_cast<double>(PR_USEC_PER_SEC);
 
       double now_decay = static_cast<double>(PR_Now()) * decay;
 
@@ -2073,7 +2076,8 @@ size_t CacheEntry::SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) {
     n += mFile->SizeOfIncludingThis(mallocSizeOf);
   }
 
-  n += mURI.SizeOfExcludingThisIfUnshared(mallocSizeOf);
+  // mURI is an nsIURI shared with whoever opened the entry; it has no
+  // malloc-size accounting on the interface, so it is not reported here.
   n += mEnhanceID.SizeOfExcludingThisIfUnshared(mallocSizeOf);
   n += mStorageID.SizeOfExcludingThisIfUnshared(mallocSizeOf);
 

@@ -296,6 +296,8 @@ void empty_va(va_list* va, ...) {
 
 struct LogMarker : public BaseMarkerType<LogMarker> {
   static constexpr const char* Name = "Log";
+  // Call sites pass the log module's name, so ETW must keep that name.
+  static constexpr bool ETWStoreName = true;
   static constexpr const char* TableLabel =
       "[{marker.data.level}] {marker.name}: {marker.data.message}";
   static constexpr const char* ColorField = "color";
@@ -304,7 +306,7 @@ struct LogMarker : public BaseMarkerType<LogMarker> {
                                                MS::Location::MarkerTable};
   static constexpr MS::PayloadField PayloadFields[] = {
       {"level", MS::InputType::CString, "Level", MS::Format::UniqueString},
-      {"message", MS::InputType::CString, "Message", MS::Format::String},
+      {"message", MS::InputType::CString, "Message", MS::Format::UniqueString},
       {"color", MS::InputType::CString, nullptr, MS::Format::String,
        MS::PayloadFlags::Hidden},
   };
@@ -313,7 +315,7 @@ struct LogMarker : public BaseMarkerType<LogMarker> {
                                    const ProfilerString8View& aText,
                                    const ProfilerString8View& aColor) {
     aWriter.UniqueStringProperty("level", aLevel);
-    aWriter.StringProperty("message", aText);
+    aWriter.UniqueStringProperty("message", aText);
     aWriter.StringProperty("color", aColor);
   }
 };

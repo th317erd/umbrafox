@@ -149,11 +149,11 @@ nsresult HttpTransactionParent::Init(
   // TODO: Figure out if we have to implement nsIThreadRetargetableRequest in
   // bug 1544378.
   if (!SendInit(caps, infoArgs, *requestHead, ipcStream, requestContentLength,
-                browserId, trafficCategory, requestContextID, classOfService,
-                initialRwin, responseTimeoutEnabled, mChannelId,
-                !!mTransactionObserver, throttleQueue, mIsDocumentLoad,
-                aParentIpAddressSpace, aLnaPermissionStatus, mRedirectStart,
-                mRedirectEnd)) {
+                mRequestBodyIsStreaming, browserId, trafficCategory,
+                requestContextID, classOfService, initialRwin,
+                responseTimeoutEnabled, mChannelId, !!mTransactionObserver,
+                throttleQueue, mIsDocumentLoad, aParentIpAddressSpace,
+                aLnaPermissionStatus, mRedirectStart, mRedirectEnd)) {
     return NS_ERROR_FAILURE;
   }
 
@@ -872,8 +872,9 @@ HttpTransactionParent::Resume() {
       std::function<void()> callOnResume = nullptr;
       std::swap(callOnResume, mCallOnResume);
       neckoTarget->Dispatch(
-          NS_NewRunnableFunction("net::HttpTransactionParent::mCallOnResume",
-                                 [callOnResume]() { callOnResume(); }),
+          NS_NewRunnableFunction(
+              "net::HttpTransactionParent::mCallOnResume",
+              [callOnResume = std::move(callOnResume)]() { callOnResume(); }),
           NS_DISPATCH_NORMAL);
     }
   }

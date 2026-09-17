@@ -31,7 +31,7 @@ pub use compose::ComposeError;
 pub use expression::{check_literal_value, LiteralError};
 pub use expression::{ConstExpressionError, ExpressionError};
 pub use function::{CallError, FunctionError, LocalVariableError, SubgroupError};
-pub use immediates::ImmediateSlots;
+pub use immediates::{ImmediateSlots, ImmediateSlotsOverflowError, ImmediateUsage};
 pub use interface::{EntryPointError, GlobalVariableError, VaryingError};
 pub use r#type::{Disalignment, ImmediateError, TypeError, TypeFlags, WidthError};
 
@@ -218,6 +218,12 @@ bitflags::bitflags! {
         const MEMORY_DECORATION_VOLATILE = 1 << 42;
         /// Support for 16-bit integer types.
         const SHADER_INT16 = 1 << 43;
+        /// Support for [`Interpolation::Linear`] (`@interpolate(linear)` in WGSL).
+        ///
+        /// This is core WebGPU, but GLSL ES (and thus WebGL) has no `noperspective` qualifier (unless enabled by extensions).
+        ///
+        /// [`Interpolation::Linear`]: crate::Interpolation::Linear
+        const LINEAR_INTERPOLATION = 1 << 44;
     }
 }
 

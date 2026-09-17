@@ -303,7 +303,7 @@ mozilla::ipc::IPCResult FetchEventOpChild::RecvRespondWith(
   AssertIsOnMainThread();
 
   RefPtr<RemoteWorkerControllerChild> mgr =
-      static_cast<RemoteWorkerControllerChild*>(Manager());
+      mozilla::ipc::ActorCast<RemoteWorkerControllerChild>(Manager());
 
   mInterceptedChannel->SetRemoteWorkerLaunchStart(
       mgr->GetRemoteWorkerLaunchStart());
@@ -430,7 +430,7 @@ nsresult FetchEventOpChild::StartSynthesizedResponse(
       response->GetTainting() == LoadTainting::Opaque) {
     bool isRangedRequest = false;
     for (const auto& headerEntry : request.headers()) {
-      if (headerEntry.name().Equals("Range"_ns)) {
+      if (headerEntry.name().EqualsIgnoreCase("Range")) {
         isRangedRequest = true;
         break;
       }

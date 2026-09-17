@@ -13,7 +13,7 @@
 //!   ```text
 //!   {
 //!     "wrapped_deks": [
-//!       { "kek_type": "...", "kek_ref": "...", "dek": [<bytes>...] },
+//!       { "kek_type": "...", "kek_ref": "...", "wrapped_dek": [<bytes>...] },
 //!       ...
 //!     ],
 //!     "cipher_suite": "...",
@@ -30,7 +30,7 @@
 //!
 //! # Threat model for the on-disk layout
 //!
-//! The `dek` bytes are the only piece encrypted at rest (under
+//! The `wrapped_dek` bytes are the only piece encrypted at rest (under
 //! the KEK named by `kek_ref`). Every structural field — including the
 //! `kek_ref` strings — is plaintext on disk, so a plain `sqlite3` dump
 //! of `lockstore.keys.sqlite` is enough to enumerate which KEKs wrap
@@ -93,6 +93,9 @@ fn unlock_deadline(timeout: Duration) -> Instant {
 struct WrappedDek {
     kek_type: KekType,
     kek_ref: String,
+    /// Serialized as `wrapped_dek`; `dek` is accepted on read because
+    /// builds between the Bug 2055631 rename and its revert wrote that key.
+    #[serde(rename = "wrapped_dek", alias = "dek")]
     dek: Vec<u8>,
 }
 
@@ -1658,8 +1661,30 @@ static SHARED_KEYSTORES: OnceLock<Mutex<HashMap<PathBuf, Weak<Keystore>>>> = Onc
 
 #[cfg(test)]
 mod tests {
-    use super::{unlock_deadline, MAX_UNLOCK};
+    use super::{unlock_deadline, KekType, WrappedDek, MAX_UNLOCK};
     use std::time::{Duration, Instant};
+
+    #[test]
+    fn wrapped_dek_accepts_both_on_disk_keys() {
+        let current = r#"{"kek_type":"local","kek_ref":"local:abc","wrapped_dek":[1,2,3]}"#;
+        let legacy = r#"{"kek_type":"local","kek_ref":"local:abc","dek":[1,2,3]}"#;
+        let a: WrappedDek = serde_json::from_str(current).unwrap();
+        let b: WrappedDek = serde_json::from_str(legacy).unwrap();
+        assert_eq!(a.dek, vec![1, 2, 3]);
+        assert_eq!(b.dek, vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn wrapped_dek_serializes_as_wrapped_dek() {
+        let w = WrappedDek {
+            kek_type: KekType::LocalKey,
+            kek_ref: "local:abc".into(),
+            dek: vec![1, 2, 3],
+        };
+        let out = serde_json::to_string(&w).unwrap();
+        assert!(out.contains("\"wrapped_dek\""));
+        assert!(!out.contains("\"dek\""));
+    }
 
     #[test]
     fn unlock_deadline_extends_beyond_u32_ms() {

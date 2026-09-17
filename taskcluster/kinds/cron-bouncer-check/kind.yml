@@ -27,6 +27,7 @@ task-defaults:
         max-run-time: 1200
         docker-image: {in-tree: "update-verify"}
     run:
+        clone-with: hg
         sparse-profile: mozharness
         extra-config:
             bouncer_prefix: "https://download.mozilla.org/"

@@ -44,8 +44,7 @@ class MediaTransportHandler {
   // as appropriate.
   static already_AddRefed<MediaTransportHandler> Create();
 
-  explicit MediaTransportHandler()
-      : mStateCacheMutex("MediaTransportHandler::mStateCacheMutex") {}
+  explicit MediaTransportHandler() = default;
 
   typedef MozPromise<dom::Sequence<nsString>, nsresult, true> IceLogPromise;
 
@@ -106,7 +105,7 @@ class MediaTransportHandler {
   virtual void AddIceCandidate(const std::string& aTransportId,
                                const std::string& aCandidate,
                                const std::string& aUFrag,
-                               const std::string& aObfuscatedAddress) = 0;
+                               const std::string& aResolvedAddress) = 0;
 
   virtual void UpdateNetworkState(bool aOnline) = 0;
 
@@ -186,7 +185,7 @@ class MediaTransportHandler {
                          Maybe<dom::RTCErrorParams> aError = Nothing());
   virtual void Destroy() = 0;
   virtual ~MediaTransportHandler() = default;
-  mutable Mutex mStateCacheMutex;
+  mutable Mutex mStateCacheMutex{"MediaTransportHandler::mStateCacheMutex"};
   std::map<std::string, TransportLayer::State> mStateCache;
   std::map<std::string, TransportLayer::State> mRtcpStateCache;
 

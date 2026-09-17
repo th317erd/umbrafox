@@ -552,7 +552,7 @@ void nsUrlClassifierDBServiceWorker::ResetStream() {
 
 void nsUrlClassifierDBServiceWorker::ResetUpdate() {
   LOG(("ResetUpdate"));
-  mUpdateWaitSec = 0;
+  mUpdateWaits.Clear();
   mUpdateStatus = NS_OK;
   {
     MutexAutoLock lock(mUpdateObserverLock);
@@ -708,8 +708,26 @@ nsUrlClassifierDBServiceWorker::FinishStream() {
   mProtocolParser->End();
 
   if (NS_SUCCEEDED(mProtocolParser->Status())) {
-    if (mProtocolParser->UpdateWaitSec()) {
-      mUpdateWaitSec = mProtocolParser->UpdateWaitSec();
+    // An update can span several streams (V2 forwards), so merge rather than
+    // replace. A zero duration is ignored to preserve the previous behaviour
+    // of falling back to the last non-zero value we were given.
+    nsTArray<TableWaitDuration> waits = mProtocolParser->TakeUpdateWaits();
+    for (auto& wait : waits) {
+      if (!wait.mWaitSec) {
+        continue;
+      }
+      TableWaitDuration* existing = nullptr;
+      for (auto& entry : mUpdateWaits) {
+        if (entry.mTable == wait.mTable) {
+          existing = &entry;
+          break;
+        }
+      }
+      if (existing) {
+        existing->mWaitSec = wait.mWaitSec;
+      } else {
+        mUpdateWaits.AppendElement(std::move(wait));
+      }
     }
     // XXX: Only allow forwards from the initial update?
     const nsTArray<ProtocolParser::ForwardedUpdate>& forwards =
@@ -857,8 +875,15 @@ nsresult nsUrlClassifierDBServiceWorker::NotifyUpdateObserver(
   updateObserver.swap(mUpdateObserver);
 
   if (NS_SUCCEEDED(mUpdateStatus)) {
-    LOG(("Notifying success: %d", mUpdateWaitSec));
-    updateObserver->UpdateSuccess(mUpdateWaitSec);
+    nsTArray<nsCString> tables(mUpdateWaits.Length());
+    nsTArray<uint32_t> waitSeconds(mUpdateWaits.Length());
+    for (const auto& wait : mUpdateWaits) {
+      LOG(("Notifying success: %s waits %d sec", wait.mTable.get(),
+           wait.mWaitSec));
+      tables.AppendElement(wait.mTable);
+      waitSeconds.AppendElement(wait.mWaitSec);
+    }
+    updateObserver->UpdateSuccess(tables, waitSeconds);
   } else {
     if (LOG_ENABLED()) {
       nsAutoCString errorName;
@@ -1653,7 +1678,9 @@ nsresult nsUrlClassifierRealTimeLookupHandler::StartRealTimeLookup(
   NS_ENSURE_TRUE(uri, NS_ERROR_FAILURE);
 
   rv = CreateFeatureHolders(uri);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
   nsUrlClassifierUtils* utilsService = nsUrlClassifierUtils::GetInstance();
   if (NS_WARN_IF(!utilsService)) {
@@ -1687,7 +1714,7 @@ nsresult nsUrlClassifierRealTimeLookupHandler::CreateFeatureHolders(
 
   // No real-time features found, bail out early.
   if (realTimeFeatures.IsEmpty()) {
-    return NS_ERROR_FAILURE;
+    return NS_ERROR_NOT_AVAILABLE;
   }
 
   // Create the feature holder for the real-time features.
@@ -1704,7 +1731,7 @@ nsresult nsUrlClassifierRealTimeLookupHandler::CreateFeatureHolders(
 
   // No local list features found, bail out earlier.
   if (localListFeatures.IsEmpty()) {
-    return NS_ERROR_FAILURE;
+    return NS_ERROR_NOT_AVAILABLE;
   }
 
   // Create the feature holder for the local list features.
@@ -2142,6 +2169,12 @@ nsUrlClassifierDBService::Classify(nsIPrincipal* aPrincipal,
     }
 
     rv = handler->StartRealTimeLookup(aPrincipal);
+    if (rv == NS_ERROR_NOT_AVAILABLE) {
+      // No SafeBrowsing features are configured, so there is nothing to
+      // classify and no callback will be fired.
+      *aResult = false;
+      return NS_OK;
+    }
     NS_ENSURE_SUCCESS(rv, rv);
 
     *aResult = true;

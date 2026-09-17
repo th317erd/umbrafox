@@ -29,13 +29,13 @@ var gProfiles = {
       document,
       "PanelUI-fxa-menu-profile-buttons"
     );
-    this.fxaMenuProfilesHeaderSeparator = PanelMultiView.getViewNode(
-      document,
-      "PanelUI-fxa-menu-profiles-header-separator"
-    );
     this.fxaMenuProfilesHeaderLabel = PanelMultiView.getViewNode(
       document,
       "PanelUI-fxa-menu-profiles-header-label"
+    );
+    this.fxaMenuProfilesSeparator = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-profiles-separator"
     );
     this.fxaMenuAllProfilesPanel = PanelMultiView.getViewNode(
       document,
@@ -126,19 +126,25 @@ var gProfiles = {
     );
     profilesButton.setAttribute(
       "image",
-      await SelectableProfileService.currentProfile.getAvatarURL(24)
+      await SelectableProfileService.currentProfile.getAvatarURL(16)
     );
   },
 
   async _onFxaMenuPanelShowing() {
     const container = this.fxaMenuProfileButtonsContainer;
-    const headerSeparator = this.fxaMenuProfilesHeaderSeparator;
     const headerLabel = this.fxaMenuProfilesHeaderLabel;
+    const separator = this.fxaMenuProfilesSeparator;
 
     const hideProfilesSection = () => {
       container.hidden = true;
-      headerSeparator.hidden = true;
       headerLabel.hidden = true;
+      separator.hidden = true;
+    };
+
+    const showProfilesSection = () => {
+      container.hidden = false;
+      headerLabel.hidden = false;
+      separator.hidden = false;
     };
 
     if (!SelectableProfileService?.isEnabled) {
@@ -168,9 +174,7 @@ var gProfiles = {
       createBtn.setAttribute("data-l10n-id", "appmenu-create-profile2");
       container.appendChild(createBtn);
 
-      container.hidden = false;
-      headerSeparator.hidden = false;
-      headerLabel.hidden = false;
+      showProfilesSection();
       return;
     }
 
@@ -201,7 +205,7 @@ var gProfiles = {
       let { themeBg, themeFg } = profile.theme;
       btn.style.setProperty("--appmenu-profiles-theme-bg", themeBg);
       btn.style.setProperty("--appmenu-profiles-theme-fg", themeFg);
-      let avatarURL = await profile.getAvatarURL(24);
+      let avatarURL = await profile.getAvatarURL(16);
       btn.setAttribute("image", avatarURL);
       container.appendChild(btn);
     }
@@ -215,9 +219,7 @@ var gProfiles = {
       container.appendChild(allBtn);
     }
 
-    container.hidden = false;
-    headerSeparator.hidden = false;
-    headerLabel.hidden = false;
+    showProfilesSection();
   },
 
   async _populateAllProfilesPanel() {
@@ -263,7 +265,7 @@ var gProfiles = {
 
         let icon = document.createXULElement("image");
         icon.classList.add("toolbarbutton-icon");
-        icon.setAttribute("src", await profile.getAvatarURL(24));
+        icon.setAttribute("src", await profile.getAvatarURL(16));
         btn.appendChild(icon);
 
         let labelVbox = document.createXULElement("vbox");
@@ -290,7 +292,7 @@ var gProfiles = {
         btn.appendChild(checkIcon);
       } else {
         btn.setAttribute("label", profile.name);
-        btn.setAttribute("image", await profile.getAvatarURL(24));
+        btn.setAttribute("image", await profile.getAvatarURL(16));
       }
 
       list.appendChild(btn);
@@ -351,7 +353,7 @@ var gProfiles = {
       toOpenWindowByType(
         "about:profilemanager",
         "about:profilemanager",
-        "chrome,extrachrome,menubar,resizable,scrollbars,status,toolbar,centerscreen"
+        "chrome,resizable,toolbar,centerscreen"
       );
     });
   },
@@ -418,15 +420,21 @@ var gProfiles = {
       /* FxA menu button events */
       case "PanelUI-fxa-menu-all-profiles-button": {
         aEvent.stopPropagation();
+        gSync.emitFxaToolbarTelemetry("view_all_profiles", aEvent.target);
         this._populateAllProfilesPanel();
         PanelUI.showSubView("PanelUI-fxa-menu-all-profiles", aEvent.target);
         break;
       }
       case "PanelUI-fxa-menu-all-profiles-manage-button": {
+        gSync.emitFxaToolbarTelemetry("manage_all_profiles", aEvent.target);
         this.manageProfiles();
         break;
       }
       case "PanelUI-fxa-menu-all-profiles-create-button": {
+        gSync.emitFxaToolbarTelemetry(
+          "create_new_profile_cta_label",
+          aEvent.target
+        );
         this.createNewProfile("profiles-panel");
         break;
       }
@@ -434,14 +442,23 @@ var gProfiles = {
       // fall through
       case "PanelUI-fxa-menu-create-profile-button": {
         aEvent.stopPropagation();
+        gSync.emitFxaToolbarTelemetry(
+          "create_new_profile_submenu",
+          aEvent.target
+        );
         PanelUI.showSubView("PanelUI-fxa-menu-create-profile", aEvent.target);
         break;
       }
       case "PanelUI-fxa-menu-create-profile-confirm-button": {
+        gSync.emitFxaToolbarTelemetry(
+          "create_new_profile_cta_button",
+          aEvent.target
+        );
         this.createNewProfile("profiles-panel");
         break;
       }
       case "PanelUI-fxa-menu-create-profile-learn-more-button": {
+        gSync.emitFxaToolbarTelemetry("what_are_profiles", aEvent.target);
         openTrustedLinkIn(
           "https://support.mozilla.org/kb/profile-management",
           "tab"
@@ -449,10 +466,12 @@ var gProfiles = {
         break;
       }
       case "PanelUI-fxa-menu-create-profile-copy-button": {
+        gSync.emitFxaToolbarTelemetry("copy_primary_profile", aEvent.target);
         this.copyProfile();
         break;
       }
       case "PanelUI-fxa-menu-create-profile-manage-button": {
+        gSync.emitFxaToolbarTelemetry("manage_profiles", aEvent.target);
         this.manageProfiles();
         break;
       }
@@ -462,6 +481,10 @@ var gProfiles = {
           aEvent.target.classList.contains("subviewbutton-nav")
         ) {
           aEvent.stopPropagation();
+          gSync.emitFxaToolbarTelemetry(
+            "manage_primary_profile",
+            aEvent.target
+          );
           this.updateFxAView(aEvent.target);
         }
         break;
@@ -473,18 +496,25 @@ var gProfiles = {
         break;
       }
       case "profiles-edit-this-profile-button": {
+        gSync.emitFxaToolbarTelemetry("edit_primary_profile", aEvent.target);
         openTrustedLinkIn("about:editprofile", "tab");
         break;
       }
       case "profiles-manage-profiles-button": {
+        gSync.emitFxaToolbarTelemetry("manage_profiles", aEvent.target);
         this.manageProfiles();
         break;
       }
       case "profiles-copy-profile-button": {
+        gSync.emitFxaToolbarTelemetry("copy_primary_profile", aEvent.target);
         this.copyProfile();
         break;
       }
       case "profiles-create-profile-button": {
+        gSync.emitFxaToolbarTelemetry(
+          "create_new_profile_cta_label",
+          aEvent.target
+        );
         this.createNewProfile("profiles-panel");
         break;
       }
@@ -520,6 +550,12 @@ var gProfiles = {
       aEvent.target.getAttribute("profileid") !==
         String(SelectableProfileService.currentProfile?.id)
     ) {
+      gSync.emitFxaToolbarTelemetry(
+        aEvent.target.closest("#PanelUI-fxa-menu-all-profiles-list")
+          ? "launch_secondary_profile_all_profiles"
+          : "launch_secondary_profile",
+        aEvent.target
+      );
       this.launchProfile(aEvent);
     }
   },
@@ -683,6 +719,10 @@ var gProfiles = {
         document,
         "profiles-subview-list-start-separator"
       )?.remove();
+      PanelMultiView.getViewNode(
+        document,
+        "profiles-subview-list-header"
+      )?.remove();
       PanelMultiView.getViewNode(document, "profiles-subview-list")?.remove();
 
       let hasOtherProfiles = false;
@@ -692,6 +732,16 @@ var gProfiles = {
         profilesListStartSeparator.id = "profiles-subview-list-start-separator";
 
         subview.appendChild(profilesListStartSeparator);
+
+        let profilesListHeader = document.createXULElement("label");
+        profilesListHeader.id = "profiles-subview-list-header";
+        profilesListHeader.classList.add("subview-subheader");
+        profilesListHeader.setAttribute("crop", "end");
+        profilesListHeader.setAttribute(
+          "data-l10n-id",
+          "appmenu-other-profiles"
+        );
+        subview.appendChild(profilesListHeader);
 
         let profilesList = document.createXULElement("vbox");
         profilesList.id = "profiles-subview-list";
@@ -713,7 +763,7 @@ var gProfiles = {
           let { themeBg, themeFg } = profile.theme;
           btn.style.setProperty("--appmenu-profiles-theme-bg", themeBg);
           btn.style.setProperty("--appmenu-profiles-theme-fg", themeFg);
-          btn.setAttribute("image", await profile.getAvatarURL(24));
+          btn.setAttribute("image", await profile.getAvatarURL(16));
           profilesList.appendChild(btn);
           hasOtherProfiles = true;
         }
@@ -721,6 +771,7 @@ var gProfiles = {
         // With no other profiles the list is empty, so hide it and the footer
         // separator to avoid rendering two adjacent separators.
         profilesList.hidden = !hasOtherProfiles;
+        profilesListHeader.hidden = !hasOtherProfiles;
       }
 
       footerSeparator.hidden = displayProfile === null && !hasOtherProfiles;

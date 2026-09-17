@@ -47,9 +47,9 @@
 #include "wasm/WasmTypeDecls.h"       // for Bytes
 
 #include "debugger/Script-inl.h"
-#include "gc/Marking-inl.h"       // for MaybeForwardedObjectIs
-#include "vm/BytecodeUtil-inl.h"  // for BytecodeRangeWithPosition
-#include "vm/JSAtomUtils-inl.h"   // for PrimitiveValueToId
+#include "gc/Marking-inl.h"           // for MaybeForwardedObjectIs
+#include "vm/BytecodeIterator-inl.h"  // for BytecodeRangeWithPosition
+#include "vm/JSAtomUtils-inl.h"       // for PrimitiveValueToId
 #include "vm/JSObject-inl.h"  // for NewBuiltinClassInstance, NewObjectWithGivenProto
 #include "vm/JSScript-inl.h"          // for JSScript::global
 #include "vm/ObjectOperations-inl.h"  // for GetProperty
@@ -1495,9 +1495,7 @@ static bool BytecodeIsEffectful(JSScript* script, size_t offset) {
     case JSOp::Yield:
     case JSOp::Await:
     case JSOp::CanSkipAwait:
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
     case JSOp::AddDisposable:
-#endif
       return true;
 
     case JSOp::Nop:
@@ -1517,10 +1515,8 @@ static bool BytecodeIsEffectful(JSScript* script, size_t offset) {
     case JSOp::Try:
     case JSOp::Throw:
     case JSOp::ThrowWithStack:
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
     case JSOp::TakeDisposeCapability:
     case JSOp::CreateSuppressedError:
-#endif
     case JSOp::Goto:
     case JSOp::TableSwitch:
     case JSOp::Case:
@@ -1699,10 +1695,8 @@ static bool BytecodeIsEffectful(JSScript* script, size_t offset) {
     case JSOp::GetBoundName:
     case JSOp::Exception:
     case JSOp::ExceptionAndStack:
-    case JSOp::IsGenClosing:
     case JSOp::FinalYieldRval:
     case JSOp::Resume:
-    case JSOp::CheckResumeKind:
     case JSOp::AfterYield:
     case JSOp::MaybeExtractAwaitValue:
     case JSOp::Generator:
@@ -1712,7 +1706,6 @@ static bool BytecodeIsEffectful(JSScript* script, size_t offset) {
     case JSOp::Finally:
     case JSOp::GetRval:
     case JSOp::ThrowMsg:
-    case JSOp::ForceInterpreter:
       return false;
 
     case JSOp::InitAliasedLexical: {
@@ -2341,22 +2334,30 @@ class DebuggerScript::IsInCatchScopeMatcher {
     }
 
     MOZ_ASSERT(!isInCatch_);
-    for (const TryNote& tn : script->trynotes()) {
-      bool inRange = tn.start <= offset_ && offset_ < tn.start + tn.length;
-      if (inRange && tn.kind() == TryNoteKind::Catch) {
-        isInCatch_ = true;
-      } else if (isInCatch_) {
-        // For-of loops generate a synthetic catch block to handle
-        // closing the iterator when throwing an exception. The
-        // debugger should ignore these synthetic catch blocks, so
-        // we skip any Catch trynote that is immediately followed
-        // by a ForOf trynote.
-        if (inRange && tn.kind() == TryNoteKind::ForOf) {
-          isInCatch_ = false;
-          continue;
-        }
-        return true;
+
+    auto inRange = [this](const TryNote& tn) {
+      return tn.start <= offset_ && offset_ < tn.start + tn.length;
+    };
+    auto notes = script->trynotes();
+
+    for (size_t i = 0; i < notes.size(); i++) {
+      const TryNote& tn = notes[i];
+      if (tn.kind() != TryNoteKind::Catch || !inRange(tn)) {
+        continue;
       }
+
+      // For-of loops generate a synthetic catch block to handle
+      // closing the iterator when throwing an exception. The
+      // debugger should ignore these synthetic catch blocks, so
+      // we skip any Catch trynote that is immediately followed
+      // by a ForOf trynote.
+      if (i + 1 < notes.size() && notes[i + 1].kind() == TryNoteKind::ForOf &&
+          inRange(notes[i + 1])) {
+        continue;
+      }
+
+      isInCatch_ = true;
+      return true;
     }
 
     return true;

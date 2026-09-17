@@ -18,8 +18,8 @@ var tabPreviews = {
   /**
    * Get the stored thumbnail URL for a given page URL and wait up to 1s for it
    * to load. If the browser is discarded and there is no stored thumbnail, the
-   * image URL will fail to load and this method will return null after 1s.
-   * Callers should handle this case by doing nothing or using a fallback image.
+   * image URL will fail to load and this method will return null. Callers
+   * should handle this case by doing nothing or using a fallback image.
    *
    * @param {string} uri The page URL.
    * @returns {Promise<Image|null>}
@@ -27,24 +27,24 @@ var tabPreviews = {
   loadImage: async function tabPreviews_loadImage(uri) {
     let img = new Image();
     img.src = PageThumbs.getThumbnailURL(uri);
-    if (img.complete && img.naturalWidth) {
-      return img;
+    if (img.complete) {
+      return img.naturalWidth ? img : null;
     }
     return new Promise(resolve => {
       const controller = new AbortController();
-      img.addEventListener(
-        "load",
-        () => {
-          clearTimeout(timeout);
-          controller.abort();
-          resolve(img);
-        },
-        { signal: controller.signal }
-      );
-      const timeout = setTimeout(() => {
+      let timeout;
+      const finish = value => {
+        clearTimeout(timeout);
         controller.abort();
-        resolve(null);
-      }, 1000);
+        resolve(value);
+      };
+      timeout = setTimeout(() => finish(null), 1000);
+      img.addEventListener("load", () => finish(img), {
+        signal: controller.signal,
+      });
+      img.addEventListener("error", () => finish(null), {
+        signal: controller.signal,
+      });
     });
   },
 
@@ -197,10 +197,15 @@ var tabPreviewPanelHelper = {
  * Ctrl-Tab panel
  */
 var ctrlTab = {
-  maxTabPreviews: 7,
+  previewsPerRow: 7,
   get panel() {
     delete this.panel;
     return (this.panel = document.getElementById("ctrlTab-panel"));
+  },
+  get previewsContainer() {
+    delete this.previewsContainer;
+    return (this.previewsContainer =
+      document.getElementById("ctrlTab-previews"));
   },
   get showAllButton() {
     delete this.showAllButton;
@@ -216,14 +221,7 @@ var ctrlTab = {
   },
   get previews() {
     delete this.previews;
-    this.previews = [];
-    let previewsContainer = document.getElementById("ctrlTab-previews");
-    for (let i = 0; i < this.maxTabPreviews; i++) {
-      let preview = this._makePreview();
-      previewsContainer.appendChild(preview);
-      this.previews.push(preview);
-    }
-    this.previews.push(this.showAllButton);
+    this._buildPreviews();
     return this.previews;
   },
   get keys() {
@@ -254,6 +252,13 @@ var ctrlTab = {
   },
   get tabPreviewCount() {
     return Math.min(this.maxTabPreviews, this.tabCount);
+  },
+  /**
+   * The number of grid columns the visible previews are laid out in, which is
+   * also the number of previews in the widest row.
+   */
+  get previewColumnCount() {
+    return Math.min(this.tabPreviewCount, this.previewsPerRow);
   },
 
   get tabList() {
@@ -304,11 +309,21 @@ var ctrlTab = {
     this.readPref();
   },
 
+  _buildPreviews() {
+    this.previewsContainer.replaceChildren();
+    this.previews = [];
+    for (let i = 0; i < this.maxTabPreviews; i++) {
+      let preview = this._makePreview();
+      this.previewsContainer.appendChild(preview);
+      this.previews.push(preview);
+    }
+    this.previews.push(this.showAllButton);
+  },
+
   _makePreview() {
     let preview = document.createXULElement("button");
     preview.className = "ctrlTab-preview";
     preview.setAttribute("pack", "center");
-    preview.setAttribute("flex", "1");
     preview.addEventListener("mouseover", this);
     preview.addEventListener("command", this);
     preview.addEventListener("click", this);
@@ -338,6 +353,11 @@ var ctrlTab = {
   },
 
   updatePreviews: function ctrlTab_updatePreviews() {
+    this.previewsContainer.style.setProperty(
+      "--ctrlTab-previews-per-row",
+      this.previewColumnCount
+    );
+
     for (let i = 0; i < this.previews.length; i++) {
       this.updatePreview(this.previews[i], this.tabList[i]);
     }
@@ -355,64 +375,54 @@ var ctrlTab = {
       return;
     }
 
+    let tabChanged = aPreview._tab != aTab;
     aPreview._tab = aTab;
 
-    if (aTab) {
-      let canvas = aPreview._canvas;
-      let canvasWidth = this.canvasWidth;
-      let canvasHeight = this.canvasHeight;
-      let existingPreview = canvas.firstChild;
-      if (!existingPreview) {
-        let placeholder = document.createElement("img");
-        placeholder.className = "ctrlTab-placeholder";
-        placeholder.setAttribute("width", canvasWidth);
-        placeholder.setAttribute("height", canvasHeight);
-        placeholder.setAttribute("alt", "");
-        canvas.appendChild(placeholder);
-        existingPreview = placeholder;
-      }
-      tabPreviews
-        .get(aTab)
-        .then(img => {
-          switch (aPreview._tab) {
-            case aTab:
-              if (img) {
-                img.style.width = canvasWidth + "px";
-                img.style.height = canvasHeight + "px";
-                canvas.replaceChild(img, existingPreview);
-              }
-              break;
-            case null:
-              // The preview panel is not open, so don't render anything.
-              this._clearCanvas(canvas);
-              break;
-            // If the tab exists but it has changed since updatePreview was
-            // called, the preview will likely be handled by a later
-            // updatePreview call, e.g. on TabAttrModified.
-          }
-        })
-        .catch(error => console.error(error));
-
-      aPreview._label.setAttribute("value", aTab.label);
-      aPreview.setAttribute("tooltiptext", aTab.label);
-      if (aTab.image) {
-        aPreview._favicon.setAttribute("src", aTab.image);
-      } else {
-        aPreview._favicon.removeAttribute("src");
-      }
-      aPreview.hidden = false;
-    } else {
-      this._clearCanvas(aPreview._canvas);
+    if (!aTab) {
+      aPreview._canvas.replaceChildren();
       aPreview.hidden = true;
       aPreview._label.removeAttribute("value");
       aPreview.removeAttribute("tooltiptext");
       aPreview._favicon.removeAttribute("src");
+      return;
     }
+
+    if (tabChanged) {
+      // Drop the previous tab's thumbnail right away, so that the preview
+      // doesn't keep showing it if the new tab has no thumbnail to offer. The
+      // placeholder is invisible and only keeps the canvas box at full size.
+      aPreview._canvas.replaceChildren(this._makePlaceholder());
+    }
+
+    tabPreviews
+      .get(aTab)
+      .then(img => {
+        if (aPreview._tab != aTab || !img) {
+          return;
+        }
+        img.style.width = this.canvasWidth + "px";
+        img.style.height = this.canvasHeight + "px";
+        aPreview._canvas.replaceChildren(img);
+      })
+      .catch(error => console.error(error));
+
+    aPreview._label.setAttribute("value", aTab.label);
+    aPreview.setAttribute("tooltiptext", aTab.label);
+    if (aTab.image) {
+      aPreview._favicon.setAttribute("src", aTab.image);
+    } else {
+      aPreview._favicon.removeAttribute("src");
+    }
+    aPreview.hidden = false;
   },
 
-  // Remove previous preview images from the canvas box.
-  _clearCanvas(canvas) {
-    canvas.replaceChildren();
+  _makePlaceholder() {
+    let placeholder = document.createElement("img");
+    placeholder.className = "ctrlTab-placeholder";
+    placeholder.setAttribute("width", this.canvasWidth);
+    placeholder.setAttribute("height", this.canvasHeight);
+    placeholder.setAttribute("alt", "");
+    return placeholder;
   },
 
   advanceFocus: function ctrlTab_advanceFocus(aForward) {
@@ -501,8 +511,11 @@ var ctrlTab = {
       return;
     }
 
+    if (this.previews.length != this.maxTabPreviews + 1) {
+      this._buildPreviews();
+    }
     this.canvasWidth = Math.ceil(
-      (screen.availWidth * 0.85) / this.maxTabPreviews
+      (screen.availWidth * 0.85) / this.previewsPerRow
     );
     this.canvasHeight = Math.round(this.canvasWidth * tabPreviews.aspectRatio);
     this.updatePreviews();
@@ -522,10 +535,11 @@ var ctrlTab = {
 
     let width = Math.min(
       screen.availWidth * 0.99,
-      this.canvasWidth * 1.25 * this.tabPreviewCount
+      this.canvasWidth * 1.25 * this.previewColumnCount
     );
     this.panel.style.width = width + "px";
-    var estimateHeight = this.canvasHeight * 1.25 + 75;
+    let previewRows = Math.ceil(this.tabPreviewCount / this.previewsPerRow);
+    var estimateHeight = this.canvasHeight * 1.25 * previewRows + 75;
     this.panel.openPopupAtScreen(
       screen.availLeft + (screen.availWidth - width) / 2,
       screen.availTop + (screen.availHeight - estimateHeight) / 2,
@@ -831,3 +845,12 @@ var ctrlTab = {
 ChromeUtils.defineESModuleGetters(ctrlTab, {
   KeyboardLockUtils: "resource://gre/modules/KeyboardLockUtils.sys.mjs",
 });
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  ctrlTab,
+  "maxTabPreviews",
+  "browser.ctrlTab.maxPreviews",
+  7,
+  null,
+  value => Math.max(4, Math.min(49, value))
+);

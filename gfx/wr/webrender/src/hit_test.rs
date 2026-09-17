@@ -58,10 +58,6 @@ struct HitTestSpatialNode {
 
     /// World transform for content transformed by this node.
     world_content_transform: LayoutToWorldFastTransform,
-
-    /// World viewport transform for content transformed by this node.
-    world_viewport_transform: LayoutToWorldFastTransform,
-
 }
 
 #[derive(MallocSizeOf)]
@@ -87,7 +83,8 @@ impl HitTestClipNode {
             ClipItemKeyKind::Rectangle(mode) => {
                 HitTestRegion::Rectangle(clip_rect, mode)
             }
-            ClipItemKeyKind::RoundedRectangle(radius, mode) => {
+            ClipItemKeyKind::RoundedRectangle(radius, _, mode) => {
+                // TODO(wsmind): implement hit-testing for corner-shape
                 HitTestRegion::RoundedRectangle(clip_rect, radius.into(), mode)
             }
             ClipItemKeyKind::ImageMask(_, polygon_handle) => {
@@ -324,9 +321,6 @@ impl HitTester {
                 pipeline_id: node.pipeline_id,
                 world_content_transform: spatial_tree
                     .get_world_transform(index)
-                    .into_fast_transform(),
-                world_viewport_transform: spatial_tree
-                    .get_world_viewport_transform(index)
                     .into_fast_transform(),
             });
         });

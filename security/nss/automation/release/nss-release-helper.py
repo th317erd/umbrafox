@@ -12,6 +12,8 @@ from optparse import OptionParser
 from subprocess import check_call
 from subprocess import check_output
 
+nss_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 nssutil_h = "lib/util/nssutil.h"
 softkver_h = "lib/softoken/softkver.h"
 nss_h = "lib/nss/nss.h"
@@ -675,29 +677,31 @@ def generate_release_notes_index(args):
     latest_version = args[0].strip()  # e.g. 3.116
     esr_version = args[1].strip()  # e.g. 3.112.1
 
-    latest_underscore = version_string_to_underscore(latest_version)
-    esr_underscore = version_string_to_underscore(esr_version)
+    # The release notes define their anchor with dashes, so the references to
+    # them have to use dashes too.
+    latest_dash = latest_version.replace(".", "-")
+    esr_dash = esr_version.replace(".", "-")
 
-    # Read all release note files from doc/rst/releases/
-    release_dir = "doc/rst/releases"
+    # Read all release note files from doc/src/releases/
+    release_dir = "doc/src/releases"
     if not os.path.exists(release_dir):
         exit_with_failure(f"Release notes directory not found: {release_dir}")
 
-    # Get all nss_*.rst files (excluding index.rst)
+    # Get all nss_*.md files (excluding index.md)
     release_files = []
     for filename in os.listdir(release_dir):
         if (
             filename.startswith("nss_")
-            and filename.endswith(".rst")
-            and filename != "index.rst"
+            and filename.endswith(".md")
+            and filename != "index.md"
         ):
             release_files.append(filename)
 
     # Sort release files in reverse order (newest first)
     # Extract version numbers for proper sorting
     def version_key(filename):
-        # Extract version parts from filename like nss_3_116.rst
-        parts = filename.replace("nss_", "").replace(".rst", "").split("_")
+        # Extract version parts from filename like nss_3_116.md
+        parts = filename.replace("nss_", "").replace(".md", "").split("_")
         # Convert to integers for proper numerical sorting
         return [int(p) for p in parts]
 
@@ -706,30 +710,30 @@ def generate_release_notes_index(args):
     # Build the toctree content
     toctree_lines = "\n".join([f"   {f}" for f in release_files])
 
-    # Create the index.rst content
-    index_content = f""".. _mozilla_projects_nss_releases:
+    # Create the index.md content (MyST Markdown)
+    index_content = f"""(mozilla-projects-nss-releases)=
 
-Release Notes
-=============
+# Release Notes
 
+```{{eval-rst}}
 .. toctree::
    :maxdepth: 0
    :glob:
    :hidden:
 
 {toctree_lines}
+```
 
-.. note::
+:::{{note}}
+**NSS {latest_version}** is the latest version of NSS.
+Complete release notes are available here: {{ref}}`mozilla-projects-nss-nss-{latest_dash}-release-notes`
 
-   **NSS {latest_version}** is the latest version of NSS.
-   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_{latest_underscore}_release_notes`
-
-   **NSS {esr_version} (ESR)** is the latest ESR version of NSS.
-   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_{esr_underscore}_release_notes`
-
+**NSS {esr_version} (ESR)** is the latest ESR version of NSS.
+Complete release notes are available here: {{ref}}`mozilla-projects-nss-nss-{esr_dash}-release-notes`
+:::
 """
 
-    index_file = os.path.join(release_dir, "index.rst")
+    index_file = os.path.join(release_dir, "index.md")
     with open(index_file, "w") as f:
         f.write(index_content)
 
@@ -754,7 +758,7 @@ def release_nss(args):
     version_underscore = version_string_to_underscore(version_string)
     branch_name = f"NSS_{major}_{minor}_BRANCH"
     rtm_tag = f"NSS_{version_underscore}_RTM"
-    release_note_file = f"doc/rst/releases/nss_{version_underscore}.rst"
+    release_note_file = f"doc/src/releases/nss_{version_underscore}.md"
 
     print_separator()
     print("RELEASE NSS")
@@ -861,11 +865,16 @@ def release_nss(args):
     print_separator()
 
     input(
-        "Are you making an ESR release? If so, please manually edit doc/rst/releases/index.rst to adjust the ESR / main version note. Press enter when done."
+        "Are you making an ESR release? If so, please manually edit doc/src/releases/index.md to adjust the ESR / main version note. Press enter when done."
     )
 
-    # Step 9: Commit the release notes
-    print("Step 9: Committing release notes...")
+    # Step 9: Check the documentation still builds cleanly
+    print("Step 9: Running doc-lint...")
+    check_call_noisy([os.path.join(nss_root, "mach"), "doc-lint"])
+    print_separator()
+
+    # Step 10: Commit the release notes
+    print("Step 10: Committing release notes...")
     check_call_noisy(["hg", "add", release_note_file])
     check_call_noisy(["hg", "commit", "-m", release_notes_commit_message])
 
@@ -878,13 +887,13 @@ def release_nss(args):
     print(f"Release notes committed. Commit hash: {docs_commit}")
     print_separator()
 
-    # Step 10: Tag the release version
-    print(f"Step 10: Tagging release version {rtm_tag}...")
+    # Step 11: Tag the release version
+    print(f"Step 11: Tagging release version {rtm_tag}...")
     check_call_noisy(["hg", "tag", rtm_tag])
     print_separator()
 
-    # Step 11: Switch to default branch and graft the release notes
-    print("Step 11: Switching to default branch and grafting release notes...")
+    # Step 12: Switch to default branch and graft the release notes
+    print("Step 12: Switching to default branch and grafting release notes...")
     check_call_noisy(["hg", "checkout", "default"])
     check_call_noisy(["hg", "graft", "-r", docs_commit])
     print_separator()
@@ -896,8 +905,8 @@ def release_nss(args):
         )
     print_separator()
 
-    # Step 12: Check cf_status_nss on Bugzilla
-    print("Step 12: Checking cf_status_nss on Bugzilla...")
+    # Step 13: Check cf_status_nss on Bugzilla
+    print("Step 13: Checking cf_status_nss on Bugzilla...")
     cf_status_script = os.path.join(
         os.path.dirname(__file__), "bugzilla_cf_status_nss.py"
     )
@@ -905,7 +914,7 @@ def release_nss(args):
     input("Review the cf_status_nss report above. Press Enter to continue.")
     print_separator()
 
-    # Step 13: Push changes
+    # Step 14: Push changes
     response = input("Push these changes to the NSS repository? [yN]: ")
     if "y" in response.lower():
         print("Pushing changes to default branch...")

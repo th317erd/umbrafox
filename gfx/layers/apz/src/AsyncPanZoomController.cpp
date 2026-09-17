@@ -598,7 +598,7 @@ AsyncPanZoomController::AutoRecordCompositorScrollUpdate final {
     CompositorScrollUpdate::Metrics newMetrics =
         mApzc->GetCurrentMetricsForCompositorScrollUpdate(mProofOfApzcLock);
     if (newMetrics != mPreviousMetrics) {
-      mApzc->mUpdatesSinceLastSample.push_back({newMetrics, mSource});
+      mApzc->mUpdatesSinceLastSample.EmplaceBack(newMetrics, mSource);
     }
   }
 
@@ -3760,6 +3760,12 @@ void AsyncPanZoomController::HandlePanningUpdate(
 
 void AsyncPanZoomController::HandlePinchLocking(
     const PinchGestureInput& aEvent) {
+  // Pinch locking is only applicable to PinchGestureInput events
+  // created from multi-touch input.
+  if (aEvent.mSource != PinchGestureInput::TOUCH) {
+    return;
+  }
+
   // Focus change and span distance calculated from an event buffer
   // Used to handle pinch locking irrespective of touch screen sensitivity
   // Note: both values fall back to the same value as
@@ -3935,7 +3941,7 @@ bool AsyncPanZoomController::AttemptScroll(
           }
         }
         if (displacementIsUserVisible) {
-          block->SetScrolledApzc(this);
+          block->SetScrolledApzc(this, aOverscrollHandoffState);
         }
       }
       // Note that in the case of instant scrolling, the last snap target ids
@@ -3983,8 +3989,9 @@ bool AsyncPanZoomController::AttemptScroll(
 
   // If there is no APZC later in the handoff chain that accepted the
   // overscroll, try to accept it ourselves. We only accept it if we
-  // are pannable.
-  if (ScrollSourceAllowsOverscroll(aOverscrollHandoffState.mScrollSource)) {
+  // are pannable and we were allowed to scroll in this input block.
+  if (scrollThisApzc &&
+      ScrollSourceAllowsOverscroll(aOverscrollHandoffState.mScrollSource)) {
     APZC_LOG("%p taking overscroll during panning\n", this);
 
     ParentLayerPoint prevVisualOverscroll = GetOverscrollAmount();
@@ -4219,6 +4226,20 @@ void AsyncPanZoomController::HandleFlingOverscroll(
       // start an overscroll animation which will enter overscroll
       // and then relieve it.
       if (!IsZero(residualVelocity)) {
+        // Another APZC in this chain may already have started an overscroll
+        // animation on this APZC through the
+        // SnapBackOverscrolledApzcForMomentum() call below. While that call
+        // hands out that another APZC's velocity, this call uses this APZC's
+        // velocity properly. So this call always overwrites that, i.e. cancel
+        // the existing animation and start over. ExcludeOverscroll preserves
+        // the overscroll amount the new animation starts from. Also, the
+        // blocker is necessary to prevent a scrollend event from being
+        // triggered, because without it setState(NOTHING) in CancelAnimation()
+        // would deliver APZStateChange::eTransformEnd.
+        StateChangeNotificationBlocker blocker(this);
+        if (mState == OVERSCROLL_ANIMATION) {
+          CancelAnimation(ExcludeOverscroll);
+        }
         mOverscrollEffect->RelieveOverscroll(residualVelocity,
                                              aOverscrollSideBits);
       }
@@ -4340,8 +4361,11 @@ bool AsyncPanZoomController::CallDispatchScroll(
     }
   }
 
-  return treeManagerLocal->DispatchScroll(this, aStartPoint, endPoint,
-                                          aOverscrollHandoffState);
+  const ParentLayerPoint delta = aEndPoint - endPoint;
+  const bool result = treeManagerLocal->DispatchScroll(
+      this, aStartPoint, endPoint, aOverscrollHandoffState);
+  aEndPoint = endPoint + delta;
+  return result;
 }
 
 void AsyncPanZoomController::RecordScrollPayload(const TimeStamp& aTimeStamp) {
@@ -4924,7 +4948,9 @@ void AsyncPanZoomController::RequestContentRepaint(
       request.GetScrollAnimationType() ==
           mLastPaintRequestMetrics.GetScrollAnimationType() &&
       request.GetLastSnapTargetIds() ==
-          mLastPaintRequestMetrics.GetLastSnapTargetIds()) {
+          mLastPaintRequestMetrics.GetLastSnapTargetIds() &&
+      request.IsInScrollingGesture() ==
+          mLastPaintRequestMetrics.IsInScrollingGesture()) {
     return;
   }
 
@@ -5388,6 +5414,17 @@ void AsyncPanZoomController::UnapplyAsyncTestAttributes(
       RestoreOverscrollAmount(aPrevOverscroll);
       ResampleCompositedAsyncTransform(aProofOfLock);
     }
+  }
+}
+
+void AsyncPanZoomController::SetScrolledByHandedOffGesture(bool aState) {
+  RecursiveMutexAutoLock lock(mRecursiveMutex);
+  mScrolledByHandedOffGesture = aState;
+}
+
+void AsyncPanZoomController::ClearScrolledByHandedOffGestureOnChain() {
+  if (InputBlockState* block = GetCurrentInputBlock()) {
+    block->GetOverscrollHandoffChain()->ClearScrolledByHandedOffGesture();
   }
 }
 
@@ -5893,7 +5930,7 @@ void AsyncPanZoomController::NotifyMainThreadTransaction(
   for (const auto& scrollUpdate : aScrollMetadata.GetScrollUpdates()) {
     APZC_LOG("%p processing scroll update %s\n", this,
              ToString(scrollUpdate).c_str());
-    if (!(Metrics().GetScrollGeneration() < scrollUpdate.GetGeneration())) {
+    if (Metrics().GetScrollGeneration() >= scrollUpdate.GetGeneration()) {
       // This is stale, let's ignore it
       APZC_LOG("%p scrollupdate generation stale, dropping\n", this);
       continue;
@@ -6273,11 +6310,11 @@ bool CompositorScrollUpdate::operator==(
   return mMetrics == aOther.mMetrics && mSource == aOther.mSource;
 }
 
-std::vector<CompositorScrollUpdate>
+nsTArray<CompositorScrollUpdate>
 AsyncPanZoomController::GetCompositorScrollUpdates() {
   RecursiveMutexAutoLock lock(mRecursiveMutex);
   MOZ_ASSERT(Metrics().IsRootContent());
-  return mSampledState[0].Updates();
+  return mSampledState[0].Updates().Clone();
 }
 
 CompositorScrollUpdate::Metrics
@@ -6745,7 +6782,19 @@ void AsyncPanZoomController::SetState(PanZoomState aNewState) {
     }
   }
 
+  bool wasInScrollingGesture = IsInScrollingGesture();
   PanZoomState oldState = SetStateNoContentControllerDispatch(aNewState);
+
+  // If this state change ended a scrolling gesture, clear the handed-off
+  // gesture flag along the whole handoff chain so that any ancestor APZC that
+  // was being scrolled by this gesture stops reporting itself as being in a
+  // scrolling gesture.
+  if (wasInScrollingGesture && !IsInScrollingGesture()) {
+    APZThreadUtils::RunOnControllerThread(NewRunnableMethod(
+        "layers::AsyncPanZoomController::"
+        "ClearScrolledByHandedOffGestureOnChain",
+        this, &AsyncPanZoomController::ClearScrolledByHandedOffGestureOnChain));
+  }
 
   DispatchStateChangeNotification(oldState, aNewState);
 }
@@ -6804,7 +6853,19 @@ bool AsyncPanZoomController::IsInPanningState() const {
 
 bool AsyncPanZoomController::IsInScrollingGesture() const {
   return IsPanningState(mState) || mState == SCROLLBAR_DRAG ||
-         mState == TOUCHING || mState == PINCHING;
+         mState == TOUCHING || mState == PINCHING ||
+         mScrolledByHandedOffGesture;
+}
+
+void AsyncPanZoomController::ClearScrolledByHandedOffGesture() {
+  RecursiveMutexAutoLock lock(mRecursiveMutex);
+  if (!mScrolledByHandedOffGesture) {
+    return;
+  }
+  mScrolledByHandedOffGesture = false;
+  // The scroll offset may not change when the gesture ends, so explicitly
+  // request a repaint to deliver the flag change to the main thread.
+  RequestContentRepaint();
 }
 
 bool AsyncPanZoomController::IsDelayedTransformEndSet() {

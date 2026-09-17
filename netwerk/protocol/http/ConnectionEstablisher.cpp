@@ -152,6 +152,15 @@ SingleDNSAddrRecord::GetLastUpdate(mozilla::TimeStamp* aLastUpdate) {
 }
 
 NS_IMETHODIMP
+SingleDNSAddrRecord::GetFromStaleCache(bool* aResult) {
+  // Happy Eyeballs reads staleness directly off the resolved DNS record to feed
+  // the state machine; the per-address record it hands to the connection does
+  // not carry it, and nothing downstream reads it.
+  *aResult = false;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 SingleDNSAddrRecord::GetNextAddr(uint16_t aPort, NetAddr* aAddr) {
   if (mDone) {
     return NS_ERROR_NOT_AVAILABLE;
@@ -194,8 +203,8 @@ NS_IMPL_ISUPPORTS(ConnectionEstablisher, nsITransportEventSink,
 
 ConnectionEstablisher::ConnectionEstablisher(nsHttpConnectionInfo* aConnInfo,
                                              const NetAddr& aAddr,
-                                             uint32_t aCaps)
-    : mConnInfo(aConnInfo), mAddr(aAddr), mCaps(aCaps) {
+                                             uint32_t aCaps, bool aAllow1918)
+    : mConnInfo(aConnInfo), mAddr(aAddr), mCaps(aCaps), mAllow1918(aAllow1918) {
   LOG(("ConnectionEstablisher ctor:%p", this));
 }
 
@@ -252,7 +261,7 @@ nsresult ConnectionEstablisher::ActivateConnectionWithTransaction(
   mTransaction->SetConnectedCallback(
       [self = RefPtr{this},
        onActivated = std::move(aOnActivated)](nsresult aResult) {
-        NS_DispatchToCurrentThread(NS_NewRunnableFunction(
+        DispatchToCurrent(NS_NewRunnableFunction(
             "ConnectionEstablisher::ActivateCallback",
             [self, aResult, onActivated = std::move(onActivated)]() {
               if (NS_FAILED(aResult)) {
@@ -375,9 +384,8 @@ NS_IMPL_ISUPPORTS_INHERITED(TCPConnectionEstablisher, ConnectionEstablisher,
 TCPConnectionEstablisher::TCPConnectionEstablisher(
     nsHttpConnectionInfo* aConnInfo, NetAddr aAddr, uint32_t aCaps,
     bool aSpeculative, bool aAllow1918)
-    : ConnectionEstablisher(aConnInfo, aAddr, aCaps),
-      mSpeculative(aSpeculative),
-      mAllow1918(aAllow1918) {}
+    : ConnectionEstablisher(aConnInfo, aAddr, aCaps, aAllow1918),
+      mSpeculative(aSpeculative) {}
 
 TCPConnectionEstablisher::~TCPConnectionEstablisher() {
   // mSocketTransport / mStreamOut / mStreamIn must be released on the
@@ -392,8 +400,23 @@ TCPConnectionEstablisher::~TCPConnectionEstablisher() {
   }
 }
 
+bool ConnectionEstablisher::RefuseIfLocalAddress() {
+  if (mAllow1918 || !mAddr.IsIPAddrLocal()) {
+    return false;
+  }
+  LOG(
+      ("ConnectionEstablisher::RefuseIfLocalAddress %p refusing speculative "
+       "connection to local address [%s]",
+       this, mAddr.ToString().get()));
+  mRefusedForLocalAddress = true;
+  return true;
+}
+
 bool TCPConnectionEstablisher::Start(DoneCallback&& aCallback) {
   mCallback = std::move(aCallback);
+  if (RefuseIfLocalAddress()) {
+    return false;
+  }
   mAddrRecord = new SingleDNSAddrRecord(mAddr, mDnsMetadata);
 
   nsresult rv = CreateAndConfigureSocketTransport();
@@ -575,6 +598,11 @@ nsresult TCPConnectionEstablisher::CreateAndConfigureSocketTransport() {
   socketTransport->SetConnectionFlags(tmpFlags);
   socketTransport->SetTlsFlags(mConnInfo->GetTlsFlags());
   socketTransport->SetOriginAttributes(mConnInfo->GetOriginAttributes());
+  // Must match DnsAndConnectSocket::TransportSetup::SetupStreams: without this
+  // TRR sockets established through Happy Eyeballs are not marked, so neither
+  // nsSocketEvent::GetPriority nor the socket thread's TRR-first servicing sees
+  // them.
+  socketTransport->SetIsTRRConnection(mConnInfo->GetIsTrrServiceChannel());
 
   socketTransport->SetQoSBits(gHttpHandler->GetQoSBits());
 
@@ -679,8 +707,8 @@ TCPConnectionEstablisher::OnOutputStreamReady(nsIAsyncOutputStream* aOut) {
 
 UDPConnectionEstablisher::UDPConnectionEstablisher(
     nsHttpConnectionInfo* aConnInfo, NetAddr aAddr, uint32_t aCaps,
-    bool /* aSpeculative */, bool /* aAllow1918 */)
-    : ConnectionEstablisher(aConnInfo, aAddr, aCaps) {
+    bool /* aSpeculative */, bool aAllow1918)
+    : ConnectionEstablisher(aConnInfo, aAddr, aCaps, aAllow1918) {
   LOG(("UDPConnectionEstablisher ctor:%p", this));
 }
 
@@ -691,6 +719,9 @@ UDPConnectionEstablisher::~UDPConnectionEstablisher() {
 bool UDPConnectionEstablisher::Start(DoneCallback&& aCallback) {
   LOG(("UDPConnectionEstablisher::Start %p", this));
   mCallback = std::move(aCallback);
+  if (RefuseIfLocalAddress()) {
+    return false;
+  }
   mAddrRecord = new SingleDNSAddrRecord(mAddr, mDnsMetadata);
 
   nsresult rv = CreateAndConfigureUDPConn();

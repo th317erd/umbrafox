@@ -281,6 +281,21 @@ void DrawTargetRecording::StrokeLine(const Point& aBegin, const Point& aEnd,
       RecordedStrokeLine(aBegin, aEnd, aPattern, aStrokeOptions, aOptions));
 }
 
+void DrawTargetRecording::StrokeCircle(const Point& aOrigin, float aRadius,
+                                       const Pattern& aPattern,
+                                       const StrokeOptions& aStrokeOptions,
+                                       const DrawOptions& aOptions) {
+  if (aRadius > 0.0f) {
+    MarkChanged();
+    EnsurePatternDependenciesStored(aPattern);
+    RecordEventSelf(RecordedStrokeCircle(Path::Circle{aOrigin, aRadius, true},
+                                         aPattern, aStrokeOptions, aOptions));
+  } else {
+    DrawTarget::StrokeCircle(aOrigin, aRadius, aPattern, aStrokeOptions,
+                             aOptions);
+  }
+}
+
 void DrawTargetRecording::Fill(const Path* aPath, const Pattern& aPattern,
                                const DrawOptions& aOptions) {
   if (!aPath) {
@@ -302,6 +317,20 @@ void DrawTargetRecording::Fill(const Path* aPath, const Pattern& aPattern,
   RefPtr<PathRecording> pathRecording = EnsurePathStored(aPath);
   EnsurePatternDependenciesStored(aPattern);
   RecordEventSelf(RecordedFill(pathRecording, aPattern, aOptions));
+}
+
+void DrawTargetRecording::FillCircle(const Point& aOrigin, float aRadius,
+                                     const Pattern& aPattern,
+                                     const DrawOptions& aOptions) {
+  if (aRadius > 0.0f) {
+    // For circles with valid, positive radii, generate FillCircle events.
+    MarkChanged();
+    EnsurePatternDependenciesStored(aPattern);
+    RecordEventSelf(RecordedFillCircle(Path::Circle{aOrigin, aRadius, true},
+                                       aPattern, aOptions));
+  } else {
+    DrawTarget::FillCircle(aOrigin, aRadius, aPattern, aOptions);
+  }
 }
 
 struct RecordingFontUserData {
@@ -552,16 +581,12 @@ void DrawTargetRecording::DrawSurface(SourceSurface* aSurface,
       RecordedDrawSurface(aSurface, aDest, aSource, aSurfOptions, aOptions));
 }
 
-bool DrawTargetRecording::TryToReplaySurface(SourceSurface* aSurface,
-                                             const Rect& aDest,
-                                             const Rect& aSource) {
+bool DrawTarget::TryToReplaySurface(SourceSurface* aSurface, const Rect& aDest,
+                                    const Rect& aSource) {
   if (aSurface->GetType() != SurfaceType::RECORDING) {
     return false;
   }
   auto* recordingSurface = static_cast<SourceSurfaceRecording*>(aSurface);
-  if (recordingSurface->mRecorder == mRecorder) {
-    return false;
-  }
   if (!recordingSurface->mRecorder ||
       recordingSurface->mRecorder->GetRecorderType() != RecorderType::MEMORY) {
     return false;
@@ -575,8 +600,6 @@ bool DrawTargetRecording::TryToReplaySurface(SourceSurface* aSurface,
   if (!memRecorder->mOutputStream.mValid || !memRecorder->mOutputStream.mData) {
     return true;
   }
-
-  MarkChanged();
 
   // Map points in the source surface's content space to our current user
   // space (aSource -> aDest). Pre* methods prepend, so build right-to-left:
@@ -1054,10 +1077,10 @@ void DrawTargetRecording::EnsurePatternDependenciesStored(
   }
 }
 
-void DrawTargetRecording::AccessibleId(uint64_t aBrowsingContextId,
+void DrawTargetRecording::AccessibleId(uint64_t aInnerWindowId,
                                        uint64_t aAccId) {
   MarkChanged();
-  RecordEventSelf(RecordedAccessibleId(aBrowsingContextId, aAccId));
+  RecordEventSelf(RecordedAccessibleId(aInnerWindowId, aAccId));
 }
 
 }  // namespace gfx

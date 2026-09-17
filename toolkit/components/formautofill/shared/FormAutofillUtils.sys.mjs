@@ -35,6 +35,8 @@ const CREDITCARDS_COLLECTION_NAME = "creditCards";
 const AUTOFILL_CREDITCARDS_OS_AUTH_LOCKED_PREF =
   FormAutofill.AUTOFILL_CREDITCARDS_OS_AUTH_LOCKED_PREF;
 const AUTOFILL_ML_SUCCESS_PREF = "extensions.formautofill.useml.successful";
+const AUTOFILL_ML_NATIVE_ONNX_PREF =
+  "extensions.formautofill.useml.nativeOnnxAvailable";
 const MANAGE_ADDRESSES_L10N_IDS = [
   "autofill-add-address-title",
   "autofill-manage-addresses-title",
@@ -88,6 +90,23 @@ const EDIT_CREDITCARD_L10N_IDS = [
   // section easier to find via the search input in about:settings.
   "autofill-card-search-term-credit-cards",
 ];
+const MANAGE_PASSPORTS_L10N_IDS = [
+  "autofill-add-passport-title",
+  "autofill-personal-info-manage-title",
+];
+const EDIT_PASSPORT_L10N_IDS = [
+  "autofill-passport-name",
+  "autofill-passport-country",
+  "autofill-passport-number",
+  "autofill-passport-issue-date",
+  "autofill-passport-expiry-date",
+  "autofill-passport-date-month",
+  "autofill-passport-date-day",
+  "autofill-passport-date-year",
+  "autofill-edit-passport-title",
+  "autofill-cancel-button",
+  "autofill-save-button",
+];
 const FIELD_STATES = {
   NORMAL: "",
   AUTO_FILLED: "autofill",
@@ -126,6 +145,8 @@ FormAutofillUtils = {
   EDIT_ADDRESS_L10N_IDS,
   MANAGE_CREDITCARDS_L10N_IDS,
   EDIT_CREDITCARD_L10N_IDS,
+  MANAGE_PASSPORTS_L10N_IDS,
+  EDIT_PASSPORT_L10N_IDS,
   MAX_FIELD_VALUE_LENGTH,
   FIELD_STATES,
   FORM_SUBMISSION_REASON,
@@ -198,14 +219,35 @@ FormAutofillUtils = {
     return Array.from(element.querySelectorAll(types.join(",")));
   },
 
-  get useMLInference() {
+  /**
+   * Whether the ML autofill feature is turned on. This says nothing about
+   * whether inference can actually run; use `useMLInference` to decide whether
+   * to rely on ML results.
+   */
+  get isMLAutofillEnabled() {
     return (
       AppConstants.platform !== "android" && FormAutofillUtils.enableMLAutofill
     );
   },
 
+  /**
+   * Whether ML inference should be used to classify fields. On top of the
+   * feature being enabled, this requires that we have confirmed the native ONNX
+   * runtime is available.
+   */
+  get useMLInference() {
+    return (
+      FormAutofillUtils.isMLAutofillEnabled &&
+      FormAutofillUtils.isNativeOnnxRuntimeAvailable
+    );
+  },
+
   setMLUsedAlready() {
     Services.prefs.setBoolPref(AUTOFILL_ML_SUCCESS_PREF, true);
+  },
+
+  setNativeOnnxRuntimeAvailable(available) {
+    Services.prefs.setBoolPref(AUTOFILL_ML_NATIVE_ONNX_PREF, available);
   },
 
   /**
@@ -1540,9 +1582,76 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
+// Opt-in (Nimbus-controlled): use the two-engine encoder + fusion head field
+// classifier instead of the single text-classification model.
+XPCOMUtils.defineLazyPreferenceGetter(
+  FormAutofillUtils,
+  "enableMLAutofillTwoHead",
+  "extensions.formautofill.useml.twoHead",
+  false
+);
+
+// How long an idle ML autofill engine is kept alive, in milliseconds. Applies to
+// every engine the active classifier creates. -1 means never time out.
+XPCOMUtils.defineLazyPreferenceGetter(
+  FormAutofillUtils,
+  "mlEngineTimeoutMS",
+  "extensions.formautofill.useml.timeoutMS",
+  2 * 60 * 1000
+);
+
+// Field types the ML model is not trusted with, parsed from the comma
+// separated pref. They are classified by the regexp-based heuristics instead.
+XPCOMUtils.defineLazyPreferenceGetter(
+  FormAutofillUtils,
+  "mlIgnoreFieldTypes",
+  "extensions.formautofill.useml.ignoreFieldTypes",
+  "",
+  null,
+  pref =>
+    pref
+      .split(",")
+      .map(fieldType => fieldType.trim())
+      .filter(fieldType => !!fieldType)
+);
+
 XPCOMUtils.defineLazyPreferenceGetter(
   FormAutofillUtils,
   "isMLUsedAlready",
   AUTOFILL_ML_SUCCESS_PREF,
   false
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  FormAutofillUtils,
+  "isNativeOnnxRuntimeAvailable",
+  AUTOFILL_ML_NATIVE_ONNX_PREF,
+  false
+);
+
+// Optional mlData tokenizer features, as a JSON array of feature keys (e.g.
+// ["select_option", "input_attributes"]).
+XPCOMUtils.defineLazyPreferenceGetter(
+  FormAutofill,
+  "mlFeatures",
+  "extensions.formautofill.useml.features",
+  "[]",
+  null,
+  value => {
+    try {
+      const list = JSON.parse(value);
+      return new Set(Array.isArray(list) ? list : []);
+    } catch {
+      return new Set();
+    }
+  }
+);
+
+// Pin the ML model revision to load (the encoder and head engines share one
+// version).
+XPCOMUtils.defineLazyPreferenceGetter(
+  FormAutofill,
+  "mlModelVersion",
+  "extensions.formautofill.useml.modelVersion",
+  ""
 );

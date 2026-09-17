@@ -6,6 +6,8 @@
 
 #include "FFmpegLibWrapper.h"
 #include "FFmpegLog.h"
+// Bundled ffvpx pin (-I media/ffvpx on this TU).
+#include "libavcodec/version.h"
 #include "prlink.h"
 
 namespace mozilla {
@@ -37,6 +39,7 @@ static const char* sLibs[] = {
 // clang-format off
 #if defined(XP_DARWIN)
   "libavcodec." FFMPEG_MAX_MAJOR_VERSION_STR(FFMPEG_MAX_MAJOR_VERSION) ".dylib",
+  "libavcodec.62.dylib",
   "libavcodec.61.dylib",
   "libavcodec.60.dylib",
   "libavcodec.59.dylib",
@@ -51,6 +54,7 @@ static const char* sLibs[] = {
                    // of ffmpeg and update it regulary on ABI/API changes
 #else
   "libavcodec.so." FFMPEG_MAX_MAJOR_VERSION_STR(FFMPEG_MAX_MAJOR_VERSION),
+  "libavcodec.so.62",
   "libavcodec.so.61",
   "libavcodec.so.60",
   "libavcodec.so.59",
@@ -135,6 +139,10 @@ bool FFmpegRuntimeLinker::Init() {
               FFmpegDecoderModule<62>::Init(&sLibAV);
               FFmpegEncoderModule<62>::Init(&sLibAV);
               break;
+            case 63:
+              FFmpegDecoderModule<63>::Init(&sLibAV);
+              FFmpegEncoderModule<63>::Init(&sLibAV);
+              break;
           }
           return true;
         case FFmpegLibWrapper::LinkResult::NoProvidedLib:
@@ -194,6 +202,19 @@ bool FFmpegRuntimeLinker::Init() {
 }
 
 /* static */
+bool FFmpegRuntimeLinker::PreferSystemFFmpegForVulkan() {
+  if (!Init() || !sLibAV.avcodec_version) {
+    return false;
+  }
+  const unsigned version = sLibAV.avcodec_version();
+  const bool prefer = version >= LIBAVCODEC_VERSION_INT;
+  FFMPEGP_LOG("System libavcodec {:#x} {} ffvpx {:#x}, prefer: {}", version,
+              prefer ? ">=" : "<",
+              static_cast<unsigned>(LIBAVCODEC_VERSION_INT), prefer);
+  return prefer;
+}
+
+/* static */
 already_AddRefed<PlatformDecoderModule> FFmpegRuntimeLinker::CreateDecoder() {
   if (!Init()) {
     return nullptr;
@@ -227,6 +248,9 @@ already_AddRefed<PlatformDecoderModule> FFmpegRuntimeLinker::CreateDecoder() {
       break;
     case 62:
       module = FFmpegDecoderModule<62>::Create(&sLibAV);
+      break;
+    case 63:
+      module = FFmpegDecoderModule<63>::Create(&sLibAV);
       break;
     default:
       module = nullptr;
@@ -268,6 +292,9 @@ already_AddRefed<PlatformEncoderModule> FFmpegRuntimeLinker::CreateEncoder() {
       break;
     case 62:
       module = FFmpegEncoderModule<62>::Create(&sLibAV);
+      break;
+    case 63:
+      module = FFmpegEncoderModule<63>::Create(&sLibAV);
       break;
     default:
       module = nullptr;

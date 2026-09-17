@@ -13,6 +13,7 @@ task-defaults:
     run-on-projects: ['trunk']
     run-on-repo-type: [hg]
     run:
+        clone-with: hg
         using: mozharness
         actions: [get-secrets, build]
         secrets: true

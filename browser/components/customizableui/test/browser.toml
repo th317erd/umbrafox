@@ -213,8 +213,6 @@ skip-if = [
   "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11'",
 ]
 
-["browser_978084_dragEnd_after_move.js"]
-
 ["browser_980155_add_overflow_toolbar.js"]
 tags = "overflowable-toolbar"
 
@@ -269,6 +267,7 @@ skip-if = [
 ["browser_PanelMultiView_focus.js"]
 
 ["browser_PanelMultiView_keyboard.js"]
+support-files = ["file_embedded_document.html"]
 
 ["browser_addons_area.js"]
 
@@ -277,6 +276,8 @@ skip-if = [
 ["browser_backfwd_enabled_post_customize.js"]
 
 ["browser_bookmarks_empty_message.js"]
+
+["browser_bookmarks_sync_promo.js"]
 
 ["browser_bookmarks_toolbar_collapsed_restore_default.js"]
 
@@ -293,9 +294,6 @@ skip-if = [
 ["browser_currentset_post_reset.js"]
 
 ["browser_customization_context_menus.js"]
-skip-if = [
-  "os == 'win' && standalone", # Bug 2028648
-]
 
 ["browser_customizemode_contextmenu_menubuttonstate.js"]
 
@@ -330,6 +328,8 @@ https_first_disabled = true
 
 ["browser_history_restore_session.js"]
 
+["browser_history_sync_promo.js"]
+
 ["browser_insert_before_moved_node.js"]
 
 ["browser_menubar_visibility.js"]
@@ -340,6 +340,8 @@ run-if = [
 ["browser_newtab_button_customizemode.js"]
 
 ["browser_novaHelpSwitchDevicePromo.js"]
+
+["browser_novaHelpViewLayout.js"]
 
 ["browser_open_from_popup.js"]
 
@@ -370,6 +372,9 @@ tags = "fullscreen"
 ["browser_panelUINotifications_novaUpdateBanner.js"]
 
 ["browser_panel_keyboard_navigation.js"]
+skip-if = [
+  "nova", # Bug 2058027
+]
 
 ["browser_panel_locationSpecific.js"]
 
@@ -458,9 +463,13 @@ skip-if = [
 
 ["browser_uidensity_auto_compact.js"]
 
+["browser_uidensity_auto_touch.js"]
+
 ["browser_unified_extensions_reset.js"]
 
 ["browser_vertical_tabs_customize_navbar.js"]
+
+["browser_vertical_tabs_default_area.js"]
 
 ["browser_widget_animation.js"]
 skip-if = [

@@ -218,7 +218,7 @@ export const SearchService = new (class SearchService {
     await this.init();
     if (!this.#lazyPrefs.separatePrivateDefaultPrefValue) {
       Services.prefs.setBoolPref(
-        lazy.SearchUtils.BROWSER_SEARCH_PREF + "separatePrivateDefault",
+        "browser.search.separatePrivateDefault.enabled",
         true
       );
     }
@@ -449,6 +449,18 @@ export const SearchService = new (class SearchService {
   }
 
   /**
+   * An array of all installed search engines whose hidden attribute is false.
+   * The array is sorted either to the user requirements or the default order.
+   *
+   * @type {SearchEngine[]}
+   */
+  get visibleEngines() {
+    this.#ensureInitialized();
+    lazy.logConsole.debug("get visibleEngines: getting all visible engines");
+    return this.#sortedVisibleEngines;
+  }
+
+  /**
    * Returns the current list of application provided engines.
    */
   async getAppProvidedEngines() {
@@ -492,23 +504,23 @@ export const SearchService = new (class SearchService {
    *   Whether or not to show the prompt.
    */
   async shouldShowInstallPrompt(engine) {
-    let identifer = engine._loadPath;
+    let identifier = engine._loadPath;
     let seenEngines =
       this._settings.getMetaDataAttribute(ENGINES_SEEN_KEY) ?? {};
 
-    if (!(identifer in seenEngines)) {
-      seenEngines[identifer] = 1;
+    if (!(identifier in seenEngines)) {
+      seenEngines[identifier] = 1;
       this._settings.setMetaDataAttribute(ENGINES_SEEN_KEY, seenEngines);
       return false;
     }
 
-    let value = seenEngines[identifer];
+    let value = seenEngines[identifier];
     if (value == DONT_SHOW_PROMPT) {
       return false;
     }
 
     if (value == ENGINES_SEEN_FOR_PROMPT) {
-      seenEngines[identifer] = DONT_SHOW_PROMPT;
+      seenEngines[identifier] = DONT_SHOW_PROMPT;
       this._settings.setMetaDataAttribute(ENGINES_SEEN_KEY, seenEngines);
       return true;
     }
@@ -1529,12 +1541,12 @@ export const SearchService = new (class SearchService {
 
   #lazyPrefs = XPCOMUtils.declareLazy({
     separatePrivateDefaultPrefValue: {
-      pref: "browser.search.separatePrivateDefault",
+      pref: "browser.search.separatePrivateDefault.enabled",
       default: false,
       onUpdate: this.#onSeparateDefaultPrefChanged.bind(this),
     },
     separatePrivateDefaultEnabledPrefValue: {
-      pref: "browser.search.separatePrivateDefault.ui.enabled",
+      pref: "browser.search.separatePrivateDefault.featureGate",
       default: false,
       onUpdate: this.#onSeparateDefaultPrefChanged.bind(this),
     },
@@ -1654,6 +1666,7 @@ export const SearchService = new (class SearchService {
     Glean.searchService.startupTime.stopAndAccumulate(timerId);
 
     this.#recordDefaultEngineTelemetryData();
+    this.#setPreviousUpdateTelemetry();
 
     Services.obs.notifyObservers(
       null,
@@ -1779,9 +1792,15 @@ export const SearchService = new (class SearchService {
     let logIgnored = (name, url, type) => {
       lazy.logConsole.warn("Search engine", name, `matches ${type}`, url);
       Services.prefs.setCharPref(
-        lazy.SearchUtils.BROWSER_SEARCH_PREF + "lastEngineIgnored",
+        "browser.search.lastEngineIgnored",
         // Limit length of url to avoid storing too much in prefs.
-        `${Math.trunc(Date.now() / 1000)} Search engine '${name}' matches ${type} ignore list ${url.substring(0, 200)}`
+        `${Math.trunc(Date.now() / 1000)} Search engine matches ${type} ignore list ${url.substring(0, 200)}`
+      );
+      // Kept separate from lastEngineIgnored so the engine name isn't
+      // included if that preference is displayed, e.g. on about:support.
+      Services.prefs.setStringPref(
+        "browser.search.lastEngineIgnored.name",
+        name
       );
     };
 
@@ -3454,7 +3473,7 @@ export const SearchService = new (class SearchService {
     this._cachedSortedEngines = null;
 
     if (
-      prefName === "browser.search.separatePrivateDefault" &&
+      prefName === "browser.search.separatePrivateDefault.enabled" &&
       !previousValue &&
       currentValue
     ) {
@@ -3488,7 +3507,7 @@ export const SearchService = new (class SearchService {
       );
     }
 
-    let eventReason = prefName.endsWith("separatePrivateDefault.ui.enabled")
+    let eventReason = prefName.endsWith("separatePrivateDefault.featureGate")
       ? this.CHANGE_REASON.USER_PRIVATE_PREF_ENABLED
       : this.CHANGE_REASON.USER_PRIVATE_SPLIT;
     if (!previousValue && currentValue) {
@@ -3597,6 +3616,25 @@ export const SearchService = new (class SearchService {
   #previousEngineChangedEvent = { private: null, normal: null };
 
   /**
+   * Intended to be called after init is complete, to save a copy of the current
+   * default search engine data, for comparison when an ENGINE_UPDATE is next
+   * received.
+   */
+  #setPreviousUpdateTelemetry() {
+    this.#previousEngineChangedEvent.normal = this.#getUpdateTelemetryExtraArgs(
+      null,
+      this.defaultEngine,
+      null
+    );
+    // If the private mode default search engine is not enabled, then this will
+    // get the details of the normal engine. That is not an issue, as when the
+    // private mode is turned on, a CHANGE_REASON.USER reason will be sent out
+    // that will update this ahead of any ENGINE_UPDATE reasons.
+    this.#previousEngineChangedEvent.private =
+      this.#getUpdateTelemetryExtraArgs(null, this.defaultPrivateEngine, null);
+  }
+
+  /**
    * Determines if the current event record has the same details as the previous
    * one or not. This only matches against the `new_` fields because the
    * `previous_engine_id` may indeed have changed from an earlier event.
@@ -3614,20 +3652,18 @@ export const SearchService = new (class SearchService {
   }
 
   /**
-   * Records the telemetry event when the default engine has changed, and
-   * also updates the related non-event probes.
+   * Gets the relevant details for the Glean event probe for when the
+   * default engine is changed.
    *
-   * @param {boolean} isPrivate
-   *   True if this is a event about a private engine.
    * @param {SearchEngine} [previousEngine]
    *   The previously default search engine.
    * @param {SearchEngine} [newEngine]
    *   The new default search engine.
-   * @param {Values<typeof this.CHANGE_REASON>} changeReason
-   *   The reason for the default search engine change
+   * @param {Values<typeof this.CHANGE_REASON>} [changeReason]
+   *   The reason for the default search engine change.
+   * @returns {Parameters<typeof Glean.searchEngineDefault.changed.record>[0]}
    */
-  #updateTelemetryDueToDefaultEngineChange(
-    isPrivate,
+  #getUpdateTelemetryExtraArgs(
     previousEngine,
     newEngine,
     changeReason = this.CHANGE_REASON.UNKNOWN
@@ -3640,8 +3676,7 @@ export const SearchService = new (class SearchService {
     }
 
     let submissionURL = engineInfo?.submissionURL ?? "";
-    /** @type {Parameters<typeof Glean.searchEngineDefault.changed.record>[0]} */
-    let extraArgs = {
+    return {
       // In docshell tests, the previous engine does not exist, so we allow
       // for the previousEngine to be undefined.
       previous_engine_id: previousEngine?.telemetryId ?? "",
@@ -3652,6 +3687,32 @@ export const SearchService = new (class SearchService {
       new_submission_url: submissionURL.slice(0, 100),
       change_reason: changeReason,
     };
+  }
+
+  /**
+   * Records the telemetry event when the default engine has changed, and
+   * also updates the related non-event probes.
+   *
+   * @param {boolean} isPrivate
+   *   True if this is an event about a private engine.
+   * @param {SearchEngine} [previousEngine]
+   *   The previously default search engine.
+   * @param {SearchEngine} [newEngine]
+   *   The new default search engine.
+   * @param {Values<typeof this.CHANGE_REASON>} [changeReason]
+   *   The reason for the default search engine change.
+   */
+  #updateTelemetryDueToDefaultEngineChange(
+    isPrivate,
+    previousEngine,
+    newEngine,
+    changeReason = this.CHANGE_REASON.UNKNOWN
+  ) {
+    let extraArgs = this.#getUpdateTelemetryExtraArgs(
+      previousEngine,
+      newEngine,
+      changeReason
+    );
 
     let previousEventType = isPrivate ? "private" : "normal";
     let previousEvent = this.#previousEngineChangedEvent[previousEventType];
@@ -3669,7 +3730,6 @@ export const SearchService = new (class SearchService {
         Glean.searchEngineDefault.changed.record(extraArgs);
       }
     }
-
     this.#previousEngineChangedEvent[previousEventType] = extraArgs;
 
     this.#recordDefaultEngineTelemetryData();
@@ -4011,10 +4071,7 @@ export const SearchService = new (class SearchService {
   #maybeStartOpenSearchUpdateTimer() {
     if (
       this.#openSearchUpdateTimerStarted ||
-      !Services.prefs.getBoolPref(
-        lazy.SearchUtils.BROWSER_SEARCH_PREF + "update",
-        true
-      )
+      !Services.prefs.getBoolPref("browser.search.update", true)
     ) {
       return;
     }

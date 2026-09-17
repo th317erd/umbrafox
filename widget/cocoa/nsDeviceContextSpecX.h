@@ -23,7 +23,7 @@ class nsDeviceContextSpecX : public nsIDeviceContextSpec {
   already_AddRefed<PrintTarget> MakePrintTarget() final;
   NS_IMETHOD BeginDocument(const nsAString& aTitle,
                            const nsAString& aPrintToFileName,
-                           uint64_t aBrowsingContextId, int32_t aStartPage,
+                           mozilla::dom::WindowContext*, int32_t aStartPage,
                            int32_t aEndPage) override;
   RefPtr<mozilla::gfx::PrintEndDocumentPromise> EndDocument() override;
   NS_IMETHOD BeginPage(const IntSize& aSizeInPoints) override { return NS_OK; };
@@ -40,10 +40,9 @@ class nsDeviceContextSpecX : public nsIDeviceContextSpec {
   PMPageFormat mPageFormat = nullptr;
   PMPrintSettings mPMPrintSettings = nullptr;
   nsCOMPtr<nsIOutputStream> mOutputStream;  // Output stream from settings.
-#ifdef MOZ_ENABLE_SKIA_PDF
   // file "print" output generated if printing via PDF
   nsCOMPtr<nsIFile> mTempFile;
-#endif
+
  private:
   nsresult DoEndDocument();
 };

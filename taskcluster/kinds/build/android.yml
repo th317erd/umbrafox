@@ -45,6 +45,7 @@ task-defaults:
               type: directory
     run-on-repo-type: [hg]
     run:
+        clone-with: hg
         using: mozharness
         script: "mozharness/scripts/fx_desktop_build.py"
         config: ["builds/releng_base_android_64_builds.py"]
@@ -55,7 +56,6 @@ task-defaults:
             - android-ndk-linux
             - android-sdk-linux
             - linux64-jdk
-            - linux64-rust-android
             - linux64-rust-size
             - linux64-cbindgen
             - linux64-dump_syms
@@ -88,6 +88,7 @@ android-arm/debug:
     fetches:
         toolchain:
             - linux64-clang
+            - linux64-rust-android
             - linux64-sccache
             - android-gradle-dependencies
 
@@ -113,6 +114,7 @@ android-arm/opt:
     fetches:
         toolchain:
             - linux64-clang
+            - linux64-rust-android
             - android-gradle-dependencies
             - linux64-sccache
 
@@ -137,8 +139,9 @@ android-arm-lite/opt:
     fetches:
         toolchain:
             - linux64-clang
+            - linux64-rust-android
             - linux64-sccache
-            - android-gradle-dependencies-lite
+            - android-gradle-dependencies
 
 android-arm-shippable/opt:
     description: "Android Arm Shippable"
@@ -167,6 +170,7 @@ android-arm-shippable/opt:
     fetches:
         toolchain:
             - linux64-clang
+            - linux64-rust-android
             - android-gradle-dependencies
 
 android-arm-shippable-lite/opt:
@@ -197,7 +201,8 @@ android-arm-shippable-lite/opt:
     fetches:
         toolchain:
             - linux64-clang
-            - android-gradle-dependencies-lite
+            - linux64-rust-android
+            - android-gradle-dependencies
 
 android-aarch64/opt:
     description: "Android AArch64 Opt"
@@ -221,6 +226,7 @@ android-aarch64/opt:
     fetches:
         toolchain:
             - linux64-clang
+            - linux64-rust-android
             - linux64-sccache
             - android-gradle-dependencies
 
@@ -245,8 +251,9 @@ android-aarch64-lite/opt:
     fetches:
         toolchain:
             - linux64-clang
+            - linux64-rust-android
             - linux64-sccache
-            - android-gradle-dependencies-lite
+            - android-gradle-dependencies
 
 android-aarch64-non-unified/opt:
     description: "Android AArch64 Opt Non-unified"
@@ -273,6 +280,7 @@ android-aarch64-non-unified/opt:
     fetches:
         toolchain:
             - linux64-clang
+            - linux64-rust-android
             - linux64-sccache
             - android-gradle-dependencies
 
@@ -297,6 +305,7 @@ android-aarch64/debug:
     fetches:
         toolchain:
             - linux64-clang
+            - linux64-rust-android
             - linux64-sccache
             - android-gradle-dependencies
 
@@ -327,6 +336,7 @@ android-aarch64-shippable/opt:
     fetches:
         toolchain:
             - linux64-clang
+            - linux64-rust-android
             - android-gradle-dependencies
 
 android-aarch64-shippable-lite/opt:
@@ -357,7 +367,8 @@ android-aarch64-shippable-lite/opt:
     fetches:
         toolchain:
             - linux64-clang
-            - android-gradle-dependencies-lite
+            - linux64-rust-android
+            - android-gradle-dependencies
 
 android-x86_64/opt:
     description: "Android x86-64 Opt"
@@ -381,6 +392,37 @@ android-x86_64/opt:
     fetches:
         toolchain:
             - linux64-clang
+            - linux64-rust-android
+            - linux64-sccache
+            - android-gradle-dependencies
+
+android-x86_64-ccov/opt:
+    description: "Android x86-64 Opt CCov"
+    index:
+        job-name: android-x86_64-ccov-opt
+    treeherder:
+        platform: android-5-0-x86_64-ccov/opt
+        symbol: B
+        tier: 2
+    run-on-projects: ['mozilla-central']
+    worker:
+        artifacts:
+            - name: public/code-coverage-grcov.zip
+              path: /builds/worker/workspace/obj-build/code-coverage-grcov.zip
+              type: file
+        env:
+            TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
+            MOZ_AUTOMATION_PACKAGE_TESTS: "1"
+    run:
+        actions: [get-secrets, build]
+        custom-build-variant-cfg: x86_64-ccov
+        mozconfig-variant: code-coverage-opt
+    use-sccache: false
+    fetches:
+        toolchain:
+            - linux64-clang
+            - linux64-grcov
+            - linux64-rust-android-dev
             - linux64-sccache
             - android-gradle-dependencies
 
@@ -406,8 +448,9 @@ android-x86_64-lite/opt:
     fetches:
         toolchain:
             - linux64-clang
+            - linux64-rust-android
             - linux64-sccache
-            - android-gradle-dependencies-lite
+            - android-gradle-dependencies
 
 android-x86_64-fuzzing/debug:
     description: "Android x86_64 Fuzzing Debug"
@@ -428,6 +471,7 @@ android-x86_64-fuzzing/debug:
     fetches:
         toolchain:
             - linux64-clang
+            - linux64-rust-android
             - linux64-sccache
             - android-gradle-dependencies
     optimization:
@@ -458,6 +502,7 @@ android-x86_64-non-unified/opt:
     fetches:
         toolchain:
             - linux64-clang
+            - linux64-rust-android
             - linux64-sccache
             - android-gradle-dependencies
 
@@ -488,6 +533,7 @@ android-x86_64-shippable/opt:
     fetches:
         toolchain:
             - linux64-clang
+            - linux64-rust-android
             - android-gradle-dependencies
 
 android-x86_64-shippable-lite/opt:
@@ -518,7 +564,8 @@ android-x86_64-shippable-lite/opt:
     fetches:
         toolchain:
             - linux64-clang
-            - android-gradle-dependencies-lite
+            - linux64-rust-android
+            - android-gradle-dependencies
 
 android-x86_64/debug:
     description: "Android x86-64 Debug"
@@ -541,6 +588,7 @@ android-x86_64/debug:
     fetches:
         toolchain:
             - linux64-clang
+            - linux64-rust-android
             - linux64-sccache
             - android-gradle-dependencies
 
@@ -566,5 +614,6 @@ android-x86_64/debug-isolated-process:
     fetches:
         toolchain:
             - linux64-clang
+            - linux64-rust-android
             - linux64-sccache
             - android-gradle-dependencies

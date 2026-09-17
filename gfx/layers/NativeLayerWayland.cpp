@@ -30,6 +30,7 @@
 #include "ScopedGLHelpers.h"
 #include "gfxUtils.h"
 #include "mozilla/StaticPrefs_widget.h"
+#include "mozilla/ToString.h"
 #include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/gfxVars.h"
@@ -1070,30 +1071,8 @@ bool NativeLayerWayland::Map(WaylandSurfaceLock& aParentWaylandSurfaceLock) {
         mRootLayer->VSyncCallbackHandler(aTime, aEmulated);
       });
 
-  if (mIsHDR) {
-    gfx::YUVColorSpace yuvColorSpace = gfx::YUVColorSpace::BT709;
-    gfx::TransferFunction transferFunction = gfx::TransferFunction::BT709;
-    if (auto* external = AsNativeLayerWaylandExternal()) {
-      if (RefPtr surface = external->GetSurface()) {
-        if (auto* surfaceYUV = surface->GetAsDMABufSurfaceYUV()) {
-          yuvColorSpace = surfaceYUV->GetYUVColorSpace();
-          transferFunction = surfaceYUV->GetTransferFunction();
-        }
-      }
-    }
-    mSurface->EnableColorManagementLocked(surfaceLock, yuvColorSpace,
-                                          transferFunction);
-  }
-
-  if (auto* external = AsNativeLayerWaylandExternal()) {
-    if (RefPtr surface = external->GetSurface()) {
-      if (auto* surfaceYUV = surface->GetAsDMABufSurfaceYUV()) {
-        mSurface->SetColorRepresentationLocked(
-            surfaceLock, surfaceYUV->GetYUVColorSpace(),
-            surfaceYUV->IsFullRange(), surfaceYUV->GetWPChromaLocation());
-      }
-    }
-  }
+  // Color Management
+  SetColorProperties(surfaceLock, parentSurface);
 
   mNeedsMainThreadUpdate = MainThreadUpdate::Map;
   mState.mMutatedStackingOrder = true;
@@ -1101,6 +1080,85 @@ bool NativeLayerWayland::Map(WaylandSurfaceLock& aParentWaylandSurfaceLock) {
   mState.mMutatedPlacement = true;
   mState.mIsRendered = false;
   return true;
+}
+
+void NativeLayerWayland::SetColorProperties(
+    const WaylandSurfaceLock& aSurfaceLock, WaylandSurface* aParentSurface) {
+  LOG("NativeLayerWayland::SetColorProperties()");
+
+  auto* external = AsNativeLayerWaylandExternal();
+  if (!external) {
+    LOG("NativeLayerWayland::SetColorProperties() - Not an external surface. "
+        "Quit");
+    return;
+  }
+
+  RefPtr surface = external->GetSurface();
+  if (!surface) {
+    LOG("NativeLayerWayland::SetColorProperties() - Can't get a surface. Quit");
+    return;
+  }
+
+  auto* surfaceYUV = surface->GetAsDMABufSurfaceYUV();
+  if (!surfaceYUV) {
+    LOG("NativeLayerWayland::SetColorProperties() - Can't get a YUV surface. "
+        "Quit");
+    return;
+  }
+
+  gfx::YUVColorSpace surfaceColorSpace = surfaceYUV->GetYUVColorSpace();
+
+  // color representation
+  mSurface->SetColorRepresentationLocked(aSurfaceLock, surfaceColorSpace,
+                                         surfaceYUV->IsFullRange(),
+                                         surfaceYUV->GetWPChromaLocation());
+
+  // color management
+  gfx::TransferFunction surfaceTransferFunction =
+      surfaceYUV->GetTransferFunction();
+
+  if (!WaylandDisplayGet()->IsParametricSupported()) {
+    LOG("NativeLayerWayland::SetColorProperties() - Parametric not supported. "
+        "Quit");
+    return;
+  }
+
+  auto* colorManager = WaylandDisplayGet()->GetColorManager();
+
+  if (!colorManager) {
+    LOG("NativeLayerWayland::SetColorProperties() - Color management is "
+        "missing. Quit");
+    return;
+  }
+
+  auto* params = wp_color_manager_v1_create_parametric_creator(colorManager);
+
+  // Setting colorspace and Transfer function
+  if (!mSurface->SetPrimaries(params, surfaceColorSpace)) {
+    LOG("No primaries for color space %s. Quit",
+        mozilla::ToString(surfaceColorSpace).c_str());
+
+    wp_image_description_creator_params_v1_destroy(params);
+    return;
+  }
+
+  if (!mSurface->SetTransferFunction(params, surfaceTransferFunction)) {
+    LOG("Transfer function %s isn't supported. Quit",
+        mozilla::ToString(surfaceTransferFunction).c_str());
+
+    wp_image_description_creator_params_v1_destroy(params);
+    return;
+  }
+
+  if (surface->IsHDRSurface()) {
+    mSurface->SetHDRMetadata(params, surfaceTransferFunction,
+                             aParentSurface->GetGdkWindow(),
+                             surfaceYUV->GetHDRMetadata());
+  }
+
+  mSurface->SetColorManagementLocked(aSurfaceLock, colorManager, params);
+  // SetColorManagementLocked() consumes params
+  params = nullptr;
 }
 
 void NativeLayerWayland::SetFrameCallbackState(bool aState) {
@@ -1326,26 +1384,32 @@ void NativeLayerWaylandRender::ReadBackFrontBuffer(
   if (!copyRegion.IsEmpty()) {
     if (mSurfacePoolHandle->gl()) {
       mSurfacePoolHandle->gl()->MakeCurrent();
+      Maybe<GLuint> sourceFB =
+          mSurfacePoolHandle->GetFramebufferForBuffer(mFrontBuffer, false);
+      MOZ_DIAGNOSTIC_ASSERT(sourceFB,
+                            "NativeLayerWaylandRender: Failed to get "
+                            "mFrontBuffer framebuffer!");
+      if (!sourceFB) {
+        return;
+      }
+      Maybe<GLuint> destFB =
+          mSurfacePoolHandle->GetFramebufferForBuffer(mInProgressBuffer, false);
+      MOZ_DIAGNOSTIC_ASSERT(destFB,
+                            "NativeLayerWaylandRender: Failed to get "
+                            "mInProgressBuffer framebuffer!");
+      if (!destFB) {
+        return;
+      }
+
+      mSurfacePoolHandle->gl()->fBindFramebuffer(LOCAL_GL_READ_FRAMEBUFFER,
+                                                 sourceFB.value());
+      mSurfacePoolHandle->gl()->fBindFramebuffer(LOCAL_GL_DRAW_FRAMEBUFFER,
+                                                 destFB.value());
+
       for (auto iter = copyRegion.RectIter(); !iter.Done(); iter.Next()) {
         gfx::IntRect r = iter.Get();
-        Maybe<GLuint> sourceFB =
-            mSurfacePoolHandle->GetFramebufferForBuffer(mFrontBuffer, false);
-        MOZ_DIAGNOSTIC_ASSERT(sourceFB,
-                              "NativeLayerWaylandRender: Failed to get "
-                              "mFrontBuffer framebuffer!");
-        if (!sourceFB) {
-          return;
-        }
-        Maybe<GLuint> destFB = mSurfacePoolHandle->GetFramebufferForBuffer(
-            mInProgressBuffer, false);
-        MOZ_DIAGNOSTIC_ASSERT(destFB,
-                              "NativeLayerWaylandRender: Failed to get "
-                              "mInProgressBuffer framebuffer!");
-        if (!destFB) {
-          return;
-        }
-        mSurfacePoolHandle->gl()->BlitHelper()->BlitFramebufferToFramebuffer(
-            sourceFB.value(), destFB.value(), r, r, LOCAL_GL_NEAREST);
+        mSurfacePoolHandle->gl()->BlitHelper()->BlitFramebuffer(
+            r, r, LOCAL_GL_NEAREST);
       }
     } else {
       RefPtr<gfx::DataSourceSurface> dataSourceSurface =
@@ -1591,7 +1655,7 @@ void NativeLayerRootSnapshotterWayland::UpdateSnapshot(
 
   if (!mSnapshot || mSnapshot->Size() != aSize) {
     mSnapshot = nullptr;
-    auto fb = gl::MozFramebuffer::Create(mGL, aSize, 0, false);
+    auto fb = gl::MozFramebuffer::Create(mGL, aSize, 0, false, false);
     if (!fb) {
       return;
     }
@@ -1626,7 +1690,7 @@ already_AddRefed<profiler_screenshots::DownscaleTarget>
 NativeLayerRootSnapshotterWayland::CreateDownscaleTarget(
     const gfx::IntSize& aSize) {
   LOG("NativeLayerRootSnapshotterWayland::CreateDownscaleTarget()");
-  auto fb = gl::MozFramebuffer::Create(mGL, aSize, 0, false);
+  auto fb = gl::MozFramebuffer::Create(mGL, aSize, 0, false, false);
   if (!fb) {
     return nullptr;
   }

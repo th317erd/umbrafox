@@ -86,7 +86,7 @@ logger = logging.getLogger(__name__)
                 "description": "How many pushes to backfill the profiling task on.",
             },
             "gecko_profile_interval": {
-                "type": "integer",
+                "type": "number",
                 "default": None,
                 "title": "Sampling interval (ms)",
                 "description": "How often to sample the profiler (in ms).",
@@ -221,6 +221,10 @@ def geckoprofile_action(parameters, graph_config, input, task_group_id, task_id)
                     task.task["payload"]["command"] = add_args_to_perf_command(
                         cmd, profiling_command_flags
                     )
+
+                # A single profile is enough, don't inherit the retrigger count
+                # of the task being profiled.
+                task.attributes["task_duplicates"] = 1
 
                 task.task["extra"]["treeherder"]["symbol"] += "-p"
                 task.task["extra"]["treeherder"]["groupName"] += " (profiling)"

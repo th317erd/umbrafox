@@ -139,6 +139,16 @@ nsresult HTMLEditor::InitEditorContentAndSelection() {
     return NS_OK;
   }
 
+  // Don't create padding BR element if the <body> is an EditContext editing
+  // host. (This can be called even if no element is focused, so we can't
+  // rely on the active EditContext here which would be null in those cases.)
+  if (Element* body = GetBodyElement()) {
+    if (body->HasFlag(ELEMENT_HAS_EDIT_CONTEXT) &&
+        !body->GetParentNode()->IsEditable()) {
+      return NS_OK;
+    }
+  }
+
   nsresult rv = MaybeCreatePaddingBRElementForEmptyEditor();
   if (NS_FAILED(rv)) {
     NS_WARNING(
@@ -263,6 +273,10 @@ void HTMLEditor::OnStartToHandleTopLevelEditSubAction(
 
   // Remember current inline styles for deletion and normal insertion ops
   const bool cacheInlineStyles = [&]() {
+    if (GetEditActionEditContext()) {
+      // EditContext doesn't have styles.
+      return false;
+    }
     switch (aTopLevelEditSubAction) {
       case EditSubAction::eInsertText:
       case EditSubAction::eInsertTextComingFromIME:
@@ -487,7 +501,8 @@ nsresult HTMLEditor::OnEndHandlingTopLevelEditSubActionInternal() {
         NS_WARNING("There was no selection range");
         return NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE;
       }
-      Element* const editingHost = ComputeEditingHost(LimitInBodyElement::No);
+      const RefPtr<Element> editingHost =
+          ComputeEditingHost(LimitInBodyElement::No);
       if (!editingHost) [[unlikely]] {
         return NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE;
       }
@@ -683,6 +698,12 @@ Result<EditActionResult, nsresult> HTMLEditor::CanHandleHTMLEditSubAction(
 
   if (NS_WARN_IF(Destroyed())) {
     return Err(NS_ERROR_EDITOR_DESTROYED);
+  }
+
+  if (GetEditActionEditContext()) {
+    // For EditContext, we always accept text input, even if the selection
+    // is in a non-editable node.
+    return EditActionResult::IgnoredResult();
   }
 
   // If there is not selection ranges, we should ignore the result.
@@ -1034,11 +1055,7 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
   if (RefPtr editContext = GetEditActionEditContext()) {
     uint32_t start = editContext->SelectionStart();
     uint32_t end = editContext->SelectionEnd();
-    RefPtr<nsFrameSelection> frameSelection =
-        SelectionRef().GetFrameSelection();
-    if (NS_WARN_IF(!frameSelection)) {
-      return Err(NS_ERROR_FAILURE);
-    }
+    RefPtr<nsFrameSelection> frameSelection = GetEditableFrameSelection();
     if (InsertingTextForComposition(aPurpose)) {
       MOZ_ASSERT(mComposition);
       if (mComposition->GetContainerTextNode()) {
@@ -1062,7 +1079,8 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
     // inserted text when inserting LTR into RTL, for example.
     // However, we don't do this if the web app changed the text next to the
     // caret, since in that case this may not be a simple insertion.
-    if (!editContext->WasTextNextToCaretChangedByTextUpdateHandler()) {
+    if (frameSelection &&
+        !editContext->WasTextNextToCaretChangedByTextUpdateHandler()) {
       frameSelection->SetHint(CaretAssociationHint::Before);
     }
     return EditActionResult::HandledResult();
@@ -1170,7 +1188,8 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
       // since empty strings are meaningful there.
       Result<InsertTextResult, nsresult> insertEmptyTextResultOrError =
           InsertTextWithTransaction(aInsertionString, pointToInsert,
-                                    InsertTextTo::ExistingTextNodeIfAvailable);
+                                    InsertTextTo::ExistingTextNodeIfAvailable,
+                                    aPurpose);
       if (MOZ_UNLIKELY(insertEmptyTextResultOrError.isErr())) {
         NS_WARNING("HTMLEditor::InsertTextWithTransaction() failed");
         return insertEmptyTextResultOrError.propagateErr();
@@ -1418,9 +1437,9 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
         // not assumed that inserted text is split at every linefeed.
         MOZ_ASSERT(*lineBreakType == LineBreakType::Linefeed);
         Result<InsertTextResult, nsresult> insertTextResult =
-            InsertTextWithTransaction(
-                aInsertionString, currentPoint,
-                InsertTextTo::ExistingTextNodeIfAvailable);
+            InsertTextWithTransaction(aInsertionString, currentPoint,
+                                      InsertTextTo::ExistingTextNodeIfAvailable,
+                                      aPurpose);
         if (MOZ_UNLIKELY(insertTextResult.isErr())) {
           NS_WARNING("HTMLEditor::InsertTextWithTransaction() failed");
           return insertTextResult.propagateErr();
@@ -1455,7 +1474,8 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
                 InsertTextWithTransaction(
                     lineText, currentPoint,
                     GetInsertTextTo(inclusiveNextLinefeedOffset,
-                                    lineStartOffset));
+                                    lineStartOffset),
+                    aPurpose);
             if (MOZ_UNLIKELY(insertTextResult.isErr())) {
               NS_WARNING("HTMLEditor::InsertTextWithTransaction() failed");
               return insertTextResult.propagateErr();
@@ -2602,7 +2622,7 @@ HTMLEditor::DeleteTextAndNormalizeSurroundingWhiteSpaces(
             ReplaceTextWithTransaction(
                 MOZ_KnownLive(*startToDelete.ContainerAs<Text>()),
                 startToDelete.Offset(), lengthToReplaceInFirstTextNode,
-                normalizedWhiteSpacesInFirstNode);
+                normalizedWhiteSpacesInFirstNode, InsertTextFor::NormalText);
         if (MOZ_UNLIKELY(replaceTextResult.isErr())) {
           NS_WARNING("HTMLEditor::ReplaceTextWithTransaction() failed");
           return replaceTextResult.propagateErr();
@@ -2678,7 +2698,7 @@ HTMLEditor::DeleteTextAndNormalizeSurroundingWhiteSpaces(
             MOZ_KnownLive(*startToDelete.ContainerAs<Text>()),
             startToDelete.Offset(),
             endToDelete.Offset() - startToDelete.Offset(),
-            normalizedWhiteSpacesInLastNode);
+            normalizedWhiteSpacesInLastNode, InsertTextFor::NormalText);
     if (MOZ_UNLIKELY(replaceTextResult.isErr())) {
       NS_WARNING("HTMLEditor::ReplaceTextWithTransaction() failed");
       return replaceTextResult.propagateErr();
@@ -2827,7 +2847,8 @@ HTMLEditor::JoinTextNodesWithNormalizeWhiteSpaces(Text& aLeftText,
         lastLeftChar && !IsCollapsibleChar(lastLeftChar)) {
       if (firstRightChar != HTMLEditUtils::kSpace) {
         Result<InsertTextResult, nsresult> replaceWhiteSpaceResultOrError =
-            ReplaceTextWithTransaction(aRightText, 0u, 1u, u" "_ns);
+            ReplaceTextWithTransaction(aRightText, 0u, 1u, u" "_ns,
+                                       InsertTextFor::NormalText);
         if (MOZ_UNLIKELY(replaceWhiteSpaceResultOrError.isErr())) {
           NS_WARNING("HTMLEditor::ReplaceTextWithTransaction() failed");
           return replaceWhiteSpaceResultOrError.propagateErr();
@@ -2864,8 +2885,9 @@ HTMLEditor::JoinTextNodesWithNormalizeWhiteSpaces(Text& aLeftText,
     if (!IsCollapsibleCharOrNBSP(secondLastChar) &&
         !IsCollapsibleCharOrNBSP(firstRightChar)) {
       Result<InsertTextResult, nsresult> replaceWhiteSpaceResultOrError =
-          ReplaceTextWithTransaction(
-              aLeftText, aLeftText.DataBuffer().GetLength() - 1u, 1u, u" "_ns);
+          ReplaceTextWithTransaction(aLeftText,
+                                     aLeftText.DataBuffer().GetLength() - 1u,
+                                     1u, u" "_ns, InsertTextFor::NormalText);
       if (MOZ_UNLIKELY(replaceWhiteSpaceResultOrError.isErr())) {
         NS_WARNING("HTMLEditor::ReplaceTextWithTransaction() failed");
         return replaceWhiteSpaceResultOrError.propagateErr();

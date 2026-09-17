@@ -453,6 +453,7 @@ MSG_DEF(JSMSG_WASM_UNIMPLEMENTED,      0, JSEXN_WASMRUNTIMEERROR, "unimplemented
 MSG_DEF(JSMSG_WASM_MEM_IMP_LIMIT,      0, JSEXN_WASMRUNTIMEERROR, "too many memory pages")
 MSG_DEF(JSMSG_WASM_TABLE_IMP_LIMIT,    0, JSEXN_WASMRUNTIMEERROR, "too many table elements")
 MSG_DEF(JSMSG_WASM_ARRAY_IMP_LIMIT,    0, JSEXN_WASMRUNTIMEERROR, "too many array elements")
+MSG_DEF(JSMSG_WASM_CONT_IMP_LIMIT,     0, JSEXN_WASMRUNTIMEERROR, "too many continuation stacks")
 MSG_DEF(JSMSG_WASM_ARRAY_NEW_ELEM_NOT_IMPLEMENTED, 0, JSEXN_WASMRUNTIMEERROR, "array.new_elem does not yet support the expression encoding of element segments")
 MSG_DEF(JSMSG_WASM_BAD_RANGE,          2, JSEXN_RANGEERR,    "bad {0} {1}")
 MSG_DEF(JSMSG_WASM_BAD_GROW,           1, JSEXN_RANGEERR,    "failed to grow {0}")
@@ -844,6 +845,7 @@ MSG_DEF(JSMSG_BAD_WEAKREF_TARGET,                        0, JSEXN_TYPEERR, "cann
 
 // Iterator Helpers
 MSG_DEF(JSMSG_NEGATIVE_LIMIT,                            0, JSEXN_RANGEERR, "Iterator limits cannot be negative")
+MSG_DEF(JSMSG_LIMIT_TOO_LARGE,                           0, JSEXN_RANGEERR, "Iterator limit must be a finite number not greater than 2**53-1")
 MSG_DEF(JSMSG_INVALID_CHUNKSIZE,                         0, JSEXN_RANGEERR, "Iterator chunkSize must be an integer between 1 and 2**32-1 inclusive")
 MSG_DEF(JSMSG_CHUNK_SIZE_NOT_INTEGER,                    0, JSEXN_TYPEERR, "Iterator chunkSize must be an integral Number")
 MSG_DEF(JSMSG_INVALID_WINDOWSIZE,                        0, JSEXN_RANGEERR, "Iterator windowSize must be an integer between 1 and 2**32-1 inclusive")
@@ -953,7 +955,7 @@ MSG_DEF(JSMSG_TEMPORAL_PARSER_EMPTY_STRING, 1, JSEXN_RANGEERR, "can't parse empt
 // Explicit Resource Management
 
 // TODO: Improve the messaging for suppressed errors (Bug 1906150)
-MSG_DEF(JSMSG_ERROR_WAS_SUPPRESSED, 0, IF_EXPLICIT_RESOURCE_MANAGEMENT(JSEXN_SUPPRESSEDERR, JSEXN_INTERNALERR), "An error is suppressed because another error happened while disposing an object")
+MSG_DEF(JSMSG_ERROR_WAS_SUPPRESSED, 0, JSEXN_SUPPRESSEDERR, "An error is suppressed because another error happened while disposing an object")
 
 // DisposableStack
 MSG_DEF(JSMSG_DISPOSABLE_STACK_DISPOSED, 0, JSEXN_REFERENCEERR, "DisposableStack has already been disposed")

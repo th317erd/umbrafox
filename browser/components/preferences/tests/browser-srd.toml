@@ -12,8 +12,6 @@ support-files = [
   "head.js",
   "head-common.js",
   "addons/pl-dictionary.xpi",
-  "addons/set_homepage.xpi",
-  "addons/set_newtab.xpi",
 ]
 tags = "os_integration"
 
@@ -64,8 +62,6 @@ skip-if = [
 ["browser_setting_pane_focus_restoration.js"]
 
 ["browser_setting_pane_missing_group.js"]
-
-["browser_setting_pane_redesign_promo.js"]
 
 ["browser_setting_pane_scroll_restoration.js"]
 

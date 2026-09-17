@@ -292,7 +292,7 @@ DXGI_HDR_METADATA_HDR10 DeviceManagerDx::OutputDESC1ToDXGI(
   metadata.MinMasteringLuminance = aDesc.MinLuminance * kMinLuminanceFixedPoint;
   // It's unclear how to set these properly, so this is a guess.
   // Also note that these are not fixed-point.
-  metadata.MaxContentLightLevel = aDesc.MaxFullFrameLuminance;
+  metadata.MaxContentLightLevel = aDesc.MaxLuminance;
   metadata.MaxFrameAverageLightLevel = aDesc.MaxFullFrameLuminance;
 
   return metadata;
@@ -300,10 +300,14 @@ DXGI_HDR_METADATA_HDR10 DeviceManagerDx::OutputDESC1ToDXGI(
 
 void DeviceManagerDx::UpdateMonitorInfo() {
   bool systemHdrEnabled = false;
+  uint32_t colorSpaceBitfield = 0;
   std::set<HMONITOR> hdrMonitors;
   std::unordered_map<HMONITOR, DXGI_HDR_METADATA_HDR10> hdrMetadatas;
 
   for (const auto desc : EnumerateOutputs()) {
+    if (uint32_t(desc.ColorSpace) < 32) {
+      colorSpaceBitfield |= uint32_t(1) << desc.ColorSpace;
+    }
     if (ColorSpaceIsHDR(desc)) {
       systemHdrEnabled = true;
       hdrMonitors.emplace(desc.Monitor);
@@ -314,10 +318,17 @@ void DeviceManagerDx::UpdateMonitorInfo() {
   {
     MutexAutoLock lock(mDeviceLock);
     mSystemHdrEnabled = Some(systemHdrEnabled);
+    mMonitorColorSpaceBitfield = colorSpaceBitfield;
     mHdrMonitors.swap(hdrMonitors);
     mHdrMetadatas.swap(hdrMetadatas);
     mUpdateMonitorInfoRunnable = nullptr;
   }
+}
+
+uint32_t DeviceManagerDx::MonitorColorSpaceBitfield() {
+  EnsureMonitorInfo();
+  MutexAutoLock lock(mDeviceLock);
+  return mMonitorColorSpaceBitfield;
 }
 
 bool DeviceManagerDx::SystemHDREnabled() {

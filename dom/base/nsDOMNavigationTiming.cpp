@@ -599,7 +599,9 @@ nsDOMNavigationTiming::nsDOMNavigationTiming(nsDocShell* aDocShell,
       mDOMComplete(aOther->mDOMComplete),
       mTTFI(aOther->mTTFI),
       mDocShellHasBeenActiveSinceNavigationStart(
-          aOther->mDocShellHasBeenActiveSinceNavigationStart) {}
+          aOther->mDocShellHasBeenActiveSinceNavigationStart),
+      mWasActivatedFromNavigationalPrefetch(
+          aOther->mWasActivatedFromNavigationalPrefetch) {}
 
 /* static */
 void IPC::ParamTraits<nsDOMNavigationTiming*>::Write(
@@ -631,6 +633,7 @@ void IPC::ParamTraits<nsDOMNavigationTiming*>::Write(
   WriteParam(aWriter, aParam->mDOMComplete);
   WriteParam(aWriter, aParam->mTTFI);
   WriteParam(aWriter, aParam->mDocShellHasBeenActiveSinceNavigationStart);
+  WriteParam(aWriter, aParam->mWasActivatedFromNavigationalPrefetch);
 }
 
 /* static */
@@ -667,7 +670,8 @@ bool IPC::ParamTraits<nsDOMNavigationTiming*>::Read(
       !ReadParam(aReader, &timing->mDOMComplete) ||
       !ReadParam(aReader, &timing->mTTFI) ||
       !ReadParam(aReader,
-                 &timing->mDocShellHasBeenActiveSinceNavigationStart)) {
+                 &timing->mDocShellHasBeenActiveSinceNavigationStart) ||
+      !ReadParam(aReader, &timing->mWasActivatedFromNavigationalPrefetch)) {
     return false;
   }
   timing->mNavigationType = nsDOMNavigationTiming::Type(type);

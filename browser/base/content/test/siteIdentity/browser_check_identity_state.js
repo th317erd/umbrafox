@@ -64,10 +64,13 @@ requestLongerTimeout(2);
 
 add_task(async function chromeUITest() {
   // needs to be set due to bug in ion.js that occurs when testing
-  SpecialPowers.pushPrefEnv({
+  await SpecialPowers.pushPrefEnv({
     set: [
       ["toolkit.pioneer.testCachedContent", "[]"],
       ["toolkit.pioneer.testCachedAddons", "[]"],
+      // about:protections is loaded below, and its VPN card sets
+      // browser.contentblocking.report.hide_vpn_banner on the first visit.
+      ["browser.vpn_promo.enabled", false],
     ],
   });
   // Might needs to be extended with new secure chrome pages
@@ -118,7 +121,7 @@ add_task(async function chromeUITest() {
     "about:webrtc",
     "about:welcome",
     "about:rights",
-    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+    // eslint-disable-next-line sdl/no-insecure-url
     "http://example.com/" + DUMMY,
   ];
 
@@ -138,12 +141,14 @@ add_task(async function chromeUITest() {
       );
     });
   }
+
+  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_webpage() {
   let oldTab = await loadNewTab("about:robots");
 
-  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+  // eslint-disable-next-line sdl/no-insecure-url
   let newTab = await loadNewTab("http://example.com/" + DUMMY);
   is(getIdentityMode(), NOT_SECURE_LABEL, "Identity should be not secure");
 
@@ -161,7 +166,7 @@ async function webpageTestTextWarning(secureCheck) {
   await SpecialPowers.pushPrefEnv({ set: [[INSECURE_TEXT_PREF, secureCheck]] });
   let oldTab = await loadNewTab("about:robots");
 
-  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+  // eslint-disable-next-line sdl/no-insecure-url
   let newTab = await loadNewTab("http://example.com/" + DUMMY);
   if (secureCheck) {
     is(
@@ -203,7 +208,7 @@ async function webpageTestTextWarningCombined(secureCheck) {
   });
   let oldTab = await loadNewTab("about:robots");
 
-  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+  // eslint-disable-next-line sdl/no-insecure-url
   let newTab = await loadNewTab("http://example.com/" + DUMMY);
   if (secureCheck) {
     is(
@@ -296,7 +301,7 @@ add_task(async function test_view_source() {
 add_task(async function test_insecure() {
   let oldTab = await loadNewTab("about:robots");
 
-  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+  // eslint-disable-next-line sdl/no-insecure-url
   let newTab = await loadNewTab("http://example.com/" + DUMMY);
   is(getIdentityMode(), NOT_SECURE_LABEL, "Identity should be not secure");
   is(
@@ -427,7 +432,7 @@ add_task(async function test_https_only_error() {
   let promise = BrowserTestUtils.waitForErrorPage(gBrowser.selectedBrowser);
   BrowserTestUtils.startLoadingURIString(
     gBrowser,
-    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+    // eslint-disable-next-line sdl/no-insecure-url
     "http://nocert.example.com/"
   );
   await promise;
@@ -464,7 +469,7 @@ add_task(async function test_https_only_error() {
 });
 
 add_task(async function test_no_cert_error_from_navigation() {
-  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+  // eslint-disable-next-line sdl/no-insecure-url
   let newTab = await loadNewTab("http://example.com/" + DUMMY);
 
   let promise = BrowserTestUtils.waitForErrorPage(gBrowser.selectedBrowser);
@@ -588,7 +593,7 @@ add_task(async function test_net_error_page() {
 });
 
 add_task(async function test_about_blocked() {
-  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+  // eslint-disable-next-line sdl/no-insecure-url
   let url = "http://www.itisatrap.org/firefox/its-an-attack.html";
   let oldTab = await loadNewTab("about:robots");
   await SpecialPowers.pushPrefEnv({
@@ -669,8 +674,6 @@ add_task(async function test_reader_uri() {
   );
 
   gBrowser.removeTab(newTab);
-
-  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_data_uri() {
@@ -702,7 +705,7 @@ add_task(async function test_pb_mode() {
   );
   let newTab = await BrowserTestUtils.openNewForegroundTab(
     privateWin.gBrowser,
-    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+    // eslint-disable-next-line sdl/no-insecure-url
     "http://example.com/" + DUMMY
   );
 

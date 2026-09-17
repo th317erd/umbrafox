@@ -25,6 +25,8 @@ use compositor_windows as compositor;
 use compositor_wayland as compositor;
 use std::{env, f32, process};
 
+const AU_PER_DEV_PX: f32 = 60.0;
+
 // A very hacky integration with DirectComposite. It proxies calls from the compositor
 // interface to a simple C99 library which does the DirectComposition / D3D11 / ANGLE
 // interfacing. This is a very unsafe impl due to the way the window pointer is passed
@@ -465,7 +467,7 @@ fn main() {
 
     if let Invalidations::Scrolling = inv_mode {
         let mut root_builder = DisplayListBuilder::new(root_pipeline_id);
-        root_builder.begin();
+        root_builder.begin(AU_PER_DEV_PX);
 
         build_display_list(
             &mut root_builder,
@@ -476,7 +478,7 @@ fn main() {
             inv_mode,
         );
 
-        txn.set_display_list(current_epoch, root_builder.end());
+        txn.set_display_list(current_epoch, api.get_namespace_id(), root_builder.end());
     }
 
     txn.generate_frame(0, true, false, RenderReasons::empty());
@@ -498,7 +500,7 @@ fn main() {
             match inv_mode {
                 Invalidations::Small | Invalidations::Large => {
                     let mut root_builder = DisplayListBuilder::new(root_pipeline_id);
-                    root_builder.begin();
+                    root_builder.begin(AU_PER_DEV_PX);
 
                     build_display_list(
                         &mut root_builder,
@@ -509,7 +511,7 @@ fn main() {
                         inv_mode,
                     );
 
-                    txn.set_display_list(current_epoch, root_builder.end());
+                    txn.set_display_list(current_epoch, api.get_namespace_id(), root_builder.end());
                 }
                 Invalidations::Scrolling => {
                     let d = 0.5 - 0.5 * (2.0 * f32::consts::PI * 5.0 * time).cos();

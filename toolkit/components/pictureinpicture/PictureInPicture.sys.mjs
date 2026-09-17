@@ -41,6 +41,12 @@ const TOGGLE_POSITION_PREF =
 const TOGGLE_POSITION_RIGHT = "right";
 const TOGGLE_POSITION_LEFT = "left";
 const RESIZE_MARGIN_PX = 16;
+// Close reasons that should suppress auto-toggle when the originating tab is backgrounded
+const DELIBERATE_CLOSE_REASONS = [
+  "CloseButton",
+  "ClosePlayerShortcut",
+  "Shortcut",
+];
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -121,6 +127,15 @@ export class PictureInPictureToggleParent extends JSWindowActorParent {
         if (!lazy.PIP_ENABLED || !lazy.PIP_WHEN_SWITCHING_TABS) {
           break;
         }
+
+        // Suppress auto-toggle if the user deliberately closed this PiP window
+        if (
+          PictureInPicture.weakAutoPipBrowserClosedDeliberately.has(browser)
+        ) {
+          PictureInPicture.weakAutoPipBrowserClosedDeliberately.delete(browser);
+          break;
+        }
+
         // If the tab is still selected, then we can ignore this event
         if (browser.documentGlobal.gBrowser.selectedBrowser == browser) {
           break;
@@ -220,6 +235,14 @@ export class PictureInPictureParent extends JSWindowActorParent {
         }
         break;
       }
+      case "PictureInPicture:PlaybackRateChange": {
+        let { playbackRate } = aMessage.data;
+        let player = PictureInPicture.getWeakPipPlayer(this);
+        if (player) {
+          player.setPlaybackRate(playbackRate);
+        }
+        break;
+      }
     }
     return undefined;
   }
@@ -254,6 +277,9 @@ export var PictureInPicture = {
 
   // Maps auto pip browser to PictureInPictureParent actor
   weakAutoPipBrowserToParent: new WeakMap(),
+
+  // Browsers with deliberately closed PiP windows; suppresses auto-toggle.
+  weakAutoPipBrowserClosedDeliberately: new WeakSet(),
 
   /**
    * Returns the player window if one exists and if it hasn't yet been closed.
@@ -435,6 +461,16 @@ export var PictureInPicture = {
   onPipSwappedBrowsers(event) {
     let otherTab = event.detail;
     if (otherTab) {
+      if (
+        this.weakAutoPipBrowserClosedDeliberately.has(
+          event.target.linkedBrowser
+        )
+      ) {
+        this.weakAutoPipBrowserClosedDeliberately.add(otherTab.linkedBrowser);
+        this.weakAutoPipBrowserClosedDeliberately.delete(
+          event.target.linkedBrowser
+        );
+      }
       for (let win of Services.wm.getEnumerator(WINDOW_TYPE)) {
         if (this.weakWinToBrowser.get(win) === event.target.linkedBrowser) {
           this.weakWinToBrowser.set(win, otherTab.linkedBrowser);
@@ -893,6 +929,16 @@ export var PictureInPicture = {
     if (!win) {
       return;
     }
+
+    const browser = this.weakWinToBrowser.get(win);
+
+    if (browser && DELIBERATE_CLOSE_REASONS.includes(reason)) {
+      const tabbrowser = browser.getTabBrowser();
+      if (tabbrowser && tabbrowser.selectedBrowser != browser) {
+        PictureInPicture.weakAutoPipBrowserClosedDeliberately.add(browser);
+      }
+    }
+
     this.removePiPBrowserFromWeakMap(this.weakWinToBrowser.get(win));
     this.weakAutoPipBrowserToParent.delete(this.weakWinToBrowser.get(win));
 
@@ -1029,6 +1075,7 @@ export var PictureInPicture = {
     win.setScrubberPosition(videoData.scrubberPosition);
     win.setTimestamp(videoData.timestamp);
     win.setVolume(videoData.volume);
+    win.setPlaybackRate(videoData.playbackRate);
 
     Services.prefs.setBoolPref(TOGGLE_HAS_USED_PREF, true);
 

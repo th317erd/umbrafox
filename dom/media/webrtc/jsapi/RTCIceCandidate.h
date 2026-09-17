@@ -35,7 +35,7 @@ class RTCIceCandidate final : public nsISupports, public nsWrapperCache {
                   const Nullable<uint16_t>& aSdpMLineIndex,
                   const nsAString& aUsernameFragment);
 
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS_FINAL
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(RTCIceCandidate)
 
   static already_AddRefed<RTCIceCandidate> Constructor(
@@ -45,11 +45,13 @@ class RTCIceCandidate final : public nsISupports, public nsWrapperCache {
   // Internal-use factory for constructing an RTCIceCandidate from a
   // |candidate:...|-form attribute string with no sdpMid/sdpMLineIndex
   // context, typically for candidates reported by the ICE stack. When
-  // |aRemote| is true, webrtc-pc's exposure rules for remote candidates are
-  // applied (peer-reflexive candidates have their candidate-attribute string
-  // and address hidden).
+  // |aHidePrflx| is true, a peer-reflexive candidate has its
+  // candidate-attribute string and addresses hidden. webrtc-pc requires this
+  // for remote candidates; we also do it for our own when hiding our host
+  // addresses, since the peer that saw us may be in the same document.
   static already_AddRefed<RTCIceCandidate> FromAttribute(
-      nsIGlobalObject* aGlobal, const nsACString& aAttr, bool aRemote = false);
+      nsIGlobalObject* aGlobal, const nsACString& aAttr,
+      bool aHidePrflx = false);
 
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
   JSObject* WrapObject(JSContext* aCx,

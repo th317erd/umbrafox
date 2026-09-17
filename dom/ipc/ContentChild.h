@@ -11,6 +11,7 @@
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/BlobImpl.h"
 #include "mozilla/dom/GetFilesHelper.h"
+#include "mozilla/dom/LoadedOriginSet.h"
 #include "mozilla/dom/PContentChild.h"
 #include "mozilla/dom/ProcessActor.h"
 #include "mozilla/dom/RemoteType.h"
@@ -68,6 +69,7 @@ class SharedMap;
 
 class ConsoleListener;
 class BrowserChild;
+class IPCTabContext;
 class TabContext;
 enum class CallerType : uint32_t;
 
@@ -392,14 +394,14 @@ class ContentChild final : public PContentChild,
       const nsCString& UAName, const nsCString& ID, const nsCString& vendor,
       const nsCString& sourceURL, const nsCString& updateURL);
 
-  mozilla::ipc::IPCResult RecvRemoteType(const nsCString& aRemoteType,
-                                         const nsCString& aProfile);
+  mozilla::ipc::IPCResult RecvSetRemoteType(const RemoteType& aRemoteType,
+                                            const nsCString& aProfile);
 
   void PreallocInit();
 
-  // Call RemoteTypePrefix() on the result to remove URIs if you want to use
-  // this for telemetry.
-  const nsACString& GetRemoteType() const override;
+  const RemoteType& GetRemoteType() const override;
+
+  mozilla::ipc::IPCResult RecvAddLoadedOrigin(nsIPrincipal* aPrincipal);
 
   mozilla::ipc::IPCResult RecvInitRemoteWorkerService(
       Endpoint<PRemoteWorkerServiceChild>&& aEndpoint,
@@ -512,6 +514,7 @@ class ContentChild final : public PContentChild,
 
   mozilla::ipc::IPCResult RecvDecodeImage(NotNull<nsIURI*> aURI,
                                           const ImageIntSize& aSize,
+                                          const bool& aStretch,
                                           const ColorScheme& aColoScheme,
                                           DecodeImageResolver&& aResolver);
 
@@ -677,7 +680,7 @@ class ContentChild final : public PContentChild,
   mozilla::ipc::IPCResult RecvSetUseOriginAgentCluster(
       uint64_t aGroupId, nsIPrincipal* aPrincipal, bool aUseOriginAgentCluster);
 
-  mozilla::ipc::IPCResult RecvWindowClose(
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY mozilla::ipc::IPCResult RecvWindowClose(
       const MaybeDiscarded<BrowsingContext>& aContext, bool aTrustedCaller);
   mozilla::ipc::IPCResult RecvWindowFocus(
       const MaybeDiscarded<BrowsingContext>& aContext, CallerType aCallerType,
@@ -903,7 +906,7 @@ class ContentChild final : public PContentChild,
   AppInfo mAppInfo;
 
   bool mIsForBrowser;
-  nsCString mRemoteType = NOT_REMOTE_TYPE;
+  RemoteType mRemoteType;
   bool mIsAlive;
   nsCString mProcessName;
 
@@ -957,7 +960,10 @@ inline nsISupports* ToSupports(mozilla::dom::ContentChild* aContentChild) {
 }
 
 // Threadsafe getter for the current process's RemoteType.
-nsCString CurrentRemoteType();
+RemoteType CurrentRemoteType();
+
+// Threadsafe getter for the current process's loaded origins.
+already_AddRefed<LoadedOriginSet> CurrentLoadedOriginSet();
 
 }  // namespace dom
 }  // namespace mozilla

@@ -14,12 +14,15 @@ import "chrome://browser/content/aiwindow/components/smartwindow-panel-list.mjs"
 export class AIGroupedChipContainer extends MozLitElement {
   static properties = {
     chips: { type: Array },
+    // Each host opens links itself, so it names the event it listens for.
+    openLinkEvent: { type: String },
     isPanelOpen: { type: Boolean, state: true },
   };
 
   constructor() {
     super();
     this.chips = [];
+    this.openLinkEvent = "AIChatContent:OpenLink";
     this.isPanelOpen = false;
   }
 
@@ -38,6 +41,20 @@ export class AIGroupedChipContainer extends MozLitElement {
 
   #closeGroupedPanel() {
     this.shadowRoot.querySelector("smartwindow-panel-list")?.hide();
+  }
+
+  #onItemSelected(event) {
+    const url = event.detail?.id;
+    if (url) {
+      this.dispatchEvent(
+        new CustomEvent(this.openLinkEvent, {
+          bubbles: true,
+          composed: true,
+          detail: { url, preferSwitchToTab: true },
+        })
+      );
+    }
+    this.#closeGroupedPanel();
   }
 
   render() {
@@ -97,7 +114,7 @@ export class AIGroupedChipContainer extends MozLitElement {
         .groups=${chipsGroups}
         @shown=${() => (this.isPanelOpen = true)}
         @hidden=${() => (this.isPanelOpen = false)}
-        @item-selected=${() => this.#closeGroupedPanel()}
+        @item-selected=${e => this.#onItemSelected(e)}
       ></smartwindow-panel-list>
     `;
   }

@@ -178,10 +178,15 @@ static void GenerateBailoutThunk(MacroAssembler& masm, Label* bailoutTail) {
 // Generates a trampoline for calling Jit compiled code from a C++ function.
 // The trampoline use the EnterJitCode signature, with the standard x64 fastcall
 // calling convention.
-void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
+void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm,
+                                  EnterJitMode mode) {
   AutoCreatedBy acb(masm, "JitRuntime::generateEnterJIT");
 
-  enterJITOffset_ = startTrampolineCode(masm);
+  if (mode == EnterJitMode::GeneratorResume) {
+    enterJITGeneratorResumeOffset_ = startTrampolineCode(masm);
+  } else {
+    enterJITOffset_ = startTrampolineCode(masm);
+  }
 
   const Register reg_code = IntArgReg0;
   const Register reg_argc = IntArgReg1;
@@ -199,15 +204,19 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   // Save stack pointer as baseline frame.
   masm.movePtr(StackPointer, FramePointer);
 
-  generateEnterJitShared(masm, reg_argc, reg_argv, reg_token, s1, s2, s3);
+  if (mode == EnterJitMode::GeneratorResume) {
+    generateEnterJitResumeShared(masm, reg_argv, reg_token, s1, s2);
+  } else {
+    generateEnterJitShared(masm, reg_argc, reg_argv, reg_token, s1, s2, s3);
 
-  // Push the descriptor.
-  masm.unboxInt32(Address(reg_vp, 0), s3);
-  masm.pushFrameDescriptorForJitCall(FrameType::CppToJSJit, s3, s3);
+    // Push the descriptor.
+    masm.unboxInt32(Address(reg_vp, 0), s3);
+    masm.pushFrameDescriptorForJitCall(FrameType::CppToJSJit, s3, s3);
+  }
 
   CodeLabel returnLabel;
   Label oomReturnLabel;
-  {
+  if (mode != EnterJitMode::GeneratorResume) {
     // Handle Interpreter -> Baseline OSR.
     AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
     MOZ_ASSERT(!regs.has(FramePointer));
@@ -295,7 +304,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.bind(&notOsr);
     // Load the scope chain in R1.
     MOZ_ASSERT(R1.scratchReg() != reg_code);
-    masm.mv(R1.scratchReg(), reg_chain);
+    masm.ma_mv(R1.scratchReg(), reg_chain);
   }
   JitSpew(JitSpew_Codegen, "__Line__: %d", __LINE__);
   // The call will push the return address and frame pointer on the stack, thus
@@ -305,7 +314,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   // Call the function with pushing return address to stack.
   masm.callJitNoProfiler(reg_code);
 
-  {
+  if (mode != EnterJitMode::GeneratorResume) {
     // Interpreter -> Baseline OSR will return here.
     masm.bind(&returnLabel);
     masm.addCodeLabel(returnLabel);
@@ -385,17 +394,13 @@ uint32_t JitRuntime::generatePreBarrier(JSContext* cx, MacroAssembler& masm,
   Register temp1 = a0;
   Register temp2 = a2;
   Register temp3 = a3;
-  masm.push(temp1);
-  masm.push(temp2);
-  masm.push(temp3);
+  masm.pushRegs(temp1, temp2, temp3);
 
   Label noBarrier;
   masm.emitPreBarrierFastPath(type, temp1, temp2, temp3, &noBarrier);
 
   // Call into C++ to mark this GC thing.
-  masm.pop(temp3);
-  masm.pop(temp2);
-  masm.pop(temp1);
+  masm.popRegs(temp3, temp2, temp1);
 
   LiveRegisterSet save;
   save.set() = RegisterSet(GeneralRegisterSet(Registers::VolatileMask),
@@ -414,9 +419,7 @@ uint32_t JitRuntime::generatePreBarrier(JSContext* cx, MacroAssembler& masm,
   masm.ret();
 
   masm.bind(&noBarrier);
-  masm.pop(temp3);
-  masm.pop(temp2);
-  masm.pop(temp1);
+  masm.popRegs(temp3, temp2, temp1);
   masm.abiret();
 
   return offset;
@@ -453,10 +456,11 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
   // push the return address, while the caller must ensure that the address
   // is stored in ra on entry. This allows the VM wrapper to work with both
   // direct calls and tail calls.
-  masm.pushReturnAddress();
-
-  // Push the frame pointer to finish the exit frame, then link it up.
-  masm.Push(FramePointer);
+  // First push the return address, then the frame pointer to finish the exit
+  // frame, then link it up.
+  masm.pushRegs(LinkRegister, FramePointer);
+  // This adjustment is for Push(FramePointer).
+  masm.adjustFrame(sizeof(intptr_t));
   masm.moveStackPtrTo(FramePointer);
   masm.loadJSContext(cxreg);
   masm.enterExitFrame(cxreg, regs.getAny(), id);

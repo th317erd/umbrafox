@@ -300,6 +300,7 @@ PK11_CreateGenericObject
 PK11_CreateMergeLog
 PK11_CreatePBEV2AlgorithmID
 PK11_CreatePrivateKeyFromTemplate
+PK11_Decapsulate
 PK11_Decrypt
 PK11_DeleteTokenCertAndKey
 PK11_DeleteTokenPrivateKey
@@ -318,6 +319,7 @@ PK11_DigestBegin
 PK11_DigestFinal
 PK11_DigestOp
 PK11_DoesMechanism
+PK11_Encapsulate
 PK11_Encrypt
 PK11_ExportDERPrivateKeyInfo
 PK11_ExportEncryptedPrivKeyInfo
@@ -361,6 +363,7 @@ PK11_GetKeyGen
 PK11_GetLowLevelKeyIDForPrivateKey
 PK11_GetMechanism
 PK11_GetModInfo
+PK11_GetModuleID
 PK11_GetModuleURI
 PK11_GetNextSafe
 PK11_GetNextSymKey
@@ -585,6 +588,7 @@ SECMOD_LoadModule
 SECMOD_LoadUserModule
 SECMOD_LoadUserModuleWithFunction
 SECMOD_LockedModuleHasRemovableSlots
+SECMOD_LookupSlot
 SECMOD_OpenUserDB
 SECMOD_PubCipherFlagstoInternal
 SECMOD_PubMechFlagstoInternal

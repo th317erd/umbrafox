@@ -6,14 +6,14 @@ package org.mozilla.fenix.ui.efficiency.tests
 
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
+import org.mozilla.fenix.helpers.Constants
 import org.mozilla.fenix.helpers.MockBrowserDataHelper
 import org.mozilla.fenix.helpers.TestAssetHelper.getGenericAsset
 import org.mozilla.fenix.ui.efficiency.helpers.BaseTest
 import org.mozilla.fenix.ui.efficiency.selectors.CollectionsSelectors
+import org.mozilla.fenix.ui.efficiency.selectors.ShareOverlaySelectors
 
 class CollectionsTest : BaseTest() {
-
-    private val mockWebServer get() = fenixTestRule.mockWebServer
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/343422
     @SmokeTest
@@ -28,12 +28,11 @@ class CollectionsTest : BaseTest() {
             it.isRecentTabsFeatureEnabled = false
         }
 
-        MockBrowserDataHelper
-            .createCollection(
-                Pair(firstTestPage.url.toString(), firstTestPage.title),
-                Pair(secondTestPage.url.toString(), secondTestPage.title),
-                title = collectionTitle,
-            )
+        MockBrowserDataHelper.createCollection(
+            Pair(firstTestPage.url.toString(), firstTestPage.title),
+            Pair(secondTestPage.url.toString(), secondTestPage.title),
+            title = collectionTitle,
+        )
         on.home.navigateToPage()
 
         on.collections
@@ -43,21 +42,21 @@ class CollectionsTest : BaseTest() {
             .mozVerify(CollectionsSelectors.COLLECTION_TAB_WITH_URL(firstTestPage.url.host.toString()))
             .mozVerify(CollectionsSelectors.COLLECTION_TAB_WITH_TITLE(secondTestPage.title))
             .mozVerify(CollectionsSelectors.COLLECTION_TAB_WITH_URL(secondTestPage.url.host.toString()))
-            .mozVerifyElementsByGroup("collectionControls")
-             // Collapse collection
+            .mozVerifyElementsByGroup(CollectionsSelectors.Group.COLLECTION_CONTROLS)
+            // Collapse collection
             .mozClick(CollectionsSelectors.COLLECTION_WITH_TITLE(collectionTitle))
             .mozVerify(CollectionsSelectors.COLLECTION_WITH_TITLE(collectionTitle))
             .mozVerifyElementAbsent(CollectionsSelectors.COLLECTION_TAB_WITH_TITLE(firstTestPage.title))
             .mozVerifyElementAbsent(CollectionsSelectors.COLLECTION_TAB_WITH_URL(firstTestPage.url.host.toString()))
-             // Re-expand collection
+            // Re-expand collection
             .mozClick(CollectionsSelectors.COLLECTION_WITH_TITLE(collectionTitle))
             .mozVerify(CollectionsSelectors.COLLECTION_WITH_TITLE(collectionTitle))
             .mozVerify(CollectionsSelectors.COLLECTION_TAB_WITH_TITLE(firstTestPage.title))
             .mozVerify(CollectionsSelectors.COLLECTION_TAB_WITH_URL(firstTestPage.url.host.toString()))
             .mozVerify(CollectionsSelectors.COLLECTION_TAB_WITH_TITLE(secondTestPage.title))
             .mozVerify(CollectionsSelectors.COLLECTION_TAB_WITH_URL(secondTestPage.url.host.toString()))
-            .mozVerifyElementsByGroup("collectionControls")
-             // Collapse collection again
+            .mozVerifyElementsByGroup(CollectionsSelectors.Group.COLLECTION_CONTROLS)
+            // Collapse collection again
             .mozClick(CollectionsSelectors.COLLECTION_WITH_TITLE(collectionTitle))
             .mozVerify(CollectionsSelectors.COLLECTION_WITH_TITLE(collectionTitle))
             .mozVerifyElementAbsent(CollectionsSelectors.COLLECTION_TAB_WITH_TITLE(firstTestPage.title))
@@ -77,12 +76,11 @@ class CollectionsTest : BaseTest() {
             it.isRecentTabsFeatureEnabled = false
         }
 
-        MockBrowserDataHelper
-            .createCollection(
-                Pair(firstTestPage.url.toString(), firstTestPage.title),
-                Pair(secondTestPage.url.toString(), secondTestPage.title),
-                title = collectionTitle,
-            )
+        MockBrowserDataHelper.createCollection(
+            Pair(firstTestPage.url.toString(), firstTestPage.title),
+            Pair(secondTestPage.url.toString(), secondTestPage.title),
+            title = collectionTitle,
+        )
         on.home.navigateToPage()
         on.collections
             .mozVerify(CollectionsSelectors.COLLECTION_WITH_TITLE(collectionTitle))
@@ -107,21 +105,21 @@ class CollectionsTest : BaseTest() {
             it.isRecentTabsFeatureEnabled = false
         }
 
-        MockBrowserDataHelper
-            .createCollection(
-                Pair(firstTestPage.url.toString(), firstTestPage.title),
-                Pair(secondTestPage.url.toString(), secondTestPage.title),
-                title = collectionTitle,
-            )
+        MockBrowserDataHelper.createCollection(
+            Pair(firstTestPage.url.toString(), firstTestPage.title),
+            Pair(secondTestPage.url.toString(), secondTestPage.title),
+            title = collectionTitle,
+        )
         on.home.navigateToPage()
         on.collections
             .mozVerify(CollectionsSelectors.COLLECTION_WITH_TITLE(collectionTitle))
             .mozClick(CollectionsSelectors.COLLECTION_WITH_TITLE(collectionTitle))
             .mozVerify(CollectionsSelectors.COLLECTION_TAB_WITH_TITLE(firstTestPage.title))
             .mozClick(CollectionsSelectors.COLLECTION_TAB_SHARE_BUTTON)
-        on.shareOverlay.mozVerifyElementsByGroup("shareTabLayout")
+        on.shareOverlay.mozVerifyElementsByGroup(ShareOverlaySelectors.Group.SHARE_TAB_LAYOUT)
         on.shareOverlay.verifySharingWithSelectedApp(
-            appName = "Gmail",
+            appName = Constants.GMAIL_APP_NAME,
+            appPackageName = Constants.PackageName.GMAIL_APP,
             content = "${firstTestPage.url}\n\n${secondTestPage.url}",
             subject = collectionTitle,
         )
@@ -140,12 +138,11 @@ class CollectionsTest : BaseTest() {
             it.isRecentTabsFeatureEnabled = false
         }
 
-        MockBrowserDataHelper
-            .createCollection(
-                Pair(firstTestPage.url.toString(), firstTestPage.title),
-                Pair(secondTestPage.url.toString(), secondTestPage.title),
-                title = collectionTitle,
-            )
+        MockBrowserDataHelper.createCollection(
+            Pair(firstTestPage.url.toString(), firstTestPage.title),
+            Pair(secondTestPage.url.toString(), secondTestPage.title),
+            title = collectionTitle,
+        )
         on.home.navigateToPage()
         on.collections
             .mozVerify(CollectionsSelectors.COLLECTION_WITH_TITLE(collectionTitle))

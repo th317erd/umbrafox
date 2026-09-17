@@ -13,6 +13,11 @@ import {
   resolveWidgetOrder,
   resolveWidgetHasSidebar,
   resolveCrosswordEndpoint,
+  resolvePrivacyBlankChance,
+  resolvePrivacyMaxCount,
+  resolvePrivacyDisplayCount,
+  resolvePrivacyShowVpnMessages,
+  resolvePrivacyCelebrationThreshold,
   PREF_WIDGETS_ORDER,
 } from "common/WidgetsRegistry.mjs";
 
@@ -53,6 +58,111 @@ describe("isWidgetToggleVisible", () => {
       isWidgetToggleVisible(listsWidget, {
         "widgets.system.lists.enabled": true,
         trainhopConfig: { widgetsSettings: { listsVisible: false } },
+      })
+    ).toBe(true);
+  });
+});
+
+// Bug 2063657: the sports widget is retired; removed in bug 2063656.
+describe("retired sports widget", () => {
+  const sportsWidget = WIDGET_REGISTRY.find(w => w.id === "sportsWidget");
+  const everythingOn = {
+    "widgets.enabled": true,
+    "widgets.sportsWidget.enabled": true,
+    "widgets.system.sportsWidget.enabled": true,
+    widgetsConfig: { sportsWidgetEnabled: true },
+    trainhopConfig: {
+      widgets: { sportsWidgetEnabled: true },
+      widgetsSettings: { sportsWidgetVisible: true },
+    },
+  };
+
+  it("is never addable, visible or enabled, whatever the prefs say", () => {
+    expect(isWidgetAddable(sportsWidget, everythingOn)).toBe(false);
+    expect(isWidgetToggleVisible(sportsWidget, everythingOn)).toBe(false);
+    expect(isWidgetEnabled(sportsWidget, everythingOn, true)).toBe(false);
+  });
+});
+
+// Bug 2063207: the privacy widget's readout needs history, so it is hidden
+// outright on profiles that record none.
+describe("privacy widget on a profile with no history", () => {
+  const privacy = WIDGET_REGISTRY.find(w => w.id === "privacy");
+  const everythingOn = {
+    "widgets.enabled": true,
+    "widgets.privacy.enabled": true,
+    "widgets.system.privacy.enabled": true,
+    widgetsConfig: { privacyEnabled: true },
+    trainhopConfig: {
+      widgetPrivacy: { visible: true },
+      widgets: { privacyEnabled: true },
+      widgetsSettings: { privacyVisible: true },
+    },
+  };
+
+  it("is not addable, visible or enabled when history is off", () => {
+    const prefs = { ...everythingOn, recordsHistory: false };
+    expect(isWidgetAddable(privacy, prefs)).toBe(false);
+    expect(isWidgetToggleVisible(privacy, prefs)).toBe(false);
+    expect(isWidgetEnabled(privacy, prefs, true)).toBe(false);
+  });
+
+  it("is unaffected when history is on", () => {
+    const prefs = { ...everythingOn, recordsHistory: true };
+    expect(isWidgetAddable(privacy, prefs)).toBe(true);
+    expect(isWidgetToggleVisible(privacy, prefs)).toBe(true);
+    expect(isWidgetEnabled(privacy, prefs, true)).toBe(true);
+  });
+
+  it("stays available when the value is missing entirely", () => {
+    // A missing broadcast must not hide a working widget.
+    expect(isWidgetAddable(privacy, everythingOn)).toBe(true);
+  });
+
+  it("leaves widgets that do not need history alone", () => {
+    expect(
+      isWidgetAddable(listsWidget, {
+        "widgets.system.lists.enabled": true,
+        recordsHistory: false,
+      })
+    ).toBe(true);
+  });
+});
+
+// Bug 2063718: the recent searches widget requires Firefox 157, so the widget is
+// hidden outright when newtab train-hops onto an older host.
+describe("recent searches widget on a host that predates its search access point", () => {
+  const recentSearches = WIDGET_REGISTRY.find(w => w.id === "recentSearches");
+  const everythingOn = {
+    "widgets.enabled": true,
+    "widgets.recentSearches.enabled": true,
+    "widgets.system.recentSearches.enabled": true,
+    widgetsConfig: { recentSearchesEnabled: true },
+    trainhopConfig: {
+      widgets: { recentSearchesEnabled: true },
+      widgetsSettings: { recentSearchesVisible: true },
+    },
+  };
+
+  it("is not addable, visible or enabled on an older host", () => {
+    const prefs = { ...everythingOn, supportsWidgetSearchSap: false };
+    expect(isWidgetAddable(recentSearches, prefs)).toBe(false);
+    expect(isWidgetToggleVisible(recentSearches, prefs)).toBe(false);
+    expect(isWidgetEnabled(recentSearches, prefs, true)).toBe(false);
+  });
+
+  it("is unaffected on a host that knows the access point", () => {
+    const prefs = { ...everythingOn, supportsWidgetSearchSap: true };
+    expect(isWidgetAddable(recentSearches, prefs)).toBe(true);
+    expect(isWidgetToggleVisible(recentSearches, prefs)).toBe(true);
+    expect(isWidgetEnabled(recentSearches, prefs, true)).toBe(true);
+  });
+
+  it("leaves widgets that do not search alone", () => {
+    expect(
+      isWidgetAddable(listsWidget, {
+        "widgets.system.lists.enabled": true,
+        supportsWidgetSearchSap: false,
       })
     ).toBe(true);
   });
@@ -111,6 +221,7 @@ describe("getWidgetOrder", () => {
       "crossword",
       "pictureOfTheDay",
       "stocks",
+      "recentSearches",
     ]);
   });
 
@@ -125,6 +236,7 @@ describe("getWidgetOrder", () => {
       "privacy",
       "crossword",
       "stocks",
+      "recentSearches",
     ]);
   });
 
@@ -139,6 +251,7 @@ describe("getWidgetOrder", () => {
       "privacy",
       "crossword",
       "stocks",
+      "recentSearches",
     ]);
   });
 
@@ -160,6 +273,7 @@ describe("getWidgetOrder", () => {
       "privacy",
       "crossword",
       "stocks",
+      "recentSearches",
     ]);
     expect(result.length).toBe(registryIds.length);
   });
@@ -185,6 +299,7 @@ describe("resolveWidgetOrder", () => {
       "privacy",
       "crossword",
       "stocks",
+      "recentSearches",
     ]);
   });
 
@@ -204,6 +319,7 @@ describe("resolveWidgetOrder", () => {
       "privacy",
       "crossword",
       "stocks",
+      "recentSearches",
     ]);
   });
 
@@ -223,6 +339,7 @@ describe("resolveWidgetOrder", () => {
       "privacy",
       "crossword",
       "stocks",
+      "recentSearches",
     ]);
   });
 });
@@ -291,6 +408,26 @@ describe("isWidgetAddable", () => {
       isWidgetAddable(crossword, {
         [crossword.systemEnabledPref]: false,
         trainhopConfig: { widgetCrossword: { visible: true } },
+      })
+    ).toBe(true);
+  });
+
+  it("is addable when revealed via the dedicated widgetPrivacy namespace", () => {
+    const privacy = WIDGET_REGISTRY.find(w => w.id === "privacy");
+    expect(
+      isWidgetAddable(privacy, {
+        [privacy.systemEnabledPref]: false,
+        trainhopConfig: { widgetPrivacy: { visible: true } },
+      })
+    ).toBe(true);
+  });
+
+  it("is addable when revealed via the dedicated widgetRecentSearches namespace", () => {
+    const recentSearches = WIDGET_REGISTRY.find(w => w.id === "recentSearches");
+    expect(
+      isWidgetAddable(recentSearches, {
+        [recentSearches.systemEnabledPref]: false,
+        trainhopConfig: { widgetRecentSearches: { visible: true } },
       })
     ).toBe(true);
   });
@@ -450,6 +587,29 @@ describe("resolveWidgetSize", () => {
       })
     ).toBe("large");
   });
+
+  it("prefers the dedicated widgetPrivacy size over the shared widgets key", () => {
+    const privacy = WIDGET_REGISTRY.find(w => w.id === "privacy");
+    expect(
+      resolveWidgetSize(privacy, {
+        [privacy.sizePref]: "",
+        trainhopConfig: {
+          widgetPrivacy: { size: "large" },
+          widgets: { [privacy.trainhopSizeKey]: "medium" },
+        },
+      })
+    ).toBe("large");
+  });
+
+  it("falls back to the shared widgets size key for privacy when no dedicated size", () => {
+    const privacy = WIDGET_REGISTRY.find(w => w.id === "privacy");
+    expect(
+      resolveWidgetSize(privacy, {
+        [privacy.sizePref]: "",
+        trainhopConfig: { widgets: { [privacy.trainhopSizeKey]: "large" } },
+      })
+    ).toBe("large");
+  });
 });
 
 describe("resolveWidgetHasSidebar", () => {
@@ -515,5 +675,296 @@ describe("resolveCrosswordEndpoint", () => {
     expect(
       resolveCrosswordEndpoint({ "widgets.crossword.endpoint": prefEndpoint })
     ).toBe(prefEndpoint);
+  });
+});
+
+describe("resolvePrivacyBlankChance", () => {
+  it("parses the string pref as a 0-1 fraction", () => {
+    expect(
+      resolvePrivacyBlankChance({ "widgets.privacy.blankChance": "0.25" })
+    ).toBe(0.25);
+  });
+
+  it("defaults to 0.4 when unset, without warning", () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    expect(resolvePrivacyBlankChance({})).toBe(0.4);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("warns and defaults to 0.4 for a present-but-unparseable value", () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    expect(
+      resolvePrivacyBlankChance({ "widgets.privacy.blankChance": "abc" })
+    ).toBe(0.4);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("treats a parsed 0 as valid (blanks off), not as the default", () => {
+    expect(
+      resolvePrivacyBlankChance({ "widgets.privacy.blankChance": "0" })
+    ).toBe(0);
+  });
+
+  it("warns and falls back to 0.4 for an out-of-range value (e.g. 40)", () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    expect(
+      resolvePrivacyBlankChance({ "widgets.privacy.blankChance": "40" })
+    ).toBe(0.4);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("prefers a valid trainhopConfig number over the pref", () => {
+    expect(
+      resolvePrivacyBlankChance({
+        "widgets.privacy.blankChance": "0.9",
+        trainhopConfig: { widgets: { privacyBlankChance: 0.1 } },
+      })
+    ).toBe(0.1);
+  });
+
+  it("prefers the dedicated widgetPrivacy blankChance over the shared key", () => {
+    expect(
+      resolvePrivacyBlankChance({
+        "widgets.privacy.blankChance": "0.9",
+        trainhopConfig: {
+          widgetPrivacy: { blankChance: 0.1 },
+          widgets: { privacyBlankChance: 0.7 },
+        },
+      })
+    ).toBe(0.1);
+  });
+
+  it("lets a dedicated 0 win over a nonzero shared key", () => {
+    expect(
+      resolvePrivacyBlankChance({
+        trainhopConfig: {
+          widgetPrivacy: { blankChance: 0 },
+          widgets: { privacyBlankChance: 0.7 },
+        },
+      })
+    ).toBe(0);
+  });
+
+  it("warns and falls through to the shared key when the dedicated value is a string", () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    expect(
+      resolvePrivacyBlankChance({
+        trainhopConfig: {
+          // The string form is only correct for the pref, not the payload.
+          widgetPrivacy: { blankChance: "0.4" },
+          widgets: { privacyBlankChance: 0.7 },
+        },
+      })
+    ).toBe(0.7);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
+
+describe("resolvePrivacyMaxCount", () => {
+  it("prefers the dedicated widgetPrivacy key over the shared key and pref", () => {
+    expect(
+      resolvePrivacyMaxCount({
+        "widgets.privacy.maxCount": 10,
+        trainhopConfig: {
+          widgetPrivacy: { maxCount: 50 },
+          widgets: { privacyMaxCount: 25 },
+        },
+      })
+    ).toBe(50);
+  });
+
+  it("falls back to the shared key, then the pref, then 100", () => {
+    expect(
+      resolvePrivacyMaxCount({
+        "widgets.privacy.maxCount": 10,
+        trainhopConfig: { widgets: { privacyMaxCount: 25 } },
+      })
+    ).toBe(25);
+    expect(resolvePrivacyMaxCount({ "widgets.privacy.maxCount": 10 })).toBe(10);
+    expect(resolvePrivacyMaxCount({})).toBe(100);
+  });
+
+  it("warns and falls through to the shared key when the dedicated value is a string", () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    expect(
+      resolvePrivacyMaxCount({
+        trainhopConfig: {
+          widgetPrivacy: { maxCount: "50" },
+          widgets: { privacyMaxCount: 25 },
+        },
+      })
+    ).toBe(25);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
+
+describe("resolvePrivacyDisplayCount", () => {
+  it("prefers the dedicated widgetPrivacy key over the shared key and pref", () => {
+    expect(
+      resolvePrivacyDisplayCount({
+        "widgets.privacy.maxDisplayCount": 200,
+        trainhopConfig: {
+          widgetPrivacy: { maxDisplayCount: 50 },
+          widgets: { privacyMaxDisplayCount: 100 },
+        },
+      })
+    ).toBe(50);
+  });
+
+  it("falls back to the shared key, then the pref, then 999", () => {
+    expect(
+      resolvePrivacyDisplayCount({
+        "widgets.privacy.maxDisplayCount": 200,
+        trainhopConfig: { widgets: { privacyMaxDisplayCount: 100 } },
+      })
+    ).toBe(100);
+    expect(
+      resolvePrivacyDisplayCount({ "widgets.privacy.maxDisplayCount": 200 })
+    ).toBe(200);
+    expect(resolvePrivacyDisplayCount({})).toBe(999);
+  });
+
+  it("warns and falls through to the shared key when the dedicated value is a string", () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    expect(
+      resolvePrivacyDisplayCount({
+        trainhopConfig: {
+          widgetPrivacy: { maxDisplayCount: "50" },
+          widgets: { privacyMaxDisplayCount: 100 },
+        },
+      })
+    ).toBe(100);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
+
+describe("resolvePrivacyShowVpnMessages", () => {
+  it("prefers the dedicated widgetPrivacy key over the shared key and pref", () => {
+    expect(
+      resolvePrivacyShowVpnMessages({
+        "widgets.privacy.showVpnMessages": false,
+        trainhopConfig: {
+          widgetPrivacy: { showVpnMessages: true },
+          widgets: { privacyShowVpnMessages: false },
+        },
+      })
+    ).toBe(true);
+  });
+
+  it("lets a dedicated false win over a shared true", () => {
+    expect(
+      resolvePrivacyShowVpnMessages({
+        "widgets.privacy.showVpnMessages": true,
+        trainhopConfig: {
+          widgetPrivacy: { showVpnMessages: false },
+          widgets: { privacyShowVpnMessages: true },
+        },
+      })
+    ).toBe(false);
+  });
+
+  it("falls back to the shared key, then the pref, then false", () => {
+    expect(
+      resolvePrivacyShowVpnMessages({
+        "widgets.privacy.showVpnMessages": false,
+        trainhopConfig: { widgets: { privacyShowVpnMessages: true } },
+      })
+    ).toBe(true);
+    expect(
+      resolvePrivacyShowVpnMessages({
+        "widgets.privacy.showVpnMessages": true,
+      })
+    ).toBe(true);
+    expect(resolvePrivacyShowVpnMessages({})).toBe(false);
+  });
+
+  it("warns and falls through to the shared key when the dedicated value is a string", () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    // Regression: the string used to mask the shared true and resolve to false,
+    // silently leaving VPN promos off in an experiment that asked for them on.
+    expect(
+      resolvePrivacyShowVpnMessages({
+        trainhopConfig: {
+          widgetPrivacy: { showVpnMessages: "true" },
+          widgets: { privacyShowVpnMessages: true },
+        },
+      })
+    ).toBe(true);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
+
+describe("resolvePrivacyCelebrationThreshold", () => {
+  const PREF = "widgets.privacy.celebrationThreshold";
+
+  it("defaults to 10 when unset", () => {
+    expect(resolvePrivacyCelebrationThreshold({})).toBe(10);
+  });
+
+  it("uses a valid numeric pref", () => {
+    expect(resolvePrivacyCelebrationThreshold({ [PREF]: 25 })).toBe(25);
+  });
+
+  it("prefers trainhopConfig over the pref", () => {
+    expect(
+      resolvePrivacyCelebrationThreshold({
+        [PREF]: 25,
+        trainhopConfig: { widgets: { privacyCelebrationThreshold: 5 } },
+      })
+    ).toBe(5);
+  });
+
+  it("ignores a non-numeric trainhop value and falls back to the pref", () => {
+    expect(
+      resolvePrivacyCelebrationThreshold({
+        [PREF]: 25,
+        trainhopConfig: { widgets: { privacyCelebrationThreshold: "5" } },
+      })
+    ).toBe(25);
+  });
+
+  it("rejects zero and negatives, which would fire on every refresh", () => {
+    expect(resolvePrivacyCelebrationThreshold({ [PREF]: 0 })).toBe(10);
+    expect(resolvePrivacyCelebrationThreshold({ [PREF]: -5 })).toBe(10);
+  });
+
+  it("rejects non-finite and non-numeric values", () => {
+    expect(resolvePrivacyCelebrationThreshold({ [PREF]: NaN })).toBe(10);
+    expect(resolvePrivacyCelebrationThreshold({ [PREF]: Infinity })).toBe(10);
+    expect(resolvePrivacyCelebrationThreshold({ [PREF]: "25" })).toBe(10);
+  });
+
+  it("prefers the dedicated widgetPrivacy key over the shared key", () => {
+    expect(
+      resolvePrivacyCelebrationThreshold({
+        [PREF]: 25,
+        trainhopConfig: {
+          widgetPrivacy: { celebrationThreshold: 5 },
+          widgets: { privacyCelebrationThreshold: 20 },
+        },
+      })
+    ).toBe(5);
+  });
+
+  it("warns and falls through to the shared key when the dedicated value is a string", () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    expect(
+      resolvePrivacyCelebrationThreshold({
+        [PREF]: 25,
+        trainhopConfig: {
+          widgetPrivacy: { celebrationThreshold: "5" },
+          widgets: { privacyCelebrationThreshold: 20 },
+        },
+      })
+    ).toBe(20);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
   });
 });

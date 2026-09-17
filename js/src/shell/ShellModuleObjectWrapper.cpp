@@ -280,7 +280,7 @@ bool ShellModuleWrapperGetter(JSContext* cx, const JS::CallArgs& args,
   JS::Rooted<T*> wrapper(cx, &args.thisv().toObject().as<T>());
   if constexpr (std::is_same_v<T, ShellModuleObjectWrapper>) {
     if (!wrapper->get()->hasCyclicModuleFields()) {
-      args.rval().set(UndefinedValue());
+      args.rval().setUndefined();
       return true;
     }
   }
@@ -344,7 +344,7 @@ bool ShellModuleNativeWrapperGetter(JSContext* cx, const JS::CallArgs& args,
   JS::Rooted<T*> wrapper(cx, &args.thisv().toObject().as<T>());
   if constexpr (std::is_same_v<T, ShellModuleObjectWrapper>) {
     if (!wrapper->get()->hasCyclicModuleFields()) {
-      args.rval().set(UndefinedValue());
+      args.rval().setUndefined();
       return true;
     }
   }
@@ -405,8 +405,8 @@ bool ImportNameValueTypeFilter(JSContext* cx, JS::Handle<JS::Value> raw,
     case js::ImportNameValueType::Source:
       name = "source";
       break;
-    case js::ImportNameValueType::AllButDefault:
-      name = "all-but-default";
+    case js::ImportNameValueType::All:
+      name = "all";
       break;
   }
   MOZ_ASSERT(name, "unexpected ImportNameValueType");

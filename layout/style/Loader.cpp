@@ -278,6 +278,9 @@ SheetLoadData::SheetLoadData(
       mSheetAlreadyComplete(false),
       mLoadFailed(false),
       mShouldEmulateNotificationsForCachedLoad(false),
+      mRecordErrors(
+          aLoader->GetDocument() &&
+          css::ErrorReporter::ShouldReportErrors(*aLoader->GetDocument())),
       mPreloadKind(aPreloadKind),
       mObserver(aObserver),
       mTriggeringPrincipal(aTriggeringPrincipal),
@@ -286,9 +289,6 @@ SheetLoadData::SheetLoadData(
       mFetchPriority{aFetchPriority},
       mGuessedEncoding(GetFallbackEncoding(*aLoader, aOwningNode, nullptr)),
       mCompatMode(aLoader->CompatMode(aPreloadKind)),
-      mRecordErrors(
-          aLoader && aLoader->GetDocument() &&
-          css::ErrorReporter::ShouldReportErrors(*aLoader->GetDocument())),
       mNetworkMetadata(std::move(aNetworkMetadata)) {
   MOZ_ASSERT(!aOwningNode || dom::LinkStyle::FromNode(*aOwningNode),
              "Must implement LinkStyle");
@@ -321,6 +321,9 @@ SheetLoadData::SheetLoadData(
       mSheetAlreadyComplete(false),
       mLoadFailed(false),
       mShouldEmulateNotificationsForCachedLoad(false),
+      mRecordErrors(
+          aLoader->GetDocument() &&
+          css::ErrorReporter::ShouldReportErrors(*aLoader->GetDocument())),
       mPreloadKind(StylePreloadKind::None),
       mObserver(aObserver),
       mTriggeringPrincipal(aTriggeringPrincipal),
@@ -330,9 +333,6 @@ SheetLoadData::SheetLoadData(
       mGuessedEncoding(GetFallbackEncoding(
           *aLoader, nullptr, aParentData ? aParentData->mEncoding : nullptr)),
       mCompatMode(aLoader->CompatMode(mPreloadKind)),
-      mRecordErrors(
-          aLoader && aLoader->GetDocument() &&
-          css::ErrorReporter::ShouldReportErrors(*aLoader->GetDocument())),
       mNetworkMetadata(std::move(aNetworkMetadata)) {
   MOZ_ASSERT(mLoader, "Must have a loader!");
   MOZ_ASSERT(mTriggeringPrincipal);
@@ -367,6 +367,9 @@ SheetLoadData::SheetLoadData(
       mSheetAlreadyComplete(false),
       mLoadFailed(false),
       mShouldEmulateNotificationsForCachedLoad(false),
+      mRecordErrors(
+          aLoader->GetDocument() &&
+          css::ErrorReporter::ShouldReportErrors(*aLoader->GetDocument())),
       mPreloadKind(aPreloadKind),
       mObserver(aObserver),
       mTriggeringPrincipal(aTriggeringPrincipal),
@@ -376,9 +379,6 @@ SheetLoadData::SheetLoadData(
       mGuessedEncoding(
           GetFallbackEncoding(*aLoader, nullptr, aPreloadEncoding)),
       mCompatMode(aLoader->CompatMode(aPreloadKind)),
-      mRecordErrors(
-          aLoader && aLoader->GetDocument() &&
-          css::ErrorReporter::ShouldReportErrors(*aLoader->GetDocument())),
       mNetworkMetadata(std::move(aNetworkMetadata)) {
   MOZ_ASSERT(mTriggeringPrincipal);
   MOZ_ASSERT(mLoader, "Must have a loader!");
@@ -689,6 +689,7 @@ void SheetLoadData::OnStartRequest(nsIRequest* aRequest) {
     }
     return true;
   }());
+  mFinalURISameOrigin = mLoader->LoaderPrincipal()->IsSameOrigin(finalURI);
   if (nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(channel)) {
     nsCString sourceMapURL;
     if (nsContentUtils::GetSourceMapURL(httpChannel, sourceMapURL)) {
@@ -741,24 +742,30 @@ nsresult SheetLoadData::VerifySheetReadyToParse(nsresult aStatus,
                          contentType.EqualsLiteral(UNKNOWN_CONTENT_TYPE) ||
                          contentType.IsEmpty();
   if (!validType) {
-    const bool sameOrigin = mSheet->IsOriginClean();
-    const auto flag = sameOrigin && mCompatMode == eCompatibility_NavQuirks
-                          ? nsIScriptError::warningFlag
-                          : nsIScriptError::errorFlag;
-    const auto errorMessage = flag == nsIScriptError::errorFlag
-                                  ? "MimeNotCss"_ns
-                                  : "MimeNotCssWarn"_ns;
-    NS_ConvertUTF8toUTF16 sheetUri(mURI->GetSpecOrDefault());
-    NS_ConvertUTF8toUTF16 contentType16(contentType);
-
+    const bool shouldAllow = [&] {
+      if (mCompatMode != eCompatibility_NavQuirks) {
+        return false;
+      }
+      if (!mSheet->IsOriginClean()) {
+        return false;
+      }
+      if (StaticPrefs::layout_css_quirks_final_uri_check() &&
+          !mFinalURISameOrigin) {
+        return false;
+      }
+      return true;
+    }();
     nsAutoCString referrerSpec;
     if (nsCOMPtr<nsIURI> referrer = ReferrerInfo()->GetOriginalReferrer()) {
       referrer->GetSpec(referrerSpec);
     }
     mLoader->mReporter->AddConsoleReport(
-        flag, "CSS Loader"_ns, PropertiesFile::CSS_PROPERTIES, referrerSpec, 0,
-        0, errorMessage, {sheetUri, contentType16});
-    if (flag == nsIScriptError::errorFlag) {
+        shouldAllow ? nsIScriptError::warningFlag : nsIScriptError::errorFlag,
+        "CSS Loader"_ns, PropertiesFile::CSS_PROPERTIES, referrerSpec, 0, 0,
+        shouldAllow ? "MimeNotCssWarn"_ns : "MimeNotCss"_ns,
+        {NS_ConvertUTF8toUTF16(mURI->GetSpecOrDefault()),
+         NS_ConvertUTF8toUTF16(contentType)});
+    if (!shouldAllow) {
       LOG_WARN(
           ("  Ignoring sheet with improper MIME type %s", contentType.get()));
       return NS_ERROR_NOT_AVAILABLE;
@@ -1573,19 +1580,24 @@ void Loader::NotifyObservers(SheetLoadData& aData, nsresult aStatus,
   RefPtr loadDispatcher = aData.PrepareLoadEventIfNeeded();
   if (aData.mURI) {
     aData.NotifyStop(aStatus);
-    // NOTE(emilio): This needs to happen before notifying observers, as
-    // FontFaceSet for example checks for pending sheet loads from the
-    // StyleSheetLoaded callback.
+    // NOTE(emilio): DecrementOngoingLoadCountAndMaybeUnblockOnload() needs to
+    // happen before notifying observers, as FontFaceSet for example checks for
+    // pending sheet loads from the StyleSheetLoaded callback.
     if (aData.BlocksLoadEvent()) {
       DecrementOngoingLoadCountAndMaybeUnblockOnload();
       if (mPendingLoadCount && mPendingLoadCount == mOngoingLoadCount) {
         LOG(("  No more loading sheets; starting deferred loads"));
-        StartDeferredLoads();
+        if (aCanFireEvents) {
+          StartDeferredLoads();
+        } else {
+          NS_DispatchToMainThread(NewRunnableMethod(
+              "Loader::StartDeferredLoads", this, &Loader::StartDeferredLoads));
+        }
       }
     }
   }
   if (!aData.mTitle.IsEmpty() && NS_SUCCEEDED(aStatus)) {
-    nsContentUtils::AddScriptRunner(NS_NewRunnableFunction(
+    NS_DispatchToMainThread(NS_NewRunnableFunction(
         "Loader::NotifyObservers - Create PageStyle actor",
         [doc = RefPtr{mDocument}] {
           // Force creating the page style actor, if available.
@@ -1740,7 +1752,7 @@ void Loader::MaybeNotifyPreloadUsed(SheetLoadData& aData) {
 }
 
 Result<Loader::LoadSheetResult, nsresult> Loader::LoadInlineStyle(
-    const SheetInfo& aInfo, const nsAString& aBuffer,
+    const SheetInfo& aInfo, const nsACString& aBuffer,
     nsICSSLoaderObserver* aObserver) {
   LOG(("css::Loader::LoadInlineStyle"));
   MOZ_ASSERT(aInfo.mContent);
@@ -1848,11 +1860,10 @@ Result<Loader::LoadSheetResult, nsresult> Loader::LoadInlineStyle(
       // Note that we need to parse synchronously, since the web expects that
       // the effects of inline stylesheets are visible immediately (aside from
       // @imports).
-      NS_ConvertUTF16toUTF8 utf8(aBuffer);
       RefPtr<SheetLoadDataHolder> holder(
           new nsMainThreadPtrHolder<css::SheetLoadData>(__func__, data.get(),
                                                         true));
-      completed = ParseSheet(utf8, holder, AllowAsyncParse::No);
+      completed = ParseSheet(aBuffer, holder, AllowAsyncParse::No);
       if (completed == Completed::Yes) {
         aHandle.OrInsert().AppendElement(
             SharedStyleSheetCache::InlineSheetEntry{data->ValueForCache(),

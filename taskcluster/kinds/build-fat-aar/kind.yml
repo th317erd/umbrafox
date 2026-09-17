@@ -69,6 +69,7 @@ task-defaults:
               path: /builds/worker/workspace/obj-build/gradle/build/reports
               type: directory
     run:
+        clone-with: hg
         using: mozharness
         script: "mozharness/scripts/fx_desktop_build.py"
         secrets: true
@@ -198,7 +199,7 @@ tasks:
             custom-build-variant-cfg: arm-lite
         fetches:
             toolchain:
-                - android-gradle-dependencies-lite
+                - android-gradle-dependencies
         optimization:
             skip-unless-backstop: null
 

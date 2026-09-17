@@ -43,6 +43,7 @@ class ComputedStyle;
 struct AnchorPosResolutionCache;
 class AnchorPosReferenceData;
 struct IntrinsicSize;
+class LogicalMargin;
 struct SizeComputationInput;
 
 }  // namespace mozilla
@@ -212,7 +213,6 @@ struct nsStyleImageLayers {
     }
 
     bool operator==(const Repeat& aOther) const = default;
-    bool operator!=(const Repeat& aOther) const = default;
   };
 
   struct Layer {
@@ -225,7 +225,7 @@ struct nsStyleImageLayers {
     mozilla::Position mPosition;
     StyleBackgroundSize mSize;
     StyleBackgroundClip mClip;
-    MOZ_INIT_OUTSIDE_CTOR StyleGeometryBox mOrigin;
+    MOZ_INIT_OUTSIDE_CTOR mozilla::StyleBackgroundOrigin mOrigin;
 
     // This property is used for background layer only.
     // For a mask layer, it should always be the initial value, which is
@@ -272,10 +272,7 @@ struct nsStyleImageLayers {
     // Compute the change hint required by changes in just this layer.
     nsChangeHint CalcDifference(const Layer& aNewLayer) const;
 
-    // An equality operator that compares the images using URL-equality
-    // rather than pointer-equality.
-    bool operator==(const Layer& aOther) const;
-    bool operator!=(const Layer& aOther) const = default;
+    bool operator==(const Layer&) const = default;
   };
 
   // The (positive) number of computed values of each property, since
@@ -1521,8 +1518,7 @@ struct StyleTransition {
   const StyleTransitionProperty& GetProperty() const { return mProperty; }
   StyleTransitionBehavior GetBehavior() const { return mBehavior; }
 
-  bool operator==(const StyleTransition& aOther) const;
-  bool operator!=(const StyleTransition&) const = default;
+  bool operator==(const StyleTransition&) const = default;
 
  private:
   StyleComputedTimingFunction mTimingFunction{
@@ -1553,8 +1549,7 @@ struct StyleAnimation {
   const StyleAnimationRangeStart& GetRangeStart() const { return mRangeStart; }
   const StyleAnimationRangeEnd& GetRangeEnd() const { return mRangeEnd; }
 
-  bool operator==(const StyleAnimation& aOther) const;
-  bool operator!=(const StyleAnimation&) const = default;
+  bool operator==(const StyleAnimation&) const = default;
 
  private:
   StyleComputedTimingFunction mTimingFunction{
@@ -1581,7 +1576,6 @@ struct StyleScrollTimeline {
   StyleScrollAxis GetAxis() const { return mAxis; }
 
   bool operator==(const StyleScrollTimeline&) const = default;
-  bool operator!=(const StyleScrollTimeline&) const = default;
 
  private:
   StyleTimelineName mName;
@@ -1597,7 +1591,6 @@ struct StyleViewTimeline {
   const StyleViewTimelineInset& GetInset() const { return mInset; }
 
   bool operator==(const StyleViewTimeline&) const = default;
-  bool operator!=(const StyleViewTimeline&) const = default;
 
  private:
   StyleTimelineName mName;
@@ -1670,6 +1663,8 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
   mozilla::StyleScrollSnapAlign mScrollSnapAlign;
   mozilla::StyleScrollSnapStop mScrollSnapStop;
   mozilla::StyleScrollSnapType mScrollSnapType;
+  mozilla::StyleScrollbarInset mScrollbarInsetBlock;
+  mozilla::StyleScrollbarInset mScrollbarInsetInline;
 
   mozilla::StyleBackfaceVisibility mBackfaceVisibility;
   mozilla::StyleTransformStyle mTransformStyle;
@@ -1856,6 +1851,12 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
            mOverflowY == mozilla::StyleOverflow::Visible;
   }
 
+  // How much to shorten each scrollbar by at each of its ends. Each side holds
+  // the inset measured from it, so the block-axis pair shortens the scrollbar
+  // running along the block axis. Defined in WritingModes.h.
+  inline mozilla::LogicalMargin GetScrollbarInset(
+      mozilla::WritingMode aWM) const;
+
   bool IsContainPaint() const {
     // Short circuit for no containment whatsoever
     if (!mEffectiveContainment) {
@@ -2027,6 +2028,14 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleContent {
     return mozilla::Span(items.items).From(items.alt_start);
   }
 
+  /**
+   * True if the 'content' change from aOld to aNew can be applied by rewriting
+   * the existing generated text nodes in place rather than reframing the full
+   * subtree.
+   */
+  static bool CanUpdateGeneratedContentText(const nsStyleContent& aOld,
+                                            const nsStyleContent& aNew);
+
   mozilla::StyleContent mContent;
   mozilla::StyleCounterIncrement mCounterIncrement;
   mozilla::StyleCounterReset mCounterReset;
@@ -2146,6 +2155,10 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleUIReset {
   mozilla::StyleWindowDragging mWindowDragging;
   mozilla::StyleWindowShadow mWindowShadow;
   mozilla::StyleFieldSizing mFieldSizing;
+
+  // How far one line scrolls this scroll container, when it doesn't want the
+  // font-derived amount. See ScrollContainerFrame::GetLineScrollAmount().
+  mozilla::NonNegativeLengthOrAuto mMozLineScrollAmount;
 
   // The margin of the window region that should be transparent to events.
   mozilla::StyleLength mMozWindowInputRegionMargin;
@@ -2479,5 +2492,18 @@ struct nsSize_Simple {
 STATIC_ASSERT_TYPE_LAYOUTS_MATCH(nsSize, nsSize_Simple);
 STATIC_ASSERT_FIELD_OFFSET_MATCHES(nsSize, nsSize_Simple, width);
 STATIC_ASSERT_FIELD_OFFSET_MATCHES(nsSize, nsSize_Simple, height);
+
+/**
+ * <div rustbindgen="true" replaces="mozilla::gfx::Rect">
+ */
+struct Rect_Simple {  // note that this is gfx::Rect, NOT gfxRect!
+  float x, y, width, height;
+};
+
+STATIC_ASSERT_TYPE_LAYOUTS_MATCH(mozilla::gfx::Rect, Rect_Simple);
+STATIC_ASSERT_FIELD_OFFSET_MATCHES(mozilla::gfx::Rect, Rect_Simple, x);
+STATIC_ASSERT_FIELD_OFFSET_MATCHES(mozilla::gfx::Rect, Rect_Simple, y);
+STATIC_ASSERT_FIELD_OFFSET_MATCHES(mozilla::gfx::Rect, Rect_Simple, width);
+STATIC_ASSERT_FIELD_OFFSET_MATCHES(mozilla::gfx::Rect, Rect_Simple, height);
 
 #endif /* nsStyleStruct_h_ */

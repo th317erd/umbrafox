@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /* TODO (Bug 2008938): Make in-page Smartbar styling not dependent on chrome styles */
-@import url("chrome://browser/skin/urlbar-searchbar.css");
-@import url("chrome://browser/skin/urlbar/view.css");
+@import url("chrome://browser/skin/urlbar.css");
+@import url("chrome://browser/skin/tabbrowser/tab.tokens.css");
 
 :host,
 :root {
@@ -62,6 +62,13 @@
       outline-offset: var(--focus-outline-offset);
     }
   }
+
+  /* Neutralize the UA popover rules. */
+  inset: auto;
+  border: none;
+  padding: 0;
+  overflow: visible;
+  background-color: transparent;
 
   display: flex;
   flex-direction: column;
@@ -277,7 +284,7 @@
   --multiline-editor-scrollbar-width: thin;
   --multiline-editor-border: none;
   --multiline-editor-focus-outline: none;
-  font-size: var(--font-size-large);
+  font-size: var(--font-size-root);
   padding: var(--space-xsmall);
 
   @media not (forced-colors) {
@@ -291,16 +298,21 @@
 }
 
 /* Results */
-.smartbar .urlbarView-results {
-  padding-block: var(--space-medium);
-  padding-inline: var(--space-large);
+@media not -moz-pref("browser.nova.enabled") {
+  .smartbar .urlbarView-results {
+    padding-block: var(--space-medium);
+    padding-inline: var(--space-large);
+  }
 }
 
 /* Button container */
 .smartbar-button-container {
-  padding: var(--space-xsmall) var(--space-large) var(--space-medium);
+  padding: var(--space-xsmall) var(--space-large) var(--space-large);
   position: relative;
   display: flex;
+  /* Query container so the model-select and CTA buttons collapse based on the
+     smartbar's width rather than the window width (e.g. a narrow Ask sidebar). */
+  container: smartbar-controls / inline-size;
 }
 
 .smartbar-button-container input-model-select {
@@ -331,8 +343,10 @@
     }
   }
 
-  .smartbar .urlbarView-results {
-    padding-block: calc(var(--space-medium) - var(--urlbarView-row-gutter));
+  .smartbar > .urlbarView {
+    /* The view's max-height budgets the padding, so keep it inside the box. */
+    box-sizing: border-box;
+    padding: calc(var(--space-medium) - var(--urlbarView-row-gutter)) var(--space-large);
   }
 
   .urlbarView-row {

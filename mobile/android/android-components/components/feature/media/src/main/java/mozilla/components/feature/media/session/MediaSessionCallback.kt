@@ -6,12 +6,11 @@ package mozilla.components.feature.media.session
 
 import android.support.v4.media.session.MediaSessionCompat
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.feature.media.ext.MS_PER_SECOND
 import mozilla.components.feature.media.ext.findActiveMediaTab
 import mozilla.components.support.base.log.logger.Logger
 
-internal class MediaSessionCallback(
-    private val store: BrowserStore,
-) : MediaSessionCompat.Callback() {
+internal class MediaSessionCallback(private val store: BrowserStore) : MediaSessionCompat.Callback() {
     private val logger = Logger("MediaSessionCallback")
 
     override fun onPlay() {
@@ -36,5 +35,10 @@ internal class MediaSessionCallback(
         logger.debug("previousTrack()")
 
         store.state.findActiveMediaTab()?.mediaSessionState?.controller?.previousTrack()
+    }
+
+    override fun onSeekTo(pos: Long) {
+        logger.debug("seekTo()")
+        store.state.findActiveMediaTab()?.mediaSessionState?.controller?.seekTo(pos / MS_PER_SECOND, fast = false)
     }
 }

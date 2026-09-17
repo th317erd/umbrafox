@@ -1778,13 +1778,14 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
          id == NameToId(cx->names().zipKeyed))) {
       return true;
     }
+    if (!JS::Prefs::experimental_promise_allkeyed() &&
+        (id == NameToId(cx->names().allKeyed) ||
+         id == NameToId(cx->names().allSettledKeyed))) {
+      return true;
+    }
   }
 
 #ifdef JS_HAS_INTL_API
-  if (key == JSProto_Date && !JS::Prefs::experimental_temporal() &&
-      id == NameToId(cx->names().toTemporalInstant)) {
-    return true;
-  }
   if (key == JSProto_Locale && !JS::Prefs::experimental_intl_locale_info()) {
     if (id == NameToId(cx->names().firstDayOfWeek) ||
         id == NameToId(cx->names().getTextInfo) ||
@@ -1806,11 +1807,6 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
   if (key == JSProto_Function) {
     if (!JS::Prefs::experimental_iterator_range() &&
         (id == NameToId(cx->names().range))) {
-      return true;
-    }
-    if (!JS::Prefs::experimental_promise_allkeyed() &&
-        (id == NameToId(cx->names().allKeyed) ||
-         id == NameToId(cx->names().allSettledKeyed))) {
       return true;
     }
   }

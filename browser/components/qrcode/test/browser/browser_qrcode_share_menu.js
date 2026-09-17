@@ -288,10 +288,13 @@ add_task(
         "Two tabs should be selected"
       );
 
-      let contextMenu = gURLBar.querySelector("moz-input-box").menupopup;
-      contextMenu.dispatchEvent(
-        new PointerEvent("contextmenu", { bubbles: true })
-      );
+      let contextMenu = window.EditContextMenu.popup;
+      let popupShown = BrowserTestUtils.waitForPopupEvent(contextMenu, "shown");
+      EventUtils.synthesizeMouseAtCenter(gURLBar.inputField, {
+        type: "contextmenu",
+        button: 2,
+      });
+      await popupShown;
 
       let shareItem = contextMenu.querySelector(".share-tab-url-item");
       Assert.ok(
@@ -309,6 +312,13 @@ add_task(
         qrCodeItem.disabled,
         "QR Code menu item should be disabled when multiple tabs are selected"
       );
+
+      let popupHidden = BrowserTestUtils.waitForEvent(
+        contextMenu,
+        "popuphidden"
+      );
+      contextMenu.hidePopup();
+      await popupHidden;
     } finally {
       gBrowser.clearMultiSelectedTabs();
       BrowserTestUtils.removeTab(tab1);

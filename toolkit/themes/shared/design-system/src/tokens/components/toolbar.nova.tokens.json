@@ -9,15 +9,10 @@
       "color": {
         "@base": {
           "value": {
+            "nativeTheme": "{border.color.transparent}",
             "light": "{color.gray.20}",
             "dark": "{color.gray.60}",
             "forcedColors": "ButtonText"
-          }
-        },
-        "focus": {
-          "value": {
-            "default": "#ffffff",
-            "forcedColors": "SelectedItem"
           }
         }
       }
@@ -25,7 +20,10 @@
     "background": {
       "color": {
         "@base": {
-          "value": "{toolbar.background.color}"
+          "value": {
+            "nativeTheme": "light-dark(rgba(0, 0, 0, 0.05), {color.black.alpha.30})",
+            "default": "{toolbar.background.color}"
+          }
         },
         "focus": {
           "value": {
@@ -51,15 +49,6 @@
             "default": "{toolbar.field.text.color.@base}"
           }
         }
-      }
-    }
-  },
-  "background": {
-    "color": {
-      "value": {
-        "nativeTheme": "color-mix(in srgb, -moz-dialog 85%, {color.white.@base})",
-        "default": "{background.color.box.@base}",
-        "forcedColors": "Canvas"
       }
     }
   }

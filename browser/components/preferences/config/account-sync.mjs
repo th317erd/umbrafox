@@ -25,9 +25,13 @@ const { SCOPE_APP_SYNC } = ChromeUtils.importESModule(
 const XPCOMUtils = ChromeUtils.importESModule(
   "resource://gre/modules/XPCOMUtils.sys.mjs"
 ).XPCOMUtils;
+const { Referrals } = ChromeUtils.importESModule(
+  "resource:///modules/referrals/Referrals.sys.mjs"
+);
 const lazy = XPCOMUtils.declareLazy({
   BackupService: "resource:///modules/backup/BackupService.sys.mjs",
   Weave: "resource://services-sync/main.sys.mjs",
+
   SelectableProfileService:
     "resource:///modules/profiles/SelectableProfileService.sys.mjs",
 });
@@ -207,6 +211,7 @@ export var SyncHelpers = new (class SyncHelpers {
           return;
         }
         const url = await window.FxAccounts.config.promiseConnectAccountURI(
+          "sync",
           this.getEntryPoint()
         );
         this.replaceTabWithUrl(url);
@@ -223,6 +228,7 @@ export var SyncHelpers = new (class SyncHelpers {
       return;
     }
     const url = await window.FxAccounts.config.promiseConnectAccountURI(
+      "sync",
       this.getEntryPoint()
     );
     this.replaceTabWithUrl(url);
@@ -237,8 +243,10 @@ export var SyncHelpers = new (class SyncHelpers {
    *        different entrypoints to accounts
    */
   async reSignIn(entrypoint) {
-    const url =
-      await window.FxAccounts.config.promiseConnectAccountURI(entrypoint);
+    const url = await window.FxAccounts.config.promiseConnectAccountURI(
+      "sync",
+      entrypoint
+    );
     this.replaceTabWithUrl(url);
   }
 
@@ -659,7 +667,7 @@ Preferences.addSetting({
   },
   setup(emitChange) {
     window.FxAccounts.config
-      .promiseConnectDeviceURI(SyncHelpers.getEntryPoint())
+      .promiseConnectDeviceURI("sync", SyncHelpers.getEntryPoint())
       .then(connectURI => {
         SyncHelpers.connectAnotherDeviceHref = connectURI;
         emitChange();
@@ -811,6 +819,20 @@ Preferences.addSetting({
   },
 });
 
+// Referrals section
+Preferences.addSetting({
+  id: "referrals-link",
+  setup() {
+    Referrals.getReferralCode();
+  },
+  visible() {
+    return Referrals.isEnabled;
+  },
+  onUserClick: () => {
+    Referrals.openReferralsTab(window, "preferences");
+  },
+});
+
 let accountsEnabled = Services.prefs.getBoolPref("identity.fxaccounts.enabled");
 
 SettingGroupManager.registerGroups({
@@ -829,9 +851,7 @@ SettingGroupManager.registerGroups({
         l10nId: "account-disabled-group",
         iconSrc: "chrome://browser/skin/preferences/mozilla-logo.svg",
         supportPage: "managed-browser-firefox",
-        controlAttrs: {
-          headinglevel: 2,
-        },
+        headingLevel: 2,
       },
     ],
   },
@@ -939,6 +959,7 @@ SettingGroupManager.registerGroups({
     headingLevel: 2,
     iconSrc: "chrome://browser/skin/sync.svg",
     hidden: !accountsEnabled,
+    subcategory: "sync",
     items: [
       {
         id: "syncNoFxaSignIn",
@@ -1007,9 +1028,7 @@ SettingGroupManager.registerGroups({
         id: "fxaDeviceNameSection",
         l10nId: "sync-device-name-header-2",
         control: "moz-fieldset",
-        controlAttrs: {
-          ".headingLevel": 3,
-        },
+        headingLevel: 3,
         items: [
           {
             id: "fxaDeviceNameGroup",
@@ -1114,6 +1133,19 @@ SettingGroupManager.registerGroups({
       {
         id: "backupSettings",
         control: "backup-settings",
+      },
+    ],
+  },
+  referrals: {
+    l10nId: "referrals-section-header2",
+    headingLevel: 2,
+    iconSrc: "chrome://browser/content/logos/share-firefox.svg",
+    hidden: !Referrals.isEnabled,
+    items: [
+      {
+        id: "referrals-link",
+        control: "moz-box-button",
+        l10nId: "referrals-link2",
       },
     ],
   },

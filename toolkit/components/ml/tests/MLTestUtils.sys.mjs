@@ -3,7 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /**
- * @import { EngineResponses, EngineRequests, ChunkResponse, EngineFeatureIds } from "../ml.d.ts"
+ * @import {
+ *   ChunkResponse,
+ *   EngineCreationInterception,
+ *   EngineCreationInterceptionOptions,
+ *   EngineFeatureIds,
+ *   EngineRequests,
+ *   EngineResponses,
+ * } from "../ml.d.ts"
  */
 
 /**
@@ -21,6 +28,8 @@
  * @import { PageExtractorParent } from "../../pageextractor/PageExtractorParent.sys.mjs"
  */
 
+import { PipelineOptions } from "chrome://global/content/ml/EngineProcess.sys.mjs";
+import { MLEngineParent } from "moz-src:///toolkit/components/ml/actors/MLEngineParent.sys.mjs";
 import { BrowserTestUtils } from "resource://testing-common/BrowserTestUtils.sys.mjs";
 import { HttpServer } from "resource://testing-common/httpd.sys.mjs";
 
@@ -45,6 +54,159 @@ const EXTRA_RESPONSE_ARGS = {
   resourcesBefore: { cpuTime: null, memory: null },
   resourcesAfter: { cpuTime: null, memory: null },
 };
+
+/**
+ * @type {Map<string, {
+ *   expectedOptions: Partial<PipelineOptions>,
+ *   overrides: Partial<PipelineOptions>,
+ *   resolve: (creation: EngineCreationInterception) => void,
+ *   reject: (reason: unknown) => void,
+ * }>}
+ */
+const engineCreationInterceptors = new Map();
+
+/** @type {MLEngineParent["getEngine"] | null} */
+let originalGetEngine = null;
+
+/**
+ * Restores production engine creation.
+ *
+ * @returns {void}
+ */
+function restoreEngineCreation() {
+  if (!originalGetEngine) {
+    return;
+  }
+
+  MLEngineParent.prototype.getEngine = originalGetEngine;
+  originalGetEngine = null;
+}
+
+/**
+ * Intercepts armed engine creations and passes unrelated requests through.
+ *
+ * @this {MLEngineParent}
+ * @param {Parameters<MLEngineParent["getEngine"]>[0]} params - The engine
+ *   creation parameters.
+ * @returns {ReturnType<MLEngineParent["getEngine"]>} The production engine.
+ */
+async function getEngineWithInterception(params) {
+  const { featureId } = params.pipelineOptions;
+  const interceptor = engineCreationInterceptors.get(featureId);
+
+  if (!interceptor) {
+    return originalGetEngine.call(this, params);
+  }
+
+  const getEngine = originalGetEngine;
+  engineCreationInterceptors.delete(featureId);
+
+  const { expectedOptions, overrides, resolve, reject } = interceptor;
+  const start = ChromeUtils.now();
+
+  try {
+    if (!engineCreationInterceptors.size) {
+      restoreEngineCreation();
+    }
+
+    for (const [name, expectedValue] of Object.entries(expectedOptions)) {
+      const actualValue = params.pipelineOptions[name];
+
+      if (actualValue !== expectedValue) {
+        throw new Error(
+          `Expected engine option "${name}" for "${featureId}" to be ${JSON.stringify(expectedValue)}, got ${JSON.stringify(actualValue)}.`
+        );
+      }
+    }
+
+    const pipelineOptions = new PipelineOptions(params.pipelineOptions);
+    pipelineOptions.updateOptions(overrides);
+
+    const engine = await getEngine.call(this, {
+      ...params,
+      pipelineOptions,
+    });
+
+    resolve({ engine, start, end: ChromeUtils.now() });
+
+    return engine;
+  } catch (error) {
+    reject(error);
+
+    throw error;
+  }
+}
+
+/**
+ * Observes the next engine creation with the given feature ID.
+ *
+ * @param {string} featureId - The expected feature ID.
+ * @param {EngineCreationInterceptionOptions} [config={}] - The interception
+ *   options.
+ * @param {Partial<PipelineOptions>} [config.expectedOptions={}] -
+ *   Engine-creation options to assert against.
+ * @param {Partial<PipelineOptions>} [config.overrides={}] - Engine-creation
+ *   options to override.
+ * @returns {Promise<EngineCreationInterception>} The observed creation.
+ */
+function interceptEngineCreation(
+  featureId,
+  { expectedOptions = {}, overrides = {} } = {}
+) {
+  if (engineCreationInterceptors.has(featureId)) {
+    throw new Error(
+      `An engine creation interceptor is already armed for "${featureId}".`
+    );
+  }
+
+  if (!originalGetEngine) {
+    originalGetEngine = MLEngineParent.prototype.getEngine;
+    MLEngineParent.prototype.getEngine = getEngineWithInterception;
+  }
+
+  const { promise, resolve, reject } = Promise.withResolvers();
+
+  engineCreationInterceptors.set(featureId, {
+    expectedOptions,
+    overrides,
+    resolve,
+    reject,
+  });
+
+  return promise;
+}
+
+/**
+ * Stops interception and verifies that every armed feature was observed.
+ *
+ * @returns {void}
+ * @throws {Error} If an engine creation remains armed.
+ */
+function cleanupEngineCreationInterceptions() {
+  const armedFeatureIds = Array.from(engineCreationInterceptors.keys());
+  engineCreationInterceptors.clear();
+  restoreEngineCreation();
+
+  if (armedFeatureIds.length) {
+    throw new Error(
+      `Engine creation interceptors were still armed for: ${armedFeatureIds.join(", ")}.`
+    );
+  }
+}
+
+/**
+ * Start a server and return the URL for one of its registered paths.
+ *
+ * @param {HttpServer} server
+ * @param {string} path
+ * @returns {string}
+ */
+function startServer(server, path) {
+  server.start(-1);
+  const { primaryHost, primaryPort } = server.identity;
+  // eslint-disable-next-line sdl/no-insecure-url
+  return `http://${primaryHost}:${primaryPort}${path}`;
+}
 
 /**
  * Create an HTTP server that serves HTML once.
@@ -84,7 +246,7 @@ function createServer(markup, code) {
   server.start(-1);
 
   let { primaryHost, primaryPort } = server.identity;
-  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+  // eslint-disable-next-line sdl/no-insecure-url
   const url = `http://${primaryHost}:${primaryPort}/page.html`;
 
   return {
@@ -281,6 +443,9 @@ export class MockLLMEngine {
 export const MLTestUtils = {
   MockLLMEngine,
 
+  cleanupEngineCreationInterceptions,
+  interceptEngineCreation,
+
   /**
    * Gather just the text for the chunked response to an LLM call.
    *
@@ -370,6 +535,56 @@ export const MLTestUtils = {
     }
 
     return { html };
+  },
+
+  /**
+   * Serve a URL that accepts the request and never answers it, so the load
+   * never commits.
+   *
+   * @returns {{url: string, cleanup: () => Promise<void>}}
+   */
+  serveStalledPage() {
+    const server = new HttpServer();
+
+    /** @type {any} */
+    let heldResponse;
+
+    server.registerPathHandler("/stalled.html", (_request, response) => {
+      response.processAsync();
+      response.setHeader("Content-Type", "text/html; charset=utf-8");
+      heldResponse = response;
+    });
+
+    return {
+      url: startServer(server, "/stalled.html"),
+      async cleanup() {
+        // Release the held request so the server can stop.
+        heldResponse?.finish();
+        await new Promise(resolve => server.stop(resolve));
+      },
+    };
+  },
+
+  /**
+   * Serve a URL that redirects to another origin, the way bot detection sends a
+   * request off to a challenge page.
+   *
+   * @param {object} options
+   * @param {string} options.to - The absolute URL to redirect to.
+   * @returns {{url: string, cleanup: () => Promise<void>}}
+   */
+  serveRedirect({ to }) {
+    const server = new HttpServer();
+
+    server.registerPathHandler("/redirect.html", (request, response) => {
+      response.setStatusLine(request.httpVersion, 302, "Found");
+      response.setHeader("Location", to);
+    });
+
+    return {
+      url: startServer(server, "/redirect.html"),
+      cleanup: () => new Promise(resolve => server.stop(resolve)),
+    };
   },
 
   /**
@@ -514,7 +729,7 @@ export const MLTestUtils = {
 
       server.registerPathHandler(path, pageHandler);
 
-      // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+      // eslint-disable-next-line sdl/no-insecure-url
       const url = `http://${primaryHost}:${primaryPort}${path}`;
       const tab = await BrowserTestUtils.openNewForegroundTab(
         browser,
@@ -562,7 +777,7 @@ export const MLTestUtils = {
        *
        * @type {string}
        */
-      // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+      // eslint-disable-next-line sdl/no-insecure-url
       origin: `http://${primaryHost}:${primaryPort}`,
     };
   },

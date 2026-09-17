@@ -23,6 +23,7 @@
 #include "debugger/Debugger.h"
 #include "jit/MIRGenerator.h"
 #include "js/CallAndConstruct.h"
+#include "js/Exception.h"  // JS::AutoSaveExceptionState
 #include "js/Printf.h"
 #include "js/Wrapper.h"
 #include "vm/Compartment.h"
@@ -1169,12 +1170,21 @@ static bool WasmPromisingFunction(JSContext* cx, unsigned argc, Value* vp) {
   MOZ_RELEASE_ASSERT(!cx->wasm().currentStack());
 
   // Any errors from invoking the wasm function need to be converted to a
-  // rejected promise.
-  JSObject* newPromise = NewPromiseObject(cx, nullptr);
-  if (!newPromise) {
-    return false;
+  // rejected promise. Creating the promise runs NewPromiseObject, which fires
+  // the Debugger onNewPromise hook (JS that must not run while an exception is
+  // pending). Lift the pending exception across promise creation with
+  // AutoSaveExceptionState -- it is restored on scope exit (unless creation
+  // itself threw), so RejectPromiseWithPendingError below rejects with the
+  // original error and preserves its captured stack.
+  Rooted<PromiseObject*> promiseObject(cx);
+  {
+    JS::AutoSaveExceptionState savedExc(cx);
+    JSObject* newPromise = NewPromiseObject(cx, nullptr);
+    if (!newPromise) {
+      return false;
+    }
+    promiseObject = &newPromise->as<PromiseObject>();
   }
-  Rooted<PromiseObject*> promiseObject(cx, &newPromise->as<PromiseObject>());
   args.rval().setObject(*promiseObject);
   return RejectPromiseWithPendingError(cx, promiseObject);
 }
@@ -1246,7 +1256,7 @@ static bool WasmPromiseReaction(JSContext* cx, unsigned argc, Value* vp) {
   JS::RootedValueArray<2> argv(cx);
   JS::Rooted<JS::Value> rval(cx);
   argv[0].set(callee->getExtendedSlot(CONT_SLOT));
-  argv[1].set(ObjectValue(*promisingPromiseObject));
+  argv[1].setObject(*promisingPromiseObject);
 
   if (Call(cx, UndefinedHandleValue, reactionFunc, argv, &rval)) {
     return true;

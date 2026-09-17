@@ -356,7 +356,6 @@ int nr_ice_candidate_destroy(nr_ice_candidate **candp)
         break;
     }
 
-    free(cand->mdns_addr);
     free(cand->foundation);
     free(cand->raw_addr);
     free(cand->raw_raddr);
@@ -1040,7 +1039,7 @@ static void nr_ice_turn_allocated_cb(NR_SOCKET s, int how, void *cb_arg)
 int nr_ice_format_candidate_attribute(nr_ice_candidate *cand, char *attr, int maxlen, int obfuscate_raddr)
   {
     int r,_status;
-    char addr[64];
+    char addr[256];
     uint16_t port;
     int len;
     nr_transport_addr *raddr;
@@ -1048,14 +1047,9 @@ int nr_ice_format_candidate_attribute(nr_ice_candidate *cand, char *attr, int ma
     assert(!strcmp(nr_ice_candidate_type_names[HOST], "host"));
     assert(!strcmp(nr_ice_candidate_type_names[RELAYED], "relay"));
 
-    if (cand->mdns_addr) {
-      /* mdns_addr is NSID_LENGTH which is 39, - 2 for removing the "{" and "}"
-         + 6 for ".local" for a total of 43. */
-      strncpy(addr, cand->mdns_addr, sizeof(addr) - 1);
-    } else {
-      if(r=nr_transport_addr_get_addrstring(&cand->addr,addr,sizeof(addr)))
-        ABORT(r);
-    }
+    if(r=nr_transport_addr_get_addrstring(&cand->addr,addr,sizeof(addr)))
+      ABORT(r);
+
     if(r=nr_transport_addr_get_port(&cand->addr,&port))
       ABORT(r);
     /* https://tools.ietf.org/html/rfc6544#section-4.5 */

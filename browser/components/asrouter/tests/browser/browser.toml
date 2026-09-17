@@ -9,13 +9,9 @@ tags = "remote-settings"
 
 ["browser_asrouter_bug1800087.js"]
 
-["browser_asrouter_cfr.js"]
-https_first_disabled = true
-
 ["browser_asrouter_experimentsAPILoader.js"]
 
 ["browser_asrouter_group_frequency.js"]
-https_first_disabled = true
 skip-if = [
   "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && debug && socketprocess_networking && verify-standalone", # Bug 1775851
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1775851
@@ -34,12 +30,7 @@ skip-if = [
   "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11' && debug", # Bug 1892548
 ]
 
-["browser_asrouter_keyboard_cfr.js"]
-https_first_disabled = true
-
 ["browser_asrouter_menu_messages.js"]
-
-["browser_asrouter_milestone_message_cfr.js"]
 
 ["browser_asrouter_momentspagehub.js"]
 tags = "remote-settings"
@@ -82,7 +73,7 @@ skip-if = [
 ["browser_feature_callout_in_chrome.js"]
 skip-if = [
   "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11' && debug", # Bug 1968576
-  "os == 'mac' && os_version == '10.15' && arch == 'x86_64' && debug", # Bug 1804349
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug", # Bug 1804349
   "os == 'mac' && os_version == '14.70' && arch == 'x86_64' && debug", # Bug 1932912
 ]
 
@@ -96,6 +87,9 @@ skip-if = [
 
 ["browser_trigger_listeners.js"]
 https_first_disabled = true
+skip-if = [
+  "os == 'linux' && os_version == '22.04' && arch == 'x86_64' && nova", # Bug 2057840
+]
 
 ["browser_trigger_messagesLoaded.js"]
 tags = "remote-settings"

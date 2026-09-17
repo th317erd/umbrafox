@@ -28,7 +28,14 @@ let ignoreList = [
   // content: -moz-alt-content is UA-only.
   {
     sourceName: /\b(html)\.css$/i,
-    errorMessage: /Error in parsing value for ‘content’/i,
+    errorMessage: /Error in parsing value for ‘content:/i,
+    isFromDevTools: false,
+  },
+  // megalist-agent.css is loaded as an agent sheet, so its UA-only
+  // ::-moz-reveal selector doesn't parse as an author sheet here.
+  {
+    sourceName: /\bmegalist-agent\.css$/i,
+    errorMessage: /Unknown pseudo-class or pseudo-element ‘.*::-moz-reveal’/i,
     isFromDevTools: false,
   },
   // These variables are declared somewhere else, and error when we load the
@@ -58,12 +65,7 @@ if (AppConstants.platform != "macosx") {
 if (!Services.prefs.getBoolPref("dom.select.customizable_select.enabled")) {
   ignoreList.push({
     sourceName: /\bforms\.css$/i,
-    errorMessage: /Unknown pseudo-class or pseudo-element ‘picker’./i,
-    isFromDevTools: false,
-  });
-  ignoreList.push({
-    sourceName: /\bforms\.css$/i,
-    errorMessage: /Unknown pseudo-class or pseudo-element ‘checkmark’./i,
+    errorMessage: /Unknown pseudo-class or pseudo-element ‘.*::checkmark’./i,
     isFromDevTools: false,
   });
 }
@@ -71,7 +73,7 @@ if (!Services.prefs.getBoolPref("dom.select.customizable_select.enabled")) {
 if (!Services.prefs.getBoolPref("layout.css.zoom.enabled")) {
   ignoreList.push({
     sourceName: /\bscrollbars\.css$/i,
-    errorMessage: /Error in parsing value for ‘zoom’/i,
+    errorMessage: /Error in parsing value for ‘zoom:/i,
     isFromDevTools: false,
   });
 }
@@ -97,26 +99,13 @@ if (!Services.prefs.getBoolPref("layout.css.text-decoration-inset.enabled")) {
   });
 }
 
-if (!Services.prefs.getBoolPref("dom.viewTransitions.enabled")) {
-  // view-transition selectors
-  ignoreList.push({
-    sourceName: /\b(ua)\.css$/i,
-    errorMessage: /Unknown pseudo-class.*view-transition/i,
-    isFromDevTools: false,
-  });
-  ignoreList.push({
-    sourceName: /\b(ua)\.css$/i,
-    errorMessage: /Unknown property.*view-transition/i,
-    isFromDevTools: false,
-  });
-}
-
 if (
   !Services.prefs.getBoolPref("layout.css.scroll-driven-animations.enabled")
 ) {
   ignoreList.push({
-    sourceName: /smartbar\.css$/i,
-    errorMessage: /Unknown property .*animation-timeline/i,
+    sourceName: /\b(smartbar|ai-action-confirmation)\.css$/i,
+    errorMessage:
+      /Unknown property .*(animation-range|animation-timeline|scroll-timeline|view-timeline|timeline-scope)/i,
     isFromDevTools: false,
   });
 }
@@ -150,10 +139,13 @@ let propNameAllowlist = [
 
   // These are referenced from devtools files.
   {
-    propName: "--browser-stack-z-index-devtools-splitter",
+    propName: "--browser-container-z-index-devtools-toolbox",
     isFromDevTools: false,
   },
-  { propName: "--browser-stack-z-index-rdm-toolbar", isFromDevTools: false },
+  {
+    propName: "--browser-container-z-index-devtools-splitter",
+    isFromDevTools: false,
+  },
 
   // These variables are specified from devtools but read from non-devtools
   // styles, which confuses the test.
@@ -190,7 +182,7 @@ let propNameAllowlist = [
   },
 
   // These variables define accent colors for tab group chrome
-  // and are used in JS in tabgroup.js
+  // and are used in JS in tabgroup.mjs
   { propName: "--tab-group-blue", isFromDevTools: false },
   { propName: "--tab-group-blue-invert", isFromDevTools: false },
   { propName: "--tab-group-blue-pale", isFromDevTools: false },
@@ -254,20 +246,17 @@ let propNameAllowlist = [
   { propName: "--tab-group-gray-text", isFromDevTools: false },
   { propName: "--tab-group-gray-text-invert", isFromDevTools: false },
 
-  /* This variable is used in a radial-gradient function, which confuses the test. */
-  { propName: "--radio-indicator-background-color", isFromDevTools: false },
-
   /* Allow design tokens in devtools without all variables being used there */
   { sourceName: /\/design-system\/tokens-.*\.css$/, isFromDevTools: true },
   { sourceName: /\/in-content\/common-shared\.css/, isFromDevTools: true },
 
+  // `--icon-stroke` is defined in commonDialog.css and used in stringified CSS
+  // within adjustableTitle.js. The latter isn't statically parsed.
+  { propName: "--icon-stroke", isFromDevTools: false },
+
   // Ignore token properties that follow the patterns --color-[name], --color-[name]-[number], or --color-[name]-alpha-[number]
   // This enables us to provide our full color palette for developers.
   { propName: /--color-[a-z]+(-alpha)?(-\d+)?/, isFromDevTools: false },
-
-  // Ignore token properties that follow the patterns --dimension-[number] or --dimension-relative-[number]
-  // This enables us to provide our full size/spacing system for developers.
-  { propName: /--dimension(-relative)?-\d+/, isFromDevTools: false },
 
   // This variable is read from JS to determine the column count when handling
   // keyboard navigation in the New Tab sections grid.

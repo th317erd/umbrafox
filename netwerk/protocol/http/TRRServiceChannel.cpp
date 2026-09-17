@@ -25,6 +25,7 @@
 #include "nsIOService.h"
 #include "nsIProtocolProxyService2.h"
 #include "nsISeekableStream.h"
+#include "nsSocketTransportService2.h"
 #include "nsThreadUtils.h"
 #include "nsURLHelper.h"
 
@@ -278,7 +279,8 @@ nsresult TRRServiceChannel::ResolveProxy() {
       [self](nsIProxyInfo* aProxyInfo, nsresult aStatus) {
         self->OnProxyAvailable(nullptr, nullptr, aProxyInfo, aStatus);
       },
-      mURI, mProxyResolveFlags, getter_AddRefs(proxyRequest));
+      mURI, mProxyResolveFlags, LoadIsTRRServiceChannel(),
+      getter_AddRefs(proxyRequest));
 
   if (NS_FAILED(rv)) {
     if (!mCurrentEventTarget->IsOnCurrentThread()) {
@@ -929,23 +931,25 @@ void TRRServiceChannel::ProcessAltService(
   }
 
   RefPtr<nsHttpConnectionInfo> connectionInfo = aTransConnInfo;
-  auto processHeaderTask = [altSvc, scheme, originHost, originPort,
-                            userName(mUsername),
-                            privateBrowsing(mPrivateBrowsing), callbacks,
-                            proxyInfo, caps(mCaps), connectionInfo]() {
-    if (XRE_IsSocketProcess()) {
-      AltServiceChild::ProcessHeader(altSvc, scheme, originHost, originPort,
+  auto processHeaderTask =
+      [altSvc = std::move(altSvc), scheme = std::move(scheme),
+       originHost = std::move(originHost), originPort, userName(mUsername),
+       privateBrowsing(mPrivateBrowsing), callbacks = std::move(callbacks),
+       proxyInfo = std::move(proxyInfo), caps(mCaps),
+       connectionInfo = std::move(connectionInfo)]() {
+        if (XRE_IsSocketProcess()) {
+          AltServiceChild::ProcessHeader(
+              altSvc, scheme, originHost, originPort, userName, privateBrowsing,
+              callbacks, proxyInfo, caps & NS_HTTP_DISALLOW_SPDY,
+              OriginAttributes(), connectionInfo);
+          return;
+        }
+
+        AltSvcMapping::ProcessHeader(altSvc, scheme, originHost, originPort,
                                      userName, privateBrowsing, callbacks,
                                      proxyInfo, caps & NS_HTTP_DISALLOW_SPDY,
                                      OriginAttributes(), connectionInfo);
-      return;
-    }
-
-    AltSvcMapping::ProcessHeader(altSvc, scheme, originHost, originPort,
-                                 userName, privateBrowsing, callbacks,
-                                 proxyInfo, caps & NS_HTTP_DISALLOW_SPDY,
-                                 OriginAttributes(), connectionInfo);
-  };
+      };
 
   if (NS_IsMainThread()) {
     processHeaderTask();
@@ -1043,7 +1047,7 @@ nsresult TRRServiceChannel::SyncProcessRedirection(uint32_t aHttpStatus) {
   nsAutoCString locationBuf;
   if (NS_EscapeURL(location.get(), -1, esc_OnlyNonASCII | esc_Spaces,
                    locationBuf)) {
-    location = locationBuf;
+    location = std::move(locationBuf);
   }
 
   LOG(("redirecting to: %s [redirection-limit=%u]\n", location.get(),

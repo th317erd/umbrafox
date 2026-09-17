@@ -42,7 +42,7 @@ typescript/index
    * - cpp virtual final
      -
      -
-     - :ref:`cpp virtual final <cpp virtual final>`
+     - :ref:`cpp virtual final <cpp-virtual-final>`
      -
    * - clang-format
      - Yes
@@ -98,6 +98,11 @@ typescript/index
      - `bug 1558517 <https://bugzilla.mozilla.org/show_bug.cgi?id=1558517>`__
      - :ref:`JavaScript Coding style`
      - https://prettier.io/
+   * - pnpm-audit
+     -
+     - `bug 2065363 <https://bugzilla.mozilla.org/show_bug.cgi?id=2065363>`__
+     - :ref:`pnpm-audit`
+     - https://pnpm.io/cli/audit
 ```
 
 ```{eval-rst}
@@ -181,11 +186,6 @@ typescript/index
      -
      -
      - https://www.shellcheck.net/
-   * - rstchecker
-     -
-     -
-     - :ref:`RST Linter`
-     - https://github.com/myint/rstcheck
    * - Typo detection
      - Yes
      -

@@ -145,7 +145,7 @@ tear down any dependencies you have in your test fixtures. Avoid
 writing integration tests and focus on testing individual units.
 :::
 
-See https://hg.mozilla.org/mozilla-central/rev/ed612eec41a44867a for an
+See <https://hg.mozilla.org/mozilla-central/rev/ed612eec41a44867a> for an
 example of how to add a simple test.
 
 If you're converting an existing C++ unit test to a GTest, [this
@@ -216,7 +216,7 @@ constructor.
 
 ```python
 UNIFIED_SOURCES = [
-    'TestFoo.cpp',
+    "TestFoo.cpp",
 ]
 ```
 
@@ -229,9 +229,9 @@ Makefile.in inside of the testing directory.
 
 ```python
 LOCAL_INCLUDES += [
-    '/gfx/2d',
-    '/gfx/2d/unittest',
-    '/gfx/layers',
+    "/gfx/2d",
+    "/gfx/2d/unittest",
+    "/gfx/layers",
 ]
 ```
 

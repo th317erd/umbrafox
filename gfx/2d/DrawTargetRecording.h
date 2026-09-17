@@ -49,7 +49,7 @@ class DrawTargetRecording final : public DrawTarget {
   virtual void Destination(const char* aDestination,
                            const Point& aPoint) override;
 
-  virtual void AccessibleId(uint64_t aBrowsingContextId, uint64_t aAccId) final;
+  virtual void AccessibleId(uint64_t aInnerWindowId, uint64_t aAccId) final;
 
   virtual already_AddRefed<SourceSurface> Snapshot() override;
   virtual already_AddRefed<SourceSurface> IntoLuminanceSource(
@@ -158,6 +158,19 @@ class DrawTargetRecording final : public DrawTarget {
                           const DrawOptions& aOptions = DrawOptions()) override;
 
   /*
+   * Stroke a circle on the DrawTarget with a certain source pattern.
+   *
+   * aOrigin Center point of the circle
+   * aRadius Radius of the circle
+   * aPattern Pattern that forms the source of this stroking operation
+   * aOptions Options that are applied to this operation
+   */
+  virtual void StrokeCircle(
+      const Point& aOrigin, float aRadius, const Pattern& aPattern,
+      const StrokeOptions& aStrokeOptions = StrokeOptions(),
+      const DrawOptions& aOptions = DrawOptions()) override;
+
+  /*
    * Stroke a path on the draw target with a certain source pattern.
    *
    * aPath Path that is to be stroked
@@ -178,6 +191,10 @@ class DrawTargetRecording final : public DrawTarget {
    */
   virtual void Fill(const Path* aPath, const Pattern& aPattern,
                     const DrawOptions& aOptions = DrawOptions()) override;
+
+  virtual void FillCircle(const Point& aOrigin, float aRadius,
+                          const Pattern& aPattern,
+                          const DrawOptions& aOptions = DrawOptions()) override;
 
   /*
    * Fill a series of glyphs on the draw target with a certain source pattern.
@@ -464,9 +481,6 @@ class DrawTargetRecording final : public DrawTarget {
                   const Pattern& aPattern,
                   const DrawOptions& aOptions = DrawOptions(),
                   const StrokeOptions* aStrokeOptions = nullptr);
-
-  bool TryToReplaySurface(SourceSurface* aSurface, const Rect& aDest,
-                          const Rect& aSource) override;
 
   void MarkChanged();
 

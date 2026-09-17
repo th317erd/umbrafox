@@ -36,7 +36,7 @@ ChromeUtils.defineESModuleGetters(this, {
   PanelMultiView:
     "moz-src:///browser/components/customizableui/PanelMultiView.sys.mjs",
   RecentlyClosedTabsAndWindowsMenuUtils:
-    "resource:///modules/sessionstore/RecentlyClosedTabsAndWindowsMenuUtils.sys.mjs",
+    "moz-src:///browser/components/sessionstore/RecentlyClosedTabsAndWindowsMenuUtils.sys.mjs",
   UrlbarShared: "chrome://browser/content/urlbar/UrlbarShared.mjs",
 });
 
@@ -858,12 +858,23 @@ var BookmarksEventHandler = {
    */
   onCommand: function BEH_onCommand(aEvent) {
     var target = aEvent.originalTarget;
+    var eventAction = target.dataset.action;
+
     if (target._placesNode) {
       PlacesUIUtils.openNodeWithEvent(target._placesNode, aEvent);
       // Only record interactions through the Bookmarks Toolbar
       if (target.closest("#PersonalToolbar")) {
         Glean.browserEngagement.bookmarksToolbarBookmarkOpened.add(1);
+        if (
+          gBookmarksToolbarVisibility == "newtab" &&
+          AIWindow.isAIWindowActive(window) &&
+          AIWindow.isAIWindowNewTabPage(gBrowser.currentURI)
+        ) {
+          Glean.smartWindow.bookmarkbar.opened.add(1);
+        }
       }
+    } else if (eventAction) {
+      gSync.handleSyncPromoAction(eventAction, "bookmarks-top-menu");
     }
   },
 
@@ -1543,8 +1554,12 @@ var BookmarkingUI = {
     if (PrivateBrowsingUtils.isWindowPrivate(window)) {
       newTabURLs.push("about:privatebrowsing");
     }
-    return newTabURLs.some(newTabUriString =>
-      this._newTabURI(newTabUriString)?.equalsExceptRef(uri)
+    // In a Smart Window, the new tab is a chrome document rather than
+    // about:newtab; isAIWindowNewTabPage matches it (and excludes firstrun).
+    return (
+      newTabURLs.some(newTabUriString =>
+        this._newTabURI(newTabUriString)?.equalsExceptRef(uri)
+      ) || AIWindow.isAIWindowNewTabPage(uri)
     );
   },
 
@@ -2030,6 +2045,12 @@ var BookmarkingUI = {
       return;
     }
 
+    var promoState = gSync.getSyncPromoState(["bookmarks"]);
+    var remoteTabsPromo = document.getElementById("bookmarksRemoteTabsPromo");
+
+    remoteTabsPromo.dataset.action = promoState;
+    remoteTabsPromo.hidden = !promoState;
+
     document.getElementById("menu_mobileBookmarks").hidden =
       !SHOW_MOBILE_BOOKMARKS;
   },
@@ -2141,12 +2162,13 @@ var BookmarkingUI = {
     for (let ev of aEvents) {
       switch (ev.type) {
         case "bookmark-added":
-          // Only need to update the UI if it wasn't marked as starred before:
-          if (this._itemGuids.size == 0) {
-            if (ev.url && ev.url == this._uri.spec) {
-              // If a new bookmark has been added to the tracked uri, register it.
-              if (!this._itemGuids.has(ev.guid)) {
-                this._itemGuids.add(ev.guid);
+          if (!ev.isTagging && ev.url && ev.url == this._uri.spec) {
+            // If a new bookmark has been added to the tracked uri, register it.
+            if (!this._itemGuids.has(ev.guid)) {
+              // Only need to update the UI if it wasn't marked as starred before:
+              let wasStarred = this._itemGuids.size > 0;
+              this._itemGuids.add(ev.guid);
+              if (!wasStarred) {
                 isStarUpdateNeeded = true;
               }
             }

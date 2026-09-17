@@ -314,7 +314,7 @@ namespace mozilla::widget {
  * the constraints.
  */
 struct SizeConstraints {
-  SizeConstraints() : mMaxSize(MOZ_WIDGET_MAX_SIZE, MOZ_WIDGET_MAX_SIZE) {}
+  SizeConstraints() = default;
 
   SizeConstraints(mozilla::DesktopIntSize aMinSize,
                   mozilla::DesktopIntSize aMaxSize)
@@ -328,7 +328,7 @@ struct SizeConstraints {
   }
 
   mozilla::DesktopIntSize mMinSize;
-  mozilla::DesktopIntSize mMaxSize;
+  mozilla::DesktopIntSize mMaxSize{MOZ_WIDGET_MAX_SIZE, MOZ_WIDGET_MAX_SIZE};
 };
 
 class MOZ_RAII AutoSynthesizedEventCallbackNotifier final {
@@ -1089,14 +1089,6 @@ class nsIWidget : public nsSupportsWeakReference {
   virtual void SetInputRegion(const InputRegion&) {}
 
   /*
-   * On macOS, this method shows or hides the pill button in the titlebar
-   * that's used to collapse the toolbar.
-   *
-   * Ignored on child widgets and on non-Mac platforms.
-   */
-  virtual void SetShowsToolbarButton(bool aShow) {}
-
-  /*
    * On macOS, this method determines whether we tell cocoa that the window
    * supports native full screen. If we do so, and another window is in
    * native full screen, this window will also appear in native full screen.
@@ -1815,19 +1807,19 @@ class nsIWidget : public nsSupportsWeakReference {
   virtual void StartAsyncScrollbarDrag(const AsyncDragMetrics& aDragMetrics);
 
   /**
-   * Notify APZ to start autoscrolling.
+   * Notify APZ to start autoscrolling. APZ may still reject the autoscroll,
+   * in which case it notifies content itself.
    * @param aAnchorLocation the location of the autoscroll anchor
    * @param aGuid identifies the scroll frame to be autoscrolled
-   * @return true if APZ has been successfully notified
    */
-  virtual bool StartAsyncAutoscroll(const ScreenPoint& aAnchorLocation,
-                                    const ScrollableLayerGuid& aGuid);
+  void StartAsyncAutoscroll(const ScreenPoint& aAnchorLocation,
+                            const ScrollableLayerGuid& aGuid);
 
   /**
    * Notify APZ to stop autoscrolling.
    * @param aGuid identifies the scroll frame which is being autoscrolled.
    */
-  virtual void StopAsyncAutoscroll(const ScrollableLayerGuid& aGuid);
+  void StopAsyncAutoscroll(const ScrollableLayerGuid& aGuid);
 
   virtual LayersId GetRootLayerTreeId();
 
@@ -2307,11 +2299,11 @@ class nsIWidget : public nsSupportsWeakReference {
   }
 
   /**
-   * NotifyCompositorScrollUpdate notify widget about an update to the
+   * NotifyCompositorScrollUpdates notify widget about an update to the
    * composited scroll offset and zoom
    */
-  virtual void NotifyCompositorScrollUpdate(
-      const mozilla::layers::CompositorScrollUpdate& aUpdate) {}
+  virtual void NotifyCompositorScrollUpdates(
+      const nsTArray<mozilla::layers::CompositorScrollUpdate>& aUpdates) {}
 
 #if defined(MOZ_WIDGET_ANDROID)
   /**

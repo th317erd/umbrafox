@@ -30,6 +30,7 @@
 #include "mozilla/dom/ContentList.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/ElementInlines.h"
 #include "mozilla/dom/FetchPriority.h"
 #include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/ImageTextBinding.h"
@@ -307,6 +308,10 @@ void nsImageLoadingContent::Notify(imgIRequest* aRequest, int32_t aType,
     }
     UpdateImageState(true);
   }
+}
+
+bool nsImageLoadingContent::HasPendingAlwaysLoadImageTask() const {
+  return mPendingImageLoadTask && mPendingImageLoadTask->AlwaysLoad();
 }
 
 void nsImageLoadingContent::OnLoadComplete(imgIRequest* aRequest,
@@ -1349,17 +1354,6 @@ already_AddRefed<Promise> nsImageLoadingContent::RecognizeCurrentImageText(
             auto& textRecognitionResult = aValue.ResolveValue();
             Element* el = ilc->AsContent()->AsElement();
 
-            // When enabled, this feature will place the recognized text as
-            // spans inside of the shadow dom of the img element. These are then
-            // positioned so that the user can select the text.
-            if (Preferences::GetBool("dom.text-recognition.shadow-dom-enabled",
-                                     false)) {
-              el->AttachAndSetUAShadowRoot(Element::NotifyUAWidget::Yes);
-              TextRecognition::FillShadow(*el->GetShadowRoot(),
-                                          textRecognitionResult);
-              el->NotifyUAWidgetSetupOrChange();
-            }
-
             nsTArray<ImageText> imageTexts(
                 textRecognitionResult.quads().Length());
             // XXX shouldn't this be GetRelevantGlobal? But it's privileged code
@@ -1369,8 +1363,9 @@ already_AddRefed<Promise> nsImageLoadingContent::RecognizeCurrentImageText(
             for (const auto& quad : textRecognitionResult.quads()) {
               NotNull<ImageText*> imageText = imageTexts.AppendElement();
 
-              // Note: These points are not actually CSSPixels, but a DOMQuad is
-              // a conveniently similar structure that can store these values.
+              // Note: These points are not actually CSSPixels, but a
+              // DOMQuad is a conveniently similar structure that can store
+              // these values.
               CSSPoint points[4];
               points[0] = CSSPoint(quad.points()[0].x, quad.points()[0].y);
               points[1] = CSSPoint(quad.points()[1].x, quad.points()[1].y);

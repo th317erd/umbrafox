@@ -5,11 +5,10 @@
 #ifndef jit_loong64_Assembler_loong64_h
 #define jit_loong64_Assembler_loong64_h
 
-#include "mozilla/Sprintf.h"
+#include <utility>
 
 #include "jit/CompactBuffer.h"
 #include "jit/JitCode.h"
-#include "jit/JitSpewer.h"
 #include "jit/loong64/Architecture-loong64.h"
 #include "jit/shared/Assembler-shared.h"
 #include "jit/shared/Disassembler-shared.h"
@@ -18,6 +17,8 @@
 
 namespace js {
 namespace jit {
+
+using LabelDoc = DisassemblerSpew::LabelDoc;
 
 static constexpr Register zero{Registers::zero};
 static constexpr Register ra{Registers::ra};
@@ -90,6 +91,7 @@ static constexpr FloatRegister InvalidFloatReg;
 
 static constexpr Register StackPointer = sp;
 static constexpr Register FramePointer = fp;
+static constexpr Register LinkRegister = ra;
 static constexpr Register ReturnReg = a0;
 static constexpr Register64 ReturnReg64(ReturnReg);
 static constexpr FloatRegister ReturnFloat32Reg{FloatRegisters::f0,
@@ -176,6 +178,10 @@ static constexpr Register RegExpExecTestStringReg = CallTempReg1;
 static constexpr Register RegExpSearcherRegExpReg = CallTempReg0;
 static constexpr Register RegExpSearcherStringReg = CallTempReg1;
 static constexpr Register RegExpSearcherLastIndexReg = CallTempReg2;
+
+// Register used by the bailout tail and bailout stubs during stack
+// reconstruction.
+static constexpr Register BailoutStubHandlerReg = CallTempReg0;
 
 static constexpr Register JSReturnReg_Type = a3;
 static constexpr Register JSReturnReg_Data = a2;
@@ -532,6 +538,22 @@ enum OpcodeField {
   op_fldx_d = 0x7068U << 15,
   op_fstx_s = 0x7070U << 15,
   op_fstx_d = 0x7078U << 15,
+  op_amcas_b = 0x70b0U << 15,
+  op_amcas_h = 0x70b1U << 15,
+  op_amcas_w = 0x70b2U << 15,
+  op_amcas_d = 0x70b3U << 15,
+  op_amcas_db_b = 0x70b4U << 15,
+  op_amcas_db_h = 0x70b5U << 15,
+  op_amcas_db_w = 0x70b6U << 15,
+  op_amcas_db_d = 0x70b7U << 15,
+  op_amswap_b = 0x70b8U << 15,
+  op_amswap_h = 0x70b9U << 15,
+  op_amadd_b = 0x70baU << 15,
+  op_amadd_h = 0x70bbU << 15,
+  op_amswap_db_b = 0x70bcU << 15,
+  op_amswap_db_h = 0x70bdU << 15,
+  op_amadd_db_b = 0x70beU << 15,
+  op_amadd_db_h = 0x70bfU << 15,
   op_amswap_w = 0x70c0U << 15,
   op_amswap_d = 0x70c1U << 15,
   op_amadd_w = 0x70c2U << 15,
@@ -640,6 +662,18 @@ enum OpcodeField {
   op_movcf2gr = 0x114dcU << 8,
 };
 
+// int check.
+inline constexpr bool is_intN(int64_t x, unsigned n) {
+  MOZ_ASSERT((0 < n) && (n < 64));
+  int64_t limit = static_cast<int64_t>(1) << (n - 1);
+  return (-limit <= x) && (x < limit);
+}
+
+inline constexpr bool is_uintN(int64_t x, unsigned n) {
+  MOZ_ASSERT((0 < n) && (n < 64));
+  return !(x >> n);
+}
+
 class Operand;
 
 // A BOffImm16 is a 16 bit immediate that is used for branches.
@@ -653,7 +687,7 @@ class BOffImm16 {
   }
   int32_t decode() {
     MOZ_ASSERT(!isInvalid());
-    return (int32_t(data << 18) >> 16);
+    return (int32_t(data << 16) >> 14);
   }
 
   explicit BOffImm16(int offset) : data((offset) >> 2 & Imm16Mask) {
@@ -661,13 +695,7 @@ class BOffImm16 {
     MOZ_ASSERT(IsInRange(offset));
   }
   static bool IsInRange(int offset) {
-    if ((offset) < int(unsigned(INT16_MIN) << 2)) {
-      return false;
-    }
-    if ((offset) > (INT16_MAX << 2)) {
-      return false;
-    }
-    return true;
+    return is_intN(offset, 16 + /* 2'b0 */ 2);
   }
   static const uint32_t INVALID = 0x00020000;
   BOffImm16() : data(INVALID) {}
@@ -689,7 +717,7 @@ class JOffImm26 {
   }
   int32_t decode() {
     MOZ_ASSERT(!isInvalid());
-    return (int32_t(data << 8) >> 6);
+    return (int32_t(data << 6) >> 4);
   }
 
   explicit JOffImm26(int offset) : data((offset) >> 2 & Imm26Mask) {
@@ -697,13 +725,7 @@ class JOffImm26 {
     MOZ_ASSERT(IsInRange(offset));
   }
   static bool IsInRange(int offset) {
-    if ((offset) < -536870912) {
-      return false;
-    }
-    if ((offset) > 536870908) {
-      return false;
-    }
-    return true;
+    return is_intN(offset, 26 + /* 2'b0 */ 2);
   }
   static const uint32_t INVALID = 0x20000000;
   JOffImm26() : data(INVALID) {}
@@ -722,11 +744,8 @@ class Imm16 {
   int32_t decodeSigned() { return value; }
   uint32_t decodeUnsigned() { return value; }
 
-  static bool IsInSignedRange(int32_t imm) {
-    return imm >= INT16_MIN && imm <= INT16_MAX;
-  }
-
-  static bool IsInUnsignedRange(uint32_t imm) { return imm <= UINT16_MAX; }
+  static bool IsInSignedRange(int32_t imm) { return is_intN(imm, 16); }
+  static bool IsInUnsignedRange(uint32_t imm) { return is_uintN(imm, 16); }
 };
 
 class Imm8 {
@@ -738,10 +757,8 @@ class Imm8 {
   uint32_t encode(uint32_t shift) { return value << shift; }
   int32_t decodeSigned() { return value; }
   uint32_t decodeUnsigned() { return value; }
-  static bool IsInSignedRange(int32_t imm) {
-    return imm >= INT8_MIN && imm <= INT8_MAX;
-  }
-  static bool IsInUnsignedRange(uint32_t imm) { return imm <= UINT8_MAX; }
+  static bool IsInSignedRange(int32_t imm) { return is_intN(imm, 8); }
+  static bool IsInUnsignedRange(uint32_t imm) { return is_uintN(imm, 8); }
   static Imm8 Lower(Imm16 imm) { return Imm8(imm.decodeSigned() & 0xff); }
   static Imm8 Upper(Imm16 imm) {
     return Imm8((imm.decodeSigned() >> 8) & 0xff);
@@ -806,18 +823,6 @@ class Operand {
     return Register::FromCode(reg);
   }
 };
-
-// int check.
-inline constexpr bool is_intN(int64_t x, unsigned n) {
-  MOZ_ASSERT((0 < n) && (n < 64));
-  int64_t limit = static_cast<int64_t>(1) << (n - 1);
-  return (-limit <= x) && (x < limit);
-}
-
-inline constexpr bool is_uintN(int64_t x, unsigned n) {
-  MOZ_ASSERT((0 < n) && (n < 64));
-  return !(x >> n);
-}
 
 typedef js::jit::AssemblerBuffer<Instruction> LOONGBuffer;
 
@@ -951,19 +956,29 @@ class AssemblerLOONG64 : public AssemblerShared {
 
   LOONGBufferWithExecutableCopy m_buffer;
 
-#ifdef JS_JITSPEW
-  Sprinter* printer;
+#ifdef JS_DISASM_LOONG64
+  static constexpr const char* const LabelIndent = "                 ";
+  static constexpr const char* const TargetIndent = "                    ";
+
+  DisassemblerSpew spew_;
 #endif
 
  public:
   AssemblerLOONG64()
       : m_buffer(),
-#ifdef JS_JITSPEW
-        printer(nullptr),
-#endif
         isFinished(false),
         scratch_register_list_((1 << t6.code()) | (1 << t7.code()) |
                                (1 << t8.code())) {
+#ifdef JS_DISASM_LOONG64
+    spew_.setLabelIndent(LabelIndent);
+    spew_.setTargetIndent(TargetIndent);
+#endif
+  }
+
+  ~AssemblerLOONG64() {
+#ifdef JS_DISASM_LOONG64
+    spew_.spewOrphans();
+#endif
   }
 
   static Condition InvertCondition(Condition cond);
@@ -999,41 +1014,10 @@ class AssemblerLOONG64 : public AssemblerShared {
   bool oom() const;
 
   void setPrinter(Sprinter* sp) {
-#ifdef JS_JITSPEW
-    printer = sp;
+#ifdef JS_DISASM_LOONG64
+    spew_.setPrinter(sp);
 #endif
   }
-
-#ifdef JS_JITSPEW
-  inline void spew(const char* fmt, ...) MOZ_FORMAT_PRINTF(2, 3) {
-    if (MOZ_UNLIKELY(printer || JitSpewEnabled(JitSpew_Codegen))) {
-      va_list va;
-      va_start(va, fmt);
-      spewVA(fmt, va);
-      va_end(va);
-    }
-  }
-
-  void decodeBranchInstAndSpew(InstImm branch);
-#else
-  MOZ_ALWAYS_INLINE void spew(const char* fmt, ...) MOZ_FORMAT_PRINTF(2, 3) {}
-#endif
-
-#ifdef JS_JITSPEW
-  MOZ_COLD void spewVA(const char* fmt, va_list va) MOZ_FORMAT_PRINTF(2, 0) {
-    // Buffer to hold the formatted string. Note that this may contain
-    // '%' characters, so do not pass it directly to printf functions.
-    char buf[200];
-
-    int i = VsprintfLiteral(buf, fmt, va);
-    if (i > -1) {
-      if (printer) {
-        printer->printf("%s\n", buf);
-      }
-      js::jit::JitSpew(js::jit::JitSpew_Codegen, "%s", buf);
-    }
-  }
-#endif
 
   Register getStackPointer() const { return StackPointer; }
 
@@ -1051,6 +1035,8 @@ class AssemblerLOONG64 : public AssemblerShared {
 
   // Size of the instruction stream, in bytes.
   size_t size() const;
+  // Returns the size of the buffer we can currently read.
+  size_t readableSize() const;
   // Size of the jump relocation table, in bytes.
   size_t jumpRelocationTableBytes() const;
   size_t dataRelocationTableBytes() const;
@@ -1064,11 +1050,24 @@ class AssemblerLOONG64 : public AssemblerShared {
   // it is interpreted as a pointer to the location that we want the
   // instruction to be written.
   BufferOffset writeInst(uint32_t x, uint32_t* dest = nullptr);
+  BufferOffset emit(uint32_t x);
+  BufferOffset emit(uint32_t x, LabelDoc target);
+
+ protected:
+#ifdef JS_DISASM_LOONG64
+  void spew(BufferOffset offset, Instruction* instruction);
+  void spewBranch(BufferOffset offset, Instruction* instruction,
+                  LabelDoc target);
+  LabelDoc refLabel(Label* label);
+#else
+  LabelDoc refLabel(Label*) { return {}; }
+#endif
+
+ public:
   // A static variant for the cases where we don't want to have an assembler
   // object at all. Normally, you would use the dummy (nullptr) object.
   static void WriteInstStatic(uint32_t x, uint32_t* dest);
 
- public:
   BufferOffset haltingAlign(int alignment);
   BufferOffset nopAlign(int alignment);
   BufferOffset as_nop() { return as_andi(zero, zero, 0); }
@@ -1077,6 +1076,7 @@ class AssemblerLOONG64 : public AssemblerShared {
   BufferOffset as_b(JOffImm26 off);
   BufferOffset as_bl(JOffImm26 off);
   BufferOffset as_jirl(Register rd, Register rj, BOffImm16 off);
+  BufferOffset as_jirl(Register rd, Register rj, BOffImm16 off, LabelDoc doc);
 
   InstImm getBranchCode(JumpOrCall jumpOrCall);  // b, bl
   InstImm getBranchCode(Register rd, Register rj,
@@ -1284,6 +1284,28 @@ class AssemblerLOONG64 : public AssemblerShared {
   BufferOffset as_sc_w(Register rd, Register rj, int32_t si14);
   BufferOffset as_sc_d(Register rd, Register rj, int32_t si14);
 
+  // Atomic instructions from LAM_BH extension
+  BufferOffset as_amswap_b(Register rd, Register rj, Register rk);
+  BufferOffset as_amswap_h(Register rd, Register rj, Register rk);
+  BufferOffset as_amadd_b(Register rd, Register rj, Register rk);
+  BufferOffset as_amadd_h(Register rd, Register rj, Register rk);
+
+  BufferOffset as_amswap_db_b(Register rd, Register rj, Register rk);
+  BufferOffset as_amswap_db_h(Register rd, Register rj, Register rk);
+  BufferOffset as_amadd_db_b(Register rd, Register rj, Register rk);
+  BufferOffset as_amadd_db_h(Register rd, Register rj, Register rk);
+
+  // Atomic instructions from LAMCAS extension
+  BufferOffset as_amcas_b(Register rd, Register rj, Register rk);
+  BufferOffset as_amcas_h(Register rd, Register rj, Register rk);
+  BufferOffset as_amcas_w(Register rd, Register rj, Register rk);
+  BufferOffset as_amcas_d(Register rd, Register rj, Register rk);
+
+  BufferOffset as_amcas_db_b(Register rd, Register rj, Register rk);
+  BufferOffset as_amcas_db_h(Register rd, Register rj, Register rk);
+  BufferOffset as_amcas_db_w(Register rd, Register rj, Register rk);
+  BufferOffset as_amcas_db_d(Register rd, Register rj, Register rk);
+
   // Barrier instructions
   BufferOffset as_dbar(int32_t hint);
   BufferOffset as_ibar(int32_t hint);
@@ -1454,6 +1476,17 @@ class AssemblerLOONG64 : public AssemblerShared {
 
   static bool HasRoundInstruction(RoundingMode mode) { return false; }
 
+  // Split an offset into the PCADDU18I si20 field and the JIRL offs16 byte
+  // offset suitable for jump36. Returns (si20, offs16).
+  static constexpr std::pair<int32_t, int32_t> SplitJump36Offset(int64_t d) {
+    MOZ_ASSERT((d & 0x3) == 0);
+    const int64_t hi = (d + (static_cast<int64_t>(1) << 17)) >> 18;
+    const int64_t lo = d - (hi << 18);
+    MOZ_ASSERT(is_intN(hi, 20));
+    MOZ_ASSERT(BOffImm16::IsInRange(static_cast<int32_t>(lo)));
+    return std::make_pair(static_cast<int32_t>(hi), static_cast<int32_t>(lo));
+  }
+
  protected:
   InstImm invertBranch(InstImm branch, BOffImm16 skipOffset);
   void addPendingJump(BufferOffset src, ImmPtr target, RelocationKind kind) {
@@ -1463,18 +1496,14 @@ class AssemblerLOONG64 : public AssemblerShared {
     }
   }
 
-  void addLongJump(BufferOffset src, BufferOffset dst) {
-    CodeLabel cl;
-    cl.patchAt()->bind(src.getOffset());
-    cl.target()->bind(dst.getOffset());
-    cl.setLinkMode(CodeLabel::JumpImmediate);
-    addCodeLabel(std::move(cl));
-  }
-
  public:
   void flushBuffer() {}
 
-  void comment(const char* msg) { spew("; %s", msg); }
+  void comment(const char* msg) {
+#ifdef JS_DISASM_LOONG64
+    spew_.spew("; %s", msg);
+#endif
+  }
 
   static uint32_t NopSize() { return 4; }
 

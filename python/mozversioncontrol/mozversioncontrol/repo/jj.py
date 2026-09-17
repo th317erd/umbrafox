@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this,
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import annotations
+
 import json
 import re
 import string
@@ -23,6 +25,7 @@ from mozversioncontrol.errors import (
     CannotDeleteFromRootOfRepositoryException,
     MissingVCSExtension,
     MissingVCSInfo,
+    StaleWorkspaceError,
 )
 from mozversioncontrol.repo.base import Repository
 from mozversioncontrol.repo.git import GitRepository
@@ -46,7 +49,15 @@ class JujutsuRepository(Repository):
         super().__init__(path, tool=jj)
         self._git = GitRepository(path, git=git)
 
-        git_dir = self._run("git", "root")
+        try:
+            git_dir = self._run("git", "root", stderr=subprocess.PIPE)
+        except subprocess.CalledProcessError as e:
+            stderr = e.stderr or ""
+            if "working copy is stale" in stderr.lower():
+                raise StaleWorkspaceError(stderr.rstrip()) from e
+            print(stderr, end="", file=sys.stderr)
+            raise
+
         if not git_dir:
             raise MissingVCSInfo("cannot find `jj git root`")
 
@@ -144,7 +155,9 @@ class JujutsuRepository(Repository):
             "--revisions",
             self.HEAD_REVSET,
             "--template",
-            'local_bookmarks.join("\n")',
+            # Use name() rather than the default RefName formatting, which
+            # decorates diverged ("*") and conflicted ("??") bookmarks.
+            'local_bookmarks.map(|b| b.name()).join("\n")',
         )
         bookmark = output.split("\n")[0].strip()
         return bookmark or None
@@ -307,14 +320,14 @@ class JujutsuRepository(Repository):
             return
 
         relative_paths = [self._repo_root_relative_path(p) for p in paths]
-        self._run("file", "track", *relative_paths)
+        self._run_batched("file", "track", paths=relative_paths)
 
     def forget_add_remove_files(self, *paths: Union[str, Path]):
         if not paths:
             return
 
         relative_paths = [self._repo_root_relative_path(p) for p in paths]
-        self._run("file", "untrack", *relative_paths)
+        self._run_batched("file", "untrack", paths=relative_paths)
 
     def get_tracked_files_finder(self, path=None):
         files = [mozpath.normsep(p) for p in self._run("file", "list").splitlines()]

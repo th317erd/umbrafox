@@ -25,6 +25,7 @@ add_setup(async function () {
       ["browser.urlbar.autoFill.adaptiveHistory.enabled", true],
       ["browser.urlbar.autoFill.adaptiveHistory.minCharsThreshold", 0],
       ["browser.urlbar.autoFill.adaptiveHistory.useCountThreshold", 0],
+      ["browser.urlbar.autoFill.adaptiveHistory.urlMinPicks", 1],
       ["browser.urlbar.suggest.quicksuggest.sponsored", false],
       ["browser.urlbar.suggest.quicksuggest.nonsponsored", false],
     ],
@@ -69,6 +70,8 @@ async function pickHistoryResult(url) {
   EventUtils.synthesizeKey("KEY_Enter");
   await loadPromise;
   await TestUtils.waitForTick();
+  // pickResult() fires re-integration without awaiting it.
+  await UrlbarParentController._lastAutofillReintegrationPromise;
 }
 
 async function waitForBlock(url, column) {

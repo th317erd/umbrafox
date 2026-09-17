@@ -105,8 +105,6 @@ void AdapterInfo::GetWgpuDeviceType(nsString& s) const {
     case ffi::WGPUDeviceType_Other:
       s.AssignLiteral("Other");
       return;
-    case ffi::WGPUDeviceType_Sentinel:
-      break;
   }
   MOZ_CRASH("Bad `ffi::WGPUDeviceType`");
 }
@@ -136,10 +134,9 @@ void AdapterInfo::GetWgpuBackend(nsString& s) const {
     case ffi::WGPUBackend_Gl:
       s.AssignLiteral("Gl");
       return;
-    case ffi::WGPUBackend_BrowserWebGpu:  // This should never happen, because
-                                          // we _are_ the browser.
-    case ffi::WGPUBackend_Sentinel:
-      break;
+    case ffi::WGPUBackend_BrowserWebGpu:
+      break;  // This should never happen, because
+              // we _are_ the browser.
   }
   MOZ_CRASH("Bad `ffi::WGPUBackend`");
 }
@@ -234,9 +231,7 @@ struct FeatureImplementationStatus {
             "https://bugzilla.mozilla.org/show_bug.cgi?id=1931629");
 
       case dom::GPUFeatureName::Dual_source_blending:
-        // return implemented(WGPUWEBGPU_FEATURE_DUAL_SOURCE_BLENDING);
-        return unimplemented(
-            "https://bugzilla.mozilla.org/show_bug.cgi?id=1924328");
+        return implemented(WGPUWEBGPU_FEATURE_DUAL_SOURCE_BLENDING);
 
       case dom::GPUFeatureName::Subgroups:
         // return implemented(WGPUWEBGPU_FEATURE_SUBGROUPS);

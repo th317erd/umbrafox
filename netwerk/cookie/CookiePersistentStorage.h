@@ -7,12 +7,12 @@
 
 #include "Cookie.h"
 #include "CookieStorage.h"
-#include "mozIStorageBindingParamsArray.h"
 #include "mozIStorageCompletionCallback.h"
 #include "mozIStorageStatement.h"
 #include "mozIStorageStatementCallback.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Monitor.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/net/NeckoChannelParams.h"
 #include "nsIAsyncShutdown.h"
 
@@ -24,6 +24,8 @@ class nsIURI;
 
 namespace mozilla {
 namespace net {
+
+class CookieDBWriteQueue;
 
 class CookiePersistentStorage final : public CookieStorage,
                                       public nsIAsyncShutdownBlocker {
@@ -37,14 +39,6 @@ class CookiePersistentStorage final : public CookieStorage,
   static already_AddRefed<CookiePersistentStorage> Create();
 
   void HandleCorruptDB();
-
-  void RemoveCookiesWithOriginAttributes(
-      const OriginAttributesPattern& aPattern,
-      const nsACString& aBaseDomain) override;
-
-  void RemoveCookiesFromExactHost(
-      const nsACString& aHost, const nsACString& aBaseDomain,
-      const OriginAttributesPattern& aPattern) override;
 
   void StaleCookies(const nsTArray<RefPtr<Cookie>>& aCookieList,
                     int64_t aCurrentTimeInUsec) override;
@@ -70,9 +64,7 @@ class CookiePersistentStorage final : public CookieStorage,
     REBUILDING            // close complete, rebuilding database from memory
   };
 
-  CorruptFlag GetCorruptFlag() const { return mCorruptFlag; }
-
-  void SetCorruptFlag(CorruptFlag aFlag) { mCorruptFlag = aFlag; }
+  void OnWriteBatchCompleted(uint16_t aReason);
 
  protected:
   const char* NotificationTopic() const override { return "cookie-changed"; }
@@ -82,21 +74,24 @@ class CookiePersistentStorage final : public CookieStorage,
 
   void RemoveAllInternal() override;
 
-  void RemoveCookieFromDB(const Cookie& aCookie) override;
+  void RemoveCookieFromDB(Cookie* aCookie) override;
 
   void StoreCookie(const nsACString& aBaseDomain,
                    const OriginAttributes& aOriginAttributes,
                    Cookie* aCookie) override;
 
  private:
+  friend class CookieDBWriteQueue;
+
   CookiePersistentStorage();
-  ~CookiePersistentStorage() = default;
+  ~CookiePersistentStorage();
 
-  static void UpdateCookieInList(Cookie* aCookie, int64_t aLastAccessed,
-                                 mozIStorageBindingParamsArray* aParamsArray);
-
-  void PrepareCookieRemoval(const Cookie& aCookie,
-                            mozIStorageBindingParamsArray* aParamsArray);
+  // Writes a batch of coalesced changes in a single transaction. Returns true
+  // if an asynchronous execution was started, in which case
+  // OnWriteBatchCompleted() will eventually run.
+  bool ExecuteWriteBatch(const nsTArray<RefPtr<Cookie>>& aRemovals,
+                         const nsTArray<RefPtr<Cookie>>& aInsertions,
+                         const nsTArray<RefPtr<Cookie>>& aUpdates);
 
   void InitDBConn();
   nsresult InitDBConnInternal();
@@ -120,9 +115,7 @@ class CookiePersistentStorage final : public CookieStorage,
 
   void CollectCookieJarSizeData() override;
 
-  void DeleteFromDB(mozIStorageBindingParamsArray* aParamsArray);
-
-  void MaybeStoreCookiesToDB(mozIStorageBindingParamsArray* aParamsArray);
+  UniquePtr<CookieDBWriteQueue> mWriteQueue;
 
   nsCOMPtr<nsIThread> mThread;
   nsCOMPtr<mozIStorageService> mStorageService;
@@ -146,9 +139,9 @@ class CookiePersistentStorage final : public CookieStorage,
   // Synchronized by the same mMonitor + mInitialized pattern as mReadArray.
   nsTArray<CookieDomainTuple> mCleanupArray;
 
-  Monitor mMonitor MOZ_ANNOTATED;
+  Monitor mMonitor MOZ_ANNOTATED{"CookiePersistentStorage"};
 
-  Atomic<bool> mInitialized;
+  Atomic<bool> mInitialized{false};
   Atomic<bool> mInitializedDBConn;
 
   nsCOMPtr<nsIFile> mCookieFile;
@@ -157,15 +150,14 @@ class CookiePersistentStorage final : public CookieStorage,
   nsCOMPtr<mozIStorageAsyncStatement> mStmtDelete;
   nsCOMPtr<mozIStorageAsyncStatement> mStmtUpdate;
 
-  Atomic<CorruptFlag, Relaxed> mCorruptFlag;
+  Atomic<CorruptFlag, Relaxed> mCorruptFlag{OK};
 
   // Various parts representing asynchronous read state. These are useful
   // while the background read is taking place.
   nsCOMPtr<mozIStorageConnection> mSyncConn;
 
   // DB completion handlers.
-  nsCOMPtr<mozIStorageStatementCallback> mInsertListener;
-  nsCOMPtr<mozIStorageStatementCallback> mUpdateListener;
+  nsCOMPtr<mozIStorageStatementCallback> mFlushListener;
   nsCOMPtr<mozIStorageStatementCallback> mRemoveListener;
   nsCOMPtr<mozIStorageCompletionCallback> mCloseListener;
 

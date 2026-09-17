@@ -105,13 +105,6 @@ UiCompositorControllerParent::RecvInvalidateAndRender() {
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult UiCompositorControllerParent::RecvMaxToolbarHeight(
-    const int32_t& aHeight) {
-  mMaxToolbarHeight = aHeight;
-
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult UiCompositorControllerParent::RecvFixedBottomOffset(
     const int32_t& aOffset) {
 #if defined(MOZ_WIDGET_ANDROID)
@@ -222,12 +215,14 @@ void UiCompositorControllerParent::NotifyFirstPaint() {
   ToolbarAnimatorMessageFromCompositor(FIRST_PAINT);
 }
 
-void UiCompositorControllerParent::NotifyCompositorScrollUpdate(
-    const CompositorScrollUpdate& aUpdate) {
-  CompositorThread()->Dispatch(NewRunnableMethod<CompositorScrollUpdate>(
-      "UiCompositorControllerParent::SendNotifyCompositorScrollUpdate", this,
-      &UiCompositorControllerParent::SendNotifyCompositorScrollUpdate,
-      aUpdate));
+void UiCompositorControllerParent::NotifyCompositorScrollUpdates(
+    nsTArray<CompositorScrollUpdate>&& aUpdates) {
+  CompositorThread()->Dispatch(
+      NewRunnableMethod<nsTArray<CompositorScrollUpdate>>(
+          "UiCompositorControllerParent::SendNotifyCompositorScrollUpdates",
+          this,
+          &UiCompositorControllerParent::SendNotifyCompositorScrollUpdates,
+          std::move(aUpdates)));
 }
 
 UiCompositorControllerParent::UiCompositorControllerParent(
@@ -237,8 +232,7 @@ UiCompositorControllerParent::UiCompositorControllerParent(
       ,
       mCompositorLayersUpdateEnabled(false)
 #endif
-      ,
-      mMaxToolbarHeight(0) {
+{
   MOZ_COUNT_CTOR(UiCompositorControllerParent);
 }
 

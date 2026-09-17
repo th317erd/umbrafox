@@ -47,6 +47,7 @@
 #include "mozilla/dom/ElementInlines.h"
 #include "mozilla/dom/GeneratedImageContent.h"
 #include "mozilla/dom/HTMLInputElement.h"
+#include "mozilla/dom/HTMLLabelElement.h"
 #include "mozilla/dom/HTMLSelectElement.h"
 #include "mozilla/dom/HTMLSharedListElement.h"
 #include "mozilla/dom/HTMLSummaryElement.h"
@@ -1481,30 +1482,6 @@ void nsCSSFrameConstructor::CreateGeneratedContent(
       return;
     }
 
-    case Type::Attr: {
-      const auto& attr = aItem.AsAttr();
-      RefPtr<nsAtom> attrName = attr.attribute.AsAtom();
-      int32_t attrNameSpace = kNameSpaceID_None;
-      RefPtr<nsAtom> ns = attr.namespace_url.AsAtom();
-      if (!ns->IsEmpty()) {
-        nsresult rv = nsNameSpaceManager::GetInstance()->RegisterNameSpace(
-            ns.forget(), attrNameSpace);
-        NS_ENSURE_SUCCESS_VOID(rv);
-      }
-
-      if (mDocument->IsHTMLDocument() && aOriginatingElement.IsHTMLElement()) {
-        ToLowerCaseASCII(attrName);
-      }
-
-      RefPtr<nsAtom> fallback = attr.fallback.AsAtom();
-
-      nsCOMPtr<nsIContent> content;
-      NS_NewAttributeContent(mDocument->NodeInfoManager(), attrNameSpace,
-                             attrName, fallback, getter_AddRefs(content));
-      aAddChild(content);
-      return;
-    }
-
     case Type::Counter:
     case Type::Counters: {
       RefPtr<nsAtom> name;
@@ -1553,8 +1530,7 @@ void nsCSSFrameConstructor::CreateGeneratedContent(
           accesskey.IsEmpty() || !LookAndFeel::GetMenuAccessKey()) {
         // Easy path: just return a regular value attribute content.
         nsCOMPtr<nsIContent> content;
-        NS_NewAttributeContent(mDocument->NodeInfoManager(), kNameSpaceID_None,
-                               nsGkAtoms::value, nsGkAtoms::_empty,
+        NS_NewAttributeContent(mDocument->NodeInfoManager(), nsGkAtoms::value,
                                getter_AddRefs(content));
         aAddChild(content);
         return;
@@ -1594,8 +1570,7 @@ void nsCSSFrameConstructor::CreateGeneratedContent(
         if (!FindInReadable(accesskey, start, end)) {
           start = originalStart;
           // didn't find it - perform a case-insensitive search
-          found = FindInReadable(accesskey, start, end,
-                                 nsCaseInsensitiveStringComparator);
+          found = CaseInsensitiveFindInReadable(accesskey, start, end);
         }
         if (!found) {
           return Nothing();
@@ -1644,8 +1619,7 @@ void nsCSSFrameConstructor::CreateGeneratedContent(
       // detect that and do the right thing here?
       if (aOriginatingElement.HasAttr(nsGkAtoms::alt)) {
         nsCOMPtr<nsIContent> content;
-        NS_NewAttributeContent(mDocument->NodeInfoManager(), kNameSpaceID_None,
-                               nsGkAtoms::alt, nsGkAtoms::_empty,
+        NS_NewAttributeContent(mDocument->NodeInfoManager(), nsGkAtoms::alt,
                                getter_AddRefs(content));
         aAddChild(content);
         return;
@@ -1654,9 +1628,8 @@ void nsCSSFrameConstructor::CreateGeneratedContent(
       if (aOriginatingElement.IsHTMLElement(nsGkAtoms::input)) {
         if (aOriginatingElement.HasAttr(nsGkAtoms::value)) {
           nsCOMPtr<nsIContent> content;
-          NS_NewAttributeContent(mDocument->NodeInfoManager(),
-                                 kNameSpaceID_None, nsGkAtoms::value,
-                                 nsGkAtoms::_empty, getter_AddRefs(content));
+          NS_NewAttributeContent(mDocument->NodeInfoManager(), nsGkAtoms::value,
+                                 getter_AddRefs(content));
           aAddChild(content);
           return;
         }
@@ -1748,6 +1721,13 @@ static bool HasUAWidget(const Element& aOriginatingElement) {
   return sr && sr->IsUAWidget();
 }
 
+static bool IsBaseAppearanceSelect(const Element& aElement) {
+  if (const auto* select = HTMLSelectElement::FromNode(aElement)) {
+    return select->IsBaseSelectAppearance();
+  }
+  return false;
+}
+
 /*
  * aParentFrame - the frame that should be the parent of the generated
  *   content.  This is the frame for the corresponding content node,
@@ -1778,7 +1758,8 @@ void nsCSSFrameConstructor::CreateGeneratedContentItem(
   if (aPseudoElement != PseudoStyleType::Backdrop &&
       aPseudoElement != PseudoStyleType::PickerIcon &&
       HasUAWidget(aOriginatingElement) &&
-      !aOriginatingElement.IsHTMLElement(nsGkAtoms::details)) {
+      !aOriginatingElement.IsHTMLElement(nsGkAtoms::details) &&
+      !IsBaseAppearanceSelect(aOriginatingElement)) {
     // ::before / ::after / ::marker shouldn't work on <video> / <input>.
     return;
   }
@@ -2349,18 +2330,11 @@ nsIFrame* nsCSSFrameConstructor::ConstructDocElementFrame(
 
   SetUpDocElementContainingBlock(aDocElement);
 
-  // This has the side-effect of getting `mFrameTreeState` from our docshell.
-  //
-  // FIXME(emilio): There may be a more sensible time to do this.
-  if (!mFrameTreeState) {
-    mPresShell->CaptureHistoryState(getter_AddRefs(mFrameTreeState));
-  }
-
   NS_ASSERTION(mDocElementContainingBlock, "Should have parent by now");
   nsFrameConstructorState state(
       mPresShell,
       GetAbsoluteContainingBlock(mDocElementContainingBlock, FIXED_POS),
-      nullptr, nullptr, do_AddRef(mFrameTreeState));
+      nullptr, nullptr);
 
   RefPtr<ComputedStyle> computedStyle =
       ServoStyleSet::ResolveServoStyle(*aDocElement);
@@ -2820,6 +2794,13 @@ void nsCSSFrameConstructor::SetUpDocElementContainingBlock(
   } else {
     viewportFrame->AppendFrames(FrameChildListID::Principal,
                                 nsFrameList(newFrame, newFrame));
+  }
+
+  if (ScrollContainerFrame* rootScroll = do_QueryFrame(newFrame)) {
+    if (nsCOMPtr state = mPresShell->GetDocument()->GetLayoutHistoryState();
+        state && state->HasStates()) {
+      rootScroll->RestoreState(state.get());
+    }
   }
 }
 
@@ -3450,6 +3431,9 @@ nsCSSFrameConstructor::FindHTMLData(const Element& aElement,
       SIMPLE_TAG_CREATE(progress, NS_NewProgressFrame),
       SIMPLE_TAG_CREATE(meter, NS_NewMeterFrame),
       SIMPLE_TAG_CHAIN(details, nsCSSFrameConstructor::FindDetailsData),
+      SIMPLE_TAG_CHAIN(label,
+                       nsCSSFrameConstructor::FindLabelOrDescriptionData),
+
   };
 
   return FindDataByTag(aElement, aStyle, sHTMLData, std::size(sHTMLData));
@@ -4017,9 +4001,9 @@ nsCSSFrameConstructor::FindXULTagData(const Element& aElement,
       SIMPLE_TAG_CREATE(image, NS_NewXULImageFrame),
       SIMPLE_TAG_CREATE(treechildren, NS_NewTreeBodyFrame),
       SIMPLE_TAG_CHAIN(label,
-                       nsCSSFrameConstructor::FindXULLabelOrDescriptionData),
+                       nsCSSFrameConstructor::FindLabelOrDescriptionData),
       SIMPLE_TAG_CHAIN(description,
-                       nsCSSFrameConstructor::FindXULLabelOrDescriptionData),
+                       nsCSSFrameConstructor::FindLabelOrDescriptionData),
       SIMPLE_TAG_CREATE(iframe, NS_NewSubDocumentFrame),
       SIMPLE_TAG_CREATE(editor, NS_NewSubDocumentFrame),
       SIMPLE_TAG_CREATE(browser, NS_NewSubDocumentFrame),
@@ -4040,8 +4024,12 @@ nsCSSFrameConstructor::FindXULTagData(const Element& aElement,
 
 /* static */
 const nsCSSFrameConstructor::FrameConstructionData*
-nsCSSFrameConstructor::FindXULLabelOrDescriptionData(const Element& aElement,
-                                                     ComputedStyle&) {
+nsCSSFrameConstructor::FindLabelOrDescriptionData(const Element& aElement,
+                                                  ComputedStyle&) {
+  if (!aElement.OwnerDoc()->ChromeRulesEnabled()) {
+    return nullptr;
+  }
+
   // Follow CSS display value if no value attribute
   if (!aElement.HasAttr(nsGkAtoms::value)) {
     return nullptr;
@@ -4384,11 +4372,6 @@ void nsCSSFrameConstructor::InitAndRestoreFrame(
   // Initialize the frame
   aNewFrame->Init(aContent, aParentFrame, nullptr);
   aNewFrame->AddStateBits(aState.mAdditionalStateBits);
-
-  if (aState.mFrameState) {
-    // Restore frame state for just the newly created frame.
-    RestoreFrameStateFor(aNewFrame, aState.mFrameState);
-  }
 
   if (aAllowCounters == AllowCounters::Yes &&
       mContainStyleScopeManager.AddCounterChanges(aNewFrame)) {
@@ -4816,7 +4799,8 @@ nsCSSFrameConstructor::FindSVGData(const Element& aElement,
       SIMPLE_SVG_CREATE(defs, NS_NewSVGContainerFrame),
       {nsGkAtoms::text,
        {NS_NewSVGTextFrame,
-        FCDATA_DISALLOW_OUT_OF_FLOW | FCDATA_ALLOW_BLOCK_STYLES,
+        FCDATA_DISALLOW_OUT_OF_FLOW | FCDATA_ALLOW_BLOCK_STYLES |
+            FCDATA_DISALLOW_GENERATED_CONTENT,
         PseudoStyleType::MozSvgText}},
       {nsGkAtoms::foreignObject,
        {ToCreationFunc(NS_NewSVGForeignObjectFrame),
@@ -4937,55 +4921,37 @@ void nsCSSFrameConstructor::AddFrameConstructionItems(
                                     computedStyle, flags, aItems);
 }
 
-// Whether we should suppress frames for a child under a <select> frame.
-//
-// Never create frames for non-option/optgroup kids of <select> and non-option
-// kids of <optgroup> inside a <select>.
-static bool ShouldSuppressFrameInListboxSelect(const nsIContent* aParent,
-                                               const nsIContent& aChild) {
-  if (!aParent ||
-      !aParent->IsAnyOfHTMLElements(nsGkAtoms::select, nsGkAtoms::optgroup,
-                                    nsGkAtoms::option)) {
+// Whether we should suppress frames for a child under a <select> element.
+// Right now we need this for two things:
+//  * To implement <option label>'s suppression of descendants (sad!)
+//  * To implement hiding of the <select>'s text content (hopefully going away
+//    soon enough, see https://github.com/whatwg/html/issues/12717).
+static bool ShouldSuppressFrameForSelect(const nsIContent* aParent,
+                                         const nsIContent& aChild) {
+  if (!aParent) {
     return false;
   }
 
-  if (const auto* select = HTMLSelectElement::FromNode(aParent);
-      select && select->IsCombobox()) {
-    return false;
-  }
-
-  // Allow native anonymous content no matter what.
   if (aChild.IsRootOfNativeAnonymousSubtree()) {
+    // Allow native anonymous content no matter what.
     return false;
   }
 
-  // Options with labels have their label text added in ::before by forms.css.
-  // Suppress frames for their child text.
   if (aParent->IsHTMLElement(nsGkAtoms::option)) {
+    // Options with labels have their label text added in ::before by forms.css.
+    // Suppress frames for their children.
+    // TODO(emilio): This should probably be done with shadow DOM instead (but a
+    // ShadowRoot per option seems unfortunate...).
     return aParent->AsElement()->HasNonEmptyAttr(nsGkAtoms::label);
   }
 
-  // If we're in any display: contents subtree, just suppress the frame.
-  //
-  // We can't be regular NAC, since display: contents has no frame to generate
-  // them off.
-  if (aChild.GetParent() != aParent) {
-    return true;
+  if (const auto* select = HTMLSelectElement::FromNode(aParent)) {
+    // Direct text descendants of listbox <select> are not expected to render.
+    return !select->IsCombobox() && aChild.IsText() &&
+           aParent == aChild.GetParent();
   }
 
-  // <option> and <hr> are always fine.
-  if (aChild.IsAnyOfHTMLElements(nsGkAtoms::option, nsGkAtoms::hr)) {
-    return false;
-  }
-
-  // <optgroup> is OK in <select> but not in <optgroup>.
-  if (aChild.IsHTMLElement(nsGkAtoms::optgroup) &&
-      aParent->IsHTMLElement(nsGkAtoms::select)) {
-    return false;
-  }
-
-  // Anything else is not ok.
-  return true;
+  return false;
 }
 
 const nsCSSFrameConstructor::FrameConstructionData*
@@ -5136,7 +5102,7 @@ void nsCSSFrameConstructor::AddFrameConstructionItemsInternal(
   }
 
   nsIContent* parent = aParentFrame ? aParentFrame->GetContent() : nullptr;
-  if (ShouldSuppressFrameInListboxSelect(parent, *aContent)) {
+  if (ShouldSuppressFrameForSelect(parent, *aContent)) {
     return;
   }
 
@@ -5162,7 +5128,7 @@ void nsCSSFrameConstructor::AddFrameConstructionItemsInternal(
   // Create our shadow tree lazily if needed.
   // NOTE(emilio): This is rather hacky, we should ideally remove this and make
   // shadow tree creation faster, see bug 2017005.
-  if (auto* input = HTMLInputElement::FromNode(aContent)) {
+  if (const RefPtr input = HTMLInputElement::FromNode(aContent)) {
     if (auto* sr = input->CreateShadowTreeFromLayoutIfNeeded()) {
       StyleNewChildRange(sr->GetFirstChild(), nullptr);
     }
@@ -6332,8 +6298,7 @@ void nsCSSFrameConstructor::ContentRangeInserted(nsIContent* aStartChild,
   nsFrameConstructorState state(
       mPresShell, GetAbsoluteContainingBlock(insertion.mParentFrame, FIXED_POS),
       GetAbsoluteContainingBlock(insertion.mParentFrame, ABS_POS),
-      GetFloatContainingBlock(insertion.mParentFrame),
-      do_AddRef(mFrameTreeState));
+      GetFloatContainingBlock(insertion.mParentFrame));
 
   // Recover state for the containing block - we need to know if
   // it has :first-letter or :first-line style applied to it. The
@@ -6716,6 +6681,10 @@ static bool CanRemoveWrapperPseudoForChildRemoval(nsIFrame* aFrame,
   if (!IsOnlyMeaningfulChildOfWrapperPseudo(aFrame, aParent)) {
     return false;
   }
+  if (aParent->GetPrevContinuation() || aParent->GetNextContinuation()) {
+    // If our parent is fragmented we're not really the only meaningful child.
+    return false;
+  }
   if (aParent->IsRubyBaseContainerFrame()) {
     // We can't remove the first ruby base container of a ruby frame unless
     // it has no siblings. See CreateNeededPseudoSiblings.
@@ -6869,12 +6838,6 @@ bool nsCSSFrameConstructor::ContentWillBeRemoved(nsIContent* aChild,
       }
     }
     return false;
-  }
-
-  if (aKind != RemovalKind::Dom) {
-    // Before removing the frames associated with the content object,
-    // ask them to save their state onto our state object.
-    CaptureStateForFramesOf(aChild, mFrameTreeState);
   }
 
   InvalidateCanvasIfNeeded(mPresShell, aChild);
@@ -7629,25 +7592,6 @@ nsCSSFrameConstructor::InsertionPoint nsCSSFrameConstructor::GetInsertionPoint(
   }
 
   return {GetContentInsertionFrameFor(insertionElement), insertionElement};
-}
-
-// Capture state for the frame tree rooted at the frame associated with the
-// content object, aContent
-void nsCSSFrameConstructor::CaptureStateForFramesOf(
-    nsIContent* aContent, nsILayoutHistoryState* aHistoryState) {
-  if (!aHistoryState) {
-    return;
-  }
-  nsIFrame* frame = aContent->GetPrimaryFrame();
-  if (frame == mRootElementFrame) {
-    frame = mRootElementFrame
-                ? GetAbsoluteContainingBlock(mRootElementFrame, FIXED_POS)
-                : GetRootFrame();
-  }
-  for (; frame;
-       frame = nsLayoutUtils::GetNextContinuationOrIBSplitSibling(frame)) {
-    CaptureFrameState(frame, aHistoryState);
-  }
 }
 
 static bool IsWhitespaceFrame(nsIFrame* aFrame) {
@@ -10064,7 +10008,8 @@ void nsCSSFrameConstructor::ConstructBlock(
 
   // Create column hierarchy if necessary.
   const bool needsColumn =
-      aComputedStyle->StyleColumn()->IsColumnContainerStyle();
+      aComputedStyle->StyleColumn()->IsColumnContainerStyle() &&
+      !aParentFrame->IsTextInputFrame();
   if (needsColumn) {
     *aNewFrame = BeginBuildingColumns(aState, aContent, aParentFrame,
                                       blockFrame, aComputedStyle);
@@ -11239,8 +11184,12 @@ bool nsCSSFrameConstructor::FrameConstructionItem::IsWhitespace(
   if (!mIsText) {
     return false;
   }
-  mContent->SetFlags(NS_CREATE_FRAME_IF_NON_WHITESPACE |
-                     NS_REFRAME_IF_WHITESPACE);
+  // Set content whitespace flags, but not for generated content, where we
+  // never expect to see these.
+  if (!(aState.mAdditionalStateBits & NS_FRAME_GENERATED_CONTENT)) {
+    mContent->SetFlags(NS_CREATE_FRAME_IF_NON_WHITESPACE |
+                       NS_REFRAME_IF_WHITESPACE);
+  }
   return mContent->TextIsOnlyWhitespace();
 }
 

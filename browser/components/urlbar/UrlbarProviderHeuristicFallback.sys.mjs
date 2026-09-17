@@ -16,7 +16,6 @@ import {
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  UrlbarPrefs: "moz-src:///browser/components/urlbar/UrlbarPrefs.sys.mjs",
   UrlbarResult: "chrome://browser/content/urlbar/UrlbarResult.mjs",
   UrlbarSearchUtils:
     "moz-src:///browser/components/urlbar/UrlbarSearchUtils.sys.mjs",
@@ -33,10 +32,10 @@ export class UrlbarProviderHeuristicFallback extends UrlbarProvider {
   }
 
   /**
-   * @returns {Values<typeof UrlbarUtils.PROVIDER_TYPE>}
+   * @returns {Values<typeof lazy.UrlbarShared.PROVIDER_TYPE>}
    */
   get type() {
-    return UrlbarUtils.PROVIDER_TYPE.HEURISTIC;
+    return lazy.UrlbarShared.PROVIDER_TYPE.HEURISTIC;
   }
 
   /**
@@ -69,7 +68,7 @@ export class UrlbarProviderHeuristicFallback extends UrlbarProvider {
   async startQuery(queryContext, addCallback) {
     let instance = this.queryInstance;
 
-    if (queryContext.sapName != "searchbar") {
+    if (queryContext.navigationEnabled) {
       let result =
         UrlbarProviderHeuristicFallback.matchUnknownUrl(queryContext);
       if (result) {
@@ -80,7 +79,7 @@ export class UrlbarProviderHeuristicFallback extends UrlbarProvider {
         let str = queryContext.searchString;
         if (!URL.canParse(str)) {
           if (
-            lazy.UrlbarPrefs.get("keyword.enabled") &&
+            queryContext.keywordEnabled &&
             (lazy.UrlUtils.looksLikeOrigin(str, {
               noIp: true,
               noPort: true,
@@ -108,8 +107,7 @@ export class UrlbarProviderHeuristicFallback extends UrlbarProvider {
     }
 
     if (
-      queryContext.sapName == "searchbar" ||
-      lazy.UrlbarPrefs.get("keyword.enabled") ||
+      queryContext.keywordEnabled ||
       queryContext.restrictSource == lazy.UrlbarShared.RESULT_SOURCE.SEARCH ||
       queryContext.searchMode
     ) {
@@ -141,7 +139,7 @@ export class UrlbarProviderHeuristicFallback extends UrlbarProvider {
       return null;
     }
 
-    let unescapedSearchString = UrlbarUtils.unEscapeURIForUI(
+    let unescapedSearchString = lazy.UrlbarShared.unEscapeURIForUI(
       queryContext.searchString
     );
     let [prefix, suffix] = UrlbarUtils.stripURLPrefix(unescapedSearchString);
@@ -156,7 +154,7 @@ export class UrlbarProviderHeuristicFallback extends UrlbarProvider {
     if (queryContext.fixupError) {
       if (
         queryContext.fixupError == Cr.NS_ERROR_MALFORMED_URI &&
-        !lazy.UrlbarPrefs.get("keyword.enabled")
+        !queryContext.keywordEnabled
       ) {
         return new lazy.UrlbarResult({
           type: lazy.UrlbarShared.RESULT_TYPE.URL,
@@ -198,7 +196,7 @@ export class UrlbarProviderHeuristicFallback extends UrlbarProvider {
     // pass the pretty, unescaped URL as the result's title, since it is
     // displayed to the user.
     let escapedURL = uri.toString();
-    let displayURL = UrlbarUtils.prepareUrlForDisplay(uri, {
+    let displayURL = lazy.UrlbarShared.prepareUrlForDisplay(uri, {
       trimURL: false,
       // If the user didn't type a protocol, and we added one, don't show it,
       // as https-first may upgrade it, potentially breaking expectations.
@@ -328,7 +326,7 @@ export class UrlbarProviderHeuristicFallback extends UrlbarProvider {
       heuristic,
       payload: {
         engine: engine.name,
-        icon: UrlbarUtils.ICON.SEARCH_GLASS,
+        icon: lazy.UrlbarShared.ICON.SEARCH_GLASS,
         query,
         title: query,
         keyword,

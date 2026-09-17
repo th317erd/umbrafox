@@ -74,7 +74,6 @@
 #include "mozilla/dom/DocGroup.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/ElementInlines.h"
-#include "mozilla/dom/FeaturePolicyUtils.h"
 #include "mozilla/dom/HTMLAudioElement.h"
 #include "mozilla/dom/HTMLInputElement.h"
 #include "mozilla/dom/HTMLMediaElementBinding.h"
@@ -85,6 +84,7 @@
 #include "mozilla/dom/MediaEncryptedEvent.h"
 #include "mozilla/dom/MediaErrorBinding.h"
 #include "mozilla/dom/MediaSource.h"
+#include "mozilla/dom/PermissionsPolicyUtils.h"
 #include "mozilla/dom/PlayPromise.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/TextTrack.h"
@@ -591,6 +591,7 @@ class HTMLMediaElement::MediaControlKeyListener final
     MEDIACONTROL_LOG("ResumeFromInterrupt, resume={}", willResume);
     if (willResume) {
       Owner()->Play();
+      glean::media_audio_focus::resume_decision.Get("media"_ns).Add(1);
     }
     mSuspendedByInterrupt = false;
   }
@@ -2574,6 +2575,18 @@ nsresult HTMLMediaElement::OnChannelRedirect(nsIChannel* aChannel,
                                              nsIChannel* aNewChannel,
                                              uint32_t aFlags) {
   MOZ_ASSERT(mChannelLoader);
+  if (aNewChannel) {
+    nsCOMPtr<nsIURI> oldURI;
+    if (aChannel) {
+      aChannel->GetURI(getter_AddRefs(oldURI));
+    }
+    aNewChannel->GetURI(getter_AddRefs(mLoadingSrcFinalURI));
+    LOG(LogLevel::Debug,
+        ("{} OnChannelRedirect: from {} to {}", fmt::ptr(this),
+         oldURI ? oldURI->GetSpecOrDefault().get() : "null",
+         mLoadingSrcFinalURI ? mLoadingSrcFinalURI->GetSpecOrDefault().get()
+                             : "null"));
+  }
   return mChannelLoader->Redirect(aChannel, aNewChannel, aFlags);
 }
 
@@ -2616,6 +2629,8 @@ void HTMLMediaElement::AbortExistingLoads() {
     mChannelLoader = nullptr;
   }
 
+  mLoadingSrcFinalURI = nullptr;
+
   bool fireTimeUpdate = false;
 
   if (mDecoder) {
@@ -2637,6 +2652,8 @@ void HTMLMediaElement::AbortExistingLoads() {
 
   RemoveMediaElementFromURITable();
   mLoadingSrcTriggeringPrincipal = nullptr;
+  // The CORS mode is scoped to the current load.
+  mCORSMode = CORS_NONE;
   DDLOG(DDLogCategory::Property, "loading_src", "");
   DDUNLINKCHILD(mMediaSource.get());
   mMediaSource = nullptr;
@@ -2647,7 +2664,7 @@ void HTMLMediaElement::AbortExistingLoads() {
 
   bool hadVideo = HasVideo();
   mErrorSink->ResetError();
-  mCurrentPlayRangeStart = -1.0;
+  mCurrentPlayRangeStart = Nothing();
   mPlayed = new TimeRanges(ToSupports(OwnerDoc()));
   mLoadedDataFired = false;
   mCanAutoplayFlag = true;
@@ -2704,7 +2721,8 @@ void HTMLMediaElement::AbortExistingLoads() {
   if (IsVideo() && hadVideo) {
     // Ensure we render transparent black after resetting video resolution.
     Maybe<nsIntSize> size = Some(nsIntSize(0, 0));
-    Invalidate(ImageSizeChanged::Yes, size, ForceInvalidate::No);
+    Invalidate(ImageSizeChanged::Yes, size, Some(VideoRotation::kDegree_0),
+               ForceInvalidate::No);
   }
 
   // As aborting current load would stop current playback, so we have no need to
@@ -2730,12 +2748,12 @@ void HTMLMediaElement::NoSupportedMediaSourceError(
 
   bool isSameOriginLoad = false;
   nsresult rv = NS_ERROR_NOT_AVAILABLE;
-  if (mSrcAttrTriggeringPrincipal && mLoadingSrc) {
-    rv = mSrcAttrTriggeringPrincipal->IsSameOrigin(mLoadingSrc,
-                                                   &isSameOriginLoad);
+  if (mLoadingSrcTriggeringPrincipal && mLoadingSrcFinalURI) {
+    rv = mLoadingSrcTriggeringPrincipal->IsSameOrigin(mLoadingSrcFinalURI,
+                                                      &isSameOriginLoad);
   }
 
-  if (NS_SUCCEEDED(rv) && !isSameOriginLoad) {
+  if (NS_FAILED(rv) || !isSameOriginLoad) {
     // aErrorDetails can include sensitive details like MimeType or HTTP Status
     // Code. In case we're loading a 3rd party resource we should not leak this
     // and pass a Generic Error Message
@@ -2943,6 +2961,9 @@ void HTMLMediaElement::SelectResource(
   // If we have a 'src' attribute, use that exclusively.
   nsAutoString src;
   if (mSrcAttrStream) {
+    // Media provider objects use local mode, so a previous URL load's CORS
+    // mode does not apply.
+    mCORSMode = CORS_NONE;
     SetupSrcMediaStreamPlayback(mSrcAttrStream);
   } else if (GetAttr(nsGkAtoms::src, src)) {
     nsCOMPtr<nsIURI> uri;
@@ -2967,6 +2988,7 @@ void HTMLMediaElement::SelectResource(
       } else {
         mLoadingSrc = nullptr;
       }
+      mLoadingSrcFinalURI = mLoadingSrc;
       mLoadingSrcTriggeringPrincipal = mSrcAttrTriggeringPrincipal;
       DDLOG(DDLogCategory::Property, "loading_src",
             nsCString(NS_ConvertUTF16toUTF8(src)));
@@ -3254,6 +3276,7 @@ void HTMLMediaElement::LoadFromSourceChildren(
 
     RemoveMediaElementFromURITable();
     mLoadingSrc = uri;
+    mLoadingSrcFinalURI = mLoadingSrc;
     mLoadingSrcTriggeringPrincipal = child->GetSrcTriggeringPrincipal();
     DDLOG(DDLogCategory::Property, "loading_src",
           nsCString(NS_ConvertUTF16toUTF8(src)));
@@ -3744,12 +3767,12 @@ already_AddRefed<TimeRanges> HTMLMediaElement::Played() {
     ranges->Add(begin, end);
   }
 
-  if (mCurrentPlayRangeStart != -1.0) {
+  if (mCurrentPlayRangeStart) {
     double now = CurrentTime();
-    if (mCurrentPlayRangeStart != now) {
+    if (mCurrentPlayRangeStart.value() != now) {
       // Don't round the left of the interval: it comes from script and needs
       // to be exact.
-      ranges->Add(mCurrentPlayRangeStart, now);
+      ranges->Add(mCurrentPlayRangeStart.value(), now);
     }
   }
 
@@ -5258,8 +5281,8 @@ void HTMLMediaElement::PlayInternal(bool aHandlingUserInput) {
     }
   }
 
-  if (mCurrentPlayRangeStart == -1.0) {
-    mCurrentPlayRangeStart = CurrentTime();
+  if (!mCurrentPlayRangeStart) {
+    mCurrentPlayRangeStart = Some(CurrentTime());
   }
 
   const bool oldPaused = mPaused;
@@ -5646,7 +5669,7 @@ void HTMLMediaElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
         mDecoder->SetLooping(!!aValue);
       }
     } else if (aName == nsGkAtoms::controls && IsInComposedDoc()) {
-      NotifyUAWidgetSetupOrChange();
+      AddScriptRunnerToNotifyUAWidgetSetupOrChange();
       SetCuesDirty();
     } else if (aName == nsGkAtoms::muted) {
       // While the muted state is "default", the muted content attribute is a
@@ -5661,7 +5684,7 @@ void HTMLMediaElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
           SetMutedInternal(aValue ? (mMuted | MUTED_BY_CONTENT)
                                   : (mMuted & ~MUTED_BY_CONTENT));
           if (IsInComposedDoc()) {
-            NotifyUAWidgetSetupOrChange();
+            AddScriptRunnerToNotifyUAWidgetSetupOrChange();
           }
         }
       }
@@ -5702,7 +5725,7 @@ nsresult HTMLMediaElement::BindToTree(BindContext& aContext, nsINode& aParent) {
 
   if (IsInComposedDoc()) {
     // Construct Shadow Root so web content can be hidden in the DOM.
-    AttachAndSetUAShadowRoot();
+    AttachAndSetUAShadowRoot(NotifyUAWidget::Yes);
 
     // The preload action depends on the value of the autoplay attribute.
     // It's value may have changed, so update it.
@@ -5718,7 +5741,7 @@ void HTMLMediaElement::UnbindFromTree(UnbindContext& aContext) {
   mVisibilityState = Visibility::Untracked;
 
   if (IsInComposedDoc()) {
-    TeardownUAShadowRoot();
+    TeardownUAShadowRoot(NotifyUAWidget::Yes);
   }
 
   nsGenericHTMLElement::UnbindFromTree(aContext);
@@ -6057,6 +6080,7 @@ void HTMLMediaElement::UpdateSrcStreamTime() {
 
 void HTMLMediaElement::SetupSrcMediaStreamPlayback(DOMMediaStream* aStream) {
   NS_ASSERTION(!mSrcStream, "Should have been ended already");
+  MOZ_ASSERT(mCORSMode == CORS_NONE);
 
   mLoadingSrc = nullptr;
   mSrcStream = aStream;
@@ -6281,7 +6305,7 @@ void HTMLMediaElement::MetadataLoaded(const MediaInfo* aInfo,
   if (IsVideo() && HasVideo()) {
     QueueEvent(u"resize"_ns);
     Invalidate(ImageSizeChanged::No, Some(mMediaInfo.mVideo.mDisplay),
-               ForceInvalidate::No);
+               Nothing(), ForceInvalidate::No);
   }
   NS_ASSERTION(!HasVideo() || (mMediaInfo.mVideo.mDisplay.width > 0 &&
                                mMediaInfo.mVideo.mDisplay.height > 0),
@@ -6468,19 +6492,19 @@ void HTMLMediaElement::UpdateSrcStreamReportPlaybackEnded() {
 void HTMLMediaElement::SeekStarted() { QueueEvent(u"seeking"_ns); }
 
 void HTMLMediaElement::UpdatePlayedRangesBeforeSeek(double aRangeEndTime) {
-  if (mPlayed && mCurrentPlayRangeStart != -1.0) {
+  if (mPlayed && mCurrentPlayRangeStart) {
     LOG(LogLevel::Debug,
         ("{} Adding 'played' a range : [{}, {}]", fmt::ptr(this),
-         mCurrentPlayRangeStart, aRangeEndTime));
+         mCurrentPlayRangeStart.value(), aRangeEndTime));
     // Multiple seek without playing, or seek while playing.
-    if (mCurrentPlayRangeStart != aRangeEndTime) {
+    if (mCurrentPlayRangeStart.value() != aRangeEndTime) {
       // Don't round the left of the interval: it comes from script and needs
       // to be exact.
-      mPlayed->Add(mCurrentPlayRangeStart, aRangeEndTime);
+      mPlayed->Add(mCurrentPlayRangeStart.value(), aRangeEndTime);
     }
     // Reset the current played range start time. We'll re-set it once
     // the seek completes.
-    mCurrentPlayRangeStart = -1.0;
+    mCurrentPlayRangeStart = Nothing();
   }
 }
 
@@ -6498,8 +6522,8 @@ void HTMLMediaElement::SeekCompleted() {
   QueueEvent(u"seeked"_ns);
   // We changed whether we're seeking so we need to AddRemoveSelfReference
   AddRemoveSelfReference();
-  if (mCurrentPlayRangeStart == -1.0) {
-    mCurrentPlayRangeStart = CurrentTime();
+  if (!mCurrentPlayRangeStart) {
+    mCurrentPlayRangeStart = Some(CurrentTime());
   }
 
   if (mSeekDOMPromise) {
@@ -7107,8 +7131,8 @@ void HTMLMediaElement::RunAutoplay() {
 
   if (mDecoder) {
     SetPlayedOrSeeked(true);
-    if (mCurrentPlayRangeStart == -1.0) {
-      mCurrentPlayRangeStart = CurrentTime();
+    if (!mCurrentPlayRangeStart) {
+      mCurrentPlayRangeStart = Some(CurrentTime());
     }
     MOZ_ASSERT(!mSuspendedByInactiveDocOrDocshell);
     mDecoder->Play();
@@ -7262,8 +7286,8 @@ nsresult HTMLMediaElement::FireEvent(const nsAString& aName) {
   LOG_EVENT(LogLevel::Debug, ("{} Firing event {}", fmt::ptr(this),
                               NS_ConvertUTF16toUTF8(aName).get()));
 
-  return nsContentUtils::DispatchTrustedEvent(OwnerDoc(), this, aName,
-                                              CanBubble::eNo, Cancelable::eNo);
+  return nsContentUtils::DispatchTrustedEvent(this, aName, CanBubble::eNo,
+                                              Cancelable::eNo);
 }
 
 void HTMLMediaElement::QueueEvent(const nsAString& aName) {
@@ -7356,10 +7380,14 @@ void HTMLMediaElement::NotifyDecoderPrincipalChanged() {
 
 void HTMLMediaElement::Invalidate(ImageSizeChanged aImageSizeChanged,
                                   const Maybe<nsIntSize>& aNewIntrinsicSize,
+                                  const Maybe<VideoRotation>& aNewRotation,
                                   ForceInvalidate aForceInvalidate) {
   nsIFrame* frame = GetPrimaryFrame();
-  if (aNewIntrinsicSize) {
-    UpdateMediaSize(aNewIntrinsicSize.value());
+  if (aNewIntrinsicSize || aNewRotation) {
+    // Whichever of size/rotation didn't change this cycle keeps its
+    // already-applied value from mMediaInfo.mVideo.
+    UpdateMediaSize(aNewIntrinsicSize.valueOr(mMediaInfo.mVideo.mDisplay),
+                    aNewRotation.valueOr(mMediaInfo.mVideo.mRotation));
     if (frame) {
       nsPresContext* presContext = frame->PresContext();
       PresShell* presShell = presContext->PresShell();
@@ -7384,15 +7412,28 @@ void HTMLMediaElement::Invalidate(ImageSizeChanged aImageSizeChanged,
   SVGObserverUtils::InvalidateDirectRenderingObservers(this);
 }
 
-void HTMLMediaElement::UpdateMediaSize(const nsIntSize& aSize) {
+static nsIntSize EffectiveVideoSize(const nsIntSize& aSize,
+                                    VideoRotation aRotation) {
+  if (aRotation == VideoRotation::kDegree_90 ||
+      aRotation == VideoRotation::kDegree_270) {
+    return nsIntSize(aSize.height, aSize.width);
+  }
+  return aSize;
+}
+
+void HTMLMediaElement::UpdateMediaSize(const nsIntSize& aSize,
+                                       VideoRotation aRotation) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (IsVideo() && mReadyState != HAVE_NOTHING &&
-      mMediaInfo.mVideo.mDisplay != aSize) {
+      EffectiveVideoSize(mMediaInfo.mVideo.mDisplay,
+                         mMediaInfo.mVideo.mRotation) !=
+          EffectiveVideoSize(aSize, aRotation)) {
     QueueEvent(u"resize"_ns);
   }
 
   mMediaInfo.mVideo.mDisplay = aSize;
+  mMediaInfo.mVideo.mRotation = aRotation;
   mWatchManager.ManualNotify(&HTMLMediaElement::UpdateReadyStateInternal);
 }
 
@@ -7480,6 +7521,29 @@ void HTMLMediaElement::NotifyOwnerDocumentActivityChanged() {
       ShutdownDecoder();
     }
   }
+
+#if defined(MOZ_WIDGET_ANDROID)
+  // Android-only probe (bug 2066141) to help the mobile product team
+  // answer how often background media playback happens. It is recorded when
+  // this element transitions to hidden while audibly playing (the app is
+  // backgrounded), once per background episode, and reset when the document
+  // becomes visible again. Picture-in-Picture is excluded, since there the
+  // document is hidden but the video is still visible to the user.
+  //
+  // This is a broad signal: it only fires on the foreground-to-background
+  // transition, so it does NOT capture all background media playback (for
+  // example media that starts or resumes while already backgrounded) and will
+  // under-count.
+  if (OwnerDoc()->Hidden() && !OwnerDoc()->InAndroidPipMode() && !mPaused &&
+      IsAudible()) {
+    if (!mRecordedBackgroundAudioPlayback) {
+      mRecordedBackgroundAudioPlayback = true;
+      glean::media::background_audio_playback.Record();
+    }
+  } else if (!OwnerDoc()->Hidden()) {
+    mRecordedBackgroundAudioPlayback = false;
+  }
+#endif
 
   AddRemoveSelfReference();
 }
@@ -8588,11 +8652,6 @@ void HTMLMediaElement::MarkAsTainted() {
   }
 }
 
-bool HasDebuggerOrTabsPrivilege(JSContext* aCx, JSObject* aObj) {
-  return nsContentUtils::CallerHasPermission(aCx, nsGkAtoms::debugger) ||
-         nsContentUtils::CallerHasPermission(aCx, nsGkAtoms::tabs);
-}
-
 already_AddRefed<Promise> HTMLMediaElement::SetSinkId(const nsAString& aSinkId,
                                                       ErrorResult& aRv) {
   LOG(LogLevel::Info, ("{}, setSinkId({})", fmt::ptr(this),
@@ -8608,8 +8667,8 @@ already_AddRefed<Promise> HTMLMediaElement::SetSinkId(const nsAString& aSinkId,
     return nullptr;
   }
 
-  if (!FeaturePolicyUtils::IsFeatureAllowed(win->GetExtantDoc(),
-                                            u"speaker-selection"_ns)) {
+  if (!PermissionsPolicyUtils::IsFeatureAllowed(win->GetExtantDoc(),
+                                                u"speaker-selection"_ns)) {
     promise->MaybeRejectWithNotAllowedError(
         "Document's Permissions Policy does not allow setSinkId()");
   }
@@ -8791,6 +8850,11 @@ bool HTMLMediaElement::IsControllableMediaSource() const {
 
   if (IsInFullScreen()) {
     MEDIACONTROL_LOG("Controllable: media is in fullscreen");
+    return true;
+  }
+
+  if (mDecoder && mDecoder->IsLiveStream()) {
+    MEDIACONTROL_LOG("Controllable: live stream");
     return true;
   }
 

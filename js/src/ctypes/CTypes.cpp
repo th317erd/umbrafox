@@ -4485,6 +4485,16 @@ void CType::Finalize(JS::GCContext* gcx, JSObject* obj) {
       slot = JS::GetReservedSlot(obj, SLOT_FNINFO);
       if (!slot.isUndefined()) {
         auto fninfo = static_cast<FunctionInfo*>(slot.toPrivate());
+#ifdef CTYPES_HAVE_FAST_CALL_PLAN
+        if (fninfo->mCallPlan) {
+          // Query while the plan is still alive; it is immutable, so this
+          // matches what AddCellMemory was given.
+          gcx->removeCellMemory(obj, ffi_call_plan_size(fninfo->mCallPlan),
+                                MemoryUse::CTypeFFICallPlan);
+          ffi_call_plan_free(fninfo->mCallPlan);
+          fninfo->mCallPlan = nullptr;
+        }
+#endif
         gcx->delete_(obj, fninfo, MemoryUse::CTypeFunctionInfo);
       }
       break;
@@ -6813,6 +6823,16 @@ static bool CreateFunctionInfo(JSContext* cx, HandleObject typeObj,
     return false;
   }
 
+#ifdef CTYPES_HAVE_FAST_CALL_PLAN
+  // Precompute the argument placement now so repeated calls skip it. A null
+  // plan (allocation failure) is fine; the call site falls back to ffi_call.
+  fninfo->mCallPlan = ffi_call_plan_alloc(&fninfo->mCIF);
+  if (fninfo->mCallPlan) {
+    AddCellMemory(typeObj, ffi_call_plan_size(fninfo->mCallPlan),
+                  MemoryUse::CTypeFFICallPlan);
+  }
+#endif
+
   return true;
 }
 
@@ -7142,7 +7162,15 @@ bool FunctionType::Call(JSContext* cx, unsigned argc, Value* vp) {
     avalue[i] = values[i].mData;
   }
 
-  ffi_call(&fninfo->mCIF, FFI_FN(fn), returnValue.mData, avalue.begin());
+#ifdef CTYPES_HAVE_FAST_CALL_PLAN
+  if (fninfo->mCallPlan) {
+    ffi_call_plan_invoke(fninfo->mCallPlan, FFI_FN(fn), returnValue.mData,
+                         avalue.begin());
+  } else
+#endif
+  {
+    ffi_call(&fninfo->mCIF, FFI_FN(fn), returnValue.mData, avalue.begin());
+  }
 
   // Save error value.
   // We need to save it before leaving the scope of |suspend| as destructing

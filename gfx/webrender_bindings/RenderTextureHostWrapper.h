@@ -72,6 +72,9 @@ class RenderTextureHostWrapper final : public RenderTextureHostSWGL {
   void UnlockSWGL() override;
   bool LockSWGLCompositeSurface(void* aContext,
                                 wr::SWGLCompositeSurfaceInfo* aInfo) override;
+  void UnlockSWGLCompositeSurface() override;
+
+  void SetReadFenceFd(UniqueFileHandle&& aFenceFd) override;
 
   // This is just a wrapper, so doesn't need to report the
   // size of the wrapped object (which reports itself).

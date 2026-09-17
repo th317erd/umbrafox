@@ -419,6 +419,14 @@ struct BaseRect {
     aSub -= aSize;
     return aSub;
   }
+  friend Sub operator+(Sub aSub, const MarginT& aMargin) {
+    aSub.Inflate(aMargin);
+    return aSub;
+  }
+  friend Sub operator-(Sub aSub, const MarginT& aMargin) {
+    aSub.Deflate(aMargin);
+    return aSub;
+  }
   Sub& operator+=(const Point& aPoint) {
     MoveBy(aPoint);
     return *static_cast<Sub*>(this);
@@ -435,6 +443,14 @@ struct BaseRect {
   Sub& operator-=(const SizeT& aSize) {
     width -= aSize.width;
     height -= aSize.height;
+    return *static_cast<Sub*>(this);
+  }
+  Sub& operator+=(const MarginT& aMargin) {
+    Inflate(aMargin);
+    return *static_cast<Sub*>(this);
+  }
+  Sub& operator-=(const MarginT& aMargin) {
+    Deflate(aMargin);
     return *static_cast<Sub*>(this);
   }
   // Find difference as a Margin
@@ -490,7 +506,15 @@ struct BaseRect {
   Point Center() const { return Point(x, y) + Point(width, height) / 2; }
   SizeT Size() const { return SizeT(width, height); }
 
-  T Area() const { return width * height; }
+  // For integer coordinates, widen to 64-bit before multiplying so that the
+  // area of a large rect does not overflow.
+  auto Area() const {
+    if constexpr (std::is_integral_v<T>) {
+      return int64_t(width) * int64_t(height);
+    } else {
+      return width * height;
+    }
+  }
 
   // Helper methods for computing the extents
   MOZ_ALWAYS_INLINE T X() const { return x; }

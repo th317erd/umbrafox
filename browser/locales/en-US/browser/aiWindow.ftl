@@ -198,12 +198,6 @@ aiwindow-firstrun-default-checkbox-description = Switch in settings anytime
 smartwindow-ask-button =
     .label = Ask
 
-## Group My Tabs Toolbar Button
-
-smartwindow-group-tabs-button =
-    .label = Group my tabs
-    .tooltiptext = Group my tabs
-
 ## Memories toggle button
 
 aiwindow-memories-on =
@@ -224,6 +218,39 @@ aiwindow-new-chat =
 aiwindow-close-sidebar =
     .tooltiptext = Close
     .aria-label = Close
+
+## Chat History Menu
+## The menu opened from the "..." button next to the new chat button. Its main
+## view links to the chat history subview and Smart Window settings; the chat
+## history subview lists recent chats and a shortcut to all chats.
+
+aiwindow-history-menu =
+    .tooltiptext = More options
+    .aria-label = More options
+
+aiwindow-history-menu-chat-history = Chat history
+
+aiwindow-history-menu-back =
+    .tooltiptext = Back
+    .aria-label = Back
+
+aiwindow-history-menu-view-all-chats = View all chats
+
+aiwindow-history-menu-settings = { -smart-window-brand-name } settings
+
+## Fullpage top actions
+## Labeled buttons shown at the top of the fullpage Smart Window.
+
+aiwindow-fullpage-new-chat =
+    .label = New chat
+aiwindow-fullpage-chat-history =
+    .label = Chat history
+# "More" is the label for a button that opens a menu of additional Smart Window
+# options (currently Smart Window settings) — i.e. "more actions/options", not
+# more content or more chat history.
+aiwindow-fullpage-more =
+    .label = More
+    .title = More
 
 ## Sign out dialog
 
@@ -380,3 +407,20 @@ aiwindow-starter-planning-plan = Help make a plan
 aiwindow-starter-browsing-history = Find tabs in history
 aiwindow-starter-browsing-summarize = Summarize tabs
 aiwindow-starter-browsing-compare = Compare tabs
+
+## Conversation Starter Scroll Buttons
+## Scrolls the conversation-starter pill row toward its start/end.
+
+aiwindow-starter-scroll-start =
+    .tooltiptext = Scroll back
+    .aria-label = Scroll back
+aiwindow-starter-scroll-end =
+    .tooltiptext = Scroll forward
+    .aria-label = Scroll forward
+
+# Dismisses a "pick up where you left off" resume-activity suggestion pill.
+# Variables:
+#   $text (String) - The suggestion headline being dismissed
+aiwindow-starter-dismiss =
+    .title = Dismiss { $text }
+    .aria-label = Dismiss { $text }

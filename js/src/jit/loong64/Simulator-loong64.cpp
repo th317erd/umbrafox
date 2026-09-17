@@ -28,6 +28,7 @@
 #include "jit/loong64/Simulator-loong64.h"
 
 #include <cinttypes>
+#include <cmath>
 #include <float.h>
 #include <limits>
 
@@ -504,6 +505,22 @@ SimInstruction::Type SimInstruction::instructionType() const {
       case op_fldx_d:
       case op_fstx_s:
       case op_fstx_d:
+      case op_amcas_b:
+      case op_amcas_h:
+      case op_amcas_w:
+      case op_amcas_d:
+      case op_amcas_db_b:
+      case op_amcas_db_h:
+      case op_amcas_db_w:
+      case op_amcas_db_d:
+      case op_amswap_b:
+      case op_amswap_h:
+      case op_amadd_b:
+      case op_amadd_h:
+      case op_amswap_db_b:
+      case op_amswap_db_h:
+      case op_amadd_db_b:
+      case op_amadd_db_h:
       case op_amswap_w:
       case op_amswap_d:
       case op_amadd_w:
@@ -1772,8 +1789,11 @@ bool Simulator::setFCSRRoundError(double original, double rounded) {
     ret = true;
   }
 
-  if ((long double)rounded > (long double)std::numeric_limits<T>::max() ||
-      (long double)rounded < (long double)std::numeric_limits<T>::min()) {
+  // When T is int64_t, the true value of max(T) is not representable as double,
+  // but max(T)+1 is. Construct it with ldexp to avoid overflow. min(T) is
+  // always representable as double, so simply cast it.
+  if (rounded >= std::ldexp(1.0, std::numeric_limits<T>::digits) ||
+      rounded < static_cast<double>(std::numeric_limits<T>::min())) {
     setFCSRBit(kFCSROverflowFlagBit, true);
     setFCSRBit(kFCSROverflowCauseBit, true);
     // The reference is not really clear but it seems this is required:
@@ -2020,6 +2040,63 @@ void Simulator::writeD(uint64_t addr, double value, SimInstruction* instr) {
   LLBit_ = false;
   *ptr = value;
   return;
+}
+
+template <typename T>
+void Simulator::AtomicMemoryHelper(AmoOp<T> f, SimInstruction* instr) {
+  uint64_t addr = rj_u(instr);
+  T value = static_cast<T>(rk(instr));
+  constexpr unsigned elementSize = sizeof(T);
+
+  if (addr % elementSize == 0) {
+    if (handleWasmSegFault(addr, elementSize)) {
+      return;
+    }
+
+    SharedMem<T*> ptr = SharedMem<T*>::shared(reinterpret_cast<T*>(addr));
+    LLBit_ = false;
+    T old = f(ptr, value);
+
+    if constexpr (elementSize == 4) {
+      setRegister(rd_reg(instr), static_cast<int32_t>(old));
+    } else {
+      setRegister(rd_reg(instr), static_cast<int64_t>(old));
+    }
+    return;
+  }
+
+  printf("Unaligned atomic access at 0x%016" PRIx64 ", pc=0x%016" PRIxPTR "\n",
+         addr, reinterpret_cast<intptr_t>(instr));
+  MOZ_CRASH();
+}
+
+template <typename T>
+void Simulator::AtomicMemoryCasHelper(AmoCasOp<T> f, SimInstruction* instr) {
+  uint64_t addr = rj_u(instr);
+  T expected = static_cast<T>(rd(instr));
+  T newVal = static_cast<T>(rk(instr));
+  constexpr unsigned elementSize = sizeof(T);
+
+  if (addr % elementSize == 0) {
+    if (handleWasmSegFault(addr, elementSize)) {
+      return;
+    }
+
+    SharedMem<T*> ptr = SharedMem<T*>::shared(reinterpret_cast<T*>(addr));
+    LLBit_ = false;
+    T old = f(ptr, expected, newVal);
+
+    if constexpr (elementSize == 4) {
+      setRegister(rd_reg(instr), static_cast<int32_t>(old));
+    } else {
+      setRegister(rd_reg(instr), static_cast<int64_t>(old));
+    }
+    return;
+  }
+
+  printf("Unaligned atomic access at 0x%016" PRIx64 ", pc=0x%016" PRIxPTR "\n",
+         addr, reinterpret_cast<intptr_t>(instr));
+  MOZ_CRASH();
 }
 
 int Simulator::loadLinkedW(uint64_t addr, SimInstruction* instr) {
@@ -3691,111 +3768,111 @@ void Simulator::decodeTypeOp17(SimInstruction* instr) {
       writeD(rj(instr) + rk(instr), getFpuRegisterDouble(fd_reg(instr)), instr);
       break;
     }
+    case op_amcas_b:
+    case op_amcas_db_b:
+      AtomicMemoryCasHelper(AtomicOperations::compareExchangeSeqCst<int8_t>,
+                            instr);
+      break;
+    case op_amcas_h:
+    case op_amcas_db_h:
+      AtomicMemoryCasHelper(AtomicOperations::compareExchangeSeqCst<int16_t>,
+                            instr);
+      break;
+    case op_amcas_w:
+    case op_amcas_db_w:
+      AtomicMemoryCasHelper(AtomicOperations::compareExchangeSeqCst<int32_t>,
+                            instr);
+      break;
+    case op_amcas_d:
+    case op_amcas_db_d:
+      AtomicMemoryCasHelper(AtomicOperations::compareExchangeSeqCst<int64_t>,
+                            instr);
+      break;
+    case op_amswap_b:
+    case op_amswap_db_b:
+      AtomicMemoryHelper(AtomicOperations::exchangeSeqCst<int8_t>, instr);
+      break;
+    case op_amswap_h:
+    case op_amswap_db_h:
+      AtomicMemoryHelper(AtomicOperations::exchangeSeqCst<int16_t>, instr);
+      break;
     case op_amswap_w:
-      UNIMPLEMENTED();
+    case op_amswap_db_w:
+      AtomicMemoryHelper(AtomicOperations::exchangeSeqCst<int32_t>, instr);
       break;
     case op_amswap_d:
-      UNIMPLEMENTED();
+    case op_amswap_db_d:
+      AtomicMemoryHelper(AtomicOperations::exchangeSeqCst<int64_t>, instr);
+      break;
+    case op_amadd_b:
+    case op_amadd_db_b:
+      AtomicMemoryHelper(AtomicOperations::fetchAddSeqCst<int8_t>, instr);
+      break;
+    case op_amadd_h:
+    case op_amadd_db_h:
+      AtomicMemoryHelper(AtomicOperations::fetchAddSeqCst<int16_t>, instr);
       break;
     case op_amadd_w:
-      UNIMPLEMENTED();
+    case op_amadd_db_w:
+      AtomicMemoryHelper(AtomicOperations::fetchAddSeqCst<int32_t>, instr);
       break;
     case op_amadd_d:
-      UNIMPLEMENTED();
+    case op_amadd_db_d:
+      AtomicMemoryHelper(AtomicOperations::fetchAddSeqCst<int64_t>, instr);
       break;
     case op_amand_w:
-      UNIMPLEMENTED();
+    case op_amand_db_w:
+      AtomicMemoryHelper(AtomicOperations::fetchAndSeqCst<int32_t>, instr);
       break;
     case op_amand_d:
-      UNIMPLEMENTED();
+    case op_amand_db_d:
+      AtomicMemoryHelper(AtomicOperations::fetchAndSeqCst<int64_t>, instr);
       break;
     case op_amor_w:
-      UNIMPLEMENTED();
+    case op_amor_db_w:
+      AtomicMemoryHelper(AtomicOperations::fetchOrSeqCst<int32_t>, instr);
       break;
     case op_amor_d:
-      UNIMPLEMENTED();
+    case op_amor_db_d:
+      AtomicMemoryHelper(AtomicOperations::fetchOrSeqCst<int64_t>, instr);
       break;
     case op_amxor_w:
-      UNIMPLEMENTED();
+    case op_amxor_db_w:
+      AtomicMemoryHelper(AtomicOperations::fetchXorSeqCst<int32_t>, instr);
       break;
     case op_amxor_d:
-      UNIMPLEMENTED();
+    case op_amxor_db_d:
+      AtomicMemoryHelper(AtomicOperations::fetchXorSeqCst<int64_t>, instr);
       break;
     case op_ammax_w:
-      UNIMPLEMENTED();
-      break;
-    case op_ammax_d:
-      UNIMPLEMENTED();
-      break;
-    case op_ammin_w:
-      UNIMPLEMENTED();
-      break;
-    case op_ammin_d:
-      UNIMPLEMENTED();
-      break;
-    case op_ammax_wu:
-      UNIMPLEMENTED();
-      break;
-    case op_ammax_du:
-      UNIMPLEMENTED();
-      break;
-    case op_ammin_wu:
-      UNIMPLEMENTED();
-      break;
-    case op_ammin_du:
-      UNIMPLEMENTED();
-      break;
-    case op_amswap_db_w:
-      UNIMPLEMENTED();
-      break;
-    case op_amswap_db_d:
-      UNIMPLEMENTED();
-      break;
-    case op_amadd_db_w:
-      UNIMPLEMENTED();
-      break;
-    case op_amadd_db_d:
-      UNIMPLEMENTED();
-      break;
-    case op_amand_db_w:
-      UNIMPLEMENTED();
-      break;
-    case op_amand_db_d:
-      UNIMPLEMENTED();
-      break;
-    case op_amor_db_w:
-      UNIMPLEMENTED();
-      break;
-    case op_amor_db_d:
-      UNIMPLEMENTED();
-      break;
-    case op_amxor_db_w:
-      UNIMPLEMENTED();
-      break;
-    case op_amxor_db_d:
-      UNIMPLEMENTED();
-      break;
     case op_ammax_db_w:
       UNIMPLEMENTED();
       break;
+    case op_ammax_d:
     case op_ammax_db_d:
       UNIMPLEMENTED();
       break;
+    case op_ammin_w:
     case op_ammin_db_w:
       UNIMPLEMENTED();
       break;
+    case op_ammin_d:
     case op_ammin_db_d:
       UNIMPLEMENTED();
       break;
+    case op_ammax_wu:
     case op_ammax_db_wu:
       UNIMPLEMENTED();
       break;
+    case op_ammax_du:
     case op_ammax_db_du:
       UNIMPLEMENTED();
       break;
+    case op_ammin_wu:
     case op_ammin_db_wu:
       UNIMPLEMENTED();
       break;
+    case op_ammin_du:
     case op_ammin_db_du:
       UNIMPLEMENTED();
       break;
@@ -4446,8 +4523,7 @@ void Simulator::decodeTypeOp22(SimInstruction* instr) {
       UNIMPLEMENTED();
       break;
     case op_movgr2cf:
-      printf("Sim UNIMPLEMENTED: MOVGR2CF\n");
-      UNIMPLEMENTED();
+      setCFRegister(cd_reg(instr), rj_u(instr) & 1);
       break;
     case op_clo_w:
       printf("Sim UNIMPLEMENTED: FCO_W\n");
@@ -4480,8 +4556,6 @@ void Simulator::decodeTypeOp24(SimInstruction* instr) {
       break;
     case op_movcf2gr:
       setRegister(rd_reg(instr), getCFRegister(cj_reg(instr)));
-      break;
-      UNIMPLEMENTED();
       break;
     default:
       UNREACHABLE();

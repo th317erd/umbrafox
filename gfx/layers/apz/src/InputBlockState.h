@@ -7,6 +7,7 @@
 
 #include "InputData.h"  // for MultiTouchInput
 #include "Units.h"
+#include "apz/src/OverscrollHandoffState.h"
 #include "mozilla/RefCounted.h"  // for RefCounted
 #include "mozilla/RefPtr.h"      // for RefPtr
 #include "mozilla/StaticPrefs_apz.h"
@@ -77,7 +78,8 @@ class InputBlockState : public RefCounted<InputBlockState> {
 
   virtual bool ShouldDropEvents() const;
 
-  void SetScrolledApzc(AsyncPanZoomController* aApzc);
+  void SetScrolledApzc(AsyncPanZoomController* aApzc,
+                       const OverscrollHandoffState& aOverscrollHandoffState);
   AsyncPanZoomController* GetScrolledApzc() const;
   bool IsDownchainOfScrolledApzc(AsyncPanZoomController* aApzc) const;
 
@@ -268,9 +270,15 @@ class WheelBlockState : public CancelableBlockState {
   /**
    * Called to check and possibly end the transaction due to a timeout.
    *
+   * NOTE: This is marked as MOZ_CAN_RUN_SCRIPT_BOUNDARY because this may
+   * dispatch a chrome only event for some automated tests. However, it's
+   * enabled only with a pref and the content cannot listen to the event.
+   * Therefore, this may run script, but shouldn't cause any problems except
+   * when the specific tests does something tricky.
+   *
    * @return True if the transaction ended, false otherwise.
    */
-  bool MaybeTimeout(const TimeStamp& aTimeStamp);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY bool MaybeTimeout(const TimeStamp& aTimeStamp);
 
   /**
    * Update the wheel transaction state for a new event.

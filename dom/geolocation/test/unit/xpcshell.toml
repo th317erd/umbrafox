@@ -2,13 +2,19 @@
 
 ["test_geolocation_monitor.js"]
 
+["test_geolocation_network_cache.js"]
+
 ["test_geolocation_position_unavailable.js"]
 
 ["test_geolocation_position_unavailable_wrap.js"]
 
 ["test_geolocation_provider.js"]
 
+["test_geolocation_provider_shutdown.js"]
+
 ["test_geolocation_provider_timeout.js"]
+
+["test_geolocation_provider_url.js"]
 
 ["test_geolocation_reset_accuracy.js"]
 skip-if = [

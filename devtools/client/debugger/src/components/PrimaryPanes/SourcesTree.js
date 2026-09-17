@@ -27,6 +27,7 @@ import {
   selectUserlandScript,
   setUserlandScriptEnabled,
 } from "../../utils/umbrafox-userland-scripts";
+import { sourceTree } from "../../constants";
 
 // Selectors
 import {
@@ -56,7 +57,9 @@ function shouldAutoExpand(item, mainThreadHost) {
   }
   // There is only one case where we want to force auto expand,
   // when we are on the group of the page's domain.
-  return item.type == "group" && item.groupName === mainThreadHost;
+  return (
+    item.type == sourceTree.itemTypes.GROUP && item.groupName === mainThreadHost
+  );
 }
 
 class SourcesTree extends Component {
@@ -175,7 +178,7 @@ class SourcesTree extends Component {
   };
 
   onActivate = item => {
-    if (item.type == "source") {
+    if (item.type == sourceTree.itemTypes.SOURCE) {
       this.selectSourceItem(item);
     } else if (item.type == "userland-script") {
       this.selectUserlandScriptItem(item);
@@ -259,22 +262,28 @@ class SourcesTree extends Component {
     // This is the precial magic that coalesce "empty" folders,
     // i.e folders which have only one sub-folder as children.
     function skipEmptyDirectories(directory) {
-      if (directory.type != "directory") {
+      if (directory.type != sourceTree.itemTypes.DIRECTORY) {
         return directory;
       }
       if (
         directory.children.length == 1 &&
-        directory.children[0].type == "directory"
+        directory.children[0].type == sourceTree.itemTypes.DIRECTORY
       ) {
         return skipEmptyDirectories(directory.children[0]);
       }
       return directory;
     }
-    if (item.type == "thread" || item.type == "userland-folder") {
+    if (
+      item.type == sourceTree.itemTypes.THREAD ||
+      item.type == "userland-folder"
+    ) {
       return item.children;
-    } else if (item.type == "group" || item.type == "directory") {
+    } else if (
+      item.type == sourceTree.itemTypes.GROUP ||
+      item.type == sourceTree.itemTypes.DIRECTORY
+    ) {
       const children = item.children.map(skipEmptyDirectories);
-      if (item.type == "group") {
+      if (item.type == sourceTree.itemTypes.GROUP) {
         const userlandFolder = this.getUserlandFolderForGroup(item);
         if (userlandFolder) {
           children.push(userlandFolder);
@@ -289,7 +298,7 @@ class SourcesTree extends Component {
     if (item.type == "userland-folder" || item.type == "userland-script") {
       return item.parent;
     }
-    if (item.type == "thread") {
+    if (item.type == sourceTree.itemTypes.THREAD) {
       return null;
     }
     const { rootItems } = this.props;
@@ -297,15 +306,15 @@ class SourcesTree extends Component {
     // (See getChildren comment)
     function skipEmptyDirectories(directory) {
       if (
-        directory.type == "group" ||
-        directory.type == "thread" ||
+        directory.type == sourceTree.itemTypes.GROUP ||
+        directory.type == sourceTree.itemTypes.THREAD ||
         rootItems.includes(directory)
       ) {
         return directory;
       }
       if (
         directory.children.length == 1 &&
-        directory.children[0].type == "directory"
+        directory.children[0].type == sourceTree.itemTypes.DIRECTORY
       ) {
         return skipEmptyDirectories(directory.parent);
       }

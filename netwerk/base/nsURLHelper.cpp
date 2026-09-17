@@ -122,7 +122,7 @@ nsresult net_GetURLSpecFromDir(nsIFile* aFile, nsACString& result) {
     escPath += '/';
   }
 
-  result = escPath;
+  result = std::move(escPath);
   return NS_OK;
 }
 
@@ -142,7 +142,7 @@ nsresult net_GetURLSpecFromFile(nsIFile* aFile, nsACString& result) {
     if (NS_SUCCEEDED(rv) && dir) escPath += '/';
   }
 
-  result = escPath;
+  result = std::move(escPath);
   return NS_OK;
 }
 
@@ -885,8 +885,8 @@ void net_ParseRequestContentType(const nsACString& aHeaderStr,
   net_ParseMediaType(flatStr, contentType, contentCharset, 0, &hadCharset,
                      &dummy1, &dummy2, true);
 
-  aContentType = contentType;
-  aContentCharset = contentCharset;
+  aContentType = std::move(contentType);
+  aContentCharset = std::move(contentCharset);
   *aHadCharset = hadCharset;
 }
 
@@ -1249,7 +1249,8 @@ void URLParams::DecodeString(const nsACString& aInput, nsACString& aOutput) {
 /* static */
 bool URLParams::ParseNextInternal(const char*& aStart, const char* const aEnd,
                                   bool aShouldDecode, nsACString* aOutputName,
-                                  nsACString* aOutputValue) {
+                                  nsACString* aOutputValue,
+                                  bool& aOutputHasEquals) {
   nsDependentCSubstring string;
 
   const char* const iter = std::find(aStart, aEnd, '&');
@@ -1268,6 +1269,8 @@ bool URLParams::ParseNextInternal(const char*& aStart, const char* const aEnd,
   const auto* const eqStart = string.BeginReading();
   const auto* const eqEnd = string.EndReading();
   const auto* const eqIter = std::find(eqStart, eqEnd, '=');
+
+  aOutputHasEquals = (eqIter != eqEnd);
 
   nsDependentCSubstring name;
   nsDependentCSubstring value;

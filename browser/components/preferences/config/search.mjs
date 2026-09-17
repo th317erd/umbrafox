@@ -20,7 +20,7 @@ const lazy = XPCOMUtils.declareLazy({
   SearchService: "moz-src:///toolkit/components/search/SearchService.sys.mjs",
   SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
   UrlbarPrefs: "moz-src:///browser/components/urlbar/UrlbarPrefs.sys.mjs",
-  UrlbarUtils: "moz-src:///browser/components/urlbar/UrlbarUtils.sys.mjs",
+  UrlbarShared: "chrome://browser/content/urlbar/UrlbarShared.mjs",
 });
 
 /**
@@ -36,8 +36,12 @@ Preferences.addAll([
   { id: "browser.urlbar.showSearchSuggestionsFirst", type: "bool" },
   { id: "browser.urlbar.showSearchTerms.enabled", type: "bool" },
   { id: "browser.urlbar.showSearchTerms.featureGate", type: "bool" },
-  { id: "browser.search.separatePrivateDefault", type: "bool" },
-  { id: "browser.search.separatePrivateDefault.ui.enabled", type: "bool" },
+  { id: "browser.search.separatePrivateDefault.enabled", type: "bool" },
+  { id: "browser.search.separatePrivateDefault.featureGate", type: "bool" },
+  { id: "browser.urlbar.suggest.trending", type: "bool" },
+  { id: "browser.urlbar.trending.featureGate", type: "bool" },
+  { id: "browser.urlbar.recentsearches.featureGate", type: "bool" },
+  { id: "browser.urlbar.suggest.recentsearches", type: "bool" },
   { id: "browser.urlbar.scotchBonnet.enableOverride", type: "bool" },
 
   // Suggest Section.
@@ -209,12 +213,12 @@ Preferences.addSetting({
 
 Preferences.addSetting({
   id: "separatePrivateDefaultUI",
-  pref: "browser.search.separatePrivateDefault.ui.enabled",
+  pref: "browser.search.separatePrivateDefault.featureGate",
 });
 
 Preferences.addSetting({
   id: "browserSeparateDefaultEngine",
-  pref: "browser.search.separatePrivateDefault",
+  pref: "browser.search.separatePrivateDefault.enabled",
   deps: ["separatePrivateDefaultUI"],
   visible: ({ separatePrivateDefaultUI }) => {
     return separatePrivateDefaultUI.value;
@@ -674,8 +678,8 @@ Preferences.addSetting(
       this.#localShortcutL10nNames = new Map();
 
       let getIDs = (suffix = "") =>
-        lazy.UrlbarUtils.LOCAL_SEARCH_MODES.map(mode => {
-          let sourceName = lazy.UrlbarUtils.getResultSourceName(mode.source);
+        lazy.UrlbarShared.LOCAL_SEARCH_MODES.map(mode => {
+          let sourceName = lazy.UrlbarShared.getResultSourceName(mode.source);
           return { id: `urlbar-search-mode-${sourceName}${suffix}` };
         });
 
@@ -689,7 +693,7 @@ Preferences.addSetting(
         let localizedNames = await document.l10n.formatValues(localizedIDs);
         let englishNames = await englishSearchStrings.formatValues(englishIDs);
 
-        lazy.UrlbarUtils.LOCAL_SEARCH_MODES.forEach(({ source }, index) => {
+        lazy.UrlbarShared.LOCAL_SEARCH_MODES.forEach(({ source }, index) => {
           let localizedName = localizedNames[index];
           let englishName = englishNames[index];
 
@@ -872,7 +876,7 @@ Preferences.addSetting(
 
       /** @type {SettingControlConfig[]} */
       let configs = [];
-      for (let searchMode of lazy.UrlbarUtils.LOCAL_SEARCH_MODES) {
+      for (let searchMode of lazy.UrlbarShared.LOCAL_SEARCH_MODES) {
         let id = `searchmode-${searchMode.telemetryLabel}`;
         maybeMakeSetting({ id });
 
@@ -1031,9 +1035,7 @@ SettingGroupManager.registerGroups({
         l10nId: "addressbar-header-1",
         supportPage: "firefox-suggest",
         control: "moz-fieldset",
-        controlAttrs: {
-          headinglevel: 2,
-        },
+        headingLevel: 2,
         items: [
           {
             id: "historySuggestion",

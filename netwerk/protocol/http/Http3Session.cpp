@@ -159,10 +159,7 @@ nsresult Http3Session::Init(const nsHttpConnectionInfo* aConnInfo,
   mUseNSPRForIO =
       StaticPrefs::network_http_http3_use_nspr_for_io() || aIsTunnel;
 
-  uint32_t idleTimeout =
-      mConnInfo->GetIsTrrServiceChannel()
-          ? StaticPrefs::network_trr_idle_timeout_for_http3_conn()
-          : StaticPrefs::network_http_http3_idle_timeout();
+  uint32_t idleTimeout = StaticPrefs::network_http_http3_idle_timeout();
 
   // 0 means "use neqo's spec-compliant default PTO scaling".
   uint32_t fastPto = mConnInfo->GetIsTrrServiceChannel()
@@ -244,10 +241,13 @@ nsresult Http3Session::Init(const nsHttpConnectionInfo* aConnInfo,
   if (StaticPrefs::network_http_http3_enable_0rtt() && !hasServCertHashes()) {
     uint32_t maxAttempts =
         StaticPrefs::network_ssl_tokens_cache_records_per_entry();
+    bool tokenFound = false;
+    bool tokenAccepted = false;
     for (uint32_t attempt = 0; attempt < maxAttempts; ++attempt) {
       if (NS_FAILED(SSLTokensCache::Get(peerId, token, info))) {
         break;
       }
+      tokenFound = true;
       LOG(("Found a resumption token in the cache [attempt=%u].", attempt));
       nsresult rv = mHttp3Connection->SetResumptionToken(token);
       if (NS_FAILED(rv)) {
@@ -255,6 +255,7 @@ nsresult Http3Session::Init(const nsHttpConnectionInfo* aConnInfo,
              attempt));
         continue;
       }
+      tokenAccepted = true;
       mSocketControl->SetSessionCacheInfo(std::move(info));
       if (mHttp3Connection->IsZeroRtt()) {
         LOG(("Can send ZeroRtt data"));
@@ -277,11 +278,13 @@ nsresult Http3Session::Init(const nsHttpConnectionInfo* aConnInfo,
           event = new PrioritizableRunnable(
               event.forget(), nsIRunnablePriority::PRIORITY_MEDIUMHIGH);
         }
-        DebugOnly<nsresult> rv = NS_DispatchToCurrentThread(event);
-        NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                             "NS_DispatchToCurrentThread failed");
+        DebugOnly<nsresult> rv = DispatchToCurrent(event.forget());
+        NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Dispatch failed");
       }
       break;
+    }
+    if (tokenFound && !tokenAccepted) {
+      glean::network::ssl_token_resumption_outcome.Get("rejected"_ns).Add();
     }
   }
 
@@ -294,6 +297,18 @@ nsresult Http3Session::Init(const nsHttpConnectionInfo* aConnInfo,
   // released when Http3Session::Init early returned.
   mUdpConn = udpConn;
   return NS_OK;
+}
+
+void Http3Session::RekeyAfterHttp3OnlyHandOff(nsHttpConnectionInfo* aConnInfo) {
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
+  MOZ_ASSERT(aConnInfo);
+  MOZ_ASSERT(mConnInfo);
+  MOZ_ASSERT(!aConnInfo->GetHttp3Only(),
+             "hand-off must relax the policy to Allowed");
+
+  LOG(("Http3Session::RekeyAfterHttp3OnlyHandOff [this=%p] %s -> %s", this,
+       mConnInfo->HashKey().get(), aConnInfo->HashKey().get()));
+  mConnInfo = aConnInfo->Clone();
 }
 
 void Http3Session::DoSetEchConfig(const nsACString& aEchConfig) {
@@ -938,8 +953,16 @@ nsresult Http3Session::ProcessEvents() {
             LOG(("reason.tag=%u err=%u data=%s\n",
                  static_cast<uint32_t>(reasonExternal.tag), status,
                  reason.get()));
-            wt->OnSessionClosed(cleanly, status, reason);
-
+            // Get stats before the session is closed (spec requirement).
+            // neqo drops the session as it processes the close, before we get
+            // here to drain the event, so for a server-initiated close only
+            // the connection-level counters are still available -- they cover
+            // everything we report except the session's datagram counters.
+            mozilla::dom::WebTransportStatsData stats;
+            if (!mHttp3Connection->GetWebTransportSessionStats(id, stats)) {
+              mHttp3Connection->GetWebTransportTransportStats(stats);
+            }
+            wt->OnSessionClosedWithStats(cleanly, status, reason, stats);
           } break;
           case WebTransportEventExternal::Tag::NewStream: {
             LOG(
@@ -979,7 +1002,7 @@ nsresult Http3Session::ProcessEvents() {
             mStreamIdHash.InsertOrUpdate(wtStream->StreamId(),
                                          std::move(wtStream));
           } break;
-          case WebTransportEventExternal::Tag::Datagram:
+          case WebTransportEventExternal::Tag::Datagram: {
             LOG(
                 ("Http3Session::ProcessEvents - "
                  "WebTransportEventExternal::Tag::Datagram [this=%p]",
@@ -1002,7 +1025,29 @@ nsresult Http3Session::ProcessEvents() {
             }
 
             wt->OnDatagramReceived(std::move(data));
-            break;
+          } break;
+          case WebTransportEventExternal::Tag::Draining: {
+            uint64_t sessionId = event.web_transport._0.draining.session_id;
+            LOG(
+                ("Http3Session::ProcessEvents - WebTransport Draining "
+                 "sessionId=0x%" PRIx64,
+                 sessionId));
+            RefPtr<Http3StreamBase> stream = mStreamIdHash.Get(sessionId);
+            if (!stream) {
+              LOG(
+                  ("Http3Session::ProcessEvents - WebTransport Draining - "
+                   "session not found "
+                   "sessionId=0x%" PRIx64 " [this=%p].",
+                   sessionId, this));
+              break;
+            }
+
+            RefPtr<Http3WebTransportSession> wt =
+                stream->GetHttp3WebTransportSession();
+            if (wt) {
+              wt->OnSessionDraining();
+            }
+          } break;
         }
       } break;
       case Http3Event::Tag::ConnectUdp: {
@@ -2756,7 +2801,7 @@ void Http3Session::Authenticated(int32_t aError,
       event = new PrioritizableRunnable(
           event.forget(), nsIRunnablePriority::PRIORITY_MEDIUMHIGH);
     }
-    NS_DispatchToCurrentThread(event);
+    DispatchToCurrent(event.forget());
     mUdpConn->ChangeConnectionState(ConnectionState::TRANSFERING);
   }
 }
@@ -2772,6 +2817,15 @@ void Http3Session::SetSecInfo() {
     mSocketControl->SetInfo(secInfo.cipher, secInfo.version, secInfo.group,
                             secInfo.signature_scheme, secInfo.ech_accepted);
     mHandshakeSucceeded = true;
+
+    bool tokenPresent = false;
+    if (NS_SUCCEEDED(
+            mSocketControl->GetResumptionTokenPresent(&tokenPresent)) &&
+        tokenPresent) {
+      glean::network::ssl_token_resumption_outcome
+          .Get(secInfo.resumed ? "resumed"_ns : "not_resumed"_ns)
+          .Add();
+    }
   }
 
   if (!mSocketControl->HasServerCert()) {
@@ -3080,9 +3134,11 @@ PRIntervalTime Http3Session::LastWriteTime() { return mLastWriteTime; }
 // WebTransport
 //=========================================================================
 
-nsresult Http3Session::CloseWebTransport(uint64_t aSessionId, uint32_t aError,
-                                         const nsACString& aMessage) {
-  return mHttp3Connection->CloseWebTransport(aSessionId, aError, aMessage);
+bool Http3Session::CloseWebTransport(
+    uint64_t aSessionId, uint32_t aError, const nsACString& aMessage,
+    mozilla::dom::WebTransportStatsData& aStats) {
+  return mHttp3Connection->CloseWebTransport(aSessionId, aError, aMessage,
+                                             aStats);
 }
 
 nsresult Http3Session::CreateWebTransportStream(
@@ -3093,10 +3149,10 @@ nsresult Http3Session::CreateWebTransportStream(
 }
 
 void Http3Session::SendDatagram(Http3WebTransportSession* aSession,
-                                nsTArray<uint8_t>& aData,
-                                uint64_t aTrackingId) {
-  nsresult rv = mHttp3Connection->WebTransportSendDatagram(aSession->StreamId(),
-                                                           aData, aTrackingId);
+                                nsTArray<uint8_t>& aData, uint64_t aTrackingId,
+                                uint64_t aSendGroupId, int64_t aSendOrder) {
+  nsresult rv = mHttp3Connection->WebTransportSendDatagram(
+      aSession->StreamId(), aData, aTrackingId, aSendGroupId, aSendOrder);
   LOG(("Http3Session::SendDatagram %p res=%" PRIx32, this,
        static_cast<uint32_t>(rv)));
   if (!aTrackingId) {
@@ -3127,20 +3183,54 @@ uint64_t Http3Session::MaxDatagramSize(uint64_t aSessionId) {
   return size;
 }
 
+nsresult Http3Session::ExportWebTransportKeyingMaterial(
+    uint64_t aSessionId, const nsTArray<uint8_t>& aLabel,
+    const nsTArray<uint8_t>& aContext, nsTArray<uint8_t>& aKeyingMaterial) {
+  return mHttp3Connection->ExportWebTransportKeyingMaterial(
+      aSessionId, aLabel, aContext, aKeyingMaterial);
+}
+
+bool Http3Session::GetWebTransportSessionStats(
+    uint64_t aSessionId, mozilla::dom::WebTransportStatsData& aStats) {
+  return mHttp3Connection->GetWebTransportSessionStats(aSessionId, aStats);
+}
+
+nsresult Http3Session::RegisterWebTransportSendGroup(uint64_t aSessionId,
+                                                     uint64_t aGroupId) {
+  return mHttp3Connection->RegisterWebTransportSendGroup(aSessionId, aGroupId);
+}
+
+nsresult Http3Session::GetWebTransportSessionProtocol(uint64_t aSessionId,
+                                                      nsACString& aProtocol) {
+  return mHttp3Connection->GetWebTransportSessionProtocol(aSessionId,
+                                                          aProtocol);
+}
 void Http3Session::SendHTTPDatagram(uint64_t aStreamId,
                                     nsTArray<uint8_t>& aData,
                                     uint64_t aTrackingId) {
   LOG(("Http3Session::SendHTTPDatagram %p length=%zu aTrackingId=%" PRIx64,
        this, aData.Length(), aTrackingId));
-  (void)mHttp3Connection->ConnectUdpSendDatagram(aStreamId, aData, aTrackingId);
+  // Connect-UDP (MASQUE) doesn't use WebTransport send groups or send order,
+  // so pass 0 for both (0 = null sendGroup, 0 = default sendOrder).
+  (void)mHttp3Connection->ConnectUdpSendDatagram(aStreamId, aData, aTrackingId,
+                                                 0, 0);
 }
 
-void Http3Session::SetSendOrder(Http3StreamBase* aStream,
-                                Maybe<int64_t> aSendOrder) {
+void Http3Session::SetSendOrder(Http3StreamBase* aStream, int64_t aSendOrder) {
   if (!IsClosing()) {
     nsresult rv = mHttp3Connection->WebTransportSetSendOrder(
         aStream->StreamId(), aSendOrder);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
+    (void)rv;
+  }
+}
+
+void Http3Session::SetSendGroup(Http3StreamBase* aStream,
+                                uint64_t aSendGroupId) {
+  if (!IsClosing()) {
+    nsresult rv = mHttp3Connection->WebTransportSetSendGroup(
+        aStream->StreamId(), aSendGroupId);
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "WebTransportSetSendGroup failed");
     (void)rv;
   }
 }

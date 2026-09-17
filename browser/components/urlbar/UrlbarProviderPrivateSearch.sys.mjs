@@ -31,10 +31,10 @@ export class UrlbarProviderPrivateSearch extends UrlbarProvider {
   }
 
   /**
-   * @returns {Values<typeof UrlbarUtils.PROVIDER_TYPE>}
+   * @returns {Values<typeof lazy.UrlbarShared.PROVIDER_TYPE>}
    */
   get type() {
-    return UrlbarUtils.PROVIDER_TYPE.PROFILE;
+    return lazy.UrlbarShared.PROVIDER_TYPE.PROFILE;
   }
 
   /**
@@ -58,8 +58,9 @@ export class UrlbarProviderPrivateSearch extends UrlbarProvider {
    * @param {UrlbarQueryContext} queryContext
    * @param {(provider: UrlbarProvider, result: UrlbarResult) => void} addCallback
    *   Callback invoked by the provider to add a new result.
+   * @param {UrlbarParentController} controller The controller instance.
    */
-  async startQuery(queryContext, addCallback) {
+  async startQuery(queryContext, addCallback, controller) {
     let searchString = queryContext.trimmedSearchString;
     if (
       queryContext.tokens.some(
@@ -97,7 +98,7 @@ export class UrlbarProviderPrivateSearch extends UrlbarProvider {
       logger: this.logger,
     }).promise;
 
-    let icon = await engine.getIconURL();
+    let icon = await UrlbarUtils.getEngineIconUrl(engine, controller);
     if (instance != this.queryInstance) {
       return;
     }
@@ -115,7 +116,7 @@ export class UrlbarProviderPrivateSearch extends UrlbarProvider {
         isPrivateEngine,
       },
       highlights: {
-        engine: UrlbarUtils.HIGHLIGHT.TYPED,
+        engine: lazy.UrlbarShared.HIGHLIGHT.TYPED,
       },
     });
     addCallback(this, result);

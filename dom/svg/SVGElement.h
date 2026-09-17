@@ -120,7 +120,7 @@ class SVGElement : public SVGElementBase  // nsIContent
    */
   void NodeInfoChanged(Document* aOldDoc) override;
 
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
+  bool IsNoNamespaceAttrMapped(const nsAtom* aAttribute) const override;
   void UpdateMappedDeclarationBlock();
 
   NS_IMPL_FROMNODE(SVGElement, kNameSpaceID_SVG)
@@ -279,13 +279,7 @@ class SVGElement : public SVGElementBase  // nsIContent
   void GetAnimatedLengthListValues(SVGUserUnitList* aFirst, ...);
   SVGAnimatedLengthList* GetAnimatedLengthList(uint8_t aAttrEnum);
   virtual SVGAnimatedPointList* GetAnimatedPointList() { return nullptr; }
-  virtual SVGAnimatedPathSegList* GetAnimPathSegList() {
-    // DOM interface 'SVGAnimatedPathData' (*inherited* by SVGPathElement)
-    // has a member called 'animatedPathSegList' member, so we have a shorter
-    // name so we don't get hidden by the GetAnimatedPathSegList declared by
-    // NS_DECL_NSIDOMSVGANIMATEDPATHDATA.
-    return nullptr;
-  }
+  virtual SVGAnimatedPathSegList* GetAnimatedPathSegList() { return nullptr; }
   /**
    * Get the SVGAnimatedTransformList for this element.
    *

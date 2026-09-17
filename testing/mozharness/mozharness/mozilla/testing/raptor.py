@@ -182,6 +182,16 @@ class Raptor(
                 {"action": "store", "dest": "test", "help": "Raptor test to run"},
             ],
             [
+                ["--power-profile"],
+                {
+                    "action": "store",
+                    "choices": ["performance"],
+                    "dest": "power_profile",
+                    "help": "Set the host power-profiles-daemon profile to performance "
+                    "for the duration of the Raptor run.",
+                },
+            ],
+            [
                 ["--app"],
                 {
                     "default": "firefox",
@@ -582,6 +592,24 @@ class Raptor(
                 },
             ],
             [
+                ["--samply-profile"],
+                {
+                    "action": "store_true",
+                    "dest": "samply_profile",
+                    "default": False,
+                    "help": ("Enable Samply profiling (macOS only)."),
+                },
+            ],
+            [
+                ["--perf-profile"],
+                {
+                    "action": "store_true",
+                    "dest": "perf_profile",
+                    "default": False,
+                    "help": ("Enable perf profiling (Linux only)."),
+                },
+            ],
+            [
                 ["--extra-summary-methods"],
                 {
                     "action": "append",
@@ -674,6 +702,8 @@ class Raptor(
                 "download-and-extract",
                 "populate-webroot",
                 "create-virtualenv",
+                "start-emulator",
+                "verify-device",
                 "install-chrome-android",
                 "install-chromium-android",
                 "install-chromium-distribution",
@@ -696,6 +726,9 @@ class Raptor(
         )
         kwargs.setdefault("config", {})
         super().__init__(**kwargs)
+
+        if not self.device_serial and self.config.get("device_serial"):
+            self.device_serial = self.config["device_serial"]
 
         # Convenience
         self.workdir = self.query_abs_dirs()["abs_work_dir"]
@@ -835,6 +868,18 @@ class Raptor(
         abs_dirs["abs_test_install_dir"] = os.path.join(
             abs_dirs["abs_work_dir"], "tests"
         )
+
+        # When running on an emulator, AndroidMixin.start_emulator / adb_path
+        # expect the SDK and AVD directories in abs_dirs; these are not part of
+        # the default raptor (hardware) layout, so derive them from the fetches.
+        if self.is_emulator:
+            work_dir = os.environ.get("MOZ_FETCHES_DIR") or abs_dirs["abs_work_dir"]
+            abs_dirs["abs_sdk_dir"] = os.path.join(
+                work_dir, self.config.get("sdk_dir_name", "android-sdk-linux")
+            )
+            abs_dirs["abs_avds_dir"] = os.path.join(
+                work_dir, self.config.get("avds_dir_name", "android-device")
+            )
 
         self.abs_dirs = abs_dirs
         return self.abs_dirs
@@ -1131,6 +1176,10 @@ class Raptor(
             options.extend(["--simpleperf"])
         if self.config.get("etw_profile", False):
             options.extend(["--etw-profile"])
+        if self.config.get("samply_profile", False):
+            options.extend(["--samply-profile"])
+        if self.config.get("perf_profile", False):
+            options.extend(["--perf-profile"])
         if self.config.get("extra_summary_methods"):
             options.extend([
                 f"--extra-summary-methods={method}"
@@ -1271,15 +1320,7 @@ class Raptor(
         # Add modules required for visual metrics. Packages with non-Python
         # components are particularly fussy about python version.
         py3_minor = sys.version_info.minor
-        if py3_minor <= 7:
-            modules.extend([
-                "numpy==1.16.1",
-                "Pillow==6.1.0",
-                "scipy==1.2.3",
-                "pyssim==0.4",
-                "opencv-python==4.5.4.60",
-            ])
-        elif py3_minor <= 11:
+        if py3_minor <= 11:
             modules.extend([
                 "numpy==1.23.5",
                 "Pillow==9.2.0",
@@ -1411,6 +1452,7 @@ class Raptor(
         if not os.path.isdir(env["MOZ_UPLOAD_DIR"]):
             self.mkdir_p(env["MOZ_UPLOAD_DIR"])
         env = self.query_env(partial_env=env, log_level=INFO)
+        power_profile = self.config.get("power_profile")
         # adjust PYTHONPATH to be able to use raptor as a python package
         if "PYTHONPATH" in env:
             env["PYTHONPATH"] = self.raptor_path + os.pathsep + env["PYTHONPATH"]
@@ -1483,6 +1525,30 @@ class Raptor(
             self.logcat_start()
 
         command = [python, run_tests] + options + mozlog_opts
+        if power_profile:
+            command = [
+                "powerprofilesctl",
+                "launch",
+                "--profile",
+                "performance",
+                "--reason",
+                "Raptor performance test",
+                "--appid",
+                "org.mozilla.raptor",
+                "--",
+                "/bin/sh",
+                "-c",
+                (
+                    'profile="$(powerprofilesctl get)" || exit $?; '
+                    'printf "Active power profile: %s\\n" "$profile"; '
+                    'if [ "$profile" != performance ]; then '
+                    'printf "Expected active power profile performance, got %s\\n" '
+                    '"$profile" >&2; exit 1; fi; '
+                    'exec "$@"'
+                ),
+                "raptor-power-profile",
+            ] + command
+
         if launch_in_debug_mode(command):
             raptor_process = subprocess.Popen(command, cwd=self.workdir, env=env)
             raptor_process.wait()

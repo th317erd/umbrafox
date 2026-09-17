@@ -97,6 +97,14 @@ pref("browser.cache.frecency_half_life_hours", 6);
 // Don't show "Open with" option on download dialog if true.
 pref("browser.download.forbid_open_with", false);
 
+// Number of milliseconds to wait after requesting character bounds from EditContext
+// for updateCharacterBounds() to be called before giving up and unsuppressing
+// IME notifications.
+pref("dom.editcontext.suppress_notifying_ime_timeout", 300);
+// Same as above, but for notifying the IME of focus, which is more important,
+// since it controls whether IME is active or not.
+pref("dom.editcontext.suppress_notifying_ime_timeout_focus", 100);
+
 // Enable indexedDB logging.
 pref("dom.indexedDB.logging.enabled", true);
 // Detailed output in log messages.
@@ -305,11 +313,6 @@ pref("media.videocontrols.keyboard-tab-to-all-controls", true);
   pref("media.peerconnection.ice.proxy_only_if_pbmode", false);
   pref("media.peerconnection.turn.disable", false);
   pref("media.peerconnection.treat_warnings_as_errors", false);
-  #ifdef NIGHTLY_BUILD
-    pref("media.peerconnection.description.legacy.enabled", false);
-  #else
-    pref("media.peerconnection.description.legacy.enabled", true);
-  #endif
 
   // 770 = DTLS 1.0, 771 = DTLS 1.2, 772 = DTLS 1.3
   pref("media.peerconnection.dtls.version.min", 771);
@@ -390,18 +393,11 @@ pref("gfx.downloadable_fonts.fallback_delay_short", 100);
 pref("gfx.canvas.azure.backends", "skia");
 pref("gfx.content.azure.backends", "skia");
 
-#ifdef XP_WIN
-  pref("gfx.webrender.flip-sequential", false);
-  pref("gfx.webrender.dcomp-win.enabled", true);
-  pref("gfx.webrender.triple-buffering.enabled", true);
-#endif
-
 // WebRender debugging utilities.
 pref("gfx.webrender.debug.texture-cache", false);
 pref("gfx.webrender.debug.texture-cache.clear-evicted", true);
 pref("gfx.webrender.debug.render-targets", false);
 pref("gfx.webrender.debug.gpu-cache", false);
-pref("gfx.webrender.debug.alpha-primitives", false);
 pref("gfx.webrender.debug.profiler", false);
 pref("gfx.webrender.debug.gpu-time-queries", false);
 pref("gfx.webrender.debug.gpu-sample-queries", false);
@@ -409,7 +405,6 @@ pref("gfx.webrender.debug.disable-batching", false);
 pref("gfx.webrender.debug.epochs", false);
 pref("gfx.webrender.debug.echo-driver-messages", false);
 pref("gfx.webrender.debug.show-overdraw", false);
-pref("gfx.webrender.debug.slow-frame-indicator", false);
 pref("gfx.webrender.debug.picture-caching", false);
 pref("gfx.webrender.debug.picture-borders", false);
 pref("gfx.webrender.debug.force-picture-invalidation", false);
@@ -463,17 +458,15 @@ pref("ui.textHighlightBackground", "#ef0fff");
 // Used with nsISelectionController::SELECTION_FIND
 pref("ui.textHighlightForeground", "#ffffff");
 
-// We want the ability to forcibly disable platform a11y, because
-// some non-a11y-related components attempt to bring it up.  See bug
-// 538530 for details about Windows; we have a pref here that allows it
-// to be disabled for performance and testing resons.
-// See bug 761589 for the crossplatform aspect.
-//
-// This pref is checked only once, and the browser needs a restart to
-// pick up any changes.
-//
-// Values are -1 always on. 1 always off, 0 is auto as some platform perform
-// further checks.
+// Forcibly enable or disable accessibility. This is useful for testing. Values:
+// 0: auto: enable accessibility if an accessibility client is detected.
+// 1: force disable: Disable accessibility, even if a client attempts to enable it.
+// -1: force enable: Enable accessibility, even if there is no client. On some
+// platforms (e.g. Android), accessibility events can't be fired to the platform
+// in this case because the platform doesn't allow it. However, the Gecko
+// accessibility code will still run.
+// Changes to this pref are picked up without a restart: setting it to 1
+// shuts accessibility down, and setting it to -1 starts it up.
 pref("accessibility.force_disabled", 0);
 
 pref("focusmanager.testmode", false);
@@ -541,16 +534,9 @@ pref("toolkit.telemetry.debugSlowSql", false);
 pref("toolkit.telemetry.unified", true);
 
 // DAP related preferences
-pref("toolkit.telemetry.dap_enabled", false);
 pref("toolkit.telemetry.dap.logLevel", "Warn");
-// Verification tasks
-pref("toolkit.telemetry.dap_task1_enabled", false);
-pref("toolkit.telemetry.dap_task1_taskid", "");
-// URL visit counting
-pref("toolkit.telemetry.dap_visit_counting_enabled", false);
 // Note: format of patterns is "<proto>://<host>/<path>"
 // See https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Match_patterns
-pref("toolkit.telemetry.dap_visit_counting_experiment_list", "[]");
 // DAP protocol Leader endpoint. Operated by DivviUp/ISRG.
 // - HPKE key is base64url-encoded response of the /hpke_config path on server.
 pref("toolkit.telemetry.dap.leader.url", "https://dap-09-3.api.divviup.org");
@@ -1379,9 +1365,6 @@ pref("network.negotiate-auth.allow-proxies", true);
 // Path to a specific gssapi library
 pref("network.negotiate-auth.gsslib", "");
 
-// Specify if the gss lib comes standard with the OS
-pref("network.negotiate-auth.using-native-gsslib", true);
-
 #ifdef XP_WIN
   // Default to using the SSPI intead of GSSAPI on windows
   pref("network.auth.use-sspi", true);
@@ -1913,10 +1896,6 @@ pref("dom.ipc.keepProcessesAlive.privilegedabout", 1);
 
 // Disable support for SVG
 pref("svg.disabled", false);
-
-// This pref will cause assertions when a remoteType triggers a process switch
-// to a new remoteType it should not be able to trigger.
-pref("browser.tabs.remote.enforceRemoteTypeRestrictions", false);
 
 // Pref to control whether we use a separate privileged content process
 // for about: pages. This pref name did not age well: we will have multiple
@@ -3026,10 +3005,20 @@ pref("signon.firefoxRelay.privacy_policy_url", "https://www.mozilla.org/%LOCALE%
 pref("signon.signupDetection.confidenceThreshold",     "0.75");
 
 // Logins Rust storage backend is enabled by default
-pref("signon.storage.rust.enabled", true);
-// The following two prefs are managed by Fx internally:
+#if MOZ_UPDATE_CHANNEL != release && MOZ_UPDATE_CHANNEL != esr
+  pref("signon.storage.rust.enabled", true);
+#else
+  pref("signon.storage.rust.enabled", false);
+#endif
+// Kill switch for restoring logins out of a deactivated Rust backend.
+pref("signon.storage.rust.restoreEnabled", true);
+// The following four prefs are managed by Fx internally:
 pref("signon.storage.rust.active", false);
 pref("signon.storage.rust.migrationAttempts", 0);
+pref("signon.storage.rust.restoreAttempts", 0);
+pref("signon.storage.rust.restoreAttemptsVersion", 0);
+pref("signon.storage.rust.restoreVersion", 0);
+pref("signon.storage.rust.restoreTargetVersion", 1);
 
 // Satchel (Form Manager) prefs
 pref("browser.formfill.debug",            false);
@@ -3146,6 +3135,12 @@ pref("extensions.webextensions.ExtensionStorageIDB.enabled", true);
 pref("extensions.htmlaboutaddons.inline-options.enabled", true);
 // Show recommendations on the extension and theme list views.
 pref("extensions.htmlaboutaddons.recommendations.enabled", true);
+
+// Whether the Nova Themes picker should be enabled in the about:addons page.
+// (disabled by default here, so that other applications embedding Gecko
+// like Thunderbird will not have it enabled by default, and enabled in the
+// Firefox Desktop prefs).
+pref("browser.aboutaddons.novaThemesPickerEnabled", false);
 
 // The URL for the privacy policy related to recommended add-ons.
 pref("extensions.recommendations.privacyPolicyUrl", "");
@@ -3270,8 +3265,8 @@ pref("network.connectivity-service.enabled", true);
 pref("network.connectivity-service.DNSv4.domain", "example.org");
 pref("network.connectivity-service.DNSv6.domain", "example.org");
 pref("network.connectivity-service.DNS_HTTPS.domain", "cloudflare-dns.com");
-pref("network.connectivity-service.IPv4.url", "http://detectportal.firefox.com/success.txt?ipv4");
-pref("network.connectivity-service.IPv6.url", "http://detectportal.firefox.com/success.txt?ipv6");
+pref("network.connectivity-service.IPv4.url", "http://firefox-portal-detection.com/success.txt?ipv4");
+pref("network.connectivity-service.IPv6.url", "http://firefox-portal-detection.com/success.txt?ipv6");
 
 pref("network.trr.uri", "");
 // credentials to pass to DOH end-point
@@ -3288,8 +3283,12 @@ pref("network.trr.builtin-excluded-domains", "localhost,local");
 // Used for progressive rollout of LNA for ETP strict users
 pref("network.lna.etp.enabled", true);
 
-pref("captivedetect.canonicalURL", "http://detectportal.firefox.com/canonical.html");
-pref("captivedetect.canonicalContent", "<meta http-equiv=\"refresh\" content=\"0;url=https://support.mozilla.org/kb/captive-portal\"/>");
+// The canonical endpoint answers with an empty 204 when there is no captive
+// portal, so no content is expected. These two prefs must always be changed
+// together: pointing canonicalURL at an endpoint that answers with a body
+// requires canonicalContent to hold that body.
+pref("captivedetect.canonicalURL", "http://firefox-portal-detection.com/generate_204");
+pref("captivedetect.canonicalContent", "");
 pref("captivedetect.maxWaitingTime", 5000);
 pref("captivedetect.pollingTime", 3000);
 pref("captivedetect.maxRetryCount", 5);
@@ -3341,7 +3340,7 @@ pref("urlclassifier.features.antifraud.annotate.blocklistTables", "anti-fraud-tr
 pref("urlclassifier.features.antifraud.annotate.allowlistTables", "mozstd-trackwhite-digest256");
 
 // These tables will never trigger a gethash call.
-pref("urlclassifier.disallow_completions", "goog-downloadwhite-digest256,base-track-digest256,mozstd-trackwhite-digest256,content-track-digest256,mozplugin-block-digest256,mozplugin2-block-digest256,ads-track-digest256,social-track-digest256,analytics-track-digest256,base-fingerprinting-track-digest256,content-fingerprinting-track-digest256,base-cryptomining-track-digest256,content-cryptomining-track-digest256,fanboyannoyance-ads-digest256,fanboysocial-ads-digest256,easylist-ads-digest256,easyprivacy-ads-digest256,adguard-ads-digest256,social-tracking-protection-digest256,social-tracking-protection-facebook-digest256,social-tracking-protection-linkedin-digest256,social-tracking-protection-twitter-digest256,base-email-track-digest256,content-email-track-digest256,consent-manager-track-digest256,anti-fraud-track-digest256,harmful-addon-block-digest256");
+pref("urlclassifier.disallow_completions", "goog-downloadwhite-digest256,base-track-digest256,mozstd-trackwhite-digest256,content-track-digest256,ads-track-digest256,social-track-digest256,analytics-track-digest256,base-fingerprinting-track-digest256,content-fingerprinting-track-digest256,base-cryptomining-track-digest256,content-cryptomining-track-digest256,fanboyannoyance-ads-digest256,fanboysocial-ads-digest256,easylist-ads-digest256,easyprivacy-ads-digest256,adguard-ads-digest256,social-tracking-protection-digest256,social-tracking-protection-facebook-digest256,social-tracking-protection-linkedin-digest256,social-tracking-protection-twitter-digest256,base-email-track-digest256,content-email-track-digest256,consent-manager-track-digest256,anti-fraud-track-digest256,harmful-addon-block-digest256");
 
 // Workaround for Google Recaptcha
 pref("urlclassifier.trackingAnnotationSkipURLs", "");
@@ -3434,9 +3433,9 @@ pref("browser.safebrowsing.provider.google5.advisoryName", "Google Safe Browsing
 
 pref("browser.safebrowsing.reportPhishURL", "https://%LOCALE%.phish-report.mozilla.com/?url=");
 
-// Mozilla Safe Browsing provider (for tracking protection and plugin blocking)
+// Mozilla Safe Browsing provider (for tracking protection)
 pref("browser.safebrowsing.provider.mozilla.pver", "2.2");
-pref("browser.safebrowsing.provider.mozilla.lists", "base-track-digest256,mozstd-trackwhite-digest256,google-trackwhite-digest256,content-track-digest256,mozplugin-block-digest256,mozplugin2-block-digest256,ads-track-digest256,social-track-digest256,analytics-track-digest256,base-fingerprinting-track-digest256,content-fingerprinting-track-digest256,base-cryptomining-track-digest256,content-cryptomining-track-digest256,fanboyannoyance-ads-digest256,fanboysocial-ads-digest256,easylist-ads-digest256,easyprivacy-ads-digest256,adguard-ads-digest256,social-tracking-protection-digest256,social-tracking-protection-facebook-digest256,social-tracking-protection-linkedin-digest256,social-tracking-protection-twitter-digest256,base-email-track-digest256,content-email-track-digest256,consent-manager-track-digest256,anti-fraud-track-digest256,harmful-addon-block-digest256,harmful-addon-entitylist-digest256");
+pref("browser.safebrowsing.provider.mozilla.lists", "base-track-digest256,mozstd-trackwhite-digest256,google-trackwhite-digest256,content-track-digest256,ads-track-digest256,social-track-digest256,analytics-track-digest256,base-fingerprinting-track-digest256,content-fingerprinting-track-digest256,base-cryptomining-track-digest256,content-cryptomining-track-digest256,fanboyannoyance-ads-digest256,fanboysocial-ads-digest256,easylist-ads-digest256,easyprivacy-ads-digest256,adguard-ads-digest256,social-tracking-protection-digest256,social-tracking-protection-facebook-digest256,social-tracking-protection-linkedin-digest256,social-tracking-protection-twitter-digest256,base-email-track-digest256,content-email-track-digest256,consent-manager-track-digest256,anti-fraud-track-digest256,harmful-addon-block-digest256,harmful-addon-entitylist-digest256");
 pref("browser.safebrowsing.provider.mozilla.updateURL", "moz-sbrs:://antitracking");
 pref("browser.safebrowsing.provider.mozilla.gethashURL", "https://shavar.services.mozilla.com/gethash?client=SAFEBROWSING_ID&appver=%MAJOR_VERSION%&pver=2.2");
 // Set to a date in the past to force immediate download in new profiles.
@@ -3446,12 +3445,8 @@ pref("browser.safebrowsing.provider.mozilla.nextupdatetime", "1");
 pref("browser.safebrowsing.provider.mozilla.lists.base", "moz-std");
 pref("browser.safebrowsing.provider.mozilla.lists.content", "moz-full");
 
-// The table and global pref for blocking plugin content
-#ifdef NIGHTLY_BUILD
-  pref("urlclassifier.blockedTable", "moztest-block-simple,mozplugin-block-digest256");
-#else
-  pref("urlclassifier.blockedTable", "moztest-block-simple");
-#endif
+// The table and global pref for blocking URIs
+pref("urlclassifier.blockedTable", "moztest-block-simple");
 
 #ifdef XP_MACOSX
   #if !defined(RELEASE_OR_BETA) || defined(DEBUG)
@@ -3467,8 +3462,8 @@ pref("browser.search.log", false);
 pref("browser.search.update", true);
 pref("browser.search.suggest.enabled", true);
 pref("browser.search.suggest.enabled.private", false);
-pref("browser.search.separatePrivateDefault", true);
-pref("browser.search.separatePrivateDefault.ui.enabled", false);
+pref("browser.search.separatePrivateDefault.enabled", false);
+pref("browser.search.separatePrivateDefault.featureGate", false);
 pref("browser.search.removeEngineInfobar.enabled", true);
 
 // GMPInstallManager prefs
@@ -3651,6 +3646,7 @@ pref("browser.ai.control.smartTabGroups", "default");
 pref("browser.ai.control.linkPreviewKeyPoints", "default");
 pref("browser.ai.control.sidebarChatbot", "default");
 pref("browser.ai.control.smartWindow", "default");
+pref("browser.ai.control.speechRecognition", "default");
 
 // Enable the experimental machine learning inference engine.
 pref("browser.ml.enable", true);
@@ -3670,6 +3666,16 @@ pref("browser.ml.minimumPhysicalMemory", 3);
 pref("browser.ml.checkForMemory", true);
 // Allowed overrides for various ml features
 pref("browser.ml.overridePipelineOptions", "{}");
+// How long the PageExtractor waits for a headless page load, in ms.
+pref("browser.ml.pageExtractor.headlessTimeoutMs", 15000);
+
+// Extract video metadata and the transcript from YouTube watch pages during
+// page extraction.
+pref("browser.pageextractor.youtube.enabled", true);
+
+// How long, in milliseconds, to wait for the YouTube transcript panel to render
+// after it is opened before giving up and returning metadata alone.
+pref("browser.pageextractor.youtube.timeoutMs", 3000);
 
 // When a user cancels this number of authentication dialogs coming from
 // a single web page in a row, all following authentication dialogs will
@@ -3884,6 +3890,23 @@ pref("services.common.log.logger.tokenserverclient", "Debug");
     pref("remote.experimental.enabled", false);
   #endif
 
+  // Enable features related to starting Marionette / Remote Agent dynamically,
+  // built for AI Assistant integrations (e.g. Claude cowork). On Nightly,
+  // enabling this preference will enable the Remote Control panel. On other
+  // channels, there is no user facing entry point for now.
+  pref("remote.experimental.dynamicstart.enabled", false);
+
+  // Display a connection prompt when trying to create a session via dynamically
+  // started Marionette / Remote Agent servers.
+  pref("remote.experimental.dynamicstart.prompt.enabled", true);
+
+  // Display a banner while the servers are running after a dynamic start, and
+  // another one while an application is connected to them. Both banners are
+  // only relevant when the servers were started dynamically, so they are
+  // enabled on all channels.
+  pref("remote.experimental.dynamicstart.banner.enabled", true);
+  pref("remote.experimental.dynamicstart.connectionbanner.enabled", true);
+
   // Defines the verbosity of the internal logger.
   //
   // Available levels are, in descending order of severity, "Trace", "Debug",
@@ -3902,6 +3925,13 @@ pref("services.common.log.logger.tokenserverclient", "Debug");
   // Enable retrying to execute commands in the child process in case the
   // JSWindowActor gets destroyed.
   pref("remote.retry-on-abort", true);
+
+  // Debugging aid: capture WebDriver/Marionette screenshots by reading back the
+  // actual WebRender composited framebuffer (real on-screen pixels) instead of
+  // re-rendering the document through the software drawSnapshot path. This makes
+  // captured screenshots reflect WebRender-specific rendering, at the cost of
+  // every capture degrading to the composited viewport of the foreground tab.
+  pref("remote.screenshot.use_readback", false);
 #endif
 
 // Enable the JSON View tool (an inspector for application/json documents).
@@ -4006,15 +4036,63 @@ pref("security.storage.encryption.sqlite.enabled", false, locked);
 pref("extensions.formautofill.available", "detect");
 
 #if !defined(ANDROID)
-pref("extensions.formautofill.addresses.supported", "on");
-// Use ML for address form field detection.
-pref("extensions.formautofill.useml", true);
+  #if MOZ_UPDATE_CHANNEL != release && MOZ_UPDATE_CHANNEL != esr
+    pref("extensions.formautofill.addresses.supported", "on");
+  #else
+    pref("extensions.formautofill.addresses.supported", "detect");
+  #endif
 #else
 pref("extensions.formautofill.addresses.supported", "detect");
+#endif
+
+// Use ML for address form field detection.
+#if defined(XP_WIN) || defined(XP_MACOSX)
+  #if MOZ_UPDATE_CHANNEL != release && MOZ_UPDATE_CHANNEL != esr
+    pref("extensions.formautofill.useml", true);
+  #else
+    pref("extensions.formautofill.useml", false);
+  #endif
+#else
 pref("extensions.formautofill.useml", false);
 #endif
+
+// Set at runtime once we have asked the inference process whether the native
+// ONNX runtime is available. Until then we stay on the regex heuristics.
+pref("extensions.formautofill.useml.nativeOnnxAvailable", false);
+
+// Use the two-engine (encoder + fusion head) field classifier instead of the
+// single text-classification model. Controlled by the form-autofill-ml Nimbus
+// feature.
+pref("extensions.formautofill.useml.twoHead", true);
+// How long an idle ML autofill engine is kept alive, in milliseconds. -1 means
+// never time out. Controlled by the form-autofill-ml Nimbus feature.
+pref("extensions.formautofill.useml.timeoutMS", 120000);
+// Comma separated list of field types the ML model is not trusted with. Those
+// types are classified by the regular expression based heuristics instead, and
+// any prediction the model makes for one of them is discarded. Related field
+// types belong on the list together, see `_getRegexpHeuristicFieldNames`.
+// Controlled by the autofill-ml-ignore-field-types Nimbus feature.
+pref("extensions.formautofill.useml.ignoreFieldTypes", "");
+
+// Optional AutoFill tokenizer features, as a JSON array of feature keys that
+// change a field's exported mlData:
+//   "select_option"    - "<first>...<last>" option-range token for a <select>.
+//   "input_attributes" - "**maxlen<N>"/"**inputmode<mode>" tokens.
+//   "strip_common"     - in forms with 3+ fields, drop tokens present in EVERY
+//                        field (form-wide boilerplate like "form1"/"ctl00").
+//   "strip_frequent"   - like strip_common but drops tokens present in >=85% of
+//                        the form's fields (catches near-universal boilerplate).
+// Default "[]" (none). Each feature changes the mlData contract, so the consuming
+// model must be trained with the same features enabled.
+pref("extensions.formautofill.useml.features", "[]");
+
+// Pin the ML model revision to load (the encoder and head engines share one
+// version). Empty = use the Remote Settings default.
+pref("extensions.formautofill.useml.modelVersion", "");
+
 pref("extensions.formautofill.addresses.enabled", true);
 pref("extensions.formautofill.addresses.capture.enabled", true);
+
 #if defined(ANDROID)
   // On android we have custom logic to control this. Ideally we should use nimbus there as well.
   // https://github.com/mozilla-mobile/firefox-android/blob/d566743ea0f041ce27c1204da903de380f96b46e/fenix/app/src/main/java/org/mozilla/fenix/utils/Settings.kt#L1502-L1510
@@ -4026,9 +4104,44 @@ pref("extensions.formautofill.addresses.capture.enabled", true);
 pref("extensions.formautofill.addresses.ignoreAutocompleteOff", true);
 // Supported countries need to follow ISO 3166-1 to align with "browser.search.region"
 pref("extensions.formautofill.addresses.supportedCountries", "US,CA,GB,FR,DE,BR,ES,JP,AT,IN,IT,PL,AU,NL");
+
+// Move desktop addresses to the Application Services autofill store. Read at
+// startup and watched afterwards: the addresses are copied over to the store
+// this asks for, which then serves them once that copy is verified complete.
+pref("extensions.formautofill.addresses.storage.rust.enabled", false);
+// Which store is in fact serving addresses. Managed by Firefox, not a knob:
+// the pref above only asks, and a profile whose copy has not completed keeps
+// reading from where its addresses are.
+pref("extensions.formautofill.addresses.storage.rust.active", false);
+// Run the migration purely to measure it, while the pref above is still off.
+// The copy is reported through migrate_to_rust and then wiped. Nightly only,
+// and once per profile per generation: it is what says whether the real move is
+// safe to make.
+#ifdef NIGHTLY_BUILD
+  pref("extensions.formautofill.addresses.storage.rust.runMigrationTest", true);
+#else
+  pref("extensions.formautofill.addresses.storage.rust.runMigrationTest", false);
+#endif
+// Which generation of the dry run above this profile has done, so a build that
+// fixes a migration bug can bump it and measure the same profiles again.
+pref("extensions.formautofill.addresses.storage.rust.migrationTestVersion", 0);
+// How many launches have already tried and failed to migrate. Managed by
+// Firefox, which gives up after a budget.
+pref("extensions.formautofill.addresses.storage.rust.migrationAttempts", 0);
+
 pref("extensions.formautofill.creditCards.supported", "on");
 pref("extensions.formautofill.creditCards.enabled", true);
 pref("extensions.formautofill.creditCards.ignoreAutocompleteOff", true);
+
+// Whether the CVV/CSC feature has been rolled out to this user, using the same
+// "on"/"off" values as the other supported prefs above. Nothing about the CVV
+// (cc-csc) field is offered while this is "off", including the setting that
+// lets the user turn capture on or off.
+pref("extensions.formautofill.creditCards.cvv.supported", "off");
+// The user's own choice, exposed as a setting once the feature is supported.
+// CVVs are only captured and stored when both prefs are true; see
+// FormAutofill.isAutofillCreditCardCVVEnabled.
+pref("extensions.formautofill.creditCards.cvv.enabled", true);
 
 // Supported countries need to follow ISO 3166-1 to align with "browser.search.region"
 pref("extensions.formautofill.creditCards.supportedCountries", "US,CA,GB,FR,DE,IT,ES,AT,BE,PL");
@@ -4043,6 +4156,11 @@ pref("extensions.formautofill.creditCards.heuristics.fathom.types", "cc-number,c
 pref("extensions.formautofill.creditCards.heuristics.fathom.confidenceThreshold", "0.5");
 // This is Only for testing! Set the confidence value (> 0 && <= 1) after a field is identified by fathom
 pref("extensions.formautofill.creditCards.heuristics.fathom.testConfidence", "0");
+
+// Passport autofill is still under development; keep it off by default. See
+// extensions.formautofill.addresses.supported above for the "supported" values.
+pref("extensions.formautofill.passports.supported", "off");
+pref("extensions.formautofill.passports.enabled", false);
 
 pref("extensions.formautofill.loglevel", "Warn");
 
@@ -4062,40 +4180,6 @@ pref("extensions.formautofill.heuristics.autofillSameOriginWithTop", true);
 pref("toolkit.osKeyStore.loglevel", "Warn");
 
 pref("extensions.formautofill.supportRTL", false);
-
-// Controls the log level for CookieBannerListService.sys.mjs.
-pref("cookiebanners.listService.logLevel", "Error");
-
-// Controls the log level for Cookie Banner Auto Clicking.
-pref("cookiebanners.bannerClicking.logLevel", "Error");
-
-// Enables the cookie banner auto clicking. The cookie banner auto clicking
-// depends on the `cookiebanners.service.mode` pref.
-pref("cookiebanners.bannerClicking.enabled", true);
-
-// Whether or not banner auto clicking test mode is enabled.
-pref("cookiebanners.bannerClicking.testing", false);
-
-// The maximum time (ms) after load for detecting banner and button elements for
-// cookie banner auto clicking.
-pref("cookiebanners.bannerClicking.timeoutAfterLoad", 5000);
-
-// Maximum time (ms) after DOMContentLoaded for detecting banners. This is a
-// catchall for cases where a load even never occurs.
-pref("cookiebanners.bannerClicking.timeoutAfterDOMContentLoaded", 20000);
-
-// How often (milliseconds) to run the banner detection query selectors to detect
-// the banner element and/or buttons.
-pref("cookiebanners.bannerClicking.pollingInterval", 500);
-
-// Array of test rules for cookie banner handling as a JSON string. They will be
-// inserted in addition to regular rules and may override them when setting the
-// same domain. Every array item should be a valid CookieBannerRule. See
-// CookieBannerRule.schema.json.
-pref("cookiebanners.listService.testRules", "[]");
-
-// Still fetches rules from RemoteSettings, but discards them. Used in tests.
-pref("cookiebanners.listService.testSkipRemoteSettings", false);
 
 // The domains we will block from installing SitePermsAddons. Comma-separated
 // full domains: any subdomains of the domains listed will also be allowed.

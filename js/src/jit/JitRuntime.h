@@ -84,6 +84,7 @@ class BaselineICFallbackCode {
       mozilla::EnumeratedArray<BailoutReturnKind, uint32_t,
                                size_t(BailoutReturnKind::Count)>;
   BailoutReturnArray bailoutReturnOffsets_ = {};
+  BailoutReturnArray bailoutStubOffsets_ = {};
 
  public:
   BaselineICFallbackCode() = default;
@@ -97,11 +98,17 @@ class BaselineICFallbackCode {
   void initBailoutReturnOffset(BailoutReturnKind kind, uint32_t offset) {
     bailoutReturnOffsets_[kind] = offset;
   }
+  void initBailoutStubOffset(BailoutReturnKind kind, uint32_t offset) {
+    bailoutStubOffsets_[kind] = offset;
+  }
   TrampolinePtr addr(BaselineICFallbackKind kind) const {
     return TrampolinePtr(code_->raw() + offsets_[kind]);
   }
   uint8_t* bailoutReturnAddr(BailoutReturnKind kind) const {
     return code_->raw() + bailoutReturnOffsets_[kind];
+  }
+  uint8_t* bailoutStubAddr(BailoutReturnKind kind) const {
+    return code_->raw() + bailoutStubOffsets_[kind];
   }
 };
 
@@ -138,6 +145,9 @@ class JitRuntime {
 
   // Trampoline for entering JIT code.
   WriteOnceData<uint32_t> enterJITOffset_{0};
+
+  // Trampoline for resuming a suspended generator/async function.
+  WriteOnceData<uint32_t> enterJITGeneratorResumeOffset_{0};
 
   // Generic bailout table; used if the bailout table overflows.
   WriteOnceData<uint32_t> bailoutHandlerOffset_{0};
@@ -249,11 +259,17 @@ class JitRuntime {
   void generateExceptionTailStub(MacroAssembler& masm, Label* profilerExitTail,
                                  Label* bailoutTail);
   void generateBailoutTailStub(MacroAssembler& masm, Label* bailoutTail);
-  void generateEnterJIT(JSContext* cx, MacroAssembler& masm);
+
+  enum class EnterJitMode { Normal, GeneratorResume };
+  void generateEnterJIT(JSContext* cx, MacroAssembler& masm, EnterJitMode mode);
   void generateEnterJitShared(MacroAssembler& masm, Register argcReg,
                               Register argvReg, Register calleeTokenReg,
                               Register scratch, Register scratch2,
                               Register scratch3);
+  void generateEnterJitResumeShared(MacroAssembler& masm, Register argvReg,
+                                    Register calleeTokenReg, Register scratch,
+                                    Register scratch2);
+
   void generateBailoutHandler(MacroAssembler& masm, Label* bailoutTail);
   void generateInvalidator(MacroAssembler& masm, Label* bailoutTail);
   uint32_t generatePreBarrier(JSContext* cx, MacroAssembler& masm,
@@ -396,6 +412,10 @@ class JitRuntime {
   EnterJitCode enterJit() const {
     return JS_DATA_TO_FUNC_PTR(EnterJitCode,
                                trampolineCode(enterJITOffset_).value);
+  }
+  EnterJitCode enterJitGeneratorResume() const {
+    return JS_DATA_TO_FUNC_PTR(
+        EnterJitCode, trampolineCode(enterJITGeneratorResumeOffset_).value);
   }
 
   // Return the registers from the native caller frame of the given JIT frame.

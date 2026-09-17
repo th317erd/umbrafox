@@ -579,7 +579,7 @@ nsresult nsHttpChannelAuthProvider::GetCredentials(
                                              opaque, &stale, &ac.algorithm,
                                              &qop);
     }
-    cc.AppendElement(ac);
+    cc.AppendElement(std::move(ac));
   }
 
   // Returns true if an authorization is in progress
@@ -878,6 +878,13 @@ nsresult nsHttpChannelAuthProvider::GetCredentialsForChallenge(
   // a 'network reset' error every time.  Hence, we mark the connection
   // as restartable.
   mAuthChannel->ConnectionRestartable(!authAtProgress);
+
+  if (identFromURI &&
+      (authFlags & nsIHttpAuthenticator::IDENTITY_INCLUDES_DOMAIN)) {
+    LOG(("  ignoring URL identity for a domain-identity scheme\n"));
+    ident->Clear();
+    identFromURI = false;
+  }
 
   if (identityInvalid) {
     if (entry) {

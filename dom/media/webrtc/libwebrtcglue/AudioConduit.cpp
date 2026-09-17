@@ -1000,21 +1000,24 @@ webrtc::SdpAudioFormat WebrtcAudioConduit::CodecConfigToLibwebrtcFormat(
       parameters[kCodecParamUseDtx] = kParamValueTrue;
     }
     if (aConfig.mMaxPlaybackRate) {
-      parameters[kCodecParamMaxPlaybackRate] =
+      parameters[std::string(kCodecParamMaxPlaybackRate)] =
           std::to_string(aConfig.mMaxPlaybackRate);
     }
     if (aConfig.mMaxAverageBitrate) {
-      parameters[kCodecParamMaxAverageBitrate] =
+      parameters[std::string(kCodecParamMaxAverageBitrate)] =
           std::to_string(aConfig.mMaxAverageBitrate);
     }
     if (aConfig.mFrameSizeMs) {
-      parameters[kCodecParamPTime] = std::to_string(aConfig.mFrameSizeMs);
+      parameters[std::string(kCodecParamPTime)] =
+          std::to_string(aConfig.mFrameSizeMs);
     }
     if (aConfig.mMinFrameSizeMs) {
-      parameters[kCodecParamMinPTime] = std::to_string(aConfig.mMinFrameSizeMs);
+      parameters[std::string(kCodecParamMinPTime)] =
+          std::to_string(aConfig.mMinFrameSizeMs);
     }
     if (aConfig.mMaxFrameSizeMs) {
-      parameters[kCodecParamMaxPTime] = std::to_string(aConfig.mMaxFrameSizeMs);
+      parameters[std::string(kCodecParamMaxPTime)] =
+          std::to_string(aConfig.mMaxFrameSizeMs);
     }
     if (aConfig.mCbrEnabled) {
       parameters[kCodecParamCbr] = kParamValueTrue;
@@ -1083,7 +1086,8 @@ void WebrtcAudioConduit::CreateRecvStream() {
     return;
   }
 
-  mRecvStream = mCall->Call()->CreateAudioReceiveStream(mRecvStreamConfig);
+  mRecvStream =
+      mCall->Call()->CreateAudioReceiveStream(mRecvStreamConfig.Copy());
   // Ensure that we set the jitter buffer target on this stream.
   mRecvStream->SetBaseMinimumPlayoutDelayMs(mJitterBufferTargetMs);
 }

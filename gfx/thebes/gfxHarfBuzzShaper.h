@@ -150,7 +150,7 @@ class gfxHarfBuzzShaper : public gfxFontShaper {
   nscoord GetGlyphPositions(gfxContext* aContext, nsTArray<nsPoint>& aPositions,
                             uint32_t aAppUnitsPerDevUnit);
 
-  void InitializeVertical();
+  void InitializeVertical() MOZ_REQUIRES(mMutex);
   bool LoadHmtxTable();
 
   struct Glyf {  // we only need the bounding-box at the beginning
@@ -186,7 +186,10 @@ class gfxHarfBuzzShaper : public gfxFontShaper {
   };
 
   struct CmapCache
-      : public mozilla::MruCache<uint32_t, CmapCacheData, CmapCache, 251> {
+      : public mozilla::MruCache<uint32_t, CmapCacheData, CmapCache, 256> {
+    static bool IsEmpty(const CmapCacheData& aData) {
+      return !aData.mCodepoint && !aData.mGlyphId;
+    }
     static mozilla::HashNumber Hash(const uint32_t& aKey) { return aKey; }
     static bool Match(const uint32_t& aKey, const CmapCacheData& aData) {
       return aKey == aData.mCodepoint;
@@ -201,7 +204,10 @@ class gfxHarfBuzzShaper : public gfxFontShaper {
   };
 
   struct WidthCache
-      : public mozilla::MruCache<uint32_t, WidthCacheData, WidthCache, 251> {
+      : public mozilla::MruCache<uint32_t, WidthCacheData, WidthCache, 256> {
+    static bool IsEmpty(const WidthCacheData& aData) {
+      return !aData.mGlyphId && !aData.mAdvance;
+    }
     static mozilla::HashNumber Hash(const hb_codepoint_t& aKey) { return aKey; }
     static bool Match(const uint32_t& aKey, const WidthCacheData& aData) {
       return aKey == aData.mGlyphId;

@@ -216,6 +216,13 @@ class EditorBase : public nsIEditor,
   }
 
   /**
+   * Get frame selection from SelectionRef(), but returns null
+   * for canvas-based EditContext, where we don't want to touch
+   * the DOM selection (since it may be in accessible content.)
+   */
+  nsFrameSelection* GetEditableFrameSelection() const;
+
+  /**
    * @return Ancestor limiter of normal selection
    */
   [[nodiscard]] nsIContent* GetSelectionAncestorLimiter() const {
@@ -788,6 +795,27 @@ class EditorBase : public nsIEditor,
                 nsIPrincipal* aPrincipal = nullptr);
 
   /**
+   * PasteNoFormattingAsAction() pastes content in clipboard without any style
+   * information.
+   *
+   * @param aClipboardType      nsIClipboard::kGlobalClipboard or
+   *                            nsIClipboard::kSelectionClipboard.
+   * @param aDispatchPasteEvent Yes if this should dispatch ePaste event
+   *                            before pasting.  Otherwise, No.
+   * @param aDataTransfer       The object containing the data to use for the
+   *                            paste operation. May be nullptr, in which case
+   *                            this will just get the data from the clipboard.
+   * @param aPrincipal          Set subject principal if it may be called by
+   *                            JS.  If set to nullptr, will be treated as
+   *                            called by system.
+   */
+  MOZ_CAN_RUN_SCRIPT nsresult
+  PasteNoFormattingAsAction(nsIClipboard::ClipboardType aClipboardType,
+                            DispatchPasteEvent aDispatchPasteEvent,
+                            DataTransfer* aDataTransfer = nullptr,
+                            nsIPrincipal* aPrincipal = nullptr);
+
+  /**
    * Paste aTransferable at Selection.
    *
    * @param aTransferable       Must not be nullptr.
@@ -1160,6 +1188,7 @@ class EditorBase : public nsIEditor,
     EditAction GetEditAction() const { return mEditAction; }
 
     dom::EditContext* GetEditContext() const { return mEditContext; }
+    void UpdateEditContext();
     bool EditContextHasBeenChanged() const {
       return mEditContext != mEditorBase.ComputeEditContext();
     }
@@ -1870,12 +1899,12 @@ class EditorBase : public nsIEditor,
     SpecifiedPoint,
     ExistingTextNodeIfAvailable,
     ExistingTextNodeIfAvailableAndNotStart,
-    AlwaysCreateNewTextNode
+    AlwaysCreateNewTextNode,
   };
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT virtual Result<InsertTextResult, nsresult>
   InsertTextWithTransaction(const nsAString& aStringToInsert,
                             const EditorDOMPoint& aPointToInsert,
-                            InsertTextTo aInsertTextTo);
+                            InsertTextTo aInsertTextTo, InsertTextFor aPurpose);
 
   /**
    * Compute insertion point from aPoint and aInsertTextTo.
@@ -1889,7 +1918,7 @@ class EditorBase : public nsIEditor,
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<InsertTextResult, nsresult>
   InsertTextIntoTextNodeWithTransaction(
       const nsAString& aStringToInsert,
-      const EditorDOMPointInText& aPointToInsert);
+      const EditorDOMPointInText& aPointToInsert, InsertTextFor aPurpose);
 
   /**
    * SetTextNodeWithoutTransaction() is optimized path to set new value to

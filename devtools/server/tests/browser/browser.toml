@@ -130,7 +130,6 @@ skip-if = [
 ["browser_canvasframe_helper_06.js"]
 
 ["browser_compatibility_cssIssues.js"]
-tags = "devtools-compat-data"
 
 ["browser_connectToFrame.js"]
 
@@ -189,6 +188,8 @@ https_first_disabled = true
 skip-if = [
   "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
 ]
+
+["browser_storage_cookies_all_jars.js"]
 
 ["browser_storage_dynamic_windows.js"]
 https_first_disabled = true

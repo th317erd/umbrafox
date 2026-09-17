@@ -1176,6 +1176,7 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
       isEvaluatingModule(this, 0),
       frontendCollectionPool_(this),
       suppressProfilerSampling(false),
+      allowProfilerScriptAccess_(false),
       tempLifoAlloc_(this, (size_t)TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE,
                      js::MallocArena),
       debuggerMutations(this, 0),
@@ -1186,6 +1187,7 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
       hadResourceExhaustion_(this, false),
       hadUncatchableException_(this, false),
 #endif
+      hasDelayedOverRecursed(this, false),
       reportGranularity(this, JS_DEFAULT_JITREPORT_GRANULARITY),
       resolvingList(this, nullptr),
 #ifdef DEBUG
@@ -1205,7 +1207,6 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
       jobQueue(this, nullptr),
       internalJobQueue(this),
       canSkipEnqueuingJobs(this, false),
-      asyncResumeDepth(this, 0),
       promiseRejectionTrackerCallback(this, nullptr),
       promiseRejectionTrackerCallbackData(this, nullptr),
       oomStackTraceBuffer_(this, nullptr),
@@ -1423,11 +1424,6 @@ const JS::Value& JSContext::getPendingExceptionUnwrapped() {
   return unwrappedException();
 }
 #endif
-
-bool JSContext::isClosingGenerator() {
-  return isExceptionPending() &&
-         unwrappedException().isMagic(JS_GENERATOR_CLOSING);
-}
 
 bool JSContext::isThrowingDebuggeeWouldRun() {
   return isExceptionPending() && unwrappedException().isObject() &&

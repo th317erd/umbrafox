@@ -11,7 +11,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   AutofillFormFactory:
     "resource://gre/modules/shared/AutofillFormFactory.sys.mjs",
   AutofillTelemetry: "resource://gre/modules/shared/AutofillTelemetry.sys.mjs",
-  GenericAutocompleteItem: "resource://gre/modules/FillHelpers.sys.mjs",
+  adaptExternalAutocompleteItem: "resource://gre/modules/FillHelpers.sys.mjs",
   ProfileAutoCompleteResult:
     "resource://autofill/ProfileAutoCompleteResult.sys.mjs",
   InsecurePasswordUtils: "resource://gre/modules/InsecurePasswordUtils.sys.mjs",
@@ -779,6 +779,10 @@ export class FormAutofillChild extends JSWindowActorChild {
           }, 0);
         });
       }
+      case "FormAutofill:RepopulateAutocompletePopup": {
+        lazy.FormAutofillContent.repopulatePopup();
+        break;
+      }
       case "FormAutofill:ClearFilledFields": {
         const { focusedId, ids } = message.data;
         this.clearFields(focusedId, ids);
@@ -807,7 +811,14 @@ export class FormAutofillChild extends JSWindowActorChild {
           this._fieldDetailsManager.getFormHandlerByRootElementId(
             rootElementId
           );
-        return handler?.collectFormFilledData();
+        if (!handler) {
+          return undefined;
+        }
+        // The fields may not have been identified yet when a subframe is asked
+        // for its filled data, in which case nothing was filled in it.
+        return handler.hasIdentifiedFields()
+          ? handler.collectFormFilledData()
+          : new Map();
       }
       case "FormAutofill:InspectFields": {
         const fieldDetails = this.inspectFields();
@@ -880,6 +891,13 @@ export class FormAutofillChild extends JSWindowActorChild {
     }
 
     if (this.#handlerWaitingForFormSubmissionComplete.has(handler)) {
+      return;
+    }
+
+    // The form can be submitted before the parent replies with the identified
+    // fields, in which case nothing was filled and there is nothing to record.
+    if (!handler.hasIdentifiedFields()) {
+      this.debug("Fields have not been identified yet");
       return;
     }
 
@@ -1098,6 +1116,7 @@ export class FormAutofillChild extends JSWindowActorChild {
     return {
       fieldName: fieldDetail?.fieldName,
       elementId: fieldDetail?.elementId,
+      inputType: input.type,
       scenarioName,
     };
   }
@@ -1175,16 +1194,7 @@ export class FormAutofillChild extends JSWindowActorChild {
     const externalEntries = records.externalEntries;
 
     acResult.externalEntries.push(
-      ...externalEntries.map(
-        entry =>
-          new lazy.GenericAutocompleteItem(
-            entry.image,
-            entry.label,
-            entry.secondary,
-            entry.fillMessageName,
-            entry.fillMessageData
-          )
-      )
+      ...externalEntries.map(lazy.adaptExternalAutocompleteItem)
     );
 
     return acResult;

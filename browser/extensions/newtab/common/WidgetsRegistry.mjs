@@ -34,6 +34,11 @@
  *                        (only applies when the user has not explicitly set sizePref)
  *   trainhopSidebarKey — key in trainhopConfig.widgets.* for the hasSidebar override;
  *                        null means the sidebar placement is not overridable via trainhop
+ *   requiresHistory    — when true, the widget is hidden entirely on profiles that
+ *                        record no history (see isWidgetDataUnavailable)
+ *   requiresWidgetSearchSap — when true, the widget is hidden entirely on hosts whose
+ *                        search code is too old to generate accurate partner codes
+ *                        (see isWidgetDataUnavailable)
  *
  * SIZE PRIORITY
  * sizePref defaults to "" (empty string) in PREFS_CONFIG. An empty value
@@ -60,6 +65,12 @@
  * 5. If it has a sidebar variant, set hasSidebar: true and add its component
  *    to WIDGET_SIDEBAR_COMPONENTS in WidgetsComponentRegistry.jsx.
  *
+ * RETIRING A WIDGET
+ * Set retired: true on its entry. Turn its feed off separately in
+ * lib/ActivityStream.sys.mjs — feeds read their own prefs, not the registry.
+ * Keep the entry until the code goes: unguarded WIDGET_REGISTRY.find() call
+ * sites throw on a missing entry.
+ *
  * ADDING A NEW PER-WIDGET DIMENSION (e.g. "scale")
  * 1. Add scalePref and trainhopScaleKey fields to each registry entry.
  * 2. Export a resolveWidgetScale(widget, prefs) helper following the same
@@ -77,9 +88,9 @@
  * To expose an extra pref-gated widget feature in that panel (e.g. an internal
  * feature that defaults off but QA/devs want to flip, such as
  * widgets.pictureOfTheDay.setAsWallpaper.enabled or
- * widgets.sportsWidget.live.enabled), add an entry to the hand-maintained
+ * widgets.privacy.showVpnMessages), add an entry to the hand-maintained
  * WIDGET_EXTRA_FEATURES map in DiscoveryStreamAdmin.jsx keyed by widget id:
- *   sportsWidget: [{ pref: "widgets.sportsWidget.live.enabled", label: "Live scores" }]
+ *   privacy: [{ pref: "widgets.privacy.showVpnMessages", label: "VPN messages" }]
  * Each entry becomes a boolean toggle nested under that widget's row. This map is
  * intentionally kept in the devtools component, not the registry, so shipping code
  * carries no dependency on dev-only feature lists.
@@ -115,12 +126,25 @@ export const PREF_WIDGETS_PRIVACY_ENABLED = "widgets.privacy.enabled";
 export const PREF_PRIVACY_SIZE = "widgets.privacy.size";
 export const PREF_WIDGETS_SYSTEM_PRIVACY_ENABLED =
   "widgets.system.privacy.enabled";
+export const PREF_PRIVACY_MAX_COUNT = "widgets.privacy.maxCount";
+export const PREF_PRIVACY_MAX_DISPLAY_COUNT = "widgets.privacy.maxDisplayCount";
+export const PREF_PRIVACY_BLANK_CHANCE = "widgets.privacy.blankChance";
+export const PREF_PRIVACY_SHOW_VPN_MESSAGES = "widgets.privacy.showVpnMessages";
+export const PREF_PRIVACY_FORCE_MESSAGE_ID = "widgets.privacy.forceMessageId";
+export const PREF_PRIVACY_MESSAGE_STATE = "widgets.privacy.messageState";
+export const PREF_PRIVACY_CELEBRATION_THRESHOLD =
+  "widgets.privacy.celebrationThreshold";
+export const PREF_PRIVACY_CELEBRATION_STATE =
+  "widgets.privacy.celebrationState";
+export const PREF_PRIVACY_FORCE_CELEBRATION =
+  "widgets.privacy.forceCelebration";
 export const PREF_WIDGETS_CROSSWORD_ENABLED = "widgets.crossword.enabled";
 export const PREF_CROSSWORD_SIZE = "widgets.crossword.size";
 export const PREF_WIDGETS_SYSTEM_CROSSWORD_ENABLED =
   "widgets.system.crossword.enabled";
 export const PREF_WIDGETS_STOCKS_ENABLED = "widgets.stocks.enabled";
 export const PREF_STOCKS_SIZE = "widgets.stocks.size";
+export const PREF_STOCKS_WATCHLIST = "widgets.stocks.watchlist";
 export const PREF_WIDGETS_SYSTEM_STOCKS_ENABLED =
   "widgets.system.stocks.enabled";
 export const PREF_CROSSWORD_ENDPOINT = "widgets.crossword.endpoint";
@@ -129,6 +153,11 @@ export const PREF_WIDGETS_PICTURE_OF_THE_DAY_ENABLED =
 export const PREF_PICTURE_OF_THE_DAY_SIZE = "widgets.pictureOfTheDay.size";
 export const PREF_WIDGETS_SYSTEM_PICTURE_OF_THE_DAY_ENABLED =
   "widgets.system.pictureOfTheDay.enabled";
+export const PREF_WIDGETS_RECENT_SEARCHES_ENABLED =
+  "widgets.recentSearches.enabled";
+export const PREF_RECENT_SEARCHES_SIZE = "widgets.recentSearches.size";
+export const PREF_WIDGETS_SYSTEM_RECENT_SEARCHES_ENABLED =
+  "widgets.system.recentSearches.enabled";
 
 /**
  * @typedef {object} WidgetRegistryEntry
@@ -146,7 +175,10 @@ export const PREF_WIDGETS_SYSTEM_PICTURE_OF_THE_DAY_ENABLED =
  * @property {string|null} trainhopSidebarKey - Key in trainhopConfig.widgets.* for the hasSidebar override.
  * @property {string} widgetsSettingsVisibleKey - Key in trainhopConfig.widgetsSettings.* that additively reveals this widget's toggle in the settings UIs (does not enable the widget).
  * @property {string} widgetsSettingsEnabledKey - Key in trainhopConfig.widgetsSettings.* that overrides this widget's default enabled value (written to the pref default branch; an explicit user toggle still wins).
- * @property {string|null} [trainhopNamespace] - When set, the widget ships its whole config in one dedicated object at trainhopConfig.<namespace>. Its `enabled` overrides the default value of enabledPref on the default branch (user toggle still wins, like widgetsSettings.*Enabled); `visible` reveals the widget (isWidgetAddable) without writing a pref; `size` is read by resolveWidgetSize. Picture of the Day and Crossword use this today.
+ * @property {boolean} [requiresHistory] - When true, the widget is hidden entirely on profiles that record no history. See isWidgetDataUnavailable.
+ * @property {boolean} [requiresWidgetSearchSap] - When true, the widget is hidden entirely on hosts whose search code is too old to generate accurate partner codes. See isWidgetDataUnavailable.
+ * @property {boolean} [retired] - When true the widget never renders and gets no settings or devtools toggle, whatever its prefs and trainhopConfig say.
+ * @property {string|null} [trainhopNamespace] - When set, the widget ships its whole config in one dedicated object at trainhopConfig.<namespace>. Its `enabled` overrides the default value of enabledPref on the default branch (user toggle still wins, like widgetsSettings.*Enabled); `visible` reveals the widget (isWidgetAddable) without writing a pref; `size` is read by resolveWidgetSize. Picture of the Day, Crossword, Privacy and Recent Searches use this today.
  */
 
 /** @type {WidgetRegistryEntry[]} */
@@ -183,6 +215,8 @@ export const WIDGET_REGISTRY = [
     trainhopSidebarKey: null,
     widgetsSettingsVisibleKey: "sportsWidgetVisible",
     widgetsSettingsEnabledKey: "sportsWidgetEnabled",
+    // Bug 2063657: retired; entry deleted in bug 2063656.
+    retired: true,
   },
   {
     id: "clocks",
@@ -263,6 +297,8 @@ export const WIDGET_REGISTRY = [
     trainhopSidebarKey: null,
     widgetsSettingsVisibleKey: "privacyVisible",
     widgetsSettingsEnabledKey: "privacyEnabled",
+    trainhopNamespace: "widgetPrivacy",
+    requiresHistory: true,
   },
   {
     id: "crossword",
@@ -296,6 +332,26 @@ export const WIDGET_REGISTRY = [
     trainhopSidebarKey: null,
     widgetsSettingsVisibleKey: "stocksVisible",
     widgetsSettingsEnabledKey: "stocksEnabled",
+  },
+  {
+    id: "recentSearches",
+    telemetryName: "recent_searches",
+    order: 9,
+    enabledPref: PREF_WIDGETS_RECENT_SEARCHES_ENABLED,
+    sizePref: PREF_RECENT_SEARCHES_SIZE,
+    defaultSize: "medium",
+    validSizes: ["medium", "large"],
+    hasSidebar: false,
+    systemEnabledPref: PREF_WIDGETS_SYSTEM_RECENT_SEARCHES_ENABLED,
+    trainhopEnabledKey: "recentSearchesEnabled",
+    trainhopSizeKey: "recentSearchesSize",
+    trainhopSidebarKey: null,
+    widgetsSettingsVisibleKey: "recentSearchesVisible",
+    widgetsSettingsEnabledKey: "recentSearchesEnabled",
+    trainhopNamespace: "widgetRecentSearches",
+    // @backward-compat { version 157 } See isWidgetSearchSapHostSupported in
+    // PrefsFeed.sys.mjs.
+    requiresWidgetSearchSap: true,
   },
 ];
 
@@ -339,17 +395,46 @@ export function resolveWidgetOrder(prefs) {
 }
 
 /**
+ * Returns true if the widget needs history and this profile records none, so it
+ * could only ever render an empty state (Bug 2063207). An absent
+ * `recordsHistory` counts as available, so a missing PrefsFeed broadcast cannot
+ * hide a working widget.
+ *
+ * @backward-compat { version 157 }
+ * The recent searches widget requires the `newtab_search_widget` registered
+ * in BrowserSearchTelemetry.sys.mjs and no partner code configuration which
+ * was added to ConfigSearchEngine.sys.mjs in 157. The `requiresWidgetSearchSap`
+ * check can be removed once 157 hits release.
+ *
+ * @param {object} widget - a WIDGET_REGISTRY entry
+ * @param {object} prefs - current pref values from the Redux store
+ * @returns {boolean}
+ */
+export function isWidgetDataUnavailable(widget, prefs) {
+  return Boolean(
+    (widget.requiresHistory && prefs.recordsHistory === false) ||
+    (widget.requiresWidgetSearchSap && prefs.supportsWidgetSearchSap === false)
+  );
+}
+
+/**
  * Returns true if the widget is available to the user, based on the
  * system pref, the trainhopConfig.widgets addable key, or a
  * widgetsSettings.*Visible override (revealing a toggle also makes the widget
  * addable so the toggle is functional). Does not consider whether the user has
  * turned the widget on, or whether the widgets container is enabled.
  *
+ * A retired widget is never addable, and neither is one whose data source the
+ * profile has turned off (see isWidgetDataUnavailable).
+ *
  * @param {object} widget - a WIDGET_REGISTRY entry
  * @param {object} prefs - current pref values from the Redux store
  * @returns {boolean}
  */
 export function isWidgetAddable(widget, prefs) {
+  if (widget.retired || isWidgetDataUnavailable(widget, prefs)) {
+    return false;
+  }
   return Boolean(
     (widget.trainhopNamespace &&
       prefs.trainhopConfig?.[widget.trainhopNamespace]?.visible) ||
@@ -367,11 +452,17 @@ export function isWidgetAddable(widget, prefs) {
  * does NOT enable the widget — enablement is the widget's own enabled pref,
  * whose default can be overridden via widgetsSettings.*Enabled.
  *
+ * A retired widget gets no toggle, and neither does one with no data source;
+ * both checked here too, to beat widgetsConfig.
+ *
  * @param {object} widget - a WIDGET_REGISTRY entry
  * @param {object} prefs - current pref values from the Redux store
  * @returns {boolean}
  */
 export function isWidgetToggleVisible(widget, prefs) {
+  if (widget.retired || isWidgetDataUnavailable(widget, prefs)) {
+    return false;
+  }
   return Boolean(
     isWidgetAddable(widget, prefs) ||
     prefs.widgetsConfig?.[widget.trainhopEnabledKey]
@@ -459,6 +550,35 @@ export function resolveWidgetHasSidebar(widget, prefs) {
 }
 
 /**
+ * Returns true if at least one enabled widget renders in the content area rather
+ * than the inline-end sidebar. Weather is the only widget that can move to the
+ * sidebar, and only at its small size.
+ *
+ * Layout code needs this rather than isWidgetsContainerVisible, which is true
+ * even when the user has hidden every widget.
+ *
+ * @param {object} prefs - current pref values from the Redux store
+ * @param {boolean} [widgetsEnabled] - the master toggle, passed explicitly when
+ *   the spaces experiment is overriding it
+ * @returns {boolean}
+ */
+export function hasContentAreaWidgets(
+  prefs,
+  widgetsEnabled = prefs["widgets.enabled"]
+) {
+  const weatherWidget = WIDGET_REGISTRY.find(w => w.id === "weather");
+  const weatherGoesToSidebar =
+    resolveWidgetHasSidebar(weatherWidget, prefs) &&
+    resolveWidgetSize(weatherWidget, prefs) === "small";
+
+  return WIDGET_REGISTRY.some(
+    w =>
+      isWidgetEnabled(w, prefs, widgetsEnabled) &&
+      !(w.id === "weather" && weatherGoesToSidebar)
+  );
+}
+
+/**
  * Returns the Merino endpoint the Crossword widget iframe should load.
  * The dedicated widgetCrossword trainhop object wins, then the legacy
  * widgets.crosswordEndpoint key, then the raw pref, so the endpoint can be
@@ -474,6 +594,173 @@ export function resolveCrosswordEndpoint(prefs) {
     prefs.trainhopConfig?.widgets?.crosswordEndpoint ||
     prefs[PREF_CROSSWORD_ENDPOINT]
   );
+}
+
+/**
+ * Picks the dedicated trainhopConfig.widgetPrivacy value when it has the
+ * expected type, otherwise falls through to the shared trainhopConfig.widgets
+ * key. A present-but-wrong-typed dedicated value is a recipe misconfig (e.g.
+ * the string "0.4" where a number is required — the string form is only correct
+ * for the pref, which cannot hold a float), so warn rather than silently
+ * masking the shared key with a value that is about to be discarded.
+ *
+ * @param {object} prefs - current pref values from the Redux store
+ * @param {string} key - key in trainhopConfig.widgetPrivacy
+ * @param {string} sharedKey - fallback key in trainhopConfig.widgets
+ * @param {string} type - expected typeof result
+ * @returns {*} the dedicated value, else the shared value, else undefined
+ */
+function resolvePrivacyTrainhopValue(prefs, key, sharedKey, type) {
+  const dedicated = prefs.trainhopConfig?.widgetPrivacy?.[key];
+  if (typeof dedicated === type) {
+    return dedicated;
+  }
+  if (dedicated !== undefined) {
+    console.warn(
+      `trainhopConfig.widgetPrivacy.${key} is ${JSON.stringify(
+        dedicated
+      )}; expected a ${type}. Ignoring it.`
+    );
+  }
+  return prefs.trainhopConfig?.widgets?.[sharedKey];
+}
+
+/**
+ * Resolves the today-count at which the Privacy widget fires its "daily cap"
+ * celebration message. This is NOT the display ceiling — the readout keeps
+ * showing the real number past this point (see resolvePrivacyDisplayCount).
+ * Priority: widgetPrivacy > widgets > pref > 100. Routed through this helper
+ * (never the raw pref) per the trainhop-gate convention.
+ *
+ * @param {object} prefs - current pref values from the Redux store
+ * @returns {number}
+ */
+export function resolvePrivacyMaxCount(prefs) {
+  return (
+    resolvePrivacyTrainhopValue(
+      prefs,
+      "maxCount",
+      "privacyMaxCount",
+      "number"
+    ) ||
+    prefs[PREF_PRIVACY_MAX_COUNT] ||
+    100
+  );
+}
+
+/**
+ * Resolves the ceiling for the tracker-count readout: above it the number
+ * shows as "{cap}+" so it stays a tidy few characters. Default 999 (three
+ * digits). Distinct from resolvePrivacyMaxCount (the daily-cap celebration
+ * threshold). Priority: widgetPrivacy > widgets > pref > 999.
+ *
+ * @param {object} prefs - current pref values from the Redux store
+ * @returns {number}
+ */
+export function resolvePrivacyDisplayCount(prefs) {
+  return (
+    resolvePrivacyTrainhopValue(
+      prefs,
+      "maxDisplayCount",
+      "privacyMaxDisplayCount",
+      "number"
+    ) ||
+    prefs[PREF_PRIVACY_MAX_DISPLAY_COUNT] ||
+    999
+  );
+}
+
+/**
+ * Resolves the Privacy widget "blank chance" — the probability (0..1) that an
+ * eligible info message is suppressed to keep the experience calm. It's compared
+ * against Math.random(), so it MUST be a 0–1 fraction (0.4 = 40%), not a percent.
+ * A value > 1 (e.g. 40) would blank every message; guard against that by warning
+ * and falling back to the default. Priority: widgetPrivacy > widgets > pref > 0.4.
+ *
+ * @param {object} prefs - current pref values from the Redux store
+ * @returns {number}
+ */
+export function resolvePrivacyBlankChance(prefs) {
+  const DEFAULT = 0.4;
+  const trainhop = resolvePrivacyTrainhopValue(
+    prefs,
+    "blankChance",
+    "privacyBlankChance",
+    "number"
+  );
+  // The pref is stored as a string ("0.4") because Firefox prefs have no float
+  // type — a numeric default would land as 0 and silently disable blanks.
+  // trainhopConfig comes from JSON, so it's already a number.
+  const rawPref = prefs[PREF_PRIVACY_BLANK_CHANCE];
+  const raw = typeof trainhop === "number" ? trainhop : parseFloat(rawPref);
+  if (Number.isNaN(raw)) {
+    // Warn on a present-but-unparseable value (a misconfig); stay quiet when
+    // the pref is simply unset.
+    if (rawPref !== undefined && rawPref !== "") {
+      console.warn(
+        `widgets.privacy.blankChance is ${JSON.stringify(
+          rawPref
+        )}; expected a 0-1 number. Using ${DEFAULT}.`
+      );
+    }
+    return DEFAULT;
+  }
+  if (raw < 0 || raw > 1) {
+    console.warn(
+      `widgets.privacy.blankChance is ${raw}; expected a 0-1 fraction (0.4 = 40%). Using ${DEFAULT}.`
+    );
+    return DEFAULT;
+  }
+  return raw;
+}
+
+/**
+ * Resolves whether the Privacy widget may show VPN promotional messages. Off by
+ * default: not all users are eligible for the built-in VPN (unsupported region,
+ * enterprise-managed, removed from the toolbar), and promoting an unavailable
+ * feature erodes trust. An experiment can enable them for eligible cohorts — or
+ * force them off. Priority: widgetPrivacy > widgets > pref > false.
+ *
+ * @param {object} prefs - current pref values from the Redux store
+ * @returns {boolean}
+ */
+export function resolvePrivacyShowVpnMessages(prefs) {
+  const trainhop = resolvePrivacyTrainhopValue(
+    prefs,
+    "showVpnMessages",
+    "privacyShowVpnMessages",
+    "boolean"
+  );
+  if (typeof trainhop === "boolean") {
+    return trainhop;
+  }
+  return !!prefs[PREF_PRIVACY_SHOW_VPN_MESSAGES];
+}
+
+/**
+ * Resolves how far the blocked-tracker count must climb before the count-up
+ * celebration fires. Priority: widgetPrivacy > widgets > pref > 10 (HNT-2845).
+ *
+ * @param {object} prefs - current pref values from the Redux store
+ * @returns {number}
+ */
+export function resolvePrivacyCelebrationThreshold(prefs) {
+  const DEFAULT = 10;
+  const trainhop = resolvePrivacyTrainhopValue(
+    prefs,
+    "celebrationThreshold",
+    "privacyCelebrationThreshold",
+    "number"
+  );
+  const raw =
+    typeof trainhop === "number"
+      ? trainhop
+      : prefs[PREF_PRIVACY_CELEBRATION_THRESHOLD];
+  // A zero or negative threshold would fire on every refresh.
+  if (typeof raw !== "number" || !Number.isFinite(raw) || raw < 1) {
+    return DEFAULT;
+  }
+  return raw;
 }
 
 /**

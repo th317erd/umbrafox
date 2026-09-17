@@ -331,13 +331,21 @@ impl SpatialNode {
         // animating and push all text to local raster. Active pinch-zoom itself is
         // already handled by `is_ancestor_or_self_zooming`.
         let self_has_animated_transform = match self.node_type {
-            SpatialNodeType::ReferenceFrame(ref info) => {
-                matches!(info.source_transform, PropertyBinding::Binding(..))
-                    && !matches!(
+            SpatialNodeType::ReferenceFrame(ref info) => match info.source_transform {
+                // A bound transform counts as animating only once it has been
+                // observed to actually move (bug 2051166): a bound-but-static
+                // value - e.g. a CSS animation holding a constant transform -
+                // stays on the crisp device text path instead of local raster.
+                // When the animation ends the binding is removed (the transform
+                // becomes a static Value), so this returns false again.
+                PropertyBinding::Binding(ref key, _) => {
+                    !matches!(
                         info.kind,
                         ReferenceFrameKind::Transform { is_2d_scale_translation: true, .. }
-                    )
-            }
+                    ) && scene_properties.transform_binding_has_moved(key.id)
+                }
+                PropertyBinding::Value(..) => false,
+            },
             _ => false,
         };
         self.is_ancestor_or_self_animating =
@@ -447,9 +455,24 @@ impl SpatialNode {
                     .to_transform()
                     .with_destination::<LayoutPixel>();
 
+                // Whether 3D content is already flattened into the plane of the
+                // enclosing coordinate system. The root system is flat, but
+                // doesn't set the flag.
+                let parent_flattens = {
+                    let parent = &coord_systems[state.current_coordinate_system_id.0 as usize];
+                    parent.should_flatten || parent.parent.is_none()
+                };
                 let mut reset_cs_id = match info.transform_style {
                     TransformStyle::Preserve3D => !state.preserves_3d,
-                    TransformStyle::Flat => state.preserves_3d,
+                    // A flat transform flattens its 3D descendants (it sets
+                    // `should_flatten` below), so it needs its own coordinate system
+                    // when the enclosing one doesn't flatten - under a perspective,
+                    // say - even if its own matrix is a plain 2D scale/offset that
+                    // could otherwise share the parent system.
+                    TransformStyle::Flat => {
+                        state.preserves_3d ||
+                        (matches!(info.kind, ReferenceFrameKind::Transform { .. }) && !parent_flattens)
+                    }
                 };
 
                 // We reset the coordinate system upon either crossing the preserve-3d context boundary,
@@ -520,20 +543,20 @@ impl SpatialNode {
             }
             SpatialNodeType::StickyFrame(ref mut info) => {
                 let animated_offset = if let Some(transform_binding) = info.transform {
-                  let transform = scene_properties.resolve_layout_transform(&transform_binding);
-                  match ScaleOffset::from_transform(&transform) {
-                    Some(ref scale_offset) => {
-                      debug_assert!(scale_offset.scale == Vector2D::new(1.0, 1.0),
-                                    "Can only animate a translation on sticky elements");
-                      LayoutVector2D::from_untyped(scale_offset.offset)
+                    let transform = scene_properties.resolve_layout_transform(&transform_binding);
+                    match ScaleOffset::from_transform(&transform) {
+                        Some(ref scale_offset) => {
+                            debug_assert!(scale_offset.scale == Vector2D::new(1.0, 1.0),
+                                          "Can only animate a translation on sticky elements");
+                            LayoutVector2D::from_untyped(scale_offset.offset)
+                        }
+                        None => {
+                            debug_assert!(false, "Can only animate a translation on sticky elements");
+                            LayoutVector2D::zero()
+                        }
                     }
-                    None => {
-                      debug_assert!(false, "Can only animate a translation on sticky elements");
-                      LayoutVector2D::zero()
-                    }
-                  }
                 } else {
-                  LayoutVector2D::zero()
+                    LayoutVector2D::zero()
                 };
 
                 let sticky_offset = Self::calculate_sticky_offset(
@@ -568,7 +591,7 @@ impl SpatialNode {
                     .pre_offset(snap_offset(added_offset, state.coordinate_system_relative_scale_offset.scale).to_untyped());
 
                 self.coordinate_system_id = state.current_coordinate_system_id;
-          }
+            }
         }
 
         //TODO: remove the field entirely?

@@ -1,9 +1,17 @@
 [DEFAULT]
 subsuite = "mozbuild"
 
+["action/test_assemble_macos_bundle.py"]
+
 ["action/test_buildlist.py"]
 
+["action/test_fat_aar.py"]
+
+["action/test_generate_archive_symbols.py"]
+
 ["action/test_html_fragment_preprocessor.py"]
+
+["action/test_l10n_stage.py"]
 
 ["action/test_langpack_manifest.py"]
 
@@ -20,6 +28,10 @@ subsuite = "mozbuild"
 ["backend/test_database.py"]
 
 ["backend/test_fastermake.py"]
+
+["backend/test_ide.py"]
+
+["backend/test_l10n_manifest.py"]
 
 ["backend/test_partialconfigenvironment.py"]
 
@@ -71,6 +83,8 @@ subsuite = "mozbuild"
 
 ["frontend/test_file_info_reviewers.py"]
 
+["frontend/test_l10n_manifest.py"]
+
 ["frontend/test_namespaces.py"]
 
 ["frontend/test_reader.py"]
@@ -117,6 +131,10 @@ subsuite = "mozbuild"
 
 ["test_mozinfo.py"]
 
+["test_packaging.py"]
+
+["test_path_performance.py"]
+
 ["test_preprocessor.py"]
 
 ["test_pythonutil.py"]
@@ -137,7 +155,15 @@ subsuite = "mozbuild"
 
 ["test_vendor.py"]
 
+["test_vendor_sbom.py"]
+
+["test_vendor_sbom_cargo.py"]
+
+["test_vendor_sbom_cyclonedx.py"]
+
 ["test_vendor_tools.py"]
 skip-if = ["os == 'win'"] # Windows doesn't have the same path seperator as linux, and we just don't need to run it there
 
 ["vendor/test_vendor_manifest.py"]
+
+["vendor/test_vendor_node.py"]

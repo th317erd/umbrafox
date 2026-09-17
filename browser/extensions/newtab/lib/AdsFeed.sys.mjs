@@ -233,7 +233,7 @@ export class AdsFeed {
    */
   async getAdsData(isStartup = false) {
     const supportedAdTypes = this.getSupportedAdTypes();
-    const cachedData = (await this.cache.get()) || {};
+    const cachedData = this.adsClient ? {} : (await this.cache.get()) || {};
 
     const { ads } = cachedData;
     const adsCacheValid = ads
@@ -353,7 +353,12 @@ export class AdsFeed {
     }
 
     if (this.adsClient) {
-      return this._fetchWithAdsClient(supportedAdTypes, placements, returnData);
+      return this._fetchWithAdsClient(
+        supportedAdTypes,
+        placements,
+        state.Prefs.values,
+        returnData
+      );
     }
 
     const adsBackendConfig = state.Prefs.values?.adsBackendConfig || {};
@@ -440,12 +445,18 @@ export class AdsFeed {
    *
    * @param {Array} supportedAdTypes
    * @param {Array} placements
+   * @param {object} prefValues
    * @param {object} returnData
    * @returns {Promise<object>}
    */
-  async _fetchWithAdsClient(supportedAdTypes, placements, returnData) {
+  async _fetchWithAdsClient(
+    supportedAdTypes,
+    placements,
+    prefValues,
+    returnData
+  ) {
     const isTile = p => p.placement?.startsWith("newtab_tile_");
-    const options = lazy.AdsClient.requestOptions();
+    const options = lazy.AdsClient.requestOptions(prefValues);
 
     if (supportedAdTypes.tiles) {
       const requests = placements.filter(isTile).map(
@@ -532,12 +543,16 @@ export class AdsFeed {
    * @returns {void}
    */
   async update(isStartup) {
-    await this.cache.set("ads", {
-      ...(this.tiles ? { tiles: this.tiles } : {}),
-      ...(this.spocs ? { spocs: this.spocs } : {}),
-      ...(this.spocPlacements ? { spocPlacements: this.spocPlacements } : {}),
-      lastUpdated: this.lastUpdated,
-    });
+    // The ads-client has its own HTTP response cache, so it is the only cache
+    // on that path.
+    if (!this.adsClient) {
+      await this.cache.set("ads", {
+        ...(this.tiles ? { tiles: this.tiles } : {}),
+        ...(this.spocs ? { spocs: this.spocs } : {}),
+        ...(this.spocPlacements ? { spocPlacements: this.spocPlacements } : {}),
+        lastUpdated: this.lastUpdated,
+      });
+    }
 
     if (this.tiles && this.tiles.length) {
       this.store.dispatch(

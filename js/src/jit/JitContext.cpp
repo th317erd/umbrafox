@@ -18,6 +18,7 @@
 #include "jit/MacroAssembler.h"
 #include "jit/PerfSpewer.h"
 #include "js/HeapAPI.h"
+#include "js/Prefs.h"
 #include "vm/JSContext.h"
 
 #ifdef JS_CODEGEN_ARM64
@@ -121,6 +122,10 @@ bool jit::InitializeJit() {
   RVFlags::Init();
 #endif
 
+#ifdef JS_CODEGEN_LOONG64
+  LOONG64Flags::Init();
+#endif
+
 #ifndef JS_CODEGEN_NONE
   MOZ_ASSERT(js::jit::CPUFlagsHaveBeenComputed());
 #endif
@@ -135,6 +140,11 @@ bool jit::InitializeJit() {
   bool supportsUnaligned = MacroAssembler::SupportsUnalignedAccesses();
   JitOptions.supportsUnalignedAccesses = supportsUnaligned;
   JitOptions.enable_regexp_unaligned_accesses = supportsUnaligned;
+
+#ifdef NIGHTLY_BUILD
+  JitOptions.js_regexp_buffer_boundaries =
+      JS::Prefs::experimental_regexp_buffer_boundaries();
+#endif
 
   if (HasJitBackend()) {
     if (!InitProcessExecutableMemory()) {
@@ -153,7 +163,7 @@ void jit::ShutdownJit() {
 }
 
 bool jit::JitSupportsWasmSimd() {
-#if defined(ENABLE_WASM_SIMD)
+#if defined(ENABLE_JIT_SIMD)
   return js::jit::MacroAssembler::SupportsWasmSimd();
 #else
   return false;

@@ -71,7 +71,13 @@ void RemoteAccessible::Shutdown() {
   // accessibles can be destroyed before the doc they own.
   uint32_t childCount = mChildren.Length();
   if (!IsOuterDoc()) {
-    for (uint32_t idx = 0; idx < childCount; idx++) mChildren[idx]->Shutdown();
+    for (uint32_t idx = 0; idx < childCount; idx++) {
+      RemoteAccessible* child = mChildren[idx].get();
+      // Drop our reference before recursing so the refcount assertion below
+      // reflects only mDoc's reference once we get to it.
+      mChildren[idx] = nullptr;
+      child->Shutdown();
+    }
   } else {
     if (childCount > 1) {
       MOZ_CRASH("outer doc has too many documents!");
@@ -81,9 +87,20 @@ void RemoteAccessible::Shutdown() {
   }
 
   mChildren.Clear();
+  // mDoc's mAccessibles entry should be the only reference left at this
+  // point; every other reference (our parent's mChildren, our own children's
+  // mParent) should already have been released above or by our caller. If
+  // this fires, something else is unexpectedly holding a strong reference to
+  // this RemoteAccessible, which will leak it below rather than destroy it.
+  MOZ_DIAGNOSTIC_ASSERT(int32_t(mRefCnt) == 1,
+                        "RemoteAccessible has an unexpected extra reference "
+                        "at shutdown");
   ProxyDestroyed(static_cast<RemoteAccessible*>(this));
-  // mDoc owns this RemoteAccessible, so RemoveAccessible deletes this.
-  mDoc->RemoveAccessible(static_cast<RemoteAccessible*>(this));
+  DocAccessibleParent* doc = mDoc;
+  mDoc = nullptr;
+  // This drops doc's reference to this RemoteAccessible. If nothing else
+  // references it (e.g. another node's mChildren), it is destroyed now.
+  doc->RemoveAccessible(static_cast<RemoteAccessible*>(this));
 }
 
 void RemoteAccessible::SetChildDoc(DocAccessibleParent* aChildDoc) {
@@ -147,7 +164,10 @@ Accessible* RemoteAccessible::EmbeddedChildAt(uint32_t aChildIdx) {
 }
 
 LocalAccessible* RemoteAccessible::OuterDocOfRemoteBrowser() const {
-  auto tab = mDoc->Manager();
+  auto* tab = mDoc->GetBrowserParent();
+  if (NS_WARN_IF(!tab)) {
+    return nullptr;
+  }
   dom::Element* frame = tab->GetOwnerElement();
   NS_ASSERTION(frame, "why isn't the tab in a frame!");
   if (!frame) return nullptr;
@@ -198,8 +218,10 @@ bool RemoteAccessible::ApplyCache(CacheUpdateType aUpdateType,
     // Updating the viewport cache means the offscreen state of this
     // document's accessibles has changed. Update the HashSet we use for
     // checking offscreen state here.
-    MOZ_ASSERT(IsDoc(),
-               "Fetched the viewport cache from a non-doc accessible?");
+    if (!IsDoc()) {
+      MOZ_ASSERT_UNREACHABLE("Received viewport cache for non-doc accessible");
+      return false;
+    }
     AsDoc()->mOnScreenAccessibles.Clear();
     for (auto id : *maybeViewportCache) {
       AsDoc()->mOnScreenAccessibles.Insert(id);
@@ -994,7 +1016,7 @@ LayoutDeviceIntRect RemoteAccessible::BoundsWithOffset(
 
     if (aOffset.isSome()) {
       // The rect we've passed in is in app units, so no conversion needed.
-      nsRect internalRect = *aOffset;
+      const nsRect& internalRect = *aOffset;
       bounds.SetRectX(bounds.x + internalRect.x, internalRect.width);
       bounds.SetRectY(bounds.y + internalRect.y, internalRect.height);
     }
@@ -1762,13 +1784,13 @@ void RemoteAccessible::ScrollSubstringToPoint(int32_t aStartOffset,
                                          aCoordinateType, aX, aY);
 }
 
-RefPtr<const AccAttributes> RemoteAccessible::GetCachedTextAttributes() {
+const AccAttributes* RemoteAccessible::GetCachedTextAttributes() {
   if (mDoc->RequestDomainsIfInactive(CacheDomain::Text)) {
     return nullptr;
   }
   MOZ_ASSERT(IsText() || IsHyperText());
   if (mCachedFields) {
-    auto attrs = mCachedFields->GetAttributeRefPtr<AccAttributes>(
+    auto attrs = mCachedFields->GetAttributeWeakPtr<AccAttributes>(
         CacheKey::TextAttributes);
     VERIFY_CACHE(CacheDomain::Text);
     return attrs;
@@ -1800,8 +1822,7 @@ already_AddRefed<AccAttributes> RemoteAccessible::DefaultTextAttributes() {
       continue;
     }
 
-    if (RefPtr<const AccAttributes> parentAttrs =
-            parent->GetCachedTextAttributes()) {
+    if (const AccAttributes* parentAttrs = parent->GetCachedTextAttributes()) {
       // Update our text attributes with any parent entries we don't have.
       parentAttrs->CopyTo(result, true);
     }
@@ -2398,7 +2419,7 @@ bool RemoteAccessible::HasPrimaryAction() const {
 
 void RemoteAccessible::TakeFocus() const {
   (void)mDoc->SendTakeFocus(mID);
-  auto* bp = mDoc->Manager();
+  auto* bp = mDoc->GetBrowserParent();
   MOZ_ASSERT(bp);
   if (nsFocusManager::GetFocusedElementStatic() == bp->GetOwnerElement()) {
     // This remote document tree is already focused. We don't need to do
@@ -2719,20 +2740,28 @@ void RemoteAccessible::Language(nsAString& aLocale) {
   if (mDoc->RequestDomainsIfInactive(CacheDomain::Text)) {
     return;
   }
-
-  if (IsHyperText() || IsText()) {
-    for (RemoteAccessible* parent = this; parent;
-         parent = parent->RemoteParent()) {
-      // Climb up the tree to find where the nearest language attribute is.
-      if (RefPtr<const AccAttributes> attrs =
-              parent->GetCachedTextAttributes()) {
+  auto GetLanguage = [&aLocale](RemoteAccessible* aAcc) {
+    if (aAcc->IsHyperText() || aAcc->IsText()) {
+      if (const AccAttributes* attrs = aAcc->GetCachedTextAttributes()) {
         if (attrs->GetAttribute(nsGkAtoms::language, aLocale)) {
-          return;
+          return true;
         }
       }
+    } else if (aAcc->mCachedFields) {
+      if (aAcc->mCachedFields->GetAttribute(CacheKey::Language, aLocale)) {
+        return true;
+      }
     }
-  } else if (mCachedFields) {
-    mCachedFields->GetAttribute(CacheKey::Language, aLocale);
+
+    return false;
+  };
+
+  for (RemoteAccessible* parent = this; parent;
+       parent = parent->RemoteParent()) {
+    // Climb up the tree to find where the nearest language attribute is.
+    if (GetLanguage(parent)) {
+      return;
+    }
   }
 }
 

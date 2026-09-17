@@ -6,7 +6,6 @@
 
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/RelativeLuminanceUtils.h"
-#include "mozilla/dom/Document.h"
 #include "nsCSSColorUtils.h"
 #include "nsCSSRendering.h"
 #include "nsFrameSelection.h"
@@ -360,7 +359,7 @@ void nsTextPaintStyle::GetURLSecondaryColor(nscolor* aForeColor) {
 
   const nscolor textColor = GetTextColor();
   *aForeColor = NS_RGBA(NS_GET_R(textColor), NS_GET_G(textColor),
-                        NS_GET_B(textColor), 127);
+                        NS_GET_B(textColor), 178);
 }
 
 void nsTextPaintStyle::GetIMESelectionColors(SelectionStyleIndex aIndex,
@@ -460,12 +459,10 @@ bool nsTextPaintStyle::InitSelectionColorsAndShadow() {
   if (RefPtr<ComputedStyle> style =
           mFrame->ComputeSelectionStyle(selectionStatus)) {
     mSelectionPseudoStyle = std::move(style);
-
-    if (nscolor bgColor = mSelectionPseudoStyle->GetVisitedDependentColor(
-            &nsStyleBackground::mBackgroundColor);
-        mSelectionPseudoStyle->HasAuthorSpecifiedTextColor() ||
-        NS_GET_A(bgColor) > 0) {
-      mSelectionBGColor = bgColor;
+    if (mSelectionPseudoStyle->HasAuthorSpecifiedTextColor() ||
+        mSelectionPseudoStyle->HasAuthorSpecifiedBorderOrBackground()) {
+      mSelectionBGColor = mSelectionPseudoStyle->GetVisitedDependentColor(
+          &nsStyleBackground::mBackgroundColor);
       mSelectionTextColor =
           mSelectionPseudoStyle->GetVisitedDependentColor(&nsStyleText::mColor);
       return true;
@@ -615,12 +612,12 @@ bool nsTextPaintStyle::GetSelectionUnderline(nsIFrame* aFrame,
   const StyleIDs& styleIDs = SelectionStyleIDs[aIndex];
 
   nscolor color = LookAndFeel::Color(styleIDs.mLine, aFrame);
-  const int32_t lineStyle = LookAndFeel::GetInt(styleIDs.mLineStyle);
-  auto style = static_cast<StyleTextDecorationStyle>(lineStyle);
-  if (lineStyle > static_cast<int32_t>(StyleTextDecorationStyle::Sentinel)) {
+  int32_t lineStyle = LookAndFeel::GetInt(styleIDs.mLineStyle);
+  if (lineStyle < 0 || lineStyle > StyleMAX_LINE_STYLE) {
     NS_ERROR("Invalid underline style value is specified");
-    style = StyleTextDecorationStyle::Solid;
+    lineStyle = int32_t(StyleTextDecorationStyle::Solid);
   }
+  const auto style = static_cast<StyleTextDecorationStyle>(lineStyle);
   float size = LookAndFeel::GetFloat(styleIDs.mLineRelativeSize);
 
   NS_ASSERTION(size, "selection underline relative size must be larger than 0");

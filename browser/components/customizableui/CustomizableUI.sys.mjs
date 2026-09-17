@@ -42,6 +42,7 @@ const kPrefCustomizationDebug = "browser.uiCustomization.debug";
 const kPrefDrawInTitlebar = "browser.tabs.inTitlebar";
 const kPrefUIDensity = "browser.uidensity";
 const kPrefAutoTouchMode = "browser.touchmode.auto";
+const kPrefNovaEnabled = "browser.nova.enabled";
 const kPrefAutoHideDownloadsButton = "browser.download.autohideButton";
 const kPrefProtonToolbarVersion = "browser.proton.toolbar.version";
 const kPrefHomeButtonUsed = "browser.engagement.home-button.has-used";
@@ -67,7 +68,7 @@ const kSubviewEvents = ["ViewShowing", "ViewHiding"];
  * The current version. We can use this to auto-add new default widgets as necessary.
  * (would be const but isn't because of testing purposes)
  */
-var kVersion = 25;
+var kVersion = 27;
 
 /**
  * Buttons removed from built-ins by version they were removed. kVersion must be
@@ -184,6 +185,7 @@ var gUIStateBeforeReset = {
   uiDensity: null,
   uiDensityHadUserValue: null,
   autoTouchMode: null,
+  autoTouchModeHadUserValue: null,
   sidebarPositionStart: null,
 };
 
@@ -318,6 +320,8 @@ var CustomizableUIInternal = {
   initialize() {
     lazy.log.debug("Initializing");
 
+    this._setAutoTouchModeDefault();
+
     lazy.AddonManagerPrivate.databaseReady.then(async () => {
       lazy.AddonManager.addAddonListener(this);
 
@@ -378,7 +382,11 @@ var CustomizableUIInternal = {
         type: CustomizableUI.TYPE_TOOLBAR,
         overflowable: true,
         defaultPlacements: navbarPlacements,
-        verticalTabsDefaultPlacements: ["alltabs-button", "ai-window-toggle"],
+        verticalTabsDefaultPlacements: [
+          "alltabs-button",
+          "smartwindow-group-tabs-button",
+          "ai-window-toggle",
+        ],
         defaultCollapsed: false,
       },
       true
@@ -403,7 +411,9 @@ var CustomizableUIInternal = {
         defaultPlacements: [
           "tabbrowser-tabs",
           "new-tab-button",
+          "spring",
           "alltabs-button",
+          "smartwindow-group-tabs-button",
           "ai-window-toggle",
         ],
         verticalTabsDefaultPlacements: [],
@@ -445,6 +455,19 @@ var CustomizableUIInternal = {
     Services.prefs.addObserver(kPrefSidebarVerticalTabsEnabled, this);
     Services.prefs.addObserver(kPrefSidebarRevampEnabled, this);
     Services.prefs.addObserver(kPrefSidebarPositionStartEnabled, this);
+  },
+
+  // Sets the default for browser.touchmode.auto (whether the UI density
+  // auto-switches to touch in tablet mode) based on whether nova is enabled.
+  // The pref is sticky so that a user value is preserved even when it matches
+  // the default this derives at startup.
+  _setAutoTouchModeDefault() {
+    Services.prefs
+      .getDefaultBranch("")
+      .setBoolPref(
+        kPrefAutoTouchMode,
+        !Services.prefs.getBoolPref(kPrefNovaEnabled, false)
+      );
   },
 
   /**
@@ -873,6 +896,109 @@ var CustomizableUIInternal = {
         if (!shouldKeepFirefoxView) {
           firefoxViewArea.splice(defaultIndex, 1);
         }
+      }
+    }
+
+    // Add the flexible space that replaced the post-tabs titlebar-spacer to the
+    // left of the alltabs-button. Only the horizontal tab strip layout is
+    // touched, to match the defaults (a fresh vertical-tabs profile doesn't get
+    // this space). For users currently in vertical tabs, that layout lives in
+    // the horizontal snapshot rather than the live tabstrip placements.
+    if (currentVersion < 26) {
+      let insertBeforeAllTabs = placements => {
+        if (!placements) {
+          return placements;
+        }
+        let alltabsIndex = placements.indexOf("alltabs-button");
+        if (
+          alltabsIndex > 0 &&
+          !placements[alltabsIndex - 1].startsWith(kSpecialWidgetPfx + "spring")
+        ) {
+          placements.splice(alltabsIndex, 0, "spring");
+        }
+        return placements;
+      };
+
+      insertBeforeAllTabs(gSavedState.placements[CustomizableUI.AREA_TABSTRIP]);
+
+      let horizontalSnapshot =
+        CustomizableUIInternal.getSavedHorizontalSnapshotState();
+      if (horizontalSnapshot.length) {
+        CustomizableUIInternal.saveHorizontalTabStripState(
+          insertBeforeAllTabs(horizontalSnapshot)
+        );
+      }
+    }
+
+    // The Organize Tabs button reached the defaults after these profiles were
+    // saved, so instead of landing in its default slot it was appended after
+    // the Smart Window switcher, or into the hidden tab strip when tabs are
+    // vertical. Put it back beside the switcher.
+    if (currentVersion < 27) {
+      const organizeTabs = "smartwindow-group-tabs-button";
+      const switcher = "ai-window-toggle";
+      const areaPlacements = area => {
+        const placements = gSavedState.placements[area];
+        return Array.isArray(placements) ? placements : [];
+      };
+      const tabstrip = areaPlacements(CustomizableUI.AREA_TABSTRIP);
+      const navbar = areaPlacements(CustomizableUI.AREA_NAVBAR);
+
+      const placeBeforeSwitcher = (placements, reserveSlot) => {
+        const switcherIndex = placements.indexOf(switcher);
+        if (switcherIndex == -1) {
+          return;
+        }
+        let appendedIndex = switcherIndex + 1;
+        if (placements[appendedIndex] == "sidebar-button") {
+          appendedIndex++;
+        }
+        const buttonIndex = placements.indexOf(organizeTabs);
+        if (buttonIndex == appendedIndex) {
+          placements.splice(buttonIndex, 1);
+          placements.splice(switcherIndex, 0, organizeTabs);
+        } else if (buttonIndex == -1 && reserveSlot) {
+          placements.splice(switcherIndex, 0, organizeTabs);
+        }
+      };
+
+      if (
+        CustomizableUI.verticalTabsEnabled &&
+        tabstrip.includes(organizeTabs) &&
+        !navbar.includes(organizeTabs) &&
+        navbar.includes(switcher)
+      ) {
+        tabstrip.splice(tabstrip.indexOf(organizeTabs), 1);
+        navbar.splice(navbar.indexOf(switcher), 0, organizeTabs);
+      }
+      const neverCreated =
+        !gSeenWidgets.has(organizeTabs) &&
+        !Object.values(gSavedState.placements).some(
+          placements =>
+            Array.isArray(placements) && placements.includes(organizeTabs)
+        );
+      placeBeforeSwitcher(tabstrip, neverCreated);
+      placeBeforeSwitcher(navbar, neverCreated);
+
+      // A snapshot taken before the button existed lacks it for that reason,
+      // not because the user removed it, so go by where the button is now.
+      const isPlaced =
+        tabstrip.includes(organizeTabs) || navbar.includes(organizeTabs);
+
+      const horizontalSnapshot =
+        CustomizableUIInternal.getSavedHorizontalSnapshotState();
+      if (horizontalSnapshot.length) {
+        placeBeforeSwitcher(horizontalSnapshot, isPlaced);
+        CustomizableUIInternal.saveHorizontalTabStripState(horizontalSnapshot);
+      }
+
+      const verticalSnapshot =
+        CustomizableUIInternal.getSavedVerticalSnapshotState();
+      if (verticalSnapshot.length) {
+        placeBeforeSwitcher(verticalSnapshot, isPlaced);
+        CustomizableUIInternal.saveNavBarWhenVerticalTabsState(
+          verticalSnapshot
+        );
       }
     }
   },
@@ -4085,11 +4211,17 @@ var CustomizableUIInternal = {
         // area here.
         let canBeAutoAdded = autoAdd && !gSeenWidgets.has(widget.id);
         if (!widget.currentArea && (!widget.removable || canBeAutoAdded)) {
-          if (widget.defaultArea) {
-            if (this.isAreaLazy(widget.defaultArea)) {
-              gFuturePlacements.get(widget.defaultArea).add(widget.id);
+          // The CustomizableUI.AREA_TABSTRIP is hidden while tabs are vertical, so a widget that
+          // defaults into it would be auto-added somewhere the user can't see.
+          let defaultArea =
+            (CustomizableUI.verticalTabsEnabled &&
+              widget.defaultAreaVerticalTabs) ||
+            widget.defaultArea;
+          if (defaultArea) {
+            if (this.isAreaLazy(defaultArea)) {
+              gFuturePlacements.get(defaultArea).add(widget.id);
             } else {
-              this.addWidgetToArea(widget.id, widget.defaultArea);
+              this.addWidgetToArea(widget.id, defaultArea);
             }
           }
         }
@@ -4199,6 +4331,7 @@ var CustomizableUIInternal = {
       removable: true,
       overflows: true,
       defaultArea: null,
+      defaultAreaVerticalTabs: null,
       shortcutId: null,
       tabSpecific: false,
       locationSpecific: false,
@@ -4279,6 +4412,14 @@ var CustomizableUIInternal = {
           "valid defaultArea as well."
       );
       return null;
+    }
+
+    if (
+      aData.defaultAreaVerticalTabs &&
+      (aSource == CustomizableUI.SOURCE_BUILTIN ||
+        gAreas.has(aData.defaultAreaVerticalTabs))
+    ) {
+      widget.defaultAreaVerticalTabs = aData.defaultAreaVerticalTabs;
     }
 
     if ("type" in aData && gSupportedWidgetTypes.has(aData.type)) {
@@ -4531,6 +4672,12 @@ var CustomizableUIInternal = {
         Services.prefs.prefHasUserValue(kPrefUIDensity);
       gUIStateBeforeReset.autoTouchMode =
         Services.prefs.getBoolPref(kPrefAutoTouchMode);
+      // browser.touchmode.auto is sticky, so an explicit value equal to the
+      // default still counts as a user value. Remember whether one was set so
+      // undoReset can faithfully restore the no-user-value state rather than
+      // pinning it with an explicit default-valued user pref.
+      gUIStateBeforeReset.autoTouchModeHadUserValue =
+        Services.prefs.prefHasUserValue(kPrefAutoTouchMode);
       gUIStateBeforeReset.currentTheme = gSelectedTheme;
       gUIStateBeforeReset.autoHideDownloadsButton = Services.prefs.getBoolPref(
         kPrefAutoHideDownloadsButton
@@ -4638,6 +4785,7 @@ var CustomizableUIInternal = {
       uiDensity,
       uiDensityHadUserValue,
       autoTouchMode,
+      autoTouchModeHadUserValue,
       autoHideDownloadsButton,
       sidebarPositionStart,
     } = gUIStateBeforeReset;
@@ -4654,7 +4802,11 @@ var CustomizableUIInternal = {
     } else {
       Services.prefs.clearUserPref(kPrefUIDensity);
     }
-    Services.prefs.setBoolPref(kPrefAutoTouchMode, autoTouchMode);
+    if (autoTouchModeHadUserValue) {
+      Services.prefs.setBoolPref(kPrefAutoTouchMode, autoTouchMode);
+    } else {
+      Services.prefs.clearUserPref(kPrefAutoTouchMode);
+    }
     Services.prefs.setBoolPref(
       kPrefAutoHideDownloadsButton,
       autoHideDownloadsButton
@@ -5191,6 +5343,12 @@ var CustomizableUIInternal = {
         );
         continue;
       }
+      // Remove all springs located in the tabs toolbar when vertical tabs are enabled
+      // there's one by default but the user could add as many as they want
+      if (this.isSpecialWidget(widgetId) && widgetId.includes("spring")) {
+        this.removeWidgetFromArea(widgetId);
+        continue;
+      }
       // if this is a extension, those are handled in a toolbarvisibilitychange handler in browser-addons.js
       if (CustomizableUI.isWebExtensionWidget(widgetId)) {
         lazy.log.debug(`Skipping a webextension saved placement ${widgetId}`);
@@ -5374,6 +5532,12 @@ var CustomizableUIInternal = {
           );
           continue;
         }
+        // Remove all springs located in the tabs toolbar when vertical tabs are enabled
+        // there's one by default but the user could add as many as they want
+        if (this.isSpecialWidget(id) && id.includes("spring")) {
+          this.removeWidgetFromArea(id);
+          continue;
+        }
         // We add the tab strip placements later in the case they have a custom position
         if (
           tabstripPlacements.includes(id) &&
@@ -5519,6 +5683,7 @@ export var CustomizableUI = {
   /**
    * An iteratable property of windows managed by CustomizableUI.
    * Note that this can *only* be used as an iterator. ie:
+   *
    *     for (let window of CustomizableUI.windows) { ... }
    */
   windows: {
@@ -6175,6 +6340,11 @@ export var CustomizableUI = {
    *   The default area to add the widget to. If not supplied, this widget will
    *   be placed in the palette by default. A valid default area is required if
    *   the widget is not removable.
+   * @property {string} [defaultAreaVerticalTabs]
+   *   The default area to add the widget to while tabs are vertical, taking
+   *   precedence over defaultArea. Widgets that default into AREA_TABSTRIP
+   *   need this, as that area is hidden while tabs are vertical. If not
+   *   supplied, defaultArea is used regardless of tab orientation.
    * @property {string} [shortcutId]
    *   The id of an element that has a shortcut for this widget. This is only
    *   used to display the shortcut as part of the tooltip for builtin widgets
@@ -7227,6 +7397,11 @@ function WidgetSingleWrapper(aWidget, aNode) {
   });
 
   this.__defineGetter__("overflowed", function () {
+    // A widget that isn't built in this window (e.g. showInPrivateBrowsing:false
+    // in a private window) can't be overflowed.
+    if (!aNode) {
+      return false;
+    }
     return aNode.getAttribute("overflowedItem") == "true";
   });
 
@@ -7386,11 +7561,11 @@ function XULWidgetSingleWrapper(aWidgetId, aNode, aDocument) {
  * There are two panels that toolbar items can be overflowed to:
  *
  * 1. The default items overflow panel
- *   This is where built-in default toolbar items will go to.
+ *    This is where built-in default toolbar items will go to.
  * 2. The Unified Extensions panel
- *   This is where browser_action toolbar buttons created by extensions will
- *   go to if the Unified Extensions UI is enabled - otherwise, those items will
- *   go to the default items overflow panel.
+ *    This is where browser_action toolbar buttons created by extensions will
+ *    go to if the Unified Extensions UI is enabled - otherwise, those items will
+ *    go to the default items overflow panel.
  *
  * Finally, OverflowableToolbar manages the showing of the default items
  * overflow panel when the associated anchor is clicked or dragged over. The

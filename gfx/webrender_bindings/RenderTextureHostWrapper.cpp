@@ -74,6 +74,12 @@ bool RenderTextureHostWrapper::LockSWGLCompositeSurface(
   return mTextureHost->LockSWGLCompositeSurface(aContext, aInfo);
 }
 
+void RenderTextureHostWrapper::UnlockSWGLCompositeSurface() {
+  if (mTextureHost) {
+    mTextureHost->UnlockSWGLCompositeSurface();
+  }
+}
+
 void RenderTextureHostWrapper::ClearCachedResources() {
   if (mTextureHost) {
     mTextureHost->ClearCachedResources();
@@ -194,6 +200,13 @@ RenderTextureHostSWGL* RenderTextureHostWrapper::EnsureRenderTextureHostSWGL()
     return nullptr;
   }
   return mTextureHost->AsRenderTextureHostSWGL();
+}
+
+void RenderTextureHostWrapper::SetReadFenceFd(UniqueFileHandle&& aFenceFd) {
+  if (!mTextureHost) {
+    return;
+  }
+  mTextureHost->SetReadFenceFd(std::move(aFenceFd));
 }
 
 void RenderTextureHostWrapper::SetIsSoftwareDecodedVideo() {

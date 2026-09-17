@@ -80,7 +80,7 @@ export const isAtMaxLength = currentValue => {
   return currentValue.length >= 2;
 };
 
-// @nova-cleanup(remove): Drop after Nova ships
+// Drop this if the spinbutton is ever replaced with a native control.
 /**
  * Validates whether the next state of the Nova spinbutton is acceptable.
  * Allows up to 2 digits, an optional single colon, and up to 2 more digits.
@@ -578,80 +578,90 @@ export const FocusTimer = ({
   };
 
   // Toggles between "focus" and "break" timer types
-  const toggleType = type => {
-    const oldTypeRemaining = calculateTimeRemaining(duration, startTime);
+  const toggleType = useCallback(
+    type => {
+      const oldTypeRemaining = calculateTimeRemaining(duration, startTime);
 
-    batch(() => {
-      // The type we are toggling away from automatically pauses
-      dispatch(
-        ac.AlsoToMain({
-          type: at.WIDGETS_TIMER_PAUSE,
-          data: {
-            timerType,
-            duration: oldTypeRemaining,
-          },
-        })
-      );
+      batch(() => {
+        // The type we are toggling away from automatically pauses
+        dispatch(
+          ac.AlsoToMain({
+            type: at.WIDGETS_TIMER_PAUSE,
+            data: {
+              timerType,
+              duration: oldTypeRemaining,
+            },
+          })
+        );
 
-      dispatch(
-        ac.OnlyToMain({
-          type: at.WIDGETS_TIMER_USER_EVENT,
-          data: { userAction: USER_ACTION_TYPES.TIMER_PAUSE },
-        })
-      );
+        dispatch(
+          ac.OnlyToMain({
+            type: at.WIDGETS_TIMER_USER_EVENT,
+            data: { userAction: USER_ACTION_TYPES.TIMER_PAUSE },
+          })
+        );
 
-      const pauseTelemetryData = {
-        widget_name: "focus_timer",
-        widget_source: "widget",
-        user_action: USER_ACTION_TYPES.TIMER_PAUSE,
-        widget_size: widgetSize,
-      };
+        const pauseTelemetryData = {
+          widget_name: "focus_timer",
+          widget_source: "widget",
+          user_action: USER_ACTION_TYPES.TIMER_PAUSE,
+          widget_size: widgetSize,
+        };
 
-      dispatch(
-        ac.OnlyToMain({
-          type: at.WIDGETS_USER_EVENT,
-          data: pauseTelemetryData,
-        })
-      );
+        dispatch(
+          ac.OnlyToMain({
+            type: at.WIDGETS_USER_EVENT,
+            data: pauseTelemetryData,
+          })
+        );
 
-      // Sets the current timer type so it persists when opening a new tab
-      dispatch(
-        ac.AlsoToMain({
-          type: at.WIDGETS_TIMER_SET_TYPE,
-          data: {
-            timerType: type,
-          },
-        })
-      );
+        // Sets the current timer type so it persists when opening a new tab
+        dispatch(
+          ac.AlsoToMain({
+            type: at.WIDGETS_TIMER_SET_TYPE,
+            data: {
+              timerType: type,
+            },
+          })
+        );
 
-      const toggleUserAction =
-        type === "focus"
-          ? USER_ACTION_TYPES.TIMER_TOGGLE_FOCUS
-          : USER_ACTION_TYPES.TIMER_TOGGLE_BREAK;
+        const toggleUserAction =
+          type === "focus"
+            ? USER_ACTION_TYPES.TIMER_TOGGLE_FOCUS
+            : USER_ACTION_TYPES.TIMER_TOGGLE_BREAK;
 
-      dispatch(
-        ac.OnlyToMain({
-          type: at.WIDGETS_TIMER_USER_EVENT,
-          data: { userAction: toggleUserAction },
-        })
-      );
+        dispatch(
+          ac.OnlyToMain({
+            type: at.WIDGETS_TIMER_USER_EVENT,
+            data: { userAction: toggleUserAction },
+          })
+        );
 
-      const toggleTelemetryData = {
-        widget_name: "focus_timer",
-        widget_source: "widget",
-        user_action: toggleUserAction,
-        widget_size: widgetSize,
-      };
+        const toggleTelemetryData = {
+          widget_name: "focus_timer",
+          widget_source: "widget",
+          user_action: toggleUserAction,
+          widget_size: widgetSize,
+        };
 
-      dispatch(
-        ac.OnlyToMain({
-          type: at.WIDGETS_USER_EVENT,
-          data: toggleTelemetryData,
-        })
-      );
-    });
-    handleTimerInteraction();
-  };
+        dispatch(
+          ac.OnlyToMain({
+            type: at.WIDGETS_USER_EVENT,
+            data: toggleTelemetryData,
+          })
+        );
+      });
+      handleTimerInteraction();
+    },
+    [
+      duration,
+      startTime,
+      timerType,
+      dispatch,
+      widgetSize,
+      handleTimerInteraction,
+    ]
+  );
 
   const handleKeyDown = e => {
     if (e.key === "Enter") {
@@ -791,7 +801,8 @@ export const FocusTimer = ({
     [dispatch]
   );
 
-  // @nova-cleanup(remove-conditional): Drop the legacy callers and inline this for Nova
+  // @nova-cleanup(remove-conditional): Keep this function. Its only classic
+  // caller is the legacy body removed below; no change needed here.
   const setTimerMinutes = useCallback(
     nextMinutes => {
       const clamped = Math.max(1, Math.min(99, nextMinutes));
@@ -831,7 +842,8 @@ export const FocusTimer = ({
     [dispatch, duration, timerType, widgetSize, handleTimerInteraction]
   );
 
-  // @nova-cleanup(remove-conditional): Inline this once the Nova spinbutton is the only path
+  // @nova-cleanup(remove-conditional): Keep this function; it drives the Nova
+  // spinbutton. No change needed here.
   const commitSpinbuttonDuration = useCallback(() => {
     const el = activeMinutesRef.current;
     if (!el) {
@@ -891,7 +903,7 @@ export const FocusTimer = ({
     timeLeft,
   ]);
 
-  // @nova-cleanup(remove-conditional): Remove if the Nova spinbutton is replaced
+  // Drop this if the spinbutton is ever replaced with a native control.
   const handleSpinBeforeInput = e => {
     const input = e.data;
     if (input === null || input === undefined) {
@@ -910,7 +922,7 @@ export const FocusTimer = ({
     }
   };
 
-  // @nova-cleanup(remove-conditional): Remove if the Nova spinbutton is replaced
+  // Drop this if the spinbutton is ever replaced with a native control.
   const handleSpinKeyDown = e => {
     let next = minutesValue;
     switch (e.key) {
@@ -944,14 +956,25 @@ export const FocusTimer = ({
     setTimerMinutes(next);
   };
 
-  // @nova-cleanup(remove-conditional): Remove with the Nova radiogroup
-  const handleRadiogroupKeyDown = e => {
-    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") {
-      return;
-    }
-    e.preventDefault();
-    toggleType(timerType === "focus" ? "break" : "focus");
-  };
+  // The item assigns the group's value before firing change, so reading it
+  // here is safe. Change fires on re-selecting the active mode too, hence the
+  // comparison below.
+  const modeGroupRef = useCallback(
+    modeGroup => {
+      if (!modeGroup) {
+        return undefined;
+      }
+      const handleModeChange = () => {
+        const selectedTimerType = modeGroup.value;
+        if (selectedTimerType && selectedTimerType !== timerType) {
+          toggleType(selectedTimerType);
+        }
+      };
+      modeGroup.addEventListener("change", handleModeChange);
+      return () => modeGroup.removeEventListener("change", handleModeChange);
+    },
+    [timerType, toggleType]
+  );
 
   // Keep the running-state body layout through the celebration so the ring
   // doesn't shift to a third position during the animation.
@@ -1009,7 +1032,10 @@ export const FocusTimer = ({
             type="ghost"
             data-l10n-id="newtab-widget-timer-menu-button"
           />
-          <panel-list id="focus-timer-context-menu">
+          <panel-list
+            className="panel-list-no-icons"
+            id="focus-timer-context-menu"
+          >
             <panel-item
               data-l10n-id={
                 showSystemNotifications
@@ -1038,7 +1064,7 @@ export const FocusTimer = ({
                 widgetsMayBeMaximized && (
                   <SizeSubmenu
                     submenuId="focus-timer-size-submenu"
-                    sizes={["medium", "large"]}
+                    sizes={["small", "medium", "large"]}
                     checkedSize={widgetSize}
                     onChangeSize={handleChangeSize}
                   />
@@ -1177,29 +1203,20 @@ export const FocusTimer = ({
                   />
                 )}
                 {showModeGroup && (
-                  <div
-                    className="focus-timer-mode-group"
-                    role="radiogroup"
+                  <moz-segmented-control
                     data-l10n-id="newtab-widget-timer-mode-group"
-                    onKeyDown={handleRadiogroupKeyDown}
+                    value={timerType}
+                    ref={modeGroupRef}
                   >
-                    <moz-button
-                      role="radio"
-                      aria-checked={timerType === "focus" ? "true" : "false"}
-                      tabindex={timerType === "focus" ? "0" : "-1"}
-                      type={timerType === "focus" ? "default" : "ghost"}
+                    <moz-segmented-control-item
+                      value="focus"
                       data-l10n-id="newtab-widget-timer-mode-focus"
-                      onClick={() => toggleType("focus")}
                     />
-                    <moz-button
-                      role="radio"
-                      aria-checked={timerType === "break" ? "true" : "false"}
-                      tabindex={timerType === "break" ? "0" : "-1"}
-                      type={timerType === "break" ? "default" : "ghost"}
+                    <moz-segmented-control-item
+                      value="break"
                       data-l10n-id="newtab-widget-timer-mode-break"
-                      onClick={() => toggleType("break")}
                     />
-                  </div>
+                  </moz-segmented-control>
                 )}
               </div>
             </div>

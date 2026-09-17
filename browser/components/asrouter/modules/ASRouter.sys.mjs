@@ -39,11 +39,15 @@ ChromeUtils.defineESModuleGetters(lazy, {
   MacAttribution:
     "moz-src:///browser/components/attribution/MacAttribution.sys.mjs",
   MenuMessage: "resource:///modules/asrouter/MenuMessage.sys.mjs",
+  MessagingSystemAllowlists:
+    "resource://messaging-system/lib/MessagingSystemAllowlists.sys.mjs",
   MomentsPageHub: "resource:///modules/asrouter/MomentsPageHub.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PanelTestProvider: "resource:///modules/asrouter/PanelTestProvider.sys.mjs",
   RemoteL10n: "resource:///modules/asrouter/RemoteL10n.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
+  SidebarChatBotPromo:
+    "resource:///modules/asrouter/SidebarChatBotPromo.sys.mjs",
   SmartWindowNewTabPromo:
     "resource:///modules/asrouter/SmartWindowNewTabPromo.sys.mjs",
   SpecialMessageActions:
@@ -77,9 +81,7 @@ XPCOMUtils.defineLazyServiceGetters(lazy, {
   BrowserHandler: ["@mozilla.org/browser/clh;1", Ci.nsIBrowserHandler],
 });
 import { MESSAGING_EXPERIMENTS_DEFAULT_FEATURES } from "resource:///modules/asrouter/MessagingExperimentConstants.sys.mjs";
-import { CFRMessageProvider } from "resource:///modules/asrouter/CFRMessageProvider.sys.mjs";
 import { OnboardingMessageProvider } from "resource:///modules/asrouter/OnboardingMessageProvider.sys.mjs";
-import { CFRPageActions } from "resource:///modules/asrouter/CFRPageActions.sys.mjs";
 
 // List of hosts for endpoints that serve router messages.
 // Key is allowed host, value is a name for the endpoint host.
@@ -92,7 +94,6 @@ const SIX_MONTHS_MS = (60 * 60 * 24 * 365 * 1000) / 2; // six months in millisec
 
 const LOCAL_MESSAGE_PROVIDERS = {
   OnboardingMessageProvider,
-  CFRMessageProvider,
 };
 const STARTPAGE_VERSION = "6";
 
@@ -459,7 +460,20 @@ export const MessageLoaderUtils = {
         );
       }
 
-      const enrollments = featureAPI.getAllEnrollments();
+      let enrollments = featureAPI.getAllEnrollments();
+      // Features that don't support coenrollment can have two "active"
+      // enrollments at a time, 1 rollout and 1 experiment. But experiments take
+      // precedence over rollouts, so if both are active, we only ingest the
+      // experiment's messages. Coenrolling features don't have this limitation,
+      // so for those we include all active enrollments.
+      if (!featureAPI.allowCoenrollment) {
+        if (enrollments.length > 1) {
+          enrollments = enrollments.filter(
+            enrollment => !enrollment.meta.isRollout
+          );
+        }
+      }
+
       // If this doesn't return anything at all, there's something wrong with
       // the feature itself (since it otherwise returns at least an empty array)
       if (!enrollments) {
@@ -958,7 +972,10 @@ export class _ASRouter {
   }
 
   /**
-   * Verify that the provider block the message through the `exclude` field
+   * Verify that the provider block the message through the `exclude` field.
+   * A message with no matching provider can only come from the devtools,
+   * and a message with no provider can't be excluded by one, so we treat it
+   * as not excluded.
    *
    * @param message Message to verify
    * @returns bool
@@ -966,7 +983,7 @@ export class _ASRouter {
   isExcludedByProvider(message) {
     const provider = this.state.providers.find(p => p.id === message.provider);
     if (!provider) {
-      return true;
+      return false;
     }
     if (provider.exclude) {
       return provider.exclude.includes(message.id);
@@ -1164,7 +1181,7 @@ export class _ASRouter {
   observe(aSubject, aTopic, aPrefName) {
     switch (aPrefName) {
       case USE_REMOTE_L10N_PREF:
-        CFRPageActions.reloadL10n();
+        lazy.RemoteL10n.reloadL10n();
         break;
     }
   }
@@ -1253,6 +1270,7 @@ export class _ASRouter {
       initialized: false,
     });
     await this._updateMessageProviders();
+    await lazy.MessagingSystemAllowlists.ensureInit();
     await this.loadMessagesFromAllProviders();
     await MessageLoaderUtils.cleanupCache(this.state.providers, storage);
 
@@ -1303,8 +1321,6 @@ export class _ASRouter {
       MULTIPROFILE_DATA_UPDATED
     );
     Services.prefs.removeObserver(USE_REMOTE_L10N_PREF, this);
-    // If we added any CFR recommendations, they need to be removed
-    CFRPageActions.clearRecommendations();
     this._resetInitialization();
   }
 
@@ -1603,8 +1619,9 @@ export class _ASRouter {
 
   /**
    * Whether a special message action is allowed to fire automatically from an
-   * "action_only" template message (no UI). MULTI_ACTION is allowed only when
-   * every nested action is itself allowlisted and the list is non-empty.
+   * "action_only" template message (no UI). MULTI_ACTION is allowed only as the
+   * top level action, and only when every nested action is itself allowlisted
+   * and the list is non-empty.
    *
    * @param {object} action - The special message action to validate.
    * @returns {boolean}
@@ -1615,21 +1632,39 @@ export class _ASRouter {
       // This pinning action is ONLY to be used in cases where an OS level
       // prompt will ask a user's consent to pin.
       "PIN_FIREFOX_TO_TASKBAR",
+      // This set default action is ONLY to be used in cases where an OS level
+      // prompt or settings panel will obtain a user's consent to set default.
+      "SET_DEFAULT_BROWSER",
+      // This set default action always shows the OS "Open with" picker
+      // (IOpenWithLauncher), which obtains the user's consent to set default.
+      "SET_DEFAULT_BROWSER_OPEN_WITH",
     ];
+    // ALLOWED_ACTION_MESSAGE_ACTIONS above is the in-tree baseline. It can be
+    // extended off-train via Remote Settings, except for the actions in
+    // MessagingSystemBlocklists.sys.mjs, which are filtered out before they
+    // reach this getter. If the collection is unavailable the getter returns
+    // nothing. MessagingSystemAllowlists.sys.mjs documents how the two in-tree
+    // lists and the collection resolve against each other.
+    const allowed = new Set([
+      ...ALLOWED_ACTION_MESSAGE_ACTIONS,
+      ...lazy.MessagingSystemAllowlists.getActionOnlyActions(),
+    ]);
     if (!action) {
       return false;
     }
     if (action.type === "MULTI_ACTION") {
       const actions = action.data?.actions;
+      // MULTI_ACTION is only permitted as a top-level action and only if its
+      // nested actions are allowed.
       return (
         Array.isArray(actions) &&
         !!actions.length &&
-        actions.every(nested =>
-          ALLOWED_ACTION_MESSAGE_ACTIONS.includes(nested?.type)
+        actions.every(
+          nested => nested?.type !== "MULTI_ACTION" && allowed.has(nested?.type)
         )
       );
     }
-    return ALLOWED_ACTION_MESSAGE_ACTIONS.includes(action.type);
+    return allowed.has(action.type);
   }
 
   routeCFRMessage(originalMessage, browser, trigger, force = false) {
@@ -1637,59 +1672,18 @@ export class _ASRouter {
       return { message: {} };
     }
     const message = force
-      ? MessageLoaderUtils._delocalizeValues(originalMessage)
+      ? lazy.PanelTestProvider.tagMessageForTesting(
+          MessageLoaderUtils._delocalizeValues(originalMessage)
+        )
       : originalMessage;
 
+    // Callers that need to know when it's safe to act on the fact that a
+    // message finished being shown (currently only browser.js's
+    // lastWindowClose trigger, which waits on this before letting the window
+    // close) can await this. Most templates are fire-and-forget and never
+    // reassign it, so it stays resolved.
+    let closedPromise = Promise.resolve();
     switch (message.template) {
-      case "cfr_doorhanger":
-      case "milestone_message":
-        // @TODO Bug 2041980: Remove CFRPageActions entirely. For now these are
-        // just disabled outside of automated tests.
-        if (
-          Cu.isInAutomation ||
-          Services.env.exists("XPCSHELL_TEST_PROFILE_DIR") ||
-          Services.env.get("MOZ_AUTOMATION")
-        ) {
-          if (force) {
-            CFRPageActions.forceRecommendation(
-              browser,
-              message,
-              this.dispatchCFRAction
-            );
-          } else {
-            CFRPageActions.addRecommendation(
-              browser,
-              trigger.param && trigger.param.host,
-              message,
-              this.dispatchCFRAction
-            );
-          }
-        }
-        break;
-      case "cfr_urlbar_chiclet":
-        // @TODO Bug 2041980: Remove CFRPageActions entirely. For now these are
-        // just disabled outside of automated tests.
-        if (
-          Cu.isInAutomation ||
-          Services.env.exists("XPCSHELL_TEST_PROFILE_DIR") ||
-          Services.env.get("MOZ_AUTOMATION")
-        ) {
-          if (force) {
-            CFRPageActions.forceRecommendation(
-              browser,
-              message,
-              this.dispatchCFRAction
-            );
-          } else {
-            CFRPageActions.addRecommendation(
-              browser,
-              null,
-              message,
-              this.dispatchCFRAction
-            );
-          }
-        }
-        break;
       case "toolbar_badge":
         lazy.ToolbarBadgeHub.registerBadgeNotificationListener(message, {
           force,
@@ -1729,7 +1723,10 @@ export class _ASRouter {
         );
         break;
       case "spotlight":
-        lazy.Spotlight.showSpotlightDialog(
+        // Deliberately the only template that reassigns closedPromise: it's
+        // the only template with a modal, so it's the only one browser.js's
+        // lastWindowClose trigger needs to wait on before closing the window.
+        closedPromise = lazy.Spotlight.showSpotlightDialog(
           browser,
           message,
           this.dispatchCFRAction
@@ -1761,6 +1758,9 @@ export class _ASRouter {
       case "menu_message":
         lazy.MenuMessage.showMenuMessage(browser, message, trigger, force);
         break;
+      case "sidebar_chatbot_promo":
+        lazy.SidebarChatBotPromo.showPromo(browser, message, force);
+        break;
       case "smart_window_newtab_promo":
         lazy.SmartWindowNewTabPromo.showPromo(browser, message, trigger, force);
         break;
@@ -1776,7 +1776,7 @@ export class _ASRouter {
       }
     }
 
-    return { message };
+    return { message, closedPromise };
   }
 
   async addScreenImpression(screen) {
@@ -2364,6 +2364,7 @@ export class _ASRouter {
    *   | "groupImpressions"
    *   | "messageImpressions"
    *   | "screenImpressions"
+   *   | "multiProfileMessageImpressions"
    *   | "messageBlockList"
    * @param {object|string[]} value New value to set for state[key]
    * @returns {Promise<unknown>} The new value in state
@@ -2376,6 +2377,7 @@ export class _ASRouter {
       case "groupImpressions":
       case "messageImpressions":
       case "screenImpressions":
+      case "multiProfileMessageImpressions":
         if (typeof value !== "object") {
           throw new Error("Invalid impression data");
         }
@@ -2389,7 +2391,22 @@ export class _ASRouter {
         throw new Error("Invalid state key");
     }
     const newState = await this.setState(() => {
-      this._storage.set(key, value);
+      if (key === "multiProfileMessageImpressions") {
+        // Persist mutated entries and delete any that were removed by the edit.
+        const oldImpressions = this.state.multiProfileMessageImpressions || {};
+        const messageIds = new Set([
+          ...Object.keys(oldImpressions),
+          ...Object.keys(value),
+        ]);
+        for (const messageId of messageIds) {
+          this._storage.setSharedMessageImpressions(
+            messageId,
+            value[messageId]
+          );
+        }
+      } else {
+        this._storage.set(key, value);
+      }
       return { [key]: value };
     });
     return newState[key];
@@ -2472,10 +2489,9 @@ export class _ASRouter {
   async sendPBNewTabMessage({ hideDefault }) {
     let message = null;
     const PromoInfo = {
-      FOCUS: { enabledPref: "browser.promo.focus.enabled" },
       VPN: { enabledPref: "browser.vpn_promo.enabled" },
       PIN: { enabledPref: "browser.promo.pin.enabled" },
-      COOKIE_BANNERS: { enabledPref: "browser.promo.cookiebanners.enabled" },
+      RELAY: { enabledPref: "browser.promo.relay.enabled" },
     };
     await this.loadMessagesFromAllProviders();
 
@@ -2547,6 +2563,33 @@ export class _ASRouter {
         ex
       );
     }
+  }
+
+  /**
+   * Synchronous check for whether any currently loaded message could possibly
+   * respond to the given trigger, without evaluating targeting. Intended for
+   * callers that want to avoid a full sendTriggerMessage call when nothing
+   * could show regardless. Besides the trigger match itself, this also rules
+   * out messages we already know can't show because they're blocked or over
+   * their frequency cap, since both of those are cheap, synchronous checks.
+   * Targeting is the only part that requires the async evaluation a full
+   * sendTriggerMessage call goes through.
+   *
+   * A false result means nothing will show. A true result means a message
+   * match is possible, but targeting still has to run to know for sure.
+   *
+   * @param {string} triggerId
+   * @returns {boolean}
+   */
+  hasMessageForTrigger(triggerId) {
+    return this.state.messages.some(
+      m =>
+        lazy.ASRouterTargeting.getMessageTriggers(m).some(
+          t => t.id === triggerId
+        ) &&
+        this.isUnblockedMessage(m) &&
+        this.isBelowFrequencyCaps(m)
+    );
   }
 
   /**

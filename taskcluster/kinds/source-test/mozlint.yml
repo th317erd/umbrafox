@@ -230,7 +230,7 @@ typescript:
     description: TypeScript checker
     treeherder:
         symbol: js(TSC)
-        tier: 3
+        tier: 2
     run:
         using: run-task
         cwd: '{checkout}'
@@ -245,14 +245,20 @@ typescript:
             # Files that are likely audited.
             # These should be kept in sync with the list of includes in
             # tools/lint/typescript.yml
-            # Not adding `jsx` for these since we know there's no jsx files in
-            # these directories.
+            # Not adding `jsx` here: these directories either have no jsx files,
+            # or, for newtab, its jsx under content-src/ is not yet included.
             - 'browser/components/places/**/*.*js'
             - 'browser/components/places/**/*.ts'
             - 'browser/components/search/**/*.*js'
             - 'browser/components/search/**/*.ts'
+            - 'browser/components/sessionstore/**/*.*js'
+            - 'browser/components/sessionstore/**/*.ts'
+            - 'browser/components/tabbrowser/**/*.*js'
+            - 'browser/components/tabbrowser/**/*.ts'
             - 'browser/components/urlbar/**/*.*js'
             - 'browser/components/urlbar/**/*.ts'
+            - 'browser/extensions/newtab/**/*.*js'
+            - 'browser/extensions/newtab/**/*.ts'
             - 'toolkit/components/extensions/**/*.*js'
             - 'toolkit/components/extensions/**/*.ts'
             - 'toolkit/components/places/**/*.*js'
@@ -350,6 +356,7 @@ node-licenses:
             - tools/lint/eslint/eslint-plugin-mozilla/package.json
             - tools/lint/stylelint/stylelint-plugin-mozilla/package.json
             - tools/terser/package.json
+            - third_party/node/**
     fetches:
         toolchain:
             - linux64-node
@@ -452,6 +459,23 @@ python-sites:
             - 'python/sites/**'
 
 
+spidermonkey:
+    description: "SpiderMonkey #include style, MacroAssembler and bytecode doc checks"
+    treeherder:
+        symbol: js(SM)
+    run:
+        mach: lint -v -l spidermonkey -f treeherder -f json:/builds/worker/mozlint.json .
+    when:
+        files-changed:
+            - 'intl/components/**/*.h'
+            - 'js/public/**'
+            - 'js/src/**'
+            - 'memory/mozalloc/**/*.h'
+            - 'mfbt/**/*.h'
+            - 'mozglue/**/*.h'
+            - 'tools/lint/spidermonkey.yml'
+            - 'tools/lint/spidermonkey/**'
+
 test-manifest:
     description: lint test manifests
     treeherder:
@@ -465,6 +489,19 @@ test-manifest:
             - 'tools/lint/test/files/test_manifest_toml/**'
             - 'tools/lint/test/test_manifest_toml.py'
             - 'tools/lint/test-manifest-toml/**'
+
+review-context-toml:
+    description: Validate review-context.toml against the review context schema
+    treeherder:
+        symbol: misc(review-context)
+    run:
+        mach: lint -v -l review-context-toml -f treeherder -f json:/builds/worker/mozlint.json .
+    when:
+        files-changed:
+            - 'review-context.toml'
+            - 'tools/lint/review-context-toml.yml'
+            - 'tools/lint/python/review_context_schema.py'
+            - 'tools/lint/python/review_context_toml.py'
 
 wptlint-gecko:
     description: web-platform-tests linter
@@ -506,29 +543,18 @@ yaml:
             - '**/*.yaml'
             - '**/.ymllint'
 
-rst:
-    description: rst lint run over the gecko codebase
+md:
+    description: Markdown linters run over the gecko codebase
     treeherder:
-        symbol: doc(rst)
-    run:
-        mach: lint -v -l rst -f treeherder -f json:/builds/worker/mozlint.json .
-    when:
-        files-changed:
-            - '**/*.rst'
-            - 'tools/lint/rst.yml'
-
-rumdl:
-    description: rumdl Markdown linter run over the gecko codebase
-    treeherder:
-        symbol: doc(rumdl)
+        symbol: doc(md)
         # Allow follow-ups for Markdown style issues rather than backing patches out.
         tier: 2
     run:
-        mach: lint -v -l rumdl -f treeherder -f json:/builds/worker/mozlint.json .
+        mach: lint -v -l md -f treeherder -f json:/builds/worker/mozlint.json .
     when:
         files-changed:
             - '**/*.md'
-            - 'tools/lint/rumdl.yml'
+            - 'tools/lint/md.yml'
             - 'tools/lint/rumdl.toml'
             - 'tools/lint/python/rumdl.py'
 
@@ -657,6 +683,23 @@ cargo-audit:
     fetches:
         toolchain:
             - linux64-rust
+
+pnpm-audit:
+    description: Audit the vendored node packages for vulnerable dependencies
+    treeherder:
+        symbol: node(pnpm-audit)
+    run:
+        mach: lint -v --warnings=soft -l pnpm-audit -f treeherder -f json:/builds/worker/mozlint.json .
+    when:
+        files-changed:
+            - 'third_party/node/pnpm-lock.yaml'
+            - 'tools/lint/pnpm-audit.yml'
+            - 'tools/lint/pnpm-audit/**'
+    fetches:
+        toolchain:
+            - linux64-node
+        fetch:
+            - pnpm
 
 mozcheck-tests:
     description: mozcheck Rust unit tests

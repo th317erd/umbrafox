@@ -36,11 +36,19 @@ class nsDynamicAtom;
 class nsAtom {
  public:
   // Returns true if ToLowercaseASCII would return the string unchanged.
+  //
+  // This is deliberately a plain loop rather than std::all_of: gGkAtoms calls
+  // this for every static atom within a single constant expression, and
+  // std::all_of costs enough extra constexpr steps to exceed the default
+  // -fconstexpr-steps budget with some standard library implementations.
   static constexpr bool ComputeIsAsciiLowercase(const char16_t* aString,
                                                 const uint32_t aLength) {
-    return std::all_of(aString, aString + aLength, [](char16_t c) {
-      return !mozilla::IsAsciiUppercaseAlpha(c);
-    });
+    for (uint32_t i = 0; i < aLength; ++i) {
+      if (mozilla::IsAsciiUppercaseAlpha(aString[i])) {
+        return false;
+      }
+    }
+    return true;
   }
 
   template <size_t N>
@@ -265,8 +273,9 @@ already_AddRefed<nsAtom> NS_Atomize(const nsAString& aUTF16String);
 already_AddRefed<nsAtom> NS_Atomize(const nsAString& aUTF16String,
                                     uint32_t aKnownHash);
 
-// An optimized version of the method above for the main thread.
+// Optimized versions of the methods above for the main thread.
 already_AddRefed<nsAtom> NS_AtomizeMainThread(const nsAString& aUTF16String);
+already_AddRefed<nsAtom> NS_AtomizeMainThread(const nsACString& aUTF8String);
 
 // Return a count of the total number of atoms currently alive in the system.
 //

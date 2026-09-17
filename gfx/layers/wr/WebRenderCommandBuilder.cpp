@@ -4,6 +4,7 @@
 
 #include "WebRenderCommandBuilder.h"
 
+#include <cinttypes>
 #include <cstdint>
 
 #include "MediaInfo.h"
@@ -13,7 +14,9 @@
 #include "mozilla/AutoRestore.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/EffectCompositor.h"
+#include "mozilla/EnumeratedRange.h"
 #include "mozilla/ProfilerLabels.h"
+#include "mozilla/ProfilerMarkers.h"
 #include "mozilla/SVGGeometryFrame.h"
 #include "mozilla/SVGImageFrame.h"
 #include "mozilla/StaticPrefs_gfx.h"
@@ -42,7 +45,7 @@ namespace mozilla::layers {
 
 using namespace gfx;
 using namespace image;
-static int sIndent;
+[[maybe_unused]] static int sIndent;
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -612,6 +615,8 @@ struct DIGroup {
     LayoutDeviceRect itemBounds =
         (LayerRect(mVisibleRect) - mResidualOffset) / scale;
 
+    auto& stats = aWrManager->CommandBuilder().mBlobStats;
+
     if (mInvalidRect.IsEmpty() && mVisibleRect.IsEqualEdges(mLastVisibleRect)) {
       GP("Not repainting group because it's empty\n");
       GP("End EndGroup\n");
@@ -623,6 +628,8 @@ struct DIGroup {
             *mKey, ViewAs<ImagePixel>(mVisibleRect,
                                       PixelCastJustification::LayerIsImage));
         mLastVisibleRect = mVisibleRect;
+        stats.mGroupBlobs++;
+        stats.mBlobArea += uint64_t(mVisibleRect.Area());
         PushImage(aBuilder, itemBounds);
       }
       return;
@@ -747,6 +754,9 @@ struct DIGroup {
         *mKey,
         ViewAs<ImagePixel>(mVisibleRect, PixelCastJustification::LayerIsImage));
     mLastVisibleRect = mVisibleRect;
+    stats.mGroupBlobs++;
+    stats.mGroupBlobsPainted++;
+    stats.mBlobArea += uint64_t(mVisibleRect.Area());
     PushImage(aBuilder, itemBounds);
     GP("End EndGroup\n\n");
   }
@@ -766,6 +776,14 @@ struct DIGroup {
 
     aBuilder.PushImage(dest, dest, !backfaceHidden, false, rendering,
                        wr::AsImageKey(*mKey));
+
+    // Fallback blobs are tinted red by PaintItemByDrawTarget. Group blobs get
+    // a green tint pushed on top of the image so that the recording, and its
+    // invalidation, stays untouched.
+    if (StaticPrefs::gfx_webrender_debug_highlight_painted_layers()) {
+      aBuilder.PushRect(dest, dest, !backfaceHidden, false, false,
+                        wr::ColorF{0.0f, 1.0f, 0.0f, 0.3f});
+    }
   }
 
   void PushHitTest(wr::DisplayListBuilder& aBuilder,
@@ -1148,7 +1166,7 @@ static ItemActivity AssessBounds(const StackingContextHelper& aSc,
   // costly enough that it's worth the risk of having more layers. As we
   // move more blob items into wr display items it will become less of a
   // concern.
-  constexpr float largeish = 512;
+  const float largeish = float(StaticPrefs::gfx_webrender_blob_largeish_px());
 
   bool snap = false;
   nsRect bounds = aItem->GetBounds(aDisplayListBuilder, &snap);
@@ -1156,14 +1174,15 @@ static ItemActivity AssessBounds(const StackingContextHelper& aSc,
   float appUnitsPerDevPixel =
       static_cast<float>(aItem->Frame()->PresContext()->AppUnitsPerDevPixel());
 
-  float width =
-      static_cast<float>(bounds.width) * aSc.GetInheritedScale().xScale;
-  float height =
-      static_cast<float>(bounds.height) * aSc.GetInheritedScale().yScale;
+  // Size of the item in device pixels.
+  float width = static_cast<float>(bounds.width) / appUnitsPerDevPixel *
+                aSc.GetInheritedScale().xScale;
+  float height = static_cast<float>(bounds.height) / appUnitsPerDevPixel *
+                 aSc.GetInheritedScale().yScale;
 
   // Webrender doesn't handle primitives smaller than a pixel well, so
   // avoid making them active.
-  if (width >= appUnitsPerDevPixel && height >= appUnitsPerDevPixel) {
+  if (width >= 1.0f && height >= 1.0f) {
     if (aHasActivePrecedingSibling || width > largeish || height > largeish) {
       return ItemActivity::Should;
     }
@@ -1335,7 +1354,9 @@ void Grouper::ConstructGroups(nsDisplayListBuilder* aDisplayListBuilder,
       }
     }
 
-    bool isLast = it.HasNext();
+    auto next = it;
+    ++next;
+    bool isLast = next == aList->end();
 
     // WebRender's anti-aliasing approximation is not very good under
     // non-uniform scales.
@@ -1346,10 +1367,16 @@ void Grouper::ConstructGroups(nsDisplayListBuilder* aDisplayListBuilder,
         item, aBuilder, aResources, aSc, manager, mDisplayListBuilder,
         encounteredActiveItem, uniformlyScaled);
     auto threshold =
-        isFirst || isLast ? ItemActivity::Could : ItemActivity::Should;
+        isFirst || isLast ||
+                StaticPrefs::gfx_webrender_blob_relaxed_active_threshold()
+            ? ItemActivity::Could
+            : ItemActivity::Should;
 
     if (activity >= threshold) {
       encounteredActiveItem = true;
+      if (!isFirst) {
+        aCommandBuilder->mBlobStats.mSplits[item->GetType()]++;
+      }
       // We're going to be starting a new group.
       RefPtr<WebRenderGroupData> groupData =
           aCommandBuilder->CreateOrRecycleWebRenderUserData<WebRenderGroupData>(
@@ -1429,12 +1456,11 @@ void Grouper::ConstructGroups(nsDisplayListBuilder* aDisplayListBuilder,
         sIndent++;
         // Note: this call to CreateWebRenderCommands can recurse back into
         // this function.
-        bool createdWRCommands = item->CreateWebRenderCommands(
+        WebRenderCommandsResult result = item->CreateWebRenderCommands(
             aBuilder, aResources, aSc, manager, mDisplayListBuilder);
-        MOZ_RELEASE_ASSERT(
-            createdWRCommands,
-            "active transforms should always succeed at creating "
-            "WebRender commands");
+        MOZ_RELEASE_ASSERT(result.isOk(),
+                           "active transforms should always succeed at "
+                           "creating WebRender commands");
         sIndent--;
       }
 
@@ -1497,6 +1523,11 @@ bool Grouper::ConstructItemInsideInactive(
   data->mInvalid = false;
   data->mInvisible = aItem->IsInvisible();
   *aOutIsInvisible = data->mInvisible;
+
+  if (!data->mInvisible && !children &&
+      aItem->GetType() != DisplayItemType::TYPE_COMPOSITOR_HITTEST_INFO) {
+    aCommandBuilder->mBlobStats.mGroupedItems[aItem->GetType()]++;
+  }
 
   // we compute the geometry change here because we have the transform around
   // still
@@ -1626,6 +1657,16 @@ void WebRenderCommandBuilder::DoGroupingForDisplayList(
     nsDisplayListBuilder* aDisplayListBuilder, const StackingContextHelper& aSc,
     wr::DisplayListBuilder& aBuilder, wr::IpcResourceUpdateQueue& aResources) {
   if (!aList->GetBottom()) {
+    return;
+  }
+
+  // Sizing the group's blob from its untransformed bounds is only bounded by
+  // the raster scale, and GetInheritedScale() reports a placeholder of 1.0 when
+  // the real scale is degenerate. Rasterizing at the placeholder would request
+  // a blob the size of the untransformed bounds, which can reach nscoord
+  // saturation. The content covers less than a pixel, so drop it (bug 1906769).
+  if (aSc.HasDegenerateRasterScale()) {
+    GP("Skipping group with degenerate raster scale\n");
     return;
   }
 
@@ -1764,6 +1805,7 @@ void WebRenderCommandBuilder::BuildWebRenderCommands(
   MOZ_ASSERT(mLayerScrollData.empty());
   mClipManager.BeginBuild(mManager, aBuilder);
   mHitTestInfoManager.Reset();
+  mBlobStats.Reset();
 
   mBuilderDumpIndex = 0;
   mLastCanvasDatas.Clear();
@@ -1827,9 +1869,50 @@ void WebRenderCommandBuilder::BuildWebRenderCommands(
   mLayerScrollData.clear();
   mClipManager.EndBuild();
 
+  ReportBlobStats();
+
   // Remove the user data those are not displayed on the screen and
   // also reset the data to unused for next transaction.
   RemoveUnusedAndResetWebRenderUserData();
+}
+
+void WebRenderCommandBuilder::ReportBlobStats() {
+  if (!profiler_thread_is_being_profiled_for_markers()) {
+    return;
+  }
+  const BlobStats& s = mBlobStats;
+  if (s.mGroupBlobs == 0 && s.mFallbackBlobs == 0) {
+    return;
+  }
+
+  nsAutoCString text;
+  text.AppendPrintf(
+      "group blobs: %u (%u painted), fallback blobs: %u, "
+      "blob area: %" PRIu64 " px",
+      s.mGroupBlobs, s.mGroupBlobsPainted, s.mFallbackBlobs, s.mBlobArea);
+
+  bool first = true;
+  for (auto type : MakeEnumeratedRange(DisplayItemType::TYPE_MAX)) {
+    if (s.mGroupedItems[type] == 0) {
+      continue;
+    }
+    text.Append(first ? "; grouped items: " : ", ");
+    first = false;
+    text.AppendPrintf("%s=%u", DisplayItemTypeName(type),
+                      s.mGroupedItems[type]);
+  }
+
+  first = true;
+  for (auto type : MakeEnumeratedRange(DisplayItemType::TYPE_MAX)) {
+    if (s.mSplits[type] == 0) {
+      continue;
+    }
+    text.Append(first ? "; splits by: " : ", ");
+    first = false;
+    text.AppendPrintf("%s=%u", DisplayItemTypeName(type), s.mSplits[type]);
+  }
+
+  PROFILER_MARKER_TEXT("WebRender blob images", GRAPHICS, {}, text);
 }
 
 bool WebRenderCommandBuilder::ShouldDumpDisplayList(
@@ -1859,10 +1942,13 @@ void WebRenderCommandBuilder::CreateWebRenderCommands(
 
   // Note: this call to CreateWebRenderCommands can recurse back into
   // this function if the |item| is a wrapper for a sublist.
-  const bool createdWRCommands = aItem->CreateWebRenderCommands(
+  const WebRenderCommandsResult result = aItem->CreateWebRenderCommands(
       aBuilder, aResources, aSc, manager, aDisplayListBuilder);
 
-  if (!createdWRCommands) {
+  if (result.isErr()) {
+    AUTO_PROFILER_MARKER_TEXT(
+        "WebRenderCommandBuilder::CreateWebRenderCommands fallback", GRAPHICS,
+        {}, nsDependentCString(result.inspectErr()));
     PushItemAsImage(aItem, aBuilder, aResources, aSc, aDisplayListBuilder);
   }
 }
@@ -2355,7 +2441,8 @@ bool WebRenderCommandBuilder::PushImageProvider(
     nsDisplayItem* aItem, image::WebRenderImageProvider* aProvider,
     image::ImgDrawResult aDrawResult, mozilla::wr::DisplayListBuilder& aBuilder,
     mozilla::wr::IpcResourceUpdateQueue& aResources,
-    const LayoutDeviceRect& aRect, const LayoutDeviceRect& aClip) {
+    const LayoutDeviceRect& aRect, const LayoutDeviceRect& aClip,
+    bool aRasterizedForRect) {
   Maybe<wr::ImageKey> key =
       CreateImageProviderKey(aItem, aProvider, aDrawResult, aResources);
   if (!key) {
@@ -2368,7 +2455,8 @@ bool WebRenderCommandBuilder::PushImageProvider(
   auto r = wr::ToLayoutRect(aRect);
   auto c = wr::ToLayoutRect(aClip);
   aBuilder.PushImage(r, c, !aItem->BackfaceIsHidden(), antialiased, rendering,
-                     key.value());
+                     key.value(), true, wr::ColorF{1.0f, 1.0f, 1.0f, 1.0f},
+                     false, false, aRasterizedForRect);
 
   return true;
 }
@@ -2484,6 +2572,13 @@ WebRenderCommandBuilder::GenerateFallbackData(
     nsDisplayItem* aItem, wr::DisplayListBuilder& aBuilder,
     wr::IpcResourceUpdateQueue& aResources, const StackingContextHelper& aSc,
     nsDisplayListBuilder* aDisplayListBuilder, LayoutDeviceRect& aImageRect) {
+  // See the comment in DoGroupingForDisplayList: the placeholder scale reported
+  // for degenerate content would size the fallback buffer from bounds that can
+  // reach nscoord saturation (bug 1906769).
+  if (aSc.HasDegenerateRasterScale()) {
+    return nullptr;
+  }
+
   Maybe<gfx::DeviceColor> highlight;
   if (StaticPrefs::gfx_webrender_debug_highlight_painted_layers()) {
     highlight.emplace(gfx::DeviceColor(1.0, 0.0, 0.0, 0.5));
@@ -2565,6 +2660,7 @@ WebRenderCommandBuilder::GenerateFallbackData(
   }
 
   auto visibleSize = visibleRect.Size();
+
   // these rectangles can overflow from scaling so try to
   // catch that with IsEmpty() checks. See bug 1622126.
   if (visibleSize.IsEmpty() || dtRect.IsEmpty()) {
@@ -2728,6 +2824,13 @@ Maybe<wr::ImageMask> WebRenderCommandBuilder::BuildWrMaskImage(
     wr::IpcResourceUpdateQueue& aResources, const StackingContextHelper& aSc,
     nsDisplayListBuilder* aDisplayListBuilder,
     const LayoutDeviceRect& aBounds) {
+  // See the comment in DoGroupingForDisplayList: the placeholder scale reported
+  // for degenerate content would size the mask blob from bounds that can reach
+  // nscoord saturation (bug 1906769).
+  if (aSc.HasDegenerateRasterScale()) {
+    return Nothing();
+  }
+
   RefPtr<WebRenderMaskData> maskData =
       CreateOrRecycleWebRenderUserData<WebRenderMaskData>(aMaskItem);
 
@@ -2775,22 +2878,48 @@ Maybe<wr::ImageMask> WebRenderCommandBuilder::BuildWrMaskImage(
 
   LayoutDeviceToLayerScale2D layerScale(scale.xScale, scale.yScale);
 
-  // Rect the mask image is placed and sampled over. The blob itself must stay
-  // integer-sized (itemRect/visibleRect, above), but the placement rect we
-  // hand to WebRender becomes the mask clip node's rect, which WebRender snaps
-  // to device pixels at frame time. With pixel alignment disabled, send the
-  // true (unrounded) rect -- the same one the masked content uses -- so the
-  // mask snaps in lockstep with its content instead of carrying our own stale
-  // device-pixel RoundOut.
+  // Rect the mask image is placed and sampled over; it becomes the mask clip
+  // node's rect, which WebRender snaps to device pixels at frame time. Send the
+  // true (unrounded) bounds so WebRender snaps the clip in lockstep with the
+  // masked content -- rather than a stale display-list-time RoundOut -- when
+  // pixel alignment is disabled (bug 1973192). Clamp bounds to the region the
+  // blob actually covers so the clip stays aligned to the blob's alpha: the
+  // union of the building rect (what needs to be painted) and visibleRect (the
+  // rasterized region on the blob's nearest-pixel grid). Clamping to the
+  // building rect alone would drop a partially-covered edge row that the blob
+  // did rasterize (bug 2055747); not clamping at all would span inflated bounds
+  // that were never drawn into the blob (svg/filters/filter-clipped-rect-01).
   LayoutDeviceRect imageRect;
   if (StaticPrefs::layout_disable_pixel_alignment()) {
-    imageRect = LayoutDeviceRect::FromAppUnits(
-        bounds.Intersect(aMaskItem->GetBuildingRect()), appUnitsPerDevPixel);
+    LayoutDeviceRect coverage =
+        LayoutDeviceRect::FromAppUnits(aMaskItem->GetBuildingRect(),
+                                       appUnitsPerDevPixel)
+            .Union(LayerRect(visibleRect) / layerScale);
+    imageRect = LayoutDeviceRect::FromAppUnits(bounds, appUnitsPerDevPixel)
+                    .Intersect(coverage);
   } else {
     imageRect = LayerRect(visibleRect) / layerScale;
   }
 
   nsPoint maskOffset = aMaskItem->ToReferenceFrame() - bounds.TopLeft();
+
+  // The blob is rasterized against itemRect's grid but painted in absolute
+  // coordinates, so this sub-pixel offset is baked into its alpha. itemRect is
+  // an integer rect and maskOffset is translation invariant, so neither
+  // notices when it changes: an item nudged a sub-pixel distance without being
+  // invalidated (e.g. by a sibling's layout change) would otherwise keep alpha
+  // rasterized against the offset it had at the previous position, leaving the
+  // mask up to a device pixel out of place until something else invalidated it
+  // (bug 2057351). Before bug 1973192 rounding out meant such a move always
+  // resized itemRect, which tripped the check below on its own.
+  gfx::Point residual(
+      NSAppUnitsToFloatPixels(bounds.x, appUnitsPerDevPixel) * scale.xScale -
+          itemRect.x,
+      NSAppUnitsToFloatPixels(bounds.y, appUnitsPerDevPixel) * scale.yScale -
+          itemRect.y);
+  bool sameResidual =
+      gfx::FuzzyEqual(residual.x, maskData->mResidual.x, 0.01f) &&
+      gfx::FuzzyEqual(residual.y, maskData->mResidual.y, 0.01f);
 
   bool shouldHandleOpacity = aBuilder.GetInheritedOpacity() != 1.0f;
 
@@ -2798,7 +2927,7 @@ Maybe<wr::ImageMask> WebRenderCommandBuilder::BuildWrMaskImage(
   // If this mask item is being painted for the first time, some members of
   // WebRenderMaskData are still default initialized. This is intentional.
   if (aMaskItem->IsInvalid(dirtyRect) ||
-      !itemRect.IsEqualInterior(maskData->mItemRect) ||
+      !itemRect.IsEqualInterior(maskData->mItemRect) || !sameResidual ||
       !(aMaskItem->Frame()->StyleSVGReset()->mMask == maskData->mMaskStyle) ||
       maskOffset != maskData->mMaskOffset || !sameScale ||
       shouldHandleOpacity != maskData->mShouldHandleOpacity) {
@@ -2900,6 +3029,7 @@ Maybe<wr::ImageMask> WebRenderCommandBuilder::BuildWrMaskImage(
                          mManager->GetRenderRootStateManager(), aResources);
     if (maskIsComplete) {
       maskData->mItemRect = itemRect;
+      maskData->mResidual = residual;
       maskData->mMaskOffset = maskOffset;
       maskData->mScale = scale;
       maskData->mMaskStyle = aMaskItem->Frame()->StyleSVGReset()->mMask;
@@ -2937,6 +3067,10 @@ bool WebRenderCommandBuilder::PushItemAsImage(
   auto rendering = wr::ToImageRendering(aItem->Frame()->UsedImageRendering());
   mHitTestInfoManager.ProcessItemAsImage(aItem, dest, aBuilder,
                                          aDisplayListBuilder);
+  mBlobStats.mFallbackBlobs++;
+  auto scale = aSc.GetInheritedScale();
+  mBlobStats.mBlobArea += uint64_t(std::max(
+      0.0f, imageRect.width * scale.xScale * imageRect.height * scale.yScale));
   aBuilder.PushImage(dest, dest, !aItem->BackfaceIsHidden(), false, rendering,
                      fallbackData->GetImageKey().value());
   return true;

@@ -38,6 +38,8 @@ for (const type of [
   "BLOCK_URL",
   "BOOKMARK_URL",
   "CARD_SECTION_IMPRESSION",
+  "CAROUSEL_NAVIGATE",
+  "CAROUSEL_TOGGLE_AUTOPLAY",
   "CLEAR_PREF",
   "CLICK_SECTION_LEARN_MORE",
   "COPY_DOWNLOAD_LINK",
@@ -116,12 +118,12 @@ for (const type of [
   "NEW_TAB_STATE_REQUEST_STARTUPCACHE",
   "NEW_TAB_STATE_REQUEST_WITHOUT_STARTUPCACHE",
   "NEW_TAB_UNLOAD",
+  "OPEN_ABOUT_ADDONS_THEMES",
   "OPEN_DOWNLOAD_FILE",
   "OPEN_LINK",
   "OPEN_NEW_WINDOW",
   "OPEN_PRIVATE_WINDOW",
   "OPEN_WEBEXT_SETTINGS",
-  "PARTNER_LINK_ATTRIBUTION",
   "PICTURE_OF_THE_DAY_UPDATE",
   "PLACES_BOOKMARKS_REMOVED",
   "PLACES_BOOKMARK_ADDED",
@@ -171,11 +173,13 @@ for (const type of [
   "SHOW_TOAST_MESSAGE",
   "SKIPPED_SIGNIN",
   "SOV_UPDATED",
+  "SPACES_USER_EVENT",
   "SUBMIT_EMAIL",
   "SUBMIT_SIGNIN",
   "SYSTEM_TICK",
   "TELEMETRY_IMPRESSION_STATS",
   "TELEMETRY_USER_EVENT",
+  "TOPIC_NAVIGATION_CLICK",
   "TOPIC_SELECTION_IMPRESSION",
   "TOPIC_SELECTION_MAYBE_LATER",
   "TOPIC_SELECTION_SPOTLIGHT_CLOSE",
@@ -203,7 +207,12 @@ for (const type of [
   "UPDATE_PINNED_SEARCH_SHORTCUTS",
   "UPDATE_SEARCH_SHORTCUTS",
   "WALLPAPERS_CATEGORY_SET",
+  "WALLPAPERS_CUSTOM_APPLY",
+  "WALLPAPERS_CUSTOM_LIBRARY_SET",
   "WALLPAPERS_CUSTOM_SET",
+  "WALLPAPERS_CUSTOM_THUMBNAILS_MADE",
+  "WALLPAPERS_CUSTOM_THUMBNAILS_REQUEST",
+  "WALLPAPERS_CUSTOM_THUMBNAILS_SET",
   "WALLPAPERS_FEATURE_HIGHLIGHT_COUNTER_INCREMENT",
   "WALLPAPERS_FEATURE_HIGHLIGHT_CTA_CLICKED",
   "WALLPAPERS_FEATURE_HIGHLIGHT_DISMISSED",
@@ -212,7 +221,11 @@ for (const type of [
   "WALLPAPER_CATEGORY_CLICK",
   "WALLPAPER_CLICK",
   "WALLPAPER_REMOVE_UPLOAD",
+  "WALLPAPER_SAVED_ADDED",
+  "WALLPAPER_SAVED_APPLIED",
+  "WALLPAPER_SAVED_REMOVED",
   "WALLPAPER_UPLOAD",
+  "WALLPAPER_UPLOAD_RESULT",
   "WEATHER_DETECT_LOCATION",
   "WEATHER_IMPRESSION",
   "WEATHER_LOAD_ERROR",
@@ -227,7 +240,12 @@ for (const type of [
   "WEATHER_USER_OPT_IN_LOCATION",
   "WEBEXT_CLICK",
   "WEBEXT_DISMISS",
+  "WEB_NOTIFICATIONS_ADDED",
+  "WEB_NOTIFICATIONS_CLICK",
+  "WEB_NOTIFICATIONS_DISMISS",
+  "WEB_NOTIFICATIONS_DISMISS_ALL",
   "WEB_NOTIFICATIONS_ERROR",
+  "WEB_NOTIFICATIONS_REMOVED",
   "WEB_NOTIFICATIONS_REQUEST",
   "WEB_NOTIFICATIONS_UPDATED",
   "WIDGETS_CONTAINER_ACTION",
@@ -243,7 +261,13 @@ for (const type of [
   "WIDGETS_LISTS_USER_IMPRESSION",
   "WIDGETS_OPT_IN",
   "WIDGETS_PICTURE_SET_WALLPAPER",
+  "WIDGETS_PRIVACY_CTA",
+  "WIDGETS_PRIVACY_MARK_CELEBRATED",
   "WIDGETS_PRIVACY_UPDATE",
+  "WIDGETS_PRIVACY_VISIBLE",
+  "WIDGETS_RECENT_SEARCHES_OPEN_LINK",
+  "WIDGETS_RECENT_SEARCHES_REMOVE_SEARCH",
+  "WIDGETS_RECENT_SEARCHES_UPDATE",
   "WIDGETS_SPORTS_CHANGE_FOLLOWED_ONLY",
   "WIDGETS_SPORTS_CHANGE_LIVE_INDEX",
   "WIDGETS_SPORTS_CHANGE_MATCHES_TAB",
@@ -266,7 +290,12 @@ for (const type of [
   "WIDGETS_SPORTS_WATCH_LIVE_REQUEST",
   "WIDGETS_SPORTS_WATCH_LIVE_SET",
   "WIDGETS_SPORTS_WIDGET_SET",
+  "WIDGETS_STOCKS_SEARCH_CLEAR",
+  "WIDGETS_STOCKS_SEARCH_REQUEST",
+  "WIDGETS_STOCKS_SEARCH_RESPONSE",
+  "WIDGETS_STOCKS_SEARCH_STARTED",
   "WIDGETS_STOCKS_UPDATE",
+  "WIDGETS_STOCKS_WATCHLIST_UPDATE",
   "WIDGETS_TIMER_END",
   "WIDGETS_TIMER_PAUSE",
   "WIDGETS_TIMER_PLAY",
@@ -308,9 +337,8 @@ function _RouteMessage(action, options) {
  * AlsoToMain - Creates a message that will be dispatched locally and also sent to the Main process.
  *
  * @param  {object} action Any redux action (required)
- * @param  {object} options
- * @param  {bool}   skipLocal Used by OnlyToMain to skip the main reducer
- * @param  {string} fromTarget The id of the content port from which the action originated. (optional)
+ * @param  {string} [fromTarget] The id of the content port from which the action originated.
+ * @param  {boolean} [skipLocal] Used by OnlyToMain to skip the main reducer
  * @return {object} An action with added .meta properties
  */
 function AlsoToMain(action, fromTarget, skipLocal) {
@@ -326,8 +354,7 @@ function AlsoToMain(action, fromTarget, skipLocal) {
  * OnlyToMain - Creates a message that will be sent to the Main process and skip the local reducer.
  *
  * @param  {object} action Any redux action (required)
- * @param  {object} options
- * @param  {string} fromTarget The id of the content port from which the action originated. (optional)
+ * @param  {string} [fromTarget] The id of the content port from which the action originated.
  * @return {object} An action with added .meta properties
  */
 function OnlyToMain(action, fromTarget) {
@@ -355,7 +382,7 @@ function BroadcastToContent(action, options) {
  *
  * @param  {object} action Any redux action (required)
  * @param  {string} target The id of a content port
- * @param  {bool} skipMain Used by OnlyToOneContent to skip the main process
+ * @param  {boolean} skipMain Used by OnlyToOneContent to skip the main process
  * @return {object} An action with added .meta properties
  */
 function AlsoToOneContent(action, target, skipMain) {
@@ -429,7 +456,7 @@ function DiscoveryStreamUserEvent(data) {
  * ImpressionStats - A telemetry ping indicating an impression stats.
  *
  * @param  {object} data Fields to include in the ping
- * @param  {int} importContext (For testing) Override the import context for testing.
+ * @param  {number} importContext (For testing) Override the import context for testing.
  * #return {object} An action. For UI code, a AlsoToMain action.
  */
 function ImpressionStats(data, importContext = globalImportContext) {
@@ -444,7 +471,7 @@ function ImpressionStats(data, importContext = globalImportContext) {
  * DiscoveryStreamImpressionStats - A telemetry ping indicating an impression stats in Discovery Stream.
  *
  * @param  {object} data Fields to include in the ping
- * @param  {int} importContext (For testing) Override the import context for testing.
+ * @param  {number} importContext (For testing) Override the import context for testing.
  * #return {object} An action. For UI code, a AlsoToMain action.
  */
 function DiscoveryStreamImpressionStats(
@@ -462,7 +489,7 @@ function DiscoveryStreamImpressionStats(
  * DiscoveryStreamLoadedContent - A telemetry ping indicating a content gets loaded in Discovery Stream.
  *
  * @param  {object} data Fields to include in the ping
- * @param  {int} importContext (For testing) Override the import context for testing.
+ * @param  {number} importContext (For testing) Override the import context for testing.
  * #return {object} An action. For UI code, a AlsoToMain action.
  */
 function DiscoveryStreamLoadedContent(

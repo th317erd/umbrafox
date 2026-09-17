@@ -8,11 +8,18 @@ const { SEARCH_ANSWER_SCHEMA, runSearchTheWeb } = ChromeUtils.importESModule(
 );
 
 const {
+  GetPageContent,
   GET_PAGE_CONTENT,
   SEARCH_QUERY_ENDPOINT_PREF,
   SEARCH_QUERY_APIKEY_PREF,
+  SEARCH_THE_WEB_FAST_PREF,
+  SEARCH_THE_WEB,
 } = ChromeUtils.importESModule(
   "moz-src:///browser/components/aiwindow/models/Tools.sys.mjs"
+);
+
+const { MESSAGE_ROLE } = ChromeUtils.importESModule(
+  "moz-src:///browser/components/aiwindow/ui/modules/AIWindowConstants.sys.mjs"
 );
 
 const { PURPOSES, MODEL_FEATURES, SERVICE_TYPES } = ChromeUtils.importESModule(
@@ -23,10 +30,13 @@ const { Chat } = ChromeUtils.importESModule(
   "moz-src:///browser/components/aiwindow/models/Chat.sys.mjs"
 );
 
-const { replaceUrlsWithTokens, expandUrlTokensInToolParams } =
-  ChromeUtils.importESModule(
-    "moz-src:///browser/components/aiwindow/models/ChatUtils.sys.mjs"
-  );
+const {
+  replaceUrlsWithTokens,
+  expandUrlTokensInToolParams,
+  sanitizeUntrustedContent,
+} = ChromeUtils.importESModule(
+  "moz-src:///browser/components/aiwindow/models/ChatUtils.sys.mjs"
+);
 
 const { MockEngineManager, MockSearchManager } = ChromeUtils.importESModule(
   "resource://testing-common/AIWindowTestUtils.sys.mjs"
@@ -42,14 +52,20 @@ const SEARCH_API_KEY = "mock-search-api-key";
 
 /**
  * Point the search provider at the mocked endpoint and provide a test API key.
+ * The fast pref is always set explicitly so each task states which path it
+ * exercises rather than depending on the default.
  *
+ * @param {boolean} [fast] - Value for SEARCH_THE_WEB_FAST_PREF.
+ * @param {string} [endpoint] - Value for SEARCH_QUERY_ENDPOINT_PREF. Pass an
+ *   empty string to exercise the provider's missing-configuration path.
  * @returns {Promise<void>}
  */
-async function pushSearchPrefs() {
+async function pushSearchPrefs(fast = false, endpoint = SEARCH_ENDPOINT) {
   await SpecialPowers.pushPrefEnv({
     set: [
-      [SEARCH_QUERY_ENDPOINT_PREF, SEARCH_ENDPOINT],
+      [SEARCH_QUERY_ENDPOINT_PREF, endpoint],
       [SEARCH_QUERY_APIKEY_PREF, SEARCH_API_KEY],
+      [SEARCH_THE_WEB_FAST_PREF, fast],
     ],
   });
 }
@@ -77,7 +93,7 @@ function serveResultPages(bodies) {
   server.start(-1);
   const { primaryHost, primaryPort } = server.identity;
   const urls = paths.map(
-    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+    // eslint-disable-next-line sdl/no-insecure-url
     path => `http://${primaryHost}:${primaryPort}${path}`
   );
   return { urls, requestCounts, server };
@@ -204,16 +220,6 @@ add_task(async function test_search_the_web_end_to_end() {
       [],
       "No tools are offered during final generation"
     );
-    Assert.deepEqual(
-      answerTurn.request.inferenceParams,
-      {
-        response_format: {
-          type: "json_schema",
-          json_schema: SEARCH_ANSWER_SCHEMA,
-        },
-      },
-      "The final generation requests the search answer schema"
-    );
     const expectedAnswer = {
       answer: "The widget is nine dollars.",
       could_answer: true,
@@ -230,8 +236,14 @@ add_task(async function test_search_the_web_end_to_end() {
         ...expectedAnswer,
         searched_urls: [pageUrl],
         read_urls: [pageUrl],
+        requiresSearchHandoff: false,
       },
       "The workflow returns the validated answer and code-tracked URLs"
+    );
+    Assert.deepEqual(
+      conversation.getCitationsSnapshot(),
+      [{ url: pageUrl, title: "Widget Store" }],
+      "The read page is registered as a citation on the conversation"
     );
     Assert.equal(
       requestCounts[0],
@@ -392,6 +404,11 @@ add_task(async function test_search_the_web_reads_result_pages_up_to_limit() {
       );
     }
     Assert.deepEqual(
+      conversation.getCitationsSnapshot().map(citation => citation.url),
+      result.read_urls,
+      "The citation snapshot matches the read URLs"
+    );
+    Assert.deepEqual(
       requestCounts,
       [1, 1, 1, 0],
       "Only the first three result pages are fetched"
@@ -523,92 +540,1043 @@ add_task(async function test_search_the_web_no_results_returns_failure() {
   }
 });
 
-add_task(async function test_search_the_web_offers_run_search_fallback() {
-  // Tool gating end behavior: run_search is not offered up front, but once
-  // search_the_web has executed the dispatcher swaps it in as the fallback.
-  // Empty search results keep the tool fast; the tool still ran, which is what
-  // triggers the swap.
-  // NOTE: this drives the full Chat loop, which records the smart_window.tool_call
-  // Glean event. That metric is present in full/CI builds (metrics.yaml) but is
-  // absent from local artifact builds, so this task only passes under a full
-  // build or on CI. The existing chat-loop tool tests in
-  // browser_conversation_stream.js share this constraint.
+add_task(async function test_search_the_web_second_call_escalates_to_handoff() {
+  // The first search_the_web call answers in chat and marks the turn as having
+  // searched; a second call in the same turn escalates to the handoff (kind
+  // HANDOFF) without running another retrieval. Empty results keep the first
+  // call fast — the tool still ran, which is what marks the turn.
   await pushSearchPrefs();
+
   const mockSearchManager = new MockSearchManager();
+  const conversation = new ChatConversation({
+    pageUrl: new URL("https://example.com"),
+    pageMeta: {},
+  });
 
-  const { AIWindow } = ChromeUtils.importESModule(
-    "moz-src:///browser/components/aiwindow/ui/modules/AIWindow.sys.mjs"
+  try {
+    const firstPromise = runSearchTheWeb({ query: "weather" }, conversation);
+    (await mockSearchManager.captureRequest()).respond({ results: [] });
+    const first = await firstPromise;
+    Assert.equal(
+      first.requiresSearchHandoff,
+      false,
+      "The first call answers in chat (ANSWER), not a handoff"
+    );
+    Assert.equal(
+      conversation._searchTheWebTurn,
+      conversation.currentTurnIndex(),
+      "The first call marks the current turn as having searched"
+    );
+
+    // No captureRequest() is set up for the second call: had it tried to
+    // retrieve again, this await would hang. Its resolving is the proof that the
+    // handoff short-circuits before any Exa search.
+    const second = await runSearchTheWeb(
+      { query: "weather again" },
+      conversation
+    );
+    Assert.equal(
+      second.requiresSearchHandoff,
+      true,
+      "A second call in the same turn escalates to the handoff"
+    );
+
+    mockSearchManager.assertAllRequestsHandled();
+  } finally {
+    mockSearchManager.rejectAllRequests();
+    mockSearchManager.cleanupMocks();
+    await SpecialPowers.popPrefEnv();
+  }
+});
+
+add_task(async function test_search_the_web_page_read_timeout_does_not_hang() {
+  // A headless page load that never settles must not hang the answer flow:
+  // readPage races the fetch against a resolving timeout, so a stuck read
+  // yields a fallback and generateAnswer still produces an answer. The read
+  // timeout pref is shrunk so the test doesn't wait the 15s default.
+  await pushSearchPrefs();
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.smartwindow.search.readTimeoutMs", 50]],
+  });
+
+  const sb = sinon.createSandbox();
+  const mockEngineManager = new MockEngineManager();
+  const mockSearchManager = new MockSearchManager();
+  const conversation = new ChatConversation({
+    pageUrl: new URL("https://example.com"),
+    pageMeta: {},
+  });
+
+  // Simulate a stuck headless load: getPageContent never settles.
+  const hangStub = sb
+    .stub(GetPageContent, "getPageContent")
+    .callsFake(() => new Promise(() => {}));
+
+  try {
+    const runPromise = runSearchTheWeb({ query: "widgets" }, conversation);
+
+    (await mockSearchManager.captureRequest()).respond({
+      results: [
+        {
+          title: "Widget Store",
+          url: "https://widgets.example/store",
+          text: "A page with widget prices.",
+        },
+      ],
+    });
+
+    // First answer-generation turn: the model asks to read the result page.
+    (
+      await mockEngineManager.captureRequest({ purpose: PURPOSES.CHAT })
+    ).respond({
+      text: "",
+      tokens: null,
+      isPrompt: false,
+      toolCalls: [
+        {
+          id: "read_1",
+          function: {
+            name: GET_PAGE_CONTENT,
+            arguments: JSON.stringify({ result_ids: ["result_1"] }),
+          },
+        },
+      ],
+    });
+
+    // The read hangs and times out (~50ms). The fallback text is fed back as
+    // the tool result, so the next request's args must contain it — proof the
+    // stuck read resolved instead of hanging the flow.
+    const afterReadTurn = await mockEngineManager.captureRequest({
+      purpose: PURPOSES.CHAT,
+    });
+    Assert.ok(
+      JSON.stringify(afterReadTurn.request.args).includes("Timed out reading"),
+      "A stuck page read resolves to the timeout fallback"
+    );
+    afterReadTurn.respond("The results are enough to answer.");
+
+    // Final structured-answer turn.
+    (
+      await mockEngineManager.captureRequest({ purpose: PURPOSES.CHAT })
+    ).respond(
+      JSON.stringify({
+        answer: "Widgets vary in price.",
+        could_answer: true,
+        confidence: 0.6,
+      })
+    );
+
+    const result = await runPromise;
+    Assert.ok(
+      result.could_answer,
+      "The workflow still produces an answer despite the stuck read"
+    );
+    Assert.ok(
+      hangStub.called,
+      "getPageContent was invoked (and abandoned on timeout)"
+    );
+    mockEngineManager.assertAllRequestsHandled();
+    mockSearchManager.assertAllRequestsHandled();
+  } finally {
+    sb.restore();
+    mockEngineManager.rejectAllRequests();
+    mockSearchManager.rejectAllRequests();
+    mockEngineManager.cleanupMocks();
+    mockSearchManager.cleanupMocks();
+    await SpecialPowers.popPrefEnv(); // read-timeout pref
+    await SpecialPowers.popPrefEnv(); // search prefs
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Fast path (SEARCH_THE_WEB_FAST_PREF on): Exa snippets are returned directly
+// to the main assistant, with no answer generation and no page reads.
+// ---------------------------------------------------------------------------
+
+// Mirrors MAX_RESULTS_RETRIEVED / MAX_RESULTS_RETURNED in SearchWorkflow: the
+// fast path over-fetches so that dropping unusable results still leaves a full
+// set.
+const FAST_MAX_REQUESTED = 5;
+const FAST_MAX_RETURNED = 3;
+
+// Mirrors MAX_SNIPPET_LENGTH in SearchWorkflow.
+const FAST_MAX_SNIPPET_LENGTH = 2000;
+
+// Long enough to clear the workflow's MIN_SNIPPET_LENGTH.
+const GOOD_SNIPPET = "A sufficiently long snippet of page text.";
+
+/**
+ * Runs the fast path against a mocked search endpoint.
+ *
+ * @param {object} options
+ * @param {string} [options.query]
+ * @param {object} options.response - Body the mocked endpoint returns.
+ * @param {number} [options.status] - HTTP status the mocked endpoint returns.
+ * @param {*} [options.rejectWith] - When set, the request fails below the HTTP
+ *   layer with this reason instead of responding.
+ * @param {boolean} [options.jsonThrows] - When true, the response arrives with
+ *   its status but its body fails to parse.
+ * @param {string} [options.mode] - Surface passed through for telemetry.
+ * @returns {Promise<{result: object, request: object, conversation: ChatConversation}>}
+ */
+async function runFastSearchWithMock({
+  query = "widgets",
+  response,
+  status = 200,
+  rejectWith = null,
+  jsonThrows = false,
+  mode,
+}) {
+  await pushSearchPrefs(true);
+  const conversation = new ChatConversation({
+    pageUrl: new URL("https://example.com"),
+    pageMeta: {},
+  });
+  const mockSearchManager = new MockSearchManager();
+  try {
+    const runPromise = runSearchTheWeb(
+      { query },
+      conversation,
+      undefined,
+      mode
+    );
+    const search = await mockSearchManager.captureRequest();
+    if (rejectWith) {
+      search.reject(rejectWith);
+    } else {
+      search.respond(response, { status, jsonThrows });
+    }
+    const result = await runPromise;
+    mockSearchManager.assertAllRequestsHandled();
+    return { result, request: search.request, conversation };
+  } finally {
+    mockSearchManager.rejectAllRequests();
+    mockSearchManager.cleanupMocks();
+    await SpecialPowers.popPrefEnv();
+  }
+}
+
+add_task(async function test_fast_search_returns_snippets() {
+  const query = "What is the featured widget's price?";
+  const results = [
+    {
+      title: "Widget Store",
+      url: "https://widgets.example/store",
+      text: "The featured widget is on sale for nine dollars today.",
+    },
+    {
+      title: "Widget Reviews",
+      url: "https://widgets.example/reviews",
+      text: "Reviewers agree the featured widget is a reasonable buy.",
+    },
+  ];
+
+  // The conversation-level effects (citations, the fetch ledger, the security
+  // flags) are asserted in test_fast_search_through_chat, which drives the real
+  // caller instead of committing the flags on its own behalf.
+  const { result, request } = await runFastSearchWithMock({
+    query,
+    response: { results },
+  });
+
+  Assert.deepEqual(
+    JSON.parse(request.options.body),
+    { query, max_results: FAST_MAX_REQUESTED },
+    "The fast path over-fetches so filtering still leaves a full set"
   );
-  const isAIWindowActiveStub = sinon
-    .stub(AIWindow, "isAIWindowActive")
-    .callsFake(win => win === window);
+  Assert.deepEqual(
+    result,
+    {
+      results: results.map(item => ({
+        title: sanitizeUntrustedContent(item.title),
+        url: item.url,
+        snippet: item.text,
+      })),
+      requiresSearchHandoff: false,
+    },
+    "The Exa results are returned directly, with no generated answer"
+  );
+});
 
-  const requestBodies = [];
+add_task(async function test_fast_search_filters_and_caps_results() {
+  // Five results come back: one with a non-http URL and one with a stub
+  // snippet are dropped, leaving exactly the cap of three.
+  const { result, conversation } = await runFastSearchWithMock({
+    response: {
+      results: [
+        {
+          title: "First",
+          url: "https://widgets.example/first",
+          text: GOOD_SNIPPET,
+        },
+        {
+          title: "Not a web URL",
+          url: "ftp://widgets.example/file",
+          text: GOOD_SNIPPET,
+        },
+        { title: "Stub", url: "https://widgets.example/stub", text: "Sign in" },
+        {
+          title: "Second",
+          url: "https://widgets.example/second",
+          text: GOOD_SNIPPET,
+        },
+        {
+          title: "Third",
+          url: "https://widgets.example/third",
+          text: GOOD_SNIPPET,
+        },
+      ],
+    },
+  });
+
+  Assert.deepEqual(
+    result.results.map(item => item.url),
+    [
+      "https://widgets.example/first",
+      "https://widgets.example/second",
+      "https://widgets.example/third",
+    ],
+    "Bad URLs and unusable snippets are dropped, capped at the returned max"
+  );
+  Assert.equal(
+    result.results.length,
+    FAST_MAX_RETURNED,
+    "No more than the returned max reaches the assistant"
+  );
+  Assert.deepEqual(
+    [...conversation.serpUrlsForAnonymousFetch],
+    result.results.map(item => item.url),
+    "Only the returned results are fetchable; dropped results are not"
+  );
+});
+
+add_task(async function test_fast_search_snippet_collapsed_and_truncated() {
+  const { result } = await runFastSearchWithMock({
+    response: {
+      results: [
+        {
+          title: "Whitespace",
+          url: "https://widgets.example/whitespace",
+          text: "  Lots\n\n  of\tirregular   whitespace in this snippet.  ",
+        },
+        {
+          title: "Long",
+          url: "https://widgets.example/long",
+          text: "word ".repeat(1000),
+        },
+      ],
+    },
+  });
+
+  Assert.equal(
+    result.results[0].snippet,
+    "Lots of irregular whitespace in this snippet.",
+    "Whitespace is collapsed and the snippet is trimmed"
+  );
+  // MAX_SNIPPET_LENGTH (2000) plus the single-character ellipsis.
+  Assert.equal(
+    result.results[1].snippet.length,
+    2001,
+    "An over-long snippet is truncated to the cap"
+  );
+  Assert.ok(
+    result.results[1].snippet.endsWith("…"),
+    "A truncated snippet is marked with an ellipsis"
+  );
+});
+
+add_task(async function test_fast_search_second_call_escalates_to_handoff() {
+  // The handoff escalation is shared by both paths: a second call in the same
+  // turn short-circuits before any Exa retrieval.
+  await pushSearchPrefs(true);
+
+  const mockSearchManager = new MockSearchManager();
+  const conversation = new ChatConversation({
+    pageUrl: new URL("https://example.com"),
+    pageMeta: {},
+  });
+
+  try {
+    const firstPromise = runSearchTheWeb({ query: "weather" }, conversation);
+    (await mockSearchManager.captureRequest()).respond({ results: [] });
+    const first = await firstPromise;
+    Assert.equal(
+      first.requiresSearchHandoff,
+      false,
+      "The first call answers in chat, not a handoff"
+    );
+
+    // No captureRequest() is set up for the second call: had it tried to
+    // retrieve again, this await would hang.
+    const second = await runSearchTheWeb(
+      { query: "weather again" },
+      conversation
+    );
+    Assert.equal(
+      second.requiresSearchHandoff,
+      true,
+      "A second call in the same turn escalates to the handoff"
+    );
+
+    mockSearchManager.assertAllRequestsHandled();
+  } finally {
+    mockSearchManager.rejectAllRequests();
+    mockSearchManager.cleanupMocks();
+    await SpecialPowers.popPrefEnv();
+  }
+});
+
+add_task(async function test_fast_search_through_chat() {
+  // Drives the real caller: Chat.fetchWithHistory runs the tool-call loop, so
+  // the conversation-level effects happen the way they do in production. In
+  // particular the security flags are committed by Chat once the tool batch
+  // finishes, so this test never calls commit() itself.
+  const query = "how much are widgets?";
+  const results = [
+    {
+      title: "Widget Store",
+      url: "https://widgets.example/store",
+      text: "The featured widget is on sale for nine dollars today.",
+    },
+    {
+      title: "Widget Reviews",
+      url: "https://widgets.example/reviews",
+      text: "Reviewers agree the featured widget is a reasonable buy.",
+    },
+  ];
+
+  await pushSearchPrefs(true);
+  const mockSearchManager = new MockSearchManager();
+  const wireRequests = [];
+
   try {
     await withServer(
       {
-        toolCall: {
-          name: "search_the_web",
-          args: JSON.stringify({ query: "weather" }),
+        toolCall: { name: SEARCH_THE_WEB, args: JSON.stringify({ query }) },
+        followupChunks: ["Widgets cost nine dollars."],
+        onRequest(body) {
+          wireRequests.push(body);
         },
-        followupChunks: ["Here is what I found."],
-        onRequest: body => requestBodies.push(body),
       },
       async () => {
-        const engine = await openAIEngine.build({
+        const conversation = new ChatConversation({
+          pageUrl: new URL("https://example.com"),
+          pageMeta: {},
+        });
+        conversation.engine = await openAIEngine.build({
           model: TEST_MODEL,
           serviceType: SERVICE_TYPES.AI,
           purpose: PURPOSES.CHAT,
           flowId: null,
           feature: MODEL_FEATURES.CHAT,
         });
-        const conversation = new ChatConversation({
-          pageUrl: new URL("https://example.com"),
-          pageMeta: {},
-        });
-        conversation.engine = engine;
-        conversation.addUserMessage(
-          "what's the weather",
-          "https://example.com",
-          0
-        );
+        conversation.addUserMessage(query, "https://example.com", 0);
         conversation.addAssistantMessage("text", "");
 
-        const chatPromise = Chat.fetchWithHistory({ conversation });
-        (await mockSearchManager.captureRequest()).respond({ results: [] });
-        await chatPromise;
+        const fetchPromise = Chat.fetchWithHistory({ conversation });
+        await mockSearchManager.respondTo({ response: { results } });
+        await fetchPromise;
+
+        const toolMessages = conversation.messages.filter(
+          message => message.role === MESSAGE_ROLE.TOOL
+        );
+        Assert.equal(toolMessages.length, 1, "One search tool result recorded");
+        Assert.deepEqual(
+          toolMessages[0].content.body,
+          {
+            results: results.map(item => ({
+              title: sanitizeUntrustedContent(item.title),
+              url: item.url,
+              snippet: item.text,
+            })),
+            requiresSearchHandoff: false,
+          },
+          "The snippets reach the conversation as the tool result"
+        );
+
+        // No commit() here: Chat committed the staged flags itself.
+        Assert.ok(
+          conversation.securityProperties.privateData,
+          "Chat commits the private-data flag the tool staged"
+        );
+        Assert.ok(
+          conversation.securityProperties.untrustedInput,
+          "Chat commits the untrusted-input flag the tool staged"
+        );
+
+        Assert.deepEqual(
+          conversation.getCitationsSnapshot(),
+          results.map(item => ({ url: item.url, title: item.title })),
+          "Every returned result is registered as a citation, with its raw title"
+        );
+        Assert.deepEqual(
+          [...conversation.serpUrlsForAnonymousFetch],
+          results.map(item => item.url),
+          "The returned results are eligible for anonymous page extraction"
+        );
+
+        // The follow-up turn carries the tool result back to the model, which
+        // is where the generic URL tokenization has to have taken effect.
+        Assert.equal(
+          wireRequests.length,
+          2,
+          "A tool turn and a follow-up turn"
+        );
+        const wireToolMessage = wireRequests[1].messages.find(
+          message => message.role === "tool"
+        );
+        Assert.ok(
+          wireToolMessage,
+          "The follow-up turn includes the tool result"
+        );
+        for (const item of results) {
+          const token = conversation.urlToToken.get(item.url);
+          Assert.ok(token, `The result URL is tokenized: ${item.url}`);
+          Assert.ok(
+            wireToolMessage.content.includes(`§url_token: ${token}§`),
+            "The model sees the token for the result URL"
+          );
+          Assert.ok(
+            !wireToolMessage.content.includes(item.url),
+            "The model does not see the raw result URL"
+          );
+        }
       }
     );
-
-    const firstTools = (
-      requestBodies.find(body => Array.isArray(body.tools))?.tools ?? []
-    ).map(tool => tool.function?.name);
-    Assert.ok(
-      firstTools.includes("search_the_web"),
-      "search_the_web is offered on the first turn"
-    );
-    Assert.ok(
-      !firstTools.includes("run_search"),
-      "run_search is not offered up front"
-    );
-
-    const lastTools = (
-      requestBodies.filter(body => Array.isArray(body.tools)).at(-1)?.tools ??
-      []
-    ).map(tool => tool.function?.name);
-    Assert.ok(
-      lastTools.includes("run_search"),
-      "run_search is offered as a fallback after search_the_web runs"
-    );
-    Assert.ok(
-      !lastTools.includes("search_the_web"),
-      "search_the_web is removed once it has run"
-    );
-    mockSearchManager.assertAllRequestsHandled();
   } finally {
-    isAIWindowActiveStub.restore();
     mockSearchManager.rejectAllRequests();
     mockSearchManager.cleanupMocks();
     await SpecialPowers.popPrefEnv();
   }
 });
+
+// ---------------------------------------------------------------------------
+// Fast-path telemetry: the smart_window.search_the_web event, and the
+// smart_window.tool_call error a failed search has to populate.
+// ---------------------------------------------------------------------------
+
+// Processing drops two of these: one for a non-http URL, one for a stub
+// snippet.
+const TELEMETRY_RESULTS = [
+  { title: "First", url: "https://widgets.example/first", text: GOOD_SNIPPET },
+  {
+    title: "Not a web URL",
+    url: "ftp://widgets.example/file",
+    text: GOOD_SNIPPET,
+  },
+  { title: "Stub", url: "https://widgets.example/stub", text: "Sign in" },
+  {
+    title: "Second",
+    url: "https://widgets.example/second",
+    text: GOOD_SNIPPET,
+  },
+  { title: "Third", url: "https://widgets.example/third", text: GOOD_SNIPPET },
+];
+
+/**
+ * Reads back the one search_the_web event the flow is expected to record.
+ *
+ * @returns {object} The event's extra keys. Quantities read back as strings.
+ */
+function getSearchTheWebExtra() {
+  const events = Glean.smartWindow.searchTheWeb.testGetValue();
+  Assert.equal(events?.length, 1, "One search_the_web event is recorded");
+  return events[0].extra;
+}
+
+/**
+ * Asserts the stage durations are present and internally consistent.
+ *
+ * @param {object} extra - Extras from the search_the_web event.
+ */
+function assertDurationsAreCoherent(extra) {
+  const total = Number(extra.total_duration);
+  const retrieval = Number(extra.retrieval_duration);
+  const processing = Number(extra.processing_duration);
+  Assert.ok(
+    Number.isInteger(total) && total >= 0,
+    `total_duration is a non-negative integer: ${extra.total_duration}`
+  );
+  Assert.ok(
+    Number.isInteger(retrieval) && retrieval >= 0,
+    `retrieval_duration is a non-negative integer: ${extra.retrieval_duration}`
+  );
+  Assert.ok(
+    Number.isInteger(processing) && processing >= 0,
+    `processing_duration is a non-negative integer: ${extra.processing_duration}`
+  );
+  // The stages are disjoint segments of the flow, so together they cannot
+  // exceed it. Rounding each independently costs at most 1ms per stage.
+  Assert.lessOrEqual(
+    retrieval + processing,
+    total + 2,
+    "The stage durations fit inside the total"
+  );
+}
+
+add_task(async function test_fast_search_telemetry_success() {
+  Services.fog.testResetFOG();
+
+  const { result } = await runFastSearchWithMock({
+    mode: "sidebar",
+    response: { results: TELEMETRY_RESULTS },
+  });
+  Assert.equal(
+    result.results.length,
+    FAST_MAX_RETURNED,
+    "The search succeeded, so the event describes a success"
+  );
+
+  const extra = getSearchTheWebExtra();
+  Assert.equal(extra.error, "", "A successful search records no error");
+  Assert.equal(extra.http_status, "200", "The success status is recorded");
+  Assert.equal(
+    extra.results_retrieved,
+    String(TELEMETRY_RESULTS.length),
+    "Every result the provider returned is counted"
+  );
+  Assert.equal(
+    extra.results_returned,
+    String(FAST_MAX_RETURNED),
+    "Only the results handed to the assistant are counted as returned"
+  );
+  Assert.equal(
+    extra.snippet_chars_returned,
+    String(GOOD_SNIPPET.length * FAST_MAX_RETURNED),
+    "The characters of every returned snippet are counted"
+  );
+  Assert.equal(
+    extra.snippet_chars_truncated,
+    "0",
+    "Nothing was truncated, since every snippet is under the cap"
+  );
+  Assert.equal(extra.location, "sidebar", "The surface is recorded");
+  assertDurationsAreCoherent(extra);
+});
+
+add_task(async function test_fast_search_telemetry_snippet_characters() {
+  // One snippet under the cap and one over it, so the returned count covers
+  // both and the truncated count is exactly the overflow.
+  Services.fog.testResetFOG();
+
+  const longSnippet = "word ".repeat(1000);
+  const collapsedLength = longSnippet.replace(/\s+/g, " ").trim().length;
+
+  const { result } = await runFastSearchWithMock({
+    response: {
+      results: [
+        {
+          title: "Short",
+          url: "https://widgets.example/short",
+          text: GOOD_SNIPPET,
+        },
+        {
+          title: "Long",
+          url: "https://widgets.example/long",
+          text: longSnippet,
+        },
+      ],
+    },
+  });
+  Assert.equal(result.results.length, 2, "Both results reach the assistant");
+
+  const extra = getSearchTheWebExtra();
+  Assert.equal(extra.error, "", "The search succeeded");
+  Assert.equal(
+    extra.snippet_chars_returned,
+    // The truncated snippet carries a single appended ellipsis character.
+    String(GOOD_SNIPPET.length + FAST_MAX_SNIPPET_LENGTH + 1),
+    "Returned characters are the snippets as the assistant received them"
+  );
+  Assert.equal(
+    extra.snippet_chars_truncated,
+    String(collapsedLength - FAST_MAX_SNIPPET_LENGTH),
+    "Truncated characters are exactly what the cap removed"
+  );
+});
+
+/**
+ * An error named the way the provider's request deadline surfaces, so a
+ * timeout can be exercised without waiting one out.
+ *
+ * @returns {Error}
+ */
+function abortError() {
+  return Object.assign(new Error("aborted"), { name: "AbortError" });
+}
+
+// Retrieval failures and empty result sets, each stating the category and
+// status the event has to record. The optional count fields are asserted only
+// where a case is specifically about them.
+const ERROR_CASES = [
+  {
+    name: "no_results",
+    mock: { response: { results: [] } },
+    error: "no_results",
+    status: "200",
+    retrieved: "0",
+    returned: "0",
+  },
+  {
+    name: "results_all_dropped",
+    mock: {
+      response: {
+        results: [
+          {
+            title: "Stub",
+            url: "https://widgets.example/stub",
+            text: "Sign in",
+          },
+        ],
+      },
+    },
+    error: "no_results",
+    status: "200",
+    retrieved: "1",
+    returned: "0",
+  },
+  {
+    name: "http_error",
+    mock: { response: "upstream exploded", status: 503 },
+    error: "http_error",
+    status: "503",
+    retrieved: "0",
+    processingZero: true,
+  },
+  {
+    name: "network_error",
+    mock: {
+      rejectWith: new TypeError(
+        "NetworkError when attempting to fetch resource"
+      ),
+    },
+    error: "network_error",
+    status: "0",
+  },
+  {
+    name: "timeout",
+    mock: { rejectWith: abortError() },
+    error: "timeout",
+    status: "0",
+  },
+  {
+    name: "unparseable_body",
+    mock: { response: "<html>gateway error</html>", jsonThrows: true },
+    error: "retrieval_failed",
+    status: "200",
+  },
+];
+
+add_task(async function test_fast_search_telemetry_error_categories() {
+  for (const testCase of ERROR_CASES) {
+    info(`error category: ${testCase.name}`);
+    Services.fog.testResetFOG();
+
+    const { result } = await runFastSearchWithMock(testCase.mock);
+    Assert.ok(result.error, `${testCase.name}: the flow reports a failure`);
+
+    const extra = getSearchTheWebExtra();
+    Assert.equal(
+      extra.error,
+      testCase.error,
+      `${testCase.name}: error category`
+    );
+    Assert.equal(
+      extra.http_status,
+      testCase.status,
+      `${testCase.name}: http_status`
+    );
+    Assert.equal(
+      extra.snippet_chars_returned,
+      "0",
+      `${testCase.name}: no snippet characters returned`
+    );
+    Assert.equal(
+      extra.snippet_chars_truncated,
+      "0",
+      `${testCase.name}: no snippet characters truncated`
+    );
+    if (testCase.retrieved !== undefined) {
+      Assert.equal(
+        extra.results_retrieved,
+        testCase.retrieved,
+        `${testCase.name}: results_retrieved`
+      );
+    }
+    if (testCase.returned !== undefined) {
+      Assert.equal(
+        extra.results_returned,
+        testCase.returned,
+        `${testCase.name}: results_returned`
+      );
+    }
+    if (testCase.processingZero) {
+      Assert.equal(
+        extra.processing_duration,
+        "0",
+        `${testCase.name}: processing never ran, so it is reported as 0`
+      );
+    }
+    assertDurationsAreCoherent(extra);
+  }
+});
+
+// Failures that happen before the provider issues a request, so no mocked
+// response is involved and nothing can be retrieved.
+const PREREQUEST_FAILURE_CASES = [
+  {
+    name: "invalid_query",
+    query: "   ",
+    endpoint: SEARCH_ENDPOINT,
+    error: "invalid_query",
+    retrievalZero: true,
+  },
+  {
+    name: "config_error",
+    query: "widgets",
+    endpoint: "",
+    error: "config_error",
+  },
+];
+
+add_task(async function test_fast_search_telemetry_prerequest_failures() {
+  for (const testCase of PREREQUEST_FAILURE_CASES) {
+    info(`pre-request failure: ${testCase.name}`);
+    Services.fog.testResetFOG();
+    await pushSearchPrefs(true, testCase.endpoint);
+
+    try {
+      const conversation = new ChatConversation({
+        pageUrl: new URL("https://example.com"),
+        pageMeta: {},
+      });
+      const result = await runSearchTheWeb(
+        { query: testCase.query },
+        conversation
+      );
+      Assert.ok(result.error, `${testCase.name}: the flow reports a failure`);
+
+      const extra = getSearchTheWebExtra();
+      Assert.equal(
+        extra.error,
+        testCase.error,
+        `${testCase.name}: error category`
+      );
+      Assert.equal(
+        extra.http_status,
+        "0",
+        `${testCase.name}: no request was made`
+      );
+      Assert.equal(
+        extra.results_retrieved,
+        "0",
+        `${testCase.name}: nothing was retrieved`
+      );
+      if (testCase.retrievalZero) {
+        Assert.equal(
+          extra.retrieval_duration,
+          "0",
+          `${testCase.name}: no retrieval was attempted`
+        );
+      }
+    } finally {
+      await SpecialPowers.popPrefEnv();
+    }
+  }
+});
+
+add_task(async function test_fast_search_telemetry_skipped_for_handoff() {
+  // The handoff retrieves nothing, so reporting it as a search would add
+  // zero-duration successes and dilute the latency distribution.
+  Services.fog.testResetFOG();
+  await pushSearchPrefs(true);
+
+  const mockSearchManager = new MockSearchManager();
+  const conversation = new ChatConversation({
+    pageUrl: new URL("https://example.com"),
+    pageMeta: {},
+  });
+
+  try {
+    const firstPromise = runSearchTheWeb({ query: "weather" }, conversation);
+    (await mockSearchManager.captureRequest()).respond({
+      results: TELEMETRY_RESULTS,
+    });
+    await firstPromise;
+
+    const second = await runSearchTheWeb(
+      { query: "weather again" },
+      conversation
+    );
+    Assert.ok(second.requiresSearchHandoff, "The second call escalates");
+
+    const events = Glean.smartWindow.searchTheWeb.testGetValue();
+    Assert.equal(
+      events?.length,
+      1,
+      "Only the call that actually searched is recorded"
+    );
+
+    mockSearchManager.assertAllRequestsHandled();
+  } finally {
+    mockSearchManager.rejectAllRequests();
+    mockSearchManager.cleanupMocks();
+    await SpecialPowers.popPrefEnv();
+  }
+});
+
+add_task(async function test_grounded_path_records_no_search_the_web_event() {
+  // The event covers the snippets-based flow only.
+  Services.fog.testResetFOG();
+  await pushSearchPrefs(false);
+
+  const mockSearchManager = new MockSearchManager();
+  const conversation = new ChatConversation({
+    pageUrl: new URL("https://example.com"),
+    pageMeta: {},
+  });
+
+  try {
+    const runPromise = runSearchTheWeb({ query: "widgets" }, conversation);
+    (await mockSearchManager.captureRequest()).respond({ results: [] });
+    await runPromise;
+
+    Assert.equal(
+      Glean.smartWindow.searchTheWeb.testGetValue(),
+      null,
+      "The grounded path records no search_the_web event"
+    );
+
+    mockSearchManager.assertAllRequestsHandled();
+  } finally {
+    mockSearchManager.rejectAllRequests();
+    mockSearchManager.cleanupMocks();
+    await SpecialPowers.popPrefEnv();
+  }
+});
+
+add_task(async function test_fast_search_failure_marks_tool_call_error() {
+  // Drives the real caller so tool_call is recorded the way it is in
+  // production, where a failed search resolves with an error-bearing result
+  // instead of throwing.
+  Services.fog.testResetFOG();
+  await pushSearchPrefs(true);
+
+  const query = "how much are widgets?";
+  const mockSearchManager = new MockSearchManager();
+
+  try {
+    await withServer(
+      {
+        toolCall: { name: SEARCH_THE_WEB, args: JSON.stringify({ query }) },
+        followupChunks: ["I could not search just now."],
+      },
+      async () => {
+        const conversation = new ChatConversation({
+          pageUrl: new URL("https://example.com"),
+          pageMeta: {},
+        });
+        conversation.engine = await openAIEngine.build({
+          model: TEST_MODEL,
+          serviceType: SERVICE_TYPES.AI,
+          purpose: PURPOSES.CHAT,
+          flowId: null,
+          feature: MODEL_FEATURES.CHAT,
+        });
+        conversation.addUserMessage(query, "https://example.com", 0);
+        conversation.addAssistantMessage("text", "");
+
+        const fetchPromise = Chat.fetchWithHistory({
+          conversation,
+          mode: "fullpage",
+        });
+        await mockSearchManager.respondTo({
+          response: "upstream exploded",
+          status: 503,
+        });
+        await fetchPromise;
+
+        const toolCalls = Glean.smartWindow.toolCall.testGetValue();
+        Assert.equal(toolCalls?.length, 1, "One tool_call event is recorded");
+        Assert.equal(
+          toolCalls[0].extra.tool_name,
+          SEARCH_THE_WEB,
+          "The event is attributed to search_the_web"
+        );
+        Assert.equal(
+          toolCalls[0].extra.error,
+          "execution_failed",
+          "A failed search is not counted as a successful tool call"
+        );
+
+        const extra = getSearchTheWebExtra();
+        Assert.equal(
+          extra.error,
+          "http_error",
+          "The precise reason lives on the search_the_web event"
+        );
+        Assert.equal(
+          extra.location,
+          "fullpage",
+          "Chat passes the surface through to the flow"
+        );
+      }
+    );
+  } finally {
+    mockSearchManager.rejectAllRequests();
+    mockSearchManager.cleanupMocks();
+    await SpecialPowers.popPrefEnv();
+  }
+});
+
+add_task(
+  async function test_fast_search_success_leaves_tool_call_error_empty() {
+    Services.fog.testResetFOG();
+    await pushSearchPrefs(true);
+
+    const query = "how much are widgets?";
+    const mockSearchManager = new MockSearchManager();
+
+    try {
+      await withServer(
+        {
+          toolCall: { name: SEARCH_THE_WEB, args: JSON.stringify({ query }) },
+          followupChunks: ["Widgets cost nine dollars."],
+        },
+        async () => {
+          const conversation = new ChatConversation({
+            pageUrl: new URL("https://example.com"),
+            pageMeta: {},
+          });
+          conversation.engine = await openAIEngine.build({
+            model: TEST_MODEL,
+            serviceType: SERVICE_TYPES.AI,
+            purpose: PURPOSES.CHAT,
+            flowId: null,
+            feature: MODEL_FEATURES.CHAT,
+          });
+          conversation.addUserMessage(query, "https://example.com", 0);
+          conversation.addAssistantMessage("text", "");
+
+          const fetchPromise = Chat.fetchWithHistory({ conversation });
+          await mockSearchManager.respondTo({
+            response: { results: TELEMETRY_RESULTS },
+          });
+          await fetchPromise;
+
+          const toolCalls = Glean.smartWindow.toolCall.testGetValue();
+          Assert.equal(toolCalls?.length, 1, "One tool_call event is recorded");
+          Assert.equal(
+            toolCalls[0].extra.error,
+            "",
+            "A successful search still reports no tool_call error"
+          );
+        }
+      );
+    } finally {
+      mockSearchManager.rejectAllRequests();
+      mockSearchManager.cleanupMocks();
+      await SpecialPowers.popPrefEnv();
+    }
+  }
+);

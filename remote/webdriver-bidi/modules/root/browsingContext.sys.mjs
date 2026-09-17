@@ -14,6 +14,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   capture: "chrome://remote/content/shared/Capture.sys.mjs",
   ContextDescriptorType:
     "chrome://remote/content/shared/messagehandler/MessageHandler.sys.mjs",
+  Downloads: "resource://gre/modules/Downloads.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   EventPromise: "chrome://remote/content/shared/Sync.sys.mjs",
   generateUUID: "chrome://remote/content/shared/UUID.sys.mjs",
@@ -399,6 +400,16 @@ class BrowsingContextModule extends RootBiDiModule {
    */
 
   /**
+   * Used as an argument for the browsingContext.captureScreenshot command to
+   * represent the maximum dimensions of the output image.
+   *
+   * @typedef ImageSize
+   *
+   * @property {number=} maxHeight
+   * @property {number=} maxWidth
+   */
+
+  /**
    * Used as an argument for browsingContext.captureScreenshot command
    * to represent an element which is going to be a target of the command.
    *
@@ -420,6 +431,8 @@ class BrowsingContextModule extends RootBiDiModule {
    * @param {OriginType=} options.origin
    * @param {ImageFormat=} options.format
    *    Configuration options for the output image.
+   * @param {ImageSize=} options.imageSize
+   *    Maximum dimensions of the output image.
    *
    * @throws {NoSuchFrameError}
    *     If the browsing context cannot be found.
@@ -430,6 +443,7 @@ class BrowsingContextModule extends RootBiDiModule {
       context: contextId,
       origin = OriginType.viewport,
       format = { type: "image/png", quality: undefined },
+      imageSize = null,
     } = options;
 
     lazy.assert.string(
@@ -467,6 +481,24 @@ class BrowsingContextModule extends RootBiDiModule {
         imageQuality => imageQuality >= 0 && imageQuality <= 1,
         lazy.pprint`Expected "quality" to be in the range of 0 to 1, got ${quality}`
       )(quality);
+    }
+
+    let maxHeight, maxWidth;
+    if (imageSize !== null) {
+      lazy.assert.object(
+        imageSize,
+        lazy.pprint`Expected "imageSize" to be an object, got ${imageSize}`
+      );
+
+      maxHeight = imageSize.maxHeight;
+      maxWidth = imageSize.maxWidth;
+      for (const [name, value] of Object.entries({ maxHeight, maxWidth })) {
+        if (value !== undefined && value !== null) {
+          const errorMessage = lazy.pprint`Expected "imageSize.${name}" to be an integer greater than 0, got ${value}`;
+          lazy.assert.integer(value, errorMessage);
+          lazy.assert.that(size => size >= 1, errorMessage)(value);
+        }
+      }
     }
 
     if (clip !== null) {
@@ -546,7 +578,8 @@ class BrowsingContextModule extends RootBiDiModule {
       rect.x,
       rect.y,
       rect.width,
-      rect.height
+      rect.height,
+      { maxHeight, maxWidth }
     );
 
     return {
@@ -582,7 +615,9 @@ class BrowsingContextModule extends RootBiDiModule {
       lazy.pprint`Expected "promptUnload" to be a boolean, got ${promptUnload}`
     );
 
-    const context = this._getNavigable(contextId);
+    const context = this._getNavigable(contextId, {
+      skipPrivilegeCheck: true,
+    });
     lazy.assert.topLevel(
       context,
       lazy.pprint`Browsing context with id ${contextId} is not top-level`
@@ -953,7 +988,9 @@ class BrowsingContextModule extends RootBiDiModule {
         );
       }
 
-      contexts = [this._getNavigable(rootId, { supportsChromeScope: true })];
+      contexts = [
+        this._getNavigable(rootId, { supportsPrivilegedScope: true }),
+      ];
     } else {
       switch (scope) {
         case MozContextScope.CHROME: {
@@ -1381,7 +1418,11 @@ class BrowsingContextModule extends RootBiDiModule {
       );
     }
 
-    const context = this._getNavigable(contextId);
+    // Skip the privilege check here since navigate needs to work regardless of
+    // the current page. The URL safety check below handles destination restrictions.
+    const context = this._getNavigable(contextId, {
+      skipPrivilegeCheck: true,
+    });
 
     // webProgress will be stable even if the context navigates, retrieve it
     // immediately before doing any asynchronous call.
@@ -1395,6 +1436,8 @@ class BrowsingContextModule extends RootBiDiModule {
         id: context.id,
       },
       retryOnAbort: true,
+      // Reading the base URL is safe and must work while navigating a privileged page.
+      skipPrivilegeCheck: true,
     });
 
     let targetURI;
@@ -1636,7 +1679,11 @@ class BrowsingContextModule extends RootBiDiModule {
       );
     }
 
-    const context = this._getNavigable(contextId);
+    // Skip the privilege check here since reload needs to work regardless of
+    // the current page. The URL safety check below handles destination restrictions.
+    const context = this._getNavigable(contextId, {
+      skipPrivilegeCheck: true,
+    });
 
     // Disallow refreshing privileged URLs
     // unless system access is enabled.
@@ -1658,9 +1705,16 @@ class BrowsingContextModule extends RootBiDiModule {
         const { sessionHistory } = context;
         const flags = Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
 
-        // Bug 2026546: As workaround use sessionHistory if available to avoid
-        // issues with frames.
-        if (sessionHistory?.count && sessionHistory?.index >= 0) {
+        // Bug 2026546: If available, use sessionHistory to properly reload
+        // top-level contexts which contain frames. Note that sessionHistory
+        // always belongs to the top-level context, so it must only be used
+        // for top-level navigables, otherwise reloading a child navigable
+        // would reload the whole tab.
+        if (
+          context.parent === null &&
+          sessionHistory?.count &&
+          sessionHistory?.index >= 0
+        ) {
           sessionHistory.reload(flags);
         } else {
           context.reload(flags);
@@ -2000,7 +2054,7 @@ class BrowsingContextModule extends RootBiDiModule {
       },
     });
 
-    const downloadsDir = Services.dirsvc.get("DfltDwnld", Ci.nsIFile).path;
+    const downloadsDir = await lazy.Downloads.getPreferredDownloadsDirectory();
     const screencast = lazy.generateUUID();
 
     // Extract video file extension from mimeType.
@@ -2153,7 +2207,12 @@ class BrowsingContextModule extends RootBiDiModule {
       lazy.pprint`Expected "context" to be a string, got ${contextId}`
     );
 
-    const context = this._getNavigable(contextId);
+    // Skip the privilege check here since traverseHistory needs to work
+    // regardless of the current page. The URL safety check below handles
+    // destination restrictions.
+    const context = this._getNavigable(contextId, {
+      skipPrivilegeCheck: true,
+    });
 
     lazy.assert.topLevel(
       context,
@@ -2901,7 +2960,12 @@ class BrowsingContextModule extends RootBiDiModule {
       "_awaitVisibilityState",
       browsingContext.id,
       { value: expectedState, timeout },
-      { retryOnAbort: true }
+      {
+        retryOnAbort: true,
+        // Awaiting the visibility state is safe and can target a context
+        // (e.g. a previously selected tab) regardless of its privilege level.
+        skipPrivilegeCheck: true,
+      }
     );
   }
 
@@ -3013,7 +3077,12 @@ class BrowsingContextModule extends RootBiDiModule {
           height: targetHeight,
           width: targetWidth,
         },
-        { retryOnAbort: true }
+        {
+          retryOnAbort: true,
+          // Awaiting the resized viewport dimensions is safe
+          // regardless of the context's privilege level.
+          skipPrivilegeCheck: true,
+        }
       );
     }
   }

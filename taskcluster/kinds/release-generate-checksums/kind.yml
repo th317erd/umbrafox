@@ -46,6 +46,7 @@ task-defaults:
               path: /builds/worker/SHA512SUMS
               type: file
     run:
+        clone-with: hg
         using: mozharness
         config: []  # See extra-config below
         actions: [create-virtualenv, collect-individual-checksums, create-big-checksums, create-summary]

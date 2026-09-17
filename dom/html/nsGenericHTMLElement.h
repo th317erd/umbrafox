@@ -100,6 +100,18 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
   void SetPopover(const nsAString& aPopover, mozilla::ErrorResult& aError) {
     SetOrRemoveNullableStringAttr(nsGkAtoms::popover, aPopover, aError);
   }
+  void GetContainerTiming(mozilla::dom::DOMString& aValue) const {
+    GetHTMLAttr(nsGkAtoms::containertiming, aValue);
+  }
+  void SetContainerTiming(const nsAString& aValue) {
+    SetHTMLAttr(nsGkAtoms::containertiming, aValue);
+  }
+  bool ContainerTimingIgnore() const {
+    return GetBoolAttr(nsGkAtoms::containerTimingIgnore);
+  }
+  void SetContainerTimingIgnore(bool aValue) {
+    SetBoolAttr(nsGkAtoms::containerTimingIgnore, aValue);
+  }
 
   void GetHidden(mozilla::dom::Nullable<
                  mozilla::dom::OwningBooleanOrUnrestrictedDoubleOrString>&
@@ -235,6 +247,8 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
                                                 ErrorResult& aRv) override;
 
   MOZ_CAN_RUN_SCRIPT void FocusCandidate(Element*, bool aClearUpFocus);
+
+  Element* FindShadowPseudo(mozilla::PseudoStyleType aType) const;
 
   void SetNonce(const nsAString& aNonce) {
     SetProperty(nsGkAtoms::nonce, new nsString(aNonce),
@@ -421,7 +435,7 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
   bool ParseBackgroundAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
                                 const nsAString& aValue, nsAttrValue& aResult);
 
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
+  bool IsNoNamespaceAttrMapped(const nsAtom* aAttribute) const override;
   nsMapRuleToAttributesFunc GetAttributeMappingFunction() const override;
 
   /**
@@ -494,9 +508,6 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
    */
   static bool ParseImageAttribute(nsAtom* aAttribute, const nsAString& aString,
                                   nsAttrValue& aResult);
-
-  static bool ParseReferrerAttribute(const nsAString& aString,
-                                     nsAttrValue& aResult);
 
   /**
    * Convert a frameborder string to value (yes/no/1/0)
@@ -680,28 +691,6 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
    * @param doc the document
    */
   static bool InNavQuirksMode(Document*);
-
-  /**
-   * Gets the absolute URI value of an attribute, by resolving any relative
-   * URIs in the attribute against the baseuri of the element. If the attribute
-   * isn't a relative URI the value of the attribute is returned as is. Only
-   * works for attributes in null namespace.
-   *
-   * @param aAttr      name of attribute.
-   * @param aBaseAttr  name of base attribute.
-   * @param aResult    result value [out]
-   */
-  void GetURIAttr(nsAtom* aAttr, nsAtom* aBaseAttr, nsAString& aResult) const;
-  void GetURIAttr(nsAtom* aAttr, nsAtom* aBaseAttr, nsACString& aResult) const;
-
-  /**
-   * Gets the absolute URI values of an attribute, by resolving any relative
-   * URIs in the attribute against the baseuri of the element. If a substring
-   * isn't a relative URI, the substring is returned as is. Only works for
-   * attributes in null namespace.
-   */
-  const nsAttrValue* GetURIAttr(nsAtom* aAttr, nsAtom* aBaseAttr,
-                                nsIURI** aURI) const;
 
   bool IsHidden() const { return HasAttr(nsGkAtoms::hidden); }
 
@@ -968,20 +957,20 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
   }
 
   /**
-   * Locates the EditorBase associated with this node.  In general this is
-   * equivalent to GetEditorInternal(), but for designmode or contenteditable,
-   * this may need to get an editor that's not actually on this element's
-   * associated TextControlFrame.  This is used by the spellchecking routines
-   * to get the editor affected by changing the spellcheck attribute on this
-   * node.
+   * Return an associated editor for this element.
+   * If this is an HTMLBodyElement and it's the primary one in the document,
+   * this returns HTMLEditor if the document is in the designMode or there is
+   * an element has `contenteditable`.
+   * If this is a TextControlElement, returns **extant** TextEditor.
+   * Otherwise, returns nullptr.
    */
-  virtual already_AddRefed<mozilla::EditorBase> GetAssociatedEditor();
+  mozilla::EditorBase* GetAssociatedExtantEditor() const;
 
   /**
    * Ensures all editors associated with a subtree are synced, for purposes of
    * spellchecking.
    */
-  static void SyncEditorsOnSubtree(nsIContent* content);
+  static void SyncSpellCheckerStateOfExtantEditorsOnSubtree(nsIContent&);
 
   [[nodiscard]] inline static bool IsEditableState(
       ContentEditableState aState) {
@@ -1072,7 +1061,9 @@ class nsGenericHTMLFormElement : public nsGenericHTMLElement {
    */
   virtual void FieldSetDisabledChanged(bool aNotify);
 
-  void FieldSetFirstLegendChanged(bool aNotify) { UpdateFieldSet(aNotify); }
+  void FieldSetFirstLegendChanged(bool aNotify) {
+    FieldSetDisabledChanged(aNotify);
+  }
 
   /**
    * This callback is called by a fieldset on all it's elements when it's being
@@ -1119,6 +1110,7 @@ class nsGenericHTMLFormElement : public nsGenericHTMLElement {
    * state to decide whether our disabled flag should be toggled.
    */
   virtual void UpdateDisabledState(bool aNotify);
+  bool IsDisabledByAncestorFieldSet() const;
   bool IsReadOnlyInternal() const final;
 
   virtual void SetFormInternal(mozilla::dom::HTMLFormElement* aForm,
@@ -1126,6 +1118,10 @@ class nsGenericHTMLFormElement : public nsGenericHTMLElement {
 
   virtual mozilla::dom::HTMLFormElement* GetFormInternal() const {
     return nullptr;
+  }
+
+  mozilla::dom::HTMLFormElement* GetFormIfRegistered() const {
+    return HasFlag(ADDED_TO_FORM) ? GetFormInternal() : nullptr;
   }
 
   virtual mozilla::dom::HTMLFieldSetElement* GetFieldSetInternal() const {
@@ -1211,6 +1207,8 @@ class nsGenericHTMLFormControlElement : public nsGenericHTMLFormElement,
       already_AddRefed<mozilla::dom::NodeInfo> aNodeInfo, FormControlType);
 
   NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsGenericHTMLFormControlElement,
+                                           nsGenericHTMLFormElement);
 
   NS_IMPL_FROMNODE_HELPER(nsGenericHTMLFormControlElement,
                           IsHTMLFormControlElement())
@@ -1271,7 +1269,7 @@ class nsGenericHTMLFormControlElement : public nsGenericHTMLFormElement,
   void SetFormAutofillState(const nsAString& aState);
 
   /** The form that contains this control */
-  mozilla::dom::HTMLFormElement* mForm;
+  RefPtr<mozilla::dom::HTMLFormElement> mForm;
 
   /* This is a pointer to our closest fieldset parent if any */
   mozilla::dom::HTMLFieldSetElement* mFieldSet;

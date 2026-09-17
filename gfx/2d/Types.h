@@ -104,6 +104,9 @@ enum class SurfaceFormat : int8_t {
   // machine endian.
   R16G16B16A16F,
 
+  CMYK,
+  InvertedCMYK,
+
   // This represents the unknown format.
   UNKNOWN,  // TODO: Replace uses with Maybe<SurfaceFormat>.
 
@@ -193,6 +196,12 @@ inline std::optional<SurfaceFormatInfo> Info(const SurfaceFormat aFormat) {
       info.isYuv = false;
       break;
 
+    case SurfaceFormat::CMYK:
+    case SurfaceFormat::InvertedCMYK:
+      info.hasColor = true;
+      info.hasAlpha = false;
+      break;
+
     case SurfaceFormat::UNKNOWN:
       break;
   }
@@ -208,6 +217,8 @@ inline std::optional<SurfaceFormatInfo> Info(const SurfaceFormat aFormat) {
     case SurfaceFormat::R8G8B8X8:
     case SurfaceFormat::X8R8G8B8:
     case SurfaceFormat::R16G16:
+    case SurfaceFormat::CMYK:
+    case SurfaceFormat::InvertedCMYK:
       info.bytesPerPixel = 4;
       break;
 
@@ -321,6 +332,8 @@ static inline int BytesPerPixel(SurfaceFormat aFormat) {
     case SurfaceFormat::R10G10B10A2_UINT32:
     case SurfaceFormat::R10G10B10X2_UINT32:
     case SurfaceFormat::R16G16:
+    case SurfaceFormat::CMYK:
+    case SurfaceFormat::InvertedCMYK:
       return 4;
     case SurfaceFormat::R16G16B16A16F:
       return 8;
@@ -370,6 +383,8 @@ inline bool IsOpaque(SurfaceFormat aFormat) {
     case SurfaceFormat::NV16:
     case SurfaceFormat::P210:
     case SurfaceFormat::YUY2:
+    case SurfaceFormat::CMYK:
+    case SurfaceFormat::InvertedCMYK:
       return true;
     case SurfaceFormat::B8G8R8A8:
     case SurfaceFormat::R8G8B8A8:
@@ -533,6 +548,9 @@ enum class YUVColorSpace : uint8_t {
   _Last = Identity,
 };
 
+std::ostream& operator<<(std::ostream& aOut,
+                         const YUVColorSpace& aYUVColorSpace);
+
 enum class ColorDepth : uint8_t {
   COLOR_8,
   COLOR_10,
@@ -591,12 +609,17 @@ enum class TransferFunction : uint8_t {
   Default = BT709,
 };
 
+std::ostream& operator<<(std::ostream& aOut,
+                         const TransferFunction& aTransferFunction);
+
 enum class ColorRange : uint8_t {
   LIMITED,
   FULL,
   _First = LIMITED,
   _Last = FULL,
 };
+
+std::ostream& operator<<(std::ostream& aOut, const ColorRange& aColorRange);
 
 // HDR metadata structures, populated from codec-level signalling.
 struct Chromaticity {
@@ -700,6 +723,8 @@ enum class ColorSpace2 : uint8_t {
   _First = Display,
   _Last = BT2020,
 };
+
+std::ostream& operator<<(std::ostream& aOut, const ColorSpace2& aColorSpace2);
 
 inline ColorSpace2 ToColorSpace2(const YUVColorSpace in) {
   switch (in) {
@@ -918,6 +943,9 @@ enum class ChromaSubsampling : uint8_t {
   _Last = HALF_WIDTH_AND_HEIGHT,
 };
 
+std::ostream& operator<<(std::ostream& aOut,
+                         const ChromaSubsampling& aChromaSubsampling);
+
 template <typename T>
 static inline T ChromaSize(const T& aYSize, ChromaSubsampling aSubsampling) {
   switch (aSubsampling) {
@@ -988,14 +1016,7 @@ enum class RecorderType : int8_t {
   WEBRENDER
 };
 
-enum class FontType : int8_t {
-  DWRITE,
-  GDI,
-  MAC,
-  FONTCONFIG,
-  FREETYPE,
-  UNKNOWN
-};
+enum class FontType : int8_t { DWRITE, MAC, FONTCONFIG, FREETYPE, UNKNOWN };
 
 enum class NativeSurfaceType : int8_t {
   D3D10_TEXTURE,
@@ -1157,11 +1178,7 @@ struct sRGBColor {
            uint32_t(r * 255.0f) << 16 | uint32_t(a * 255.0f) << 24;
   }
 
-  bool operator==(const sRGBColor& aColor) const {
-    return r == aColor.r && g == aColor.g && b == aColor.b && a == aColor.a;
-  }
-
-  bool operator!=(const sRGBColor& aColor) const { return !(*this == aColor); }
+  bool operator==(const sRGBColor& aColor) const = default;
 
   Float r, g, b, a;
 };
@@ -1227,13 +1244,7 @@ struct DeviceColor {
            uint32_t(r * 255.0f) << 16 | uint32_t(a * 255.0f) << 24;
   }
 
-  bool operator==(const DeviceColor& aColor) const {
-    return r == aColor.r && g == aColor.g && b == aColor.b && a == aColor.a;
-  }
-
-  bool operator!=(const DeviceColor& aColor) const {
-    return !(*this == aColor);
-  }
+  bool operator==(const DeviceColor& aColor) const = default;
 
   friend std::ostream& operator<<(std::ostream& aOut,
                                   const DeviceColor& aColor);
@@ -1276,8 +1287,9 @@ enum class DeviceResetDetectPlace {
   WR_SIMULATE,
   WIDGET,
   CANVAS_TRANSLATOR,
+  WR_BEFORE_READBACK,
   _First = WR_BEGIN_FRAME,
-  _Last = CANVAS_TRANSLATOR,
+  _Last = WR_BEFORE_READBACK,
 };
 
 enum class ForcedDeviceResetReason {

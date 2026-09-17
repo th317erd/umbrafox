@@ -13,8 +13,8 @@ import { IPProtectionActivator } from "moz-src:///toolkit/components/ipprotectio
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  IPPExceptionsManager:
-    "moz-src:///toolkit/components/ipprotection/IPPExceptionsManager.sys.mjs",
+  IPPSiteRuleManager:
+    "moz-src:///toolkit/components/ipprotection/IPPSiteRuleManager.sys.mjs",
   IPProtection:
     "moz-src:///browser/components/ipprotection/IPProtection.sys.mjs",
   IPProtectionService:
@@ -32,6 +32,7 @@ if (AppConstants.MOZ_ENTERPRISE) {
   });
 }
 import { IPPUsageHelper } from "moz-src:///browser/components/ipprotection/IPPUsageHelper.sys.mjs";
+import { IPPL10nHelper } from "moz-src:///browser/components/ipprotection/IPPL10nHelper.sys.mjs";
 import { IPPOnboardingMessage } from "moz-src:///browser/components/ipprotection/IPPOnboardingMessageHelper.sys.mjs";
 import { IPPOptOutHelper } from "moz-src:///browser/components/ipprotection/IPPOptOutHelper.sys.mjs";
 import { IPProtectionAlertManager } from "moz-src:///browser/components/ipprotection/IPProtectionAlertManager.sys.mjs";
@@ -60,7 +61,7 @@ class UIHelper {
       this.handleEvent
     );
     lazy.IPProtection.uninit();
-    lazy.IPPExceptionsManager.uninit();
+    lazy.IPPSiteRuleManager.uninit();
   }
 
   #handleEvent(_event) {
@@ -72,7 +73,7 @@ class UIHelper {
       state !== lazy.IPProtectionStates.UNAVAILABLE
     ) {
       lazy.IPProtection.init();
-      lazy.IPPExceptionsManager.init();
+      lazy.IPPSiteRuleManager.init();
     }
 
     if (
@@ -81,7 +82,7 @@ class UIHelper {
         state === lazy.IPProtectionStates.UNAVAILABLE)
     ) {
       lazy.IPProtection.uninit();
-      lazy.IPPExceptionsManager.uninit();
+      lazy.IPPSiteRuleManager.uninit();
     }
   }
 }
@@ -96,6 +97,7 @@ function pickAuthProvider() {
 const authProvider = pickAuthProvider();
 
 IPProtectionActivator.addHelpers([
+  IPPL10nHelper,
   IPPOnboardingMessage,
   IPPUsageHelper,
   new UIHelper(),

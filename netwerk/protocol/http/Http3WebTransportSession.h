@@ -7,6 +7,7 @@
 
 #include "Http3StreamBase.h"
 #include "WebTransportSessionBase.h"
+#include "mozilla/dom/PWebTransport.h"
 #include "mozilla/net/NeqoHttp3Conn.h"
 #include "nsIWebTransport.h"
 
@@ -92,8 +93,14 @@ class Http3WebTransportSession final : public WebTransportSessionBase,
   void Close(nsresult aResult) override;
 
   void CloseSession(uint32_t aStatus, const nsACString& aReason) override;
+  bool CloseSessionAndGetStats(uint32_t aStatus, const nsACString& aReason,
+                               mozilla::dom::WebTransportStatsData& aStats);
   void OnSessionClosed(bool aCleanly, uint32_t aStatus,
                        const nsACString& aReason);
+  void OnSessionClosedWithStats(
+      bool aCleanly, uint32_t aStatus, const nsACString& aReason,
+      const mozilla::dom::WebTransportStatsData& aStats);
+  void OnSessionDraining();
 
   uint64_t GetStreamId() const override;
 
@@ -108,12 +115,22 @@ class Http3WebTransportSession final : public WebTransportSessionBase,
   already_AddRefed<Http3WebTransportStream> OnIncomingWebTransportStream(
       WebTransportStreamType aType, uint64_t aId);
 
-  void SendDatagram(nsTArray<uint8_t>&& aData, uint64_t aTrackingId) override;
+  void SendDatagram(nsTArray<uint8_t>&& aData, uint64_t aTrackingId,
+                    uint64_t aSendGroupId, int64_t aSendOrder) override;
 
   void OnDatagramReceived(nsTArray<uint8_t>&& aData) override;
 
   void GetMaxDatagramSize() override;
 
+  nsresult ExportKeyingMaterial(const nsTArray<uint8_t>& aLabel,
+                                const nsTArray<uint8_t>& aContext,
+                                nsTArray<uint8_t>& aKeyingMaterial) override;
+
+  void GetStats() override;
+
+  nsresult RegisterSendGroup(uint64_t aGroupId) override;
+
+  void GetNegotiatedProtocol(nsACString& aProtocol) override;
   void OnOutgoingDatagramOutCome(
       uint64_t aId, WebTransportSessionEventListener::DatagramOutcome aOutCome);
 
@@ -132,6 +149,9 @@ class Http3WebTransportSession final : public WebTransportSessionBase,
   nsTArray<RefPtr<Http3WebTransportStream>> mStreams;
   uint32_t mStatus{0};
   nsCString mReason;
+
+  // Cached stats for passing to OnSessionClosed
+  mozilla::dom::WebTransportStatsData mCachedStats;
 };
 
 }  // namespace mozilla::net

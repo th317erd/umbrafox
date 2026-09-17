@@ -280,7 +280,7 @@ extern "C" fn _hb_fontations_get_glyph_v_advances(
                         .to_f32();
                 }
             }
-            let scaled = -(advance * data.y_mult).round() as hb_position_t;
+            let scaled = ((advance * data.y_mult).round() as hb_position_t).saturating_neg();
             *struct_at_offset_mut(first_advance, i, advance_stride) = scaled;
         }
     } else {
@@ -292,7 +292,10 @@ extern "C" fn _hb_fontations_get_glyph_v_advances(
                 &mut font_extents,
             );
         }
-        let advance: hb_position_t = -(font_extents.ascender - font_extents.descender);
+        let advance = font_extents
+            .ascender
+            .saturating_sub(font_extents.descender)
+            .saturating_neg();
 
         for i in 0..count {
             *struct_at_offset_mut(first_advance, i, advance_stride) = advance;
@@ -353,7 +356,9 @@ extern "C" fn _hb_fontations_get_glyph_v_origin(
                 }
             }
             unsafe {
-                *y = extents.y_bearing + (tsb * data.y_mult).round() as hb_position_t;
+                *y = extents
+                    .y_bearing
+                    .saturating_add((tsb * data.y_mult).round() as hb_position_t);
             }
             return true as hb_bool_t;
         }
@@ -366,10 +371,12 @@ extern "C" fn _hb_fontations_get_glyph_v_origin(
                 &mut font_extents,
             );
         }
-        let advance: hb_position_t = font_extents.ascender - font_extents.descender;
-        let diff: hb_position_t = advance - -extents.height;
+        let advance = font_extents.ascender as i64 - font_extents.descender as i64;
+        let diff = advance + extents.height as i64;
         unsafe {
-            *y = extents.y_bearing + (diff >> 1);
+            *y = (extents.y_bearing as i64 + (diff >> 1))
+                .clamp(hb_position_t::MIN as i64, hb_position_t::MAX as i64)
+                as hb_position_t;
         }
         return true as hb_bool_t;
     }
@@ -409,9 +416,11 @@ extern "C" fn _hb_fontations_get_glyph_extents(
     };
 
     let x_bearing = (glyph_extents.x_min * data.x_mult).round() as hb_position_t;
-    let width = (glyph_extents.x_max * data.x_mult).round() as hb_position_t - x_bearing;
+    let width =
+        ((glyph_extents.x_max * data.x_mult).round() as hb_position_t).saturating_sub(x_bearing);
     let y_bearing = (glyph_extents.y_max * data.y_mult).round() as hb_position_t;
-    let height = (glyph_extents.y_min * data.y_mult).round() as hb_position_t - y_bearing;
+    let height =
+        ((glyph_extents.y_min * data.y_mult).round() as hb_position_t).saturating_sub(y_bearing);
 
     unsafe {
         *extents = hb_glyph_extents_t {
@@ -701,6 +710,32 @@ impl ColorPainter for HbColorPainter<'_> {
     ) {
         unsafe {
             hb_paint_push_inverse_font_transform(self.paint_funcs, self.paint_data, self.font);
+        }
+
+        if brush_transform.is_none() {
+            if let Brush::Solid {
+                palette_index: color_index,
+                alpha,
+            } = brush
+            {
+                let is_foreground = color_index == 0xFFFF;
+                let color = self.lookup_color(color_index, alpha);
+                unsafe {
+                    hb_paint_fill_glyph(
+                        self.paint_funcs,
+                        self.paint_data,
+                        glyph_id.to_u32() as hb_codepoint_t,
+                        self.font,
+                        is_foreground as hb_bool_t,
+                        color,
+                    );
+                }
+                self.pop_transform();
+                return;
+            }
+        }
+
+        unsafe {
             hb_paint_push_clip_glyph(
                 self.paint_funcs,
                 self.paint_data,

@@ -340,13 +340,9 @@ export function PopupNotifications(tabbrowser, panel, iconBox, options = {}) {
     }
   };
 
-  let documentElement = this.window.document.documentElement;
-  let locationBarHidden = documentElement
-    .getAttribute("chromehidden")
-    .includes("location");
   let isFullscreen = !!this.window.document.fullscreenElement;
 
-  this.panel.setAttribute("followanchor", !locationBarHidden && !isFullscreen);
+  this.panel.setAttribute("followanchor", !isFullscreen);
 
   // There are no anchor icons in DOM fullscreen mode, but we would
   // still like to show the popup notification. To avoid an infinite
@@ -362,7 +358,7 @@ export function PopupNotifications(tabbrowser, panel, iconBox, options = {}) {
   this.window.addEventListener(
     "MozDOMFullscreen:Exited",
     () => {
-      this.panel.setAttribute("followanchor", !locationBarHidden);
+      this.panel.setAttribute("followanchor", "true");
     },
     true
   );
@@ -401,6 +397,10 @@ export function PopupNotifications(tabbrowser, panel, iconBox, options = {}) {
 }
 
 PopupNotifications.prototype = {
+  CHECK_VISIBILITY_OPTIONS: {
+    visibilityProperty: true,
+  },
+
   window: null,
   panel: null,
   tabbrowser: null,
@@ -524,6 +524,11 @@ PopupNotifications.prototype = {
    *        persistWhileVisible:
    *                     A boolean. If true, a visible notification will always
    *                     persist across location changes.
+   *        lowerPanelLevel:
+   *                     A boolean. If true, the panel's popup level is lowered
+   *                     to "parent" so a popup hosted inside the notification
+   *                     (such as an autocomplete dropdown) can stack above the
+   *                     panel instead of behind it.
    *        persistent:  A boolean. If true, the notification will always
    *                     persist even across tab and app changes (but not across
    *                     location changes), until the user accepts or rejects
@@ -707,6 +712,13 @@ PopupNotifications.prototype = {
 
     if (isActiveBrowser) {
       if (isActiveWindow) {
+        // Autofocus if the notification requests focus.
+        if (options && !options.dismissed && options.autofocus) {
+          this.panel.removeAttribute("noautofocus");
+        } else {
+          this.panel.setAttribute("noautofocus", "true");
+        }
+
         // show panel now
         this._update(
           notifications,
@@ -1302,6 +1314,23 @@ PopupNotifications.prototype = {
     });
   },
 
+  /**
+   * Lowers the panel's popup level to "parent" when a notification hosts its
+   * own popup (e.g. the autocomplete dropdown in the password doorhanger), so
+   * that popup can stack above the panel. The level is only read when the
+   * popup widget is created, so changing the attribute recreates the widget.
+   *
+   * @param {Array} notificationsToShow
+   *        The notifications about to be shown in the panel.
+   */
+  _updatePanelLevel(notificationsToShow) {
+    if (notificationsToShow.some(n => n.options.lowerPanelLevel)) {
+      this.panel.setAttribute("level", "parent");
+    } else {
+      this.panel.removeAttribute("level");
+    }
+  },
+
   _showPanel: function PopupNotifications_showPanel(
     notificationsToShow,
     anchorElement
@@ -1335,11 +1364,11 @@ PopupNotifications.prototype = {
       anchorElement = this._getVisibleAnchorElement(anchorElement);
     }
     // In case _getVisibleAnchorElement provided a non-visible element.
-    if (!anchorElement?.checkVisibility()) {
+    if (!anchorElement?.checkVisibility(this.CHECK_VISIBILITY_OPTIONS)) {
       // We only ever show notifications for the current browser,
       // so we can just use the current tab.
       anchorElement = this.tabbrowser.selectedTab;
-      if (!anchorElement?.checkVisibility()) {
+      if (!anchorElement?.checkVisibility(this.CHECK_VISIBILITY_OPTIONS)) {
         // If we're in an entirely chromeless environment, set the anchorElement
         // to null and let openPopup show the notification at (0,0) later.
         anchorElement = null;
@@ -1347,6 +1376,14 @@ PopupNotifications.prototype = {
     }
 
     if (this.isPanelOpen && this._currentAnchorElement == anchorElement) {
+      // isPanelOpen is also true while the panel is animating open, in which
+      // case a popupshown listener is still pending. It holds the notifications
+      // that were current when the panel started opening, some of which we may
+      // just have replaced, and firing "shown" for those would let their
+      // callbacks overwrite the panel contents. We fire "shown" for the current
+      // notifications right here, so the pending listener has nothing left to do.
+      this._clearPopupshownListener();
+
       notificationsToShow.forEach(function (n) {
         // If the panel is already open remember the time the notification was
         // shown for the security delay.
@@ -1361,6 +1398,8 @@ PopupNotifications.prototype = {
       } else {
         this.panel.removeAttribute("noautohide");
       }
+
+      this._updatePanelLevel(notificationsToShow);
 
       // Let tests know that the panel was updated and what notifications it was
       // updated with so that tests can wait for the correct notifications to be
@@ -1384,16 +1423,7 @@ PopupNotifications.prototype = {
         this.panel.removeAttribute("noautohide");
       }
 
-      // Autofocus the panel if any notification being shown requests focus.
-      // Done here when the panel is actually opened, rather than
-      // in show(), since a notification may be shown asynchronously (e.g. after the
-      // window/browser becomes active again following a navigation). This path
-      // reliably runs before openPopup() in every case.
-      if (notificationsToShow.some(n => !n.dismissed && n.options.autofocus)) {
-        this.panel.removeAttribute("noautofocus");
-      } else {
-        this.panel.setAttribute("noautofocus", "true");
-      }
+      this._updatePanelLevel(notificationsToShow);
 
       notificationsToShow.forEach(function (n) {
         // Record that the notification was actually displayed on screen.

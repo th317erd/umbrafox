@@ -168,6 +168,9 @@ public class GeckoSession {
   @OptIn(markerClass = ExperimentalGeckoViewApi.class)
   private PageExtractionController.SessionPageExtractor mPageExtractor;
 
+  @OptIn(markerClass = ExperimentalGeckoViewApi.class)
+  private PdfViewerController.SessionEditor mPdfViewerEditor;
+
   /** {@code SessionMagnifier} handles magnifying glass. */
   /* package */ interface SessionMagnifier {
     /**
@@ -366,9 +369,6 @@ public class GeckoSession {
     @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
     public native Surface getMagnifiableSurface();
 
-    @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
-    public native void setMaxToolbarHeight(int height);
-
     @WrapForJNI(calledFrom = "ui", dispatchTo = "gecko")
     public native void setFixedBottomOffset(int offset);
 
@@ -474,9 +474,13 @@ public class GeckoSession {
           "GeckoViewHistory",
           this,
           new String[] {
-            "GeckoView:OnVisited", "GeckoView:GetVisited", "GeckoView:StateUpdated",
+            "GeckoView:OnVisited",
+            "GeckoView:GetVisited",
+            "GeckoView:GetHostVisitedSince",
+            "GeckoView:StateUpdated",
           }) {
         @Override
+        @OptIn(markerClass = ExperimentalGeckoViewApi.class)
         public void handleMessage(
             final HistoryDelegate delegate,
             final String event,
@@ -511,6 +515,22 @@ public class GeckoSession {
             result.accept(
                 visited -> callback.sendSuccess(visited),
                 exception -> callback.sendError("Failed to fetch visited statuses for URIs"));
+          } else if ("GeckoView:GetHostVisitedSince".equals(event)) {
+            final GeckoResult<Boolean> result =
+                delegate.hasVisitedHostSince(
+                    GeckoSession.this,
+                    message.getString("host"),
+                    message.getLong("after"),
+                    message.getLong("before"));
+
+            if (result == null) {
+              callback.sendSuccess(null);
+              return;
+            }
+
+            result.accept(
+                visited -> callback.sendSuccess(visited.booleanValue()),
+                exception -> callback.sendError("Failed to determine host visited status"));
           } else if ("GeckoView:StateUpdated".equals(event)) {
 
             final GeckoBundle update = message.getBundle("data");
@@ -569,8 +589,6 @@ public class GeckoSession {
             "GeckoView:FirstContentfulPaint",
             "GeckoView:PaintStatusReset",
             "GeckoView:PreviewImage",
-            "GeckoView:CookieBannerEvent:Detected",
-            "GeckoView:CookieBannerEvent:Handled",
             "GeckoView:SavePdf",
             "GeckoView:GetNimbusFeature",
           }) {
@@ -636,10 +654,6 @@ public class GeckoSession {
             delegate.onPaintStatusReset(GeckoSession.this);
           } else if ("GeckoView:PreviewImage".equals(event)) {
             delegate.onPreviewImage(GeckoSession.this, message.getString("previewImageUrl"));
-          } else if ("GeckoView:CookieBannerEvent:Detected".equals(event)) {
-            delegate.onCookieBannerDetected(GeckoSession.this);
-          } else if ("GeckoView:CookieBannerEvent:Handled".equals(event)) {
-            delegate.onCookieBannerHandled(GeckoSession.this);
           } else if ("GeckoView:SavePdf".equals(event)) {
             final GeckoResult<WebResponse> result =
                 SessionPdfFileSaver.createResponse(
@@ -1427,6 +1441,22 @@ public class GeckoSession {
       mNativeQueue = nativeQueue;
     }
 
+    @WrapForJNI
+    /* package */ static class ContentMetrics {
+      int width;
+      int height;
+      float devicePixelRatio;
+
+      /* package */ ContentMetrics() {}
+
+      @WrapForJNI
+      /* package */ void set(final int width, final int height, final float devicePixelRatio) {
+        this.width = width;
+        this.height = height;
+        this.devicePixelRatio = devicePixelRatio;
+      }
+    }
+
     @Override // IInterface
     public Binder asBinder() {
       if (mBinder == null) {
@@ -1509,6 +1539,20 @@ public class GeckoSession {
 
     @WrapForJNI(dispatchTo = "proxy")
     private native void printToPdf(GeckoResult<InputStream> geckoResult, long browserContextId);
+
+    @WrapForJNI(calledFrom = "ui", dispatchTo = "proxy")
+    public native void requestFullScreenshot(
+        GeckoResult<Bitmap> result,
+        final Bitmap target,
+        final int x,
+        final int y,
+        final int width,
+        final int height,
+        final float renderingScale);
+
+    @WrapForJNI(calledFrom = "ui", dispatchTo = "proxy")
+    public native void requestContentMetrics(
+        GeckoResult<ContentMetrics> result, ContentMetrics metrics);
 
     @WrapForJNI(calledFrom = "gecko")
     private synchronized void onReady(final @Nullable NativeQueue queue) {
@@ -2749,18 +2793,6 @@ public class GeckoSession {
   }
 
   /**
-   * Checks whether we have a rule for this session. Uses the browsing context or any of its
-   * children, calls nsICookieBannerService.hasRuleForBrowsingContextTree
-   *
-   * @return {@link GeckoResult} with boolean
-   */
-  @HandlerThread
-  public @NonNull GeckoResult<Boolean> hasCookieBannerRuleForBrowsingContextTree() {
-    ThreadUtils.assertOnHandlerThread();
-    return mEventDispatcher.queryBoolean("GeckoView:HasCookieBannerRuleForBrowsingContextTree");
-  }
-
-  /**
    * Get the SessionPdfFileSaver instance for this session, to save a pdf document.
    *
    * @return SessionPdfFileSaver instance.
@@ -2771,6 +2803,20 @@ public class GeckoSession {
       mPdfFileSaver = new SessionPdfFileSaver(this);
     }
     return mPdfFileSaver;
+  }
+
+  /**
+   * Get the PDF viewer editor for this GeckoSession.
+   *
+   * @return The current PDF viewer editor session coordinator.
+   */
+  @AnyThread
+  @ExperimentalGeckoViewApi
+  public @NonNull PdfViewerController.SessionEditor getPdfViewerEditor() {
+    if (mPdfViewerEditor == null) {
+      mPdfViewerEditor = new PdfViewerController.SessionEditor(this);
+    }
+    return mPdfViewerEditor;
   }
 
   /** Represent the result of a save-pdf operation. */
@@ -3274,6 +3320,45 @@ public class GeckoSession {
   public @NonNull GeckoResult<Boolean> containsFormData() {
     ThreadUtils.assertOnHandlerThread();
     return mEventDispatcher.queryBoolean("GeckoView:ContainsFormData");
+  }
+
+  /**
+   * Send the report info via Glean when a site is reported as broken.
+   *
+   * @param details The {@link JSONObject} returned by getBrokenSiteReport.
+   * @param description the description of the issue which the user has input.
+   * @param reason the reason for breakage that the user has input.
+   * @param url the final URL the user has input.
+   * @param sendTabSpecificInfo whether to send tab-specific info in the report.
+   * @param sendBlockedUrls whether the user opted into sending ETP-blocked URLs in the report.
+   * @return a {@link GeckoResult} wil complete if sending the report via Glean was successful. Will
+   *     complete exceptionally if the report was not sent.
+   */
+  @HandlerThread
+  public @NonNull GeckoResult<Void> sendGleanBrokenSiteReport(
+      @Nullable final JSONObject details,
+      @Nullable final String description,
+      @NonNull final String reason,
+      @NonNull final String url,
+      @NonNull final Boolean sendTabSpecificInfo,
+      @NonNull final Boolean sendBlockedUrls) {
+    ThreadUtils.assertOnHandlerThread();
+    final GeckoBundle bundle = new GeckoBundle(6);
+    if (details != null) {
+      try {
+        bundle.putBundle("details", GeckoBundle.fromJSONObject(details));
+      } catch (final JSONException e) {
+        Log.w(LOGTAG, "Failed to send broken site report details; invalid JSONObject.", e);
+      }
+    }
+    if (description != null) {
+      bundle.putString("description", description.toString());
+    }
+    bundle.putString("reason", reason.toString());
+    bundle.putString("url", url.toString());
+    bundle.putBoolean("sendTabSpecificInfo", sendTabSpecificInfo);
+    bundle.putBoolean("sendBlockedUrls", sendBlockedUrls);
+    return mEventDispatcher.queryVoid("GeckoView:SendGleanBrokenSiteReport", bundle);
   }
 
   /**
@@ -4240,27 +4325,6 @@ public class GeckoSession {
      */
     @UiThread
     default void onHideDynamicToolbar(@NonNull final GeckoSession geckoSession) {}
-
-    /**
-     * This method is called when a cookie banner was detected.
-     *
-     * <p>Note: this method is called only if the cookie banner setting is such that allows to
-     * handle the banner. For example, if cookiebanners.service.mode=1 (Reject only) but a cookie
-     * banner can only be accepted on the website - the detection in that case won't be reported.
-     * The exception is MODE_DETECT_ONLY mode, when only the detection event is emitted.
-     *
-     * @param session GeckoSession that initiated the callback.
-     */
-    @AnyThread
-    default void onCookieBannerDetected(@NonNull final GeckoSession session) {}
-
-    /**
-     * This method is called when a cookie banner was handled.
-     *
-     * @param session GeckoSession that initiated the callback.
-     */
-    @AnyThread
-    default void onCookieBannerHandled(@NonNull final GeckoSession session) {}
   }
 
   /** Interface for handling text selection actions and providing custom selection action items. */
@@ -7518,7 +7582,7 @@ public class GeckoSession {
      * @param permissions List of permissions to request; possible values are,
      *     android.Manifest.permission.ACCESS_COARSE_LOCATION
      *     android.Manifest.permission.ACCESS_FINE_LOCATION android.Manifest.permission.CAMERA
-     *     android.Manifest.permission.RECORD_AUDIO
+     *     android.Manifest.permission.RECORD_AUDIO android.Manifest.permission.ACCESS_LOCAL_NETWORK
      * @param callback Callback interface.
      */
     @UiThread
@@ -8388,6 +8452,29 @@ public class GeckoSession {
     }
 
     /**
+     * Returns whether a host was visited within a time window. This is used to derive per-day site
+     * usage telemetry without exposing individual visits.
+     *
+     * @param session The session requesting the visited status.
+     * @param host The host (an eTLD+1) to check for.
+     * @param afterEpochMillis The inclusive lower bound of the window, in milliseconds since the
+     *     Unix epoch.
+     * @param beforeEpochMillis The exclusive upper bound of the window, in milliseconds since the
+     *     Unix epoch.
+     * @return A {@link GeckoResult} completed with {@code true} if the host was visited at least
+     *     once within {@code [afterEpochMillis, beforeEpochMillis)}, otherwise {@code false}.
+     */
+    @ExperimentalGeckoViewApi
+    @UiThread
+    default @Nullable GeckoResult<Boolean> hasVisitedHostSince(
+        @NonNull final GeckoSession session,
+        @NonNull final String host,
+        final long afterEpochMillis,
+        final long beforeEpochMillis) {
+      return null;
+    }
+
+    /**
      * Notifies the delegate that the navigation history state has changed.
      *
      * @param session The session where the history state changed.
@@ -8448,15 +8535,52 @@ public class GeckoSession {
   }
 
   /**
-   * Saves a PDF of the currently displayed page.
+   * Saves a PDF of the currently displayed webpage. Uses the Gecko print machinery to generate the
+   * PDF.
+   *
+   * <p>When the page is a PDF loaded by PDF JS, then the PDF JS tools are used to acquire the PDF
+   * directly.
    *
    * @return A GeckoResult with an InputStream containing the PDF. The result could
    *     CompleteExceptionally with a {@link GeckoPrintException}s, if there are any issues while
-   *     generating the PDF.
+   *     generating the PDF, or with the PDF JS error, if PDF JS is displaying the document and
+   *     cannot provide it.
    */
   @HandlerThread
   public @NonNull GeckoResult<InputStream> saveAsPdf() {
-    return saveAsPdfByBrowsingContext(null);
+    return isPdfJs()
+        .then(
+            isPdfJs -> {
+              if (Boolean.TRUE.equals(isPdfJs)) {
+                return savePdfDocument();
+              }
+              return saveAsPdfByBrowsingContext(null);
+            },
+            // Could not determine PDF status, use Gecko.
+            exception -> {
+              Log.w(LOGTAG, "PDF status could not be determined.", exception);
+              return saveAsPdfByBrowsingContext(null);
+            });
+  }
+
+  /**
+   * Saves the original bytes of the PDF document that PDF JS is displaying.
+   *
+   * @return A GeckoResult with an InputStream containing the PDF. The result could
+   *     CompleteExceptionally, if PDF JS cannot provide the document.
+   */
+  @HandlerThread
+  private @NonNull GeckoResult<InputStream> savePdfDocument() {
+    return getPdfFileSaver()
+        .save()
+        .then(
+            response -> {
+              if (response == null || response.body == null) {
+                return GeckoResult.fromException(
+                    new IllegalStateException("PDF did not provide a response."));
+              }
+              return GeckoResult.fromValue(response.body);
+            });
   }
 
   /**

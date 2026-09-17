@@ -400,10 +400,13 @@ class AsyncPanZoomController {
 
   /**
    * Handler for events which should not be intercepted by the touch listener.
+   *
+   * FIXME: It seems that this method causes dispatching some DOM events. So,
+   * this method should be marked as MOZ_CAN_RUN_SCRIPT.
    */
-  nsEventStatus HandleInputEvent(
-      const InputData& aEvent,
-      const ScreenToParentLayerMatrix4x4& aTransformToApzc);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY nsEventStatus
+  HandleInputEvent(const InputData& aEvent,
+                   const ScreenToParentLayerMatrix4x4& aTransformToApzc);
 
   /**
    * Handler for gesture events.
@@ -600,7 +603,8 @@ class AsyncPanZoomController {
   OuterCSSCoord ConvertScrollbarPoint(const ParentLayerPoint& aScrollbarPoint,
                                       const ScrollbarData& aThumbData) const;
 
-  void NotifyMozMouseScrollEvent(const nsString& aString) const;
+  MOZ_CAN_RUN_SCRIPT void NotifyMozMouseScrollEvent(
+      const nsString& aString) const;
 
   bool OverscrollBehaviorAllowsSwipe() const;
 
@@ -615,13 +619,13 @@ class AsyncPanZoomController {
    * Get the CompositorScrollUpdates to be sent to consumers for the current
    * composite.
    */
-  std::vector<CompositorScrollUpdate> GetCompositorScrollUpdates();
+  nsTArray<CompositorScrollUpdate> GetCompositorScrollUpdates();
 
  private:
   // Compositor scroll updates since the last time
   // SampleCompositedAsyncTransform() was called.
   // Access to this field should be protected by mRecursiveMutex.
-  std::vector<CompositorScrollUpdate> mUpdatesSinceLastSample;
+  nsTArray<CompositorScrollUpdate> mUpdatesSinceLastSample;
 
   CompositorScrollUpdate::Metrics GetCurrentMetricsForCompositorScrollUpdate(
       const RecursiveMutexAutoLock& aProofOfApzcLock) const;
@@ -724,7 +728,8 @@ class AsyncPanZoomController {
   /**
    * Helper methods for handling scroll wheel events.
    */
-  nsEventStatus OnScrollWheel(const ScrollWheelInput& aEvent);
+  MOZ_CAN_RUN_SCRIPT nsEventStatus
+  OnScrollWheel(const ScrollWheelInput& aEvent);
 
   /**
    * Gets the scroll wheel delta's values in parent-layer pixels from the
@@ -1480,6 +1485,20 @@ class AsyncPanZoomController {
   // held whenever this is updated. In practice though... see bug 897017.
   PanZoomState mState;
 
+  // Whether an active scroll gesture that started on another APZC has been
+  // handed off to this APZC and scrolled it. While true, this APZC reports
+  // itself as being in a scrolling gesture. Set during handoff in
+  // AttemptScroll() and cleared via ClearScrolledByHandedOffGesture() when
+  // the gesture ends. Protected by |mRecursiveMutex|.
+  bool mScrolledByHandedOffGesture = false;
+
+ public:
+  void SetScrolledByHandedOffGesture(bool aState);
+
+ private:
+  void ClearScrolledByHandedOffGestureOnChain();
+
+ protected:
   AxisX mX;
   AxisY mY;
 
@@ -1905,7 +1924,12 @@ class AsyncPanZoomController {
 
   // Returns whether being in the middle of a gesture. E.g., this APZC has
   // started handling a pan gesture but hasn't yet received pan-end, etc.
+  // This includes being scrolled by a gesture handed off from another APZC.
   bool IsInScrollingGesture() const;
+
+  // Clears |mScrolledByHandedOffGesture|, requesting a content repaint to
+  // deliver the change to the main thread if it was set.
+  void ClearScrolledByHandedOffGesture();
 
  private:
   /* This is the cumulative CSS transform for all the layers from (and

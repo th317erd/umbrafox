@@ -104,6 +104,12 @@ const COMMON_PREFERENCES = new Map([
   // (bug 1176798, bug 1177018, bug 1210465)
   ["apz.content_response_timeout", 60000],
 
+  // Use zero movement tolerance before a touch is treated as a pan, so that in
+  // automation touch events scroll from exactly the position they are dispatched
+  // without small movements first being absorbed.
+  ["apz.touch_move_tolerance", "0.0"],
+  ["apz.touch_start_tolerance", "0.0"],
+
   // Disable the profile backup service.
   ["browser.backup.enabled", false],
 
@@ -117,6 +123,12 @@ const COMMON_PREFERENCES = new Map([
 
   // Set global `dump` function to log strings to `stdout` for release builds as well.
   ["browser.dom.window.dump.enabled", true],
+
+  // Don't open the downloads panel every time a download begins.
+  // The first download ever run in a new profile will still open the panel,
+  // but because "browser.download.panel.shown" is set to true,
+  // this preference is going to act as the first download already happened.
+  ["browser.download.alwaysOpenPanel", false],
 
   // Indicate that the download panel has been shown once so that
   // whichever download test runs first doesn't show the popup
@@ -457,7 +469,7 @@ export const RecommendedPreferences = {
       // single map. Hereby the extra preferences have higher priority.
       preferences = new Map([...COMMON_PREFERENCES, ...preferences]);
 
-      Services.obs.addObserver(this, "xpcom-shutdown");
+      Services.obs.addObserver(this, "profile-before-change");
       this.isInitialized = true;
     }
 
@@ -480,14 +492,14 @@ export const RecommendedPreferences = {
         }
 
         // Keep track all the altered preferences to restore them on
-        // xpcom-shutdown.
+        // profile-before-change.
         this.alteredPrefs.add(k);
       }
     }
   },
 
   observe(subject, topic) {
-    if (topic === "xpcom-shutdown") {
+    if (topic === "profile-before-change") {
       this.restoreAllPreferences();
     }
   },
@@ -498,7 +510,7 @@ export const RecommendedPreferences = {
   restoreAllPreferences() {
     this.restorePreferences(this.alteredPrefs);
     if (this.isInitialized) {
-      Services.obs.removeObserver(this, "xpcom-shutdown");
+      Services.obs.removeObserver(this, "profile-before-change");
     }
     this.isInitialized = false;
   },

@@ -48,6 +48,9 @@
     "color": {
       "@base": {
         "value": {
+          "brand": {
+            "default": "{text.color.@base}"
+          },
           "nativeTheme": "FieldText",
           "platform": {
             "light": "rgb(21, 20, 26)",
@@ -73,6 +76,23 @@
     "opacity": {
       "disabled": {
         "value": "{button.opacity.disabled}"
+      }
+    }
+  },
+  "search": {
+    "border": {
+      "radius": {
+        "value": {
+          "default": "{input.text.border.radius}",
+          "nova": {
+            "value": "{border.radius.circle}"
+          }
+        }
+      }
+    },
+    "icon": {
+      "size": {
+        "value": "{input.text.icon.size}"
       }
     }
   },

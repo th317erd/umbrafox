@@ -5,6 +5,9 @@
 const { XPCOMUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/XPCOMUtils.sys.mjs"
 );
+const { AppConstants } = ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
+);
 const lazy = XPCOMUtils.declareLazy({
   // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
   getThemesList: "moz-src:///browser/themes/ThemesList.sys.mjs",
@@ -29,17 +32,6 @@ export class ThemePickerDirectController {
   constructor(host) {
     this.host = host;
     this.host.addController(this);
-    lazy
-      .getThemesList({
-        installSource: this.host.getAttribute("installsource") || "unknown",
-      })
-      .then(tm => {
-        this.themesManager = tm;
-        this.host.themes = tm.getThemesInfo({
-          showInCompactLayout: this.host.layout === "compact",
-        });
-        this.updateHost();
-      });
     this.lazy = XPCOMUtils.declareLazy({
       activeThemeId: {
         pref: PREF_ACTIVE_THEME_ID,
@@ -63,10 +55,34 @@ export class ThemePickerDirectController {
       /** @param {ThemechangeEvent} e */
       e => this.onThemechange(e.detail)
     );
+    this.host.addEventListener("themepickershown", () => this.shown());
+  }
+
+  shown() {
+    Glean.themePicker.shown.record({
+      source: this.host.getAttribute("installsource") || "unknown",
+      layout: this.host.layout || "unknown",
+    });
   }
 
   hostConnected() {
+    this.themesManagerPromise ??= lazy
+      .getThemesList({
+        installSource: this.host.getAttribute("installsource") || "unknown",
+      })
+      .then(tm => {
+        this.themesManager = tm;
+        this.host.themes = tm.getThemesInfo({
+          showInCompactLayout: this.host.layout === "compact",
+        });
+        this.updateHost();
+      });
+    Services.obs.addObserver(this.updateHost, "look-and-feel-changed");
     this.updateHost();
+  }
+
+  hostDisconnected() {
+    Services.obs.removeObserver(this.updateHost, "look-and-feel-changed");
   }
 
   /**
@@ -86,9 +102,21 @@ export class ThemePickerDirectController {
             value == "light" ? 0 : 1
           );
         }
+        Glean.themePicker.change.record({
+          source: this.host.getAttribute("installsource") || "unknown",
+          layout: this.host.layout || "unknown",
+          property,
+          appearance: String(value),
+        });
         break;
       case "nativeTheme":
         Services.prefs.setBoolPref(PREF_NATIVE_THEME, Boolean(value));
+        Glean.themePicker.change.record({
+          source: this.host.getAttribute("installsource") || "unknown",
+          layout: this.host.layout || "unknown",
+          property,
+          native_theme: Boolean(value),
+        });
         break;
     }
   }
@@ -97,10 +125,12 @@ export class ThemePickerDirectController {
    * @param {string} themeId
    */
   async setTheme(themeId) {
-    await this.themesManager.updateThemeState(themeId, true);
+    await this.themesManager.updateThemeState(themeId, true, {
+      layout: this.host.layout,
+    });
   }
 
-  updateHost() {
+  updateHost = () => {
     this.host.activeThemeId = this.lazy.activeThemeId;
     this.host.nativeTheme = this.lazy.nativeTheme;
     if (this.lazy.systemUsesDark == 0) {
@@ -110,5 +140,10 @@ export class ThemePickerDirectController {
     } else {
       this.host.appearance = "device";
     }
-  }
+    this.host.showNativeThemeOption = AppConstants.platform === "linux";
+    this.host.deviceAppearance = Services.appinfo
+      .contentThemeDerivedColorSchemeIsDark
+      ? "dark"
+      : "light";
+  };
 }

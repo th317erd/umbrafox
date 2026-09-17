@@ -50,8 +50,6 @@ class nsWindowWayland final : public nsWindow {
   void CreateNative() override;
   void DestroyNative() override;
 
-  void ConfigureToplevelWindowNative() override;
-
   bool PIPMove();
   bool PIPResize(GdkWindowEdge aEdge);
 
@@ -209,6 +207,9 @@ class nsWindowWayland final : public nsWindow {
   void LogPopupGravity(GdkGravity aGravity);
 #endif
 
+  void ConfigureToplevelWindowNative() override;
+  void OnMapNative() override;
+
   void NativeShow(bool aAction) override;
 
   bool WaylandPipEnabled() const;
@@ -235,7 +236,7 @@ class nsWindowWayland final : public nsWindow {
   RefPtr<mozilla::VsyncDispatcher> mWaylandVsyncDispatcher;
   LayoutDeviceIntPoint mNativeLockedPoint;
   xdg_toplevel_session_v1* mSessionRestoreToken = nullptr;
-  nsString mSessionID;
+  nsCString mWorkspaceID;
 
   gulong mXdgToplevelRealizedID = 0;
 

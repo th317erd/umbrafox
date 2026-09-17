@@ -26,9 +26,9 @@ class WebTransportChild : public PWebTransportChild {
 
   ::mozilla::ipc::IPCResult RecvCloseAll(CloseAllResolver&& aResolver);
 
-  ::mozilla::ipc::IPCResult RecvRemoteClosed(const bool& aCleanly,
-                                             const uint32_t& aCode,
-                                             const nsACString& aReason);
+  ::mozilla::ipc::IPCResult RecvRemoteClosed(
+      const bool& aCleanly, const uint32_t& aCode, const nsACString& aReason,
+      const Maybe<WebTransportStatsData>& aStats);
 
   ::mozilla::ipc::IPCResult RecvIncomingBidirectionalStream(
       const uint64_t& aStreamId,
@@ -41,6 +41,11 @@ class WebTransportChild : public PWebTransportChild {
 
   ::mozilla::ipc::IPCResult RecvIncomingDatagram(
       nsTArray<uint8_t>&& aData, const TimeStamp& aRecvTimeStamp);
+
+  ::mozilla::ipc::IPCResult RecvDraining();
+
+  ::mozilla::ipc::IPCResult RecvNegotiatedProtocol(
+      const nsACString& aSubprotocol);
 
   ::mozilla::ipc::IPCResult RecvOnStreamResetOrStopSending(
       const uint64_t& aStreamId, const StreamResetOrStopSendingError& aError);

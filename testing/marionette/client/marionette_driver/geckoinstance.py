@@ -47,6 +47,11 @@ class GeckoInstance:
         # and causing false-positive test failures. See bug 1176798, bug 1177018,
         # bug 1210465.
         "apz.content_response_timeout": 60000,
+        # Use zero movement tolerance before a touch is treated as a pan, so that in
+        # automation touch events scroll from exactly the position they are dispatched
+        # without small movements first being absorbed.
+        "apz.touch_move_tolerance": "0.0",
+        "apz.touch_start_tolerance": "0.0",
         # Disable extension discovery
         "browser.discovery.enabled": False,
         # Make sure error page is not shown for blank pages with 4xx or 5xx response code
@@ -646,6 +651,11 @@ class DesktopInstance(GeckoInstance):
         # Enable output for dump() and chrome console API
         "browser.dom.window.dump.enabled": True,
         "devtools.console.stdout.chrome": True,
+        # Don't open the downloads panel every time a download begins.
+        # The first download ever run in a new profile will still open the panel,
+        # but because "browser.download.panel.shown" is set to true,
+        # this preference is going to act as the first download already happened.
+        "browser.download.focusPanelOnOpen": False,
         # Indicate that the download panel has been shown once so that whichever
         # download test runs first doesn"t show the popup inconsistently
         "browser.download.panel.shown": True,

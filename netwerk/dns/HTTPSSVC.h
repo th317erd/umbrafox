@@ -43,9 +43,7 @@ struct SvcParamNoDefaultAlpn {
 };
 
 struct SvcParamPort {
-  bool operator==(const SvcParamPort& aOther) const {
-    return mValue == aOther.mValue;
-  }
+  bool operator==(const SvcParamPort& aOther) const = default;
   uint16_t mValue;
 };
 
@@ -86,8 +84,8 @@ struct SvcFieldValue {
   bool operator==(const SvcFieldValue& aOther) const {
     return mValue == aOther.mValue;
   }
-  SvcFieldValue() : mValue(AsVariant(Nothing{})) {}
-  SvcParamType mValue;
+  SvcFieldValue() = default;
+  SvcParamType mValue{AsVariant(Nothing{})};
 };
 
 struct SVCB {

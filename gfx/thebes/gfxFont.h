@@ -91,13 +91,13 @@ typedef struct _cairo_scaled_font cairo_scaled_font_t;
 #endif
 
 struct gfxFontStyle {
-  using FontStretch = mozilla::FontStretch;
+  using FontWidth = mozilla::FontWidth;
   using FontSlantStyle = mozilla::FontSlantStyle;
   using FontWeight = mozilla::FontWeight;
   using FontSizeAdjust = mozilla::StyleFontSizeAdjust;
 
   gfxFontStyle();
-  gfxFontStyle(FontSlantStyle aStyle, FontWeight aWeight, FontStretch aStretch,
+  gfxFontStyle(FontSlantStyle aStyle, FontWeight aWeight, FontWidth aWidth,
                gfxFloat aSize, const FontSizeAdjust& aSizeAdjust,
                bool aSystemFont, bool aPrinterFont,
 #ifdef XP_WIN
@@ -154,20 +154,20 @@ struct gfxFontStyle {
   // in order to get correct glyph shapes.)
   mozilla::StyleFontLanguageOverride languageOverride;
 
-  // The Font{Weight,Stretch,SlantStyle} fields are each a 16-bit type.
+  // The Font{Weight,Width,SlantStyle} fields are each a 16-bit type.
 
   // The weight of the font: 100, 200, ... 900.
   FontWeight weight;
 
-  // The stretch of the font
-  FontStretch stretch;
+  // The width of the font
+  FontWidth width;
 
   // The style of font
   FontSlantStyle style;
 
-  // Whether face-selection properties weight/style/stretch are all 'normal'
+  // Whether face-selection properties weight/style/width are all 'normal'
   bool IsNormalStyle() const {
-    return weight.IsNormal() && style.IsNormal() && stretch.IsNormal();
+    return weight.IsNormal() && style.IsNormal() && width.IsNormal();
   }
 
   // We pack these three small-integer fields into a single byte to avoid
@@ -175,10 +175,10 @@ struct gfxFontStyle {
   // 7 bytes of padding at the end of the struct.
 
   // caps variant (small-caps, petite-caps, etc.)
-  uint8_t variantCaps : 3;  // uses range 0..6
+  mozilla::StyleFontVariantCaps variantCaps : 3;  // uses range 0..6
 
   // sub/superscript variant
-  uint8_t variantSubSuper : 2;  // uses range 0..2
+  mozilla::StyleFontVariantPosition variantSubSuper : 2;  // uses range 0..2
 
   // font metric used as basis of font-size-adjust
   uint8_t sizeAdjustBasis : 3;  // uses range 0..4
@@ -242,7 +242,7 @@ struct gfxFontStyle {
   bool Equals(const gfxFontStyle& other) const {
     return mozilla::NumbersAreBitwiseIdentical(size, other.size) &&
            (style == other.style) && (weight == other.weight) &&
-           (stretch == other.stretch) && (variantCaps == other.variantCaps) &&
+           (width == other.width) && (variantCaps == other.variantCaps) &&
            (variantSubSuper == other.variantSubSuper) &&
            (allowSyntheticWeight == other.allowSyntheticWeight) &&
            (synthesisStyle == other.synthesisStyle) &&
@@ -923,11 +923,14 @@ class gfxShapedText {
     uint8_t CanBreakBefore() const {
       return (mValue & FLAGS_CAN_BREAK_BEFORE) >> FLAGS_CAN_BREAK_SHIFT;
     }
-    // Returns FLAGS_CAN_BREAK_BEFORE if the setting changed, 0 otherwise
+    // Returns any break-before flags that were modifed; 0 if nothing changed.
     uint32_t SetCanBreakBefore(uint8_t aCanBreakBefore) {
       MOZ_ASSERT(aCanBreakBefore <= 3, "Bogus break-flags value!");
-      uint32_t breakMask = (uint32_t(aCanBreakBefore) << FLAGS_CAN_BREAK_SHIFT);
-      uint32_t toggle = breakMask ^ (mValue & FLAGS_CAN_BREAK_BEFORE);
+      // Shift the input value to the relevant bit positions.
+      uint32_t breakMask = uint32_t(aCanBreakBefore) << FLAGS_CAN_BREAK_SHIFT;
+      // Determine which bits in the break field are changing (if any).
+      uint32_t toggle = (breakMask ^ mValue) & FLAGS_CAN_BREAK_BEFORE;
+      // Update the value, and return the bits that changed.
       mValue ^= toggle;
       return toggle;
     }
@@ -1093,12 +1096,13 @@ class gfxShapedText {
   // NOTE that this must not be called for a character offset that does
   // not have any DetailedGlyph records; callers must have verified that
   // GetCharacterGlyphs()[aCharIndex].GetGlyphCount() is greater than zero.
-  DetailedGlyph* GetDetailedGlyphs(uint32_t aCharIndex) const {
-    NS_ASSERTION(GetCharacterGlyphs() && HasDetailedGlyphs() &&
-                     !GetCharacterGlyphs()[aCharIndex].IsSimpleGlyph() &&
-                     GetCharacterGlyphs()[aCharIndex].GetGlyphCount() > 0,
-                 "invalid use of GetDetailedGlyphs; check the caller!");
-    return mDetailedGlyphs->Get(aCharIndex);
+  DetailedGlyph* GetDetailedGlyphs(uint32_t aCharIndex, uint32_t aCount) const {
+    MOZ_ASSERT(GetCharacterGlyphs() && HasDetailedGlyphs() &&
+                   !GetCharacterGlyphs()[aCharIndex].IsSimpleGlyph() &&
+                   GetCharacterGlyphs()[aCharIndex].GetGlyphCount() == aCount &&
+                   aCount > 0,
+               "invalid use of GetDetailedGlyphs; check the caller!");
+    return mDetailedGlyphs->Get(aCharIndex, aCount);
   }
 
   void ApplyTrackingToClusters(gfxFloat aTrackingAdjustment, uint32_t aOffset,
@@ -1206,26 +1210,35 @@ class gfxShapedText {
     // mCharacterGlyphs[aOffset].GetGlyphCount() is greater than zero
     // before calling this, otherwise the assertions here will fire (in a
     // debug build), and we'll probably crash.
-    DetailedGlyph* Get(uint32_t aOffset) {
+    DetailedGlyph* Get(uint32_t aOffset, uint32_t aCount) {
       NS_ASSERTION(mOffsetToIndex.Length() > 0, "no detailed glyph records!");
-      DetailedGlyph* details = mDetails.Elements();
-      // check common cases (fwd iteration, initial entry, etc) first
-      if (mLastUsed < mOffsetToIndex.Length() - 1 &&
-          aOffset == mOffsetToIndex[mLastUsed + 1].mOffset) {
-        ++mLastUsed;
+      // Load the last-used-position hint.
+      nsTArray<DGRec>::index_type lastUsed =
+          mLastUsed.load(std::memory_order_relaxed);
+      // Check common cases (fwd iteration, initial entry, etc) first.
+      if (lastUsed < mOffsetToIndex.Length() - 1 &&
+          aOffset == mOffsetToIndex[lastUsed + 1].mOffset) {
+        ++lastUsed;
       } else if (aOffset == mOffsetToIndex[0].mOffset) {
-        mLastUsed = 0;
-      } else if (aOffset == mOffsetToIndex[mLastUsed].mOffset) {
+        lastUsed = 0;
+      } else if (aOffset == mOffsetToIndex[lastUsed].mOffset) {
         // do nothing
-      } else if (mLastUsed > 0 &&
-                 aOffset == mOffsetToIndex[mLastUsed - 1].mOffset) {
-        --mLastUsed;
+      } else if (lastUsed > 0 &&
+                 aOffset == mOffsetToIndex[lastUsed - 1].mOffset) {
+        --lastUsed;
       } else {
-        mLastUsed = mOffsetToIndex.BinaryIndexOf(aOffset, CompareToOffset());
+        // None of the fast-paths applied, so do the binary search.
+        lastUsed = mOffsetToIndex.BinaryIndexOf(aOffset, CompareToOffset());
       }
-      NS_ASSERTION(mLastUsed != nsTArray<DGRec>::NoIndex,
+      NS_ASSERTION(lastUsed != nsTArray<DGRec>::NoIndex,
                    "detailed glyph record missing!");
-      return details + mOffsetToIndex[mLastUsed].mIndex;
+      uint32_t index = mOffsetToIndex[lastUsed].mIndex;
+      // Remember the position, as a hint for next time.
+      mLastUsed.store(lastUsed, std::memory_order_relaxed);
+      // Ensure that |aCount| records are available, starting at |index|.
+      MOZ_RELEASE_ASSERT(index < mDetails.Length() &&
+                         aCount <= mDetails.Length() - index);
+      return mDetails.Elements() + index;
     }
 
     DetailedGlyph* Allocate(uint32_t aOffset, uint32_t aCount) {
@@ -1290,7 +1303,10 @@ class gfxShapedText {
     // Records the most recently used index into mOffsetToIndex, so that
     // we can support sequential access more quickly than just doing
     // a binary search each time.
-    nsTArray<DGRec>::index_type mLastUsed = 0;
+    // Atomic because multiple threads may be accessing the same shaped-
+    // word or textrun; if so, they may overwrite each other's values and
+    // degrade performance slightly, but this is harmless.
+    std::atomic<nsTArray<DGRec>::index_type> mLastUsed = 0;
   };
 
   mozilla::UniquePtr<DetailedGlyphStore> mDetailedGlyphs;
@@ -1588,9 +1604,6 @@ class gfxFont {
     return mFUnitsConvFactor;
   }
 
-  // check whether this is an sfnt we can potentially use with harfbuzz
-  bool FontCanSupportHarfBuzz() const { return mFontEntry->HasCmapTable(); }
-
   // check whether this is an sfnt we can potentially use with Graphite
   bool FontCanSupportGraphite() const {
     return mFontEntry->HasGraphiteTables();
@@ -1609,7 +1622,8 @@ class gfxFont {
 
   // whether the font supports "real" small caps, petite caps etc.
   // aFallbackToSmallCaps true when petite caps should fallback to small caps
-  bool SupportsVariantCaps(Script aScript, uint32_t aVariantCaps,
+  bool SupportsVariantCaps(Script aScript,
+                           mozilla::StyleFontVariantCaps aVariantCaps,
                            bool& aFallbackToSmallCaps,
                            bool& aSyntheticLowerToSmallCaps,
                            bool& aSyntheticUpperToSmallCaps);
@@ -1617,11 +1631,13 @@ class gfxFont {
   // whether the font supports subscript/superscript feature
   // for fallback, need to verify that all characters in the run
   // have variant substitutions
-  bool SupportsSubSuperscript(uint32_t aSubSuperscript, const uint8_t* aString,
-                              uint32_t aLength, Script aRunScript);
+  bool SupportsSubSuperscript(mozilla::StyleFontVariantPosition aSubSuperscript,
+                              const uint8_t* aString, uint32_t aLength,
+                              Script aRunScript);
 
-  bool SupportsSubSuperscript(uint32_t aSubSuperscript, const char16_t* aString,
-                              uint32_t aLength, Script aRunScript);
+  bool SupportsSubSuperscript(mozilla::StyleFontVariantPosition aSubSuperscript,
+                              const char16_t* aString, uint32_t aLength,
+                              Script aRunScript);
 
   // whether the specified feature will apply to the given character
   bool FeatureWillHandleChar(Script aRunScript, uint32_t aFeature,
@@ -1702,24 +1718,21 @@ class gfxFont {
   }
 
   struct Baselines {
-    std::atomic<gfxFloat> mAlphabetic;
-    std::atomic<gfxFloat> mHanging;
-    std::atomic<gfxFloat> mIdeographicUnder;
-    std::atomic<gfxFloat> mIdeographicOver;
-    std::atomic<gfxFloat> mIdeographicInkUnder;
-    std::atomic<gfxFloat> mIdeographicInkOver;
-    std::atomic<gfxFloat> mCentral;
-    std::atomic<gfxFloat> mMath;
+    std::atomic<gfxFloat> mAlphabetic{
+        std::numeric_limits<gfxFloat>::quiet_NaN()};
+    std::atomic<gfxFloat> mHanging{std::numeric_limits<gfxFloat>::quiet_NaN()};
+    std::atomic<gfxFloat> mIdeographicUnder{
+        std::numeric_limits<gfxFloat>::quiet_NaN()};
+    std::atomic<gfxFloat> mIdeographicOver{
+        std::numeric_limits<gfxFloat>::quiet_NaN()};
+    std::atomic<gfxFloat> mIdeographicInkUnder{
+        std::numeric_limits<gfxFloat>::quiet_NaN()};
+    std::atomic<gfxFloat> mIdeographicInkOver{
+        std::numeric_limits<gfxFloat>::quiet_NaN()};
+    std::atomic<gfxFloat> mCentral{std::numeric_limits<gfxFloat>::quiet_NaN()};
+    std::atomic<gfxFloat> mMath{std::numeric_limits<gfxFloat>::quiet_NaN()};
 
-    Baselines()
-        : mAlphabetic(std::numeric_limits<gfxFloat>::quiet_NaN()),
-          mHanging(std::numeric_limits<gfxFloat>::quiet_NaN()),
-          mIdeographicUnder(std::numeric_limits<gfxFloat>::quiet_NaN()),
-          mIdeographicOver(std::numeric_limits<gfxFloat>::quiet_NaN()),
-          mIdeographicInkUnder(std::numeric_limits<gfxFloat>::quiet_NaN()),
-          mIdeographicInkOver(std::numeric_limits<gfxFloat>::quiet_NaN()),
-          mCentral(std::numeric_limits<gfxFloat>::quiet_NaN()),
-          mMath(std::numeric_limits<gfxFloat>::quiet_NaN()) {}
+    Baselines() = default;
   };
 
   typedef std::atomic<gfxFloat> Baselines::* BaselinePtr;
@@ -2050,7 +2063,7 @@ class gfxFont {
   bool HasColorGlyphFor(uint32_t aCh, uint32_t aNextCh);
 
  protected:
-  virtual const Metrics& GetHorizontalMetrics() const = 0;
+  const Metrics& GetHorizontalMetrics() const { return mMetrics; }
 
   void CreateVerticalMetrics();
   void CreateVerticalBaselines();
@@ -2217,6 +2230,8 @@ class gfxFont {
   // used when analyzing whether a font has space contextual lookups
   static mozilla::Atomic<nsTHashMap<nsUint32HashKey, Script>*> sScriptTagToCode;
   static mozilla::Atomic<nsTHashSet<uint32_t>*> sDefaultFeatures;
+
+  Metrics mMetrics;
 
   RefPtr<gfxFontEntry> mFontEntry;
   mutable mozilla::RWLock mLock;
@@ -2391,15 +2406,21 @@ class gfxFont {
   // Returns TRUE but leaves mIsValid=FALSE if the font seems to be broken.
   // Returns FALSE if the font does not appear to be an sfnt at all,
   // and should be handled (if possible) using other APIs.
-  bool InitMetricsFromSfntTables(Metrics& aMetrics);
+  bool InitMetricsFromSfntTables();
+
+#if MOZ_FONTATIONS
+  // Initialize metrics using the font entry's Skrifa font reference.
+  // Returns false if unsuccessful (e.g. the entry has no Skrifa font).
+  bool InitMetricsFromSkrifa();
+#endif
 
   // Helper to calculate various derived metrics from the results of
   // InitMetricsFromSfntTables or equivalent platform code
-  void CalculateDerivedMetrics(Metrics& aMetrics);
+  void CalculateDerivedMetrics();
 
   // some fonts have bad metrics, this method sanitize them.
   // if this font has bad underline offset, aIsBadUnderlineFont should be true.
-  void SanitizeMetrics(Metrics* aMetrics, bool aIsBadUnderlineFont);
+  void SanitizeMetrics(bool aIsBadUnderlineFont);
 
   bool RenderSVGGlyph(gfxContext* aContext,
                       mozilla::layout::TextDrawTarget* aTextDrawer,

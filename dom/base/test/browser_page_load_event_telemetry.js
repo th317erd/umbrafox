@@ -7,11 +7,6 @@ const { TelemetryTestUtils } = ChromeUtils.importESModule(
 const ALL_CHANNELS = Ci.nsITelemetry.DATASET_ALL_CHANNELS;
 
 add_task(async function () {
-  if (Services.prefs.getBoolPref("telemetry.fog.artifact_build", false)) {
-    Assert.ok(true, "Test skipped in artifact builds. See bug 1836686.");
-    return;
-  }
-
   let tab = await BrowserTestUtils.openNewForegroundTab({
     gBrowser,
     waitForLoad: true,
@@ -36,6 +31,10 @@ add_task(async function () {
         Assert.ok(
           entry.extra.using_webdriver,
           "Webdriver field should be set to true."
+        );
+        Assert.ok(
+          "is_active_client" in entry.extra,
+          "Active client field should be recorded."
         );
       });
     },
