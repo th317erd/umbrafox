@@ -17,9 +17,48 @@ const PREF_PORT = "umbrafox.control.port";
 const DEFAULT_HOST = "localhost";
 const DEFAULT_PATH = "/umbrafox-control";
 const WEBSOCKET_KEY_SUFFIX = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+const MEMORY_REPORT_FILENAME_RE = /^[A-Za-z0-9._-]+$/;
+const MEMORY_REPORT_ATTRIBUTES = [
+  "vsize",
+  "resident",
+  "residentFast",
+  "residentPeak",
+  "residentUnique",
+  "heapAllocated",
+  "heapOverheadFraction",
+  "JSMainRuntimeGCHeap",
+  "JSMainRuntimeTemporaryPeak",
+  "JSMainRuntimeCompartmentsSystem",
+  "JSMainRuntimeCompartmentsUser",
+  "JSMainRuntimeRealmsSystem",
+  "JSMainRuntimeRealmsUser",
+  "imagesContentUsedUncompressed",
+  "storageSQLite",
+  "lowMemoryEventsPhysical",
+  "ghostWindows",
+  "pageFaultsHard",
+];
 
 function makeToken() {
   return Services.uuid.generateUUID().toString().replace(/[{}]/g, "");
+}
+
+function createError(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+function assertObject(value, name) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw createError("invalid argument", `Expected ${name} to be an object`);
+  }
+}
+
+function assertString(value, name) {
+  if (typeof value !== "string") {
+    throw createError("invalid argument", `Expected ${name} to be a string`);
+  }
 }
 
 function writeJSONResponse(response, request, statusCode, statusText, body) {
@@ -168,6 +207,180 @@ async function upgradeWebSocket(request, response) {
   }
 
   return createServerWebSocket(transport, input, output);
+}
+
+function getMemoryReporterManager() {
+  return Cc["@mozilla.org/memory-reporter-manager;1"].getService(
+    Ci.nsIMemoryReporterManager
+  );
+}
+
+function getMemoryInfoDumper() {
+  return Cc["@mozilla.org/memory-info-dumper;1"].getService(
+    Ci.nsIMemoryInfoDumper
+  );
+}
+
+function readMemoryAttribute(manager, attribute) {
+  try {
+    return Number(manager[attribute]);
+  } catch {
+    return null;
+  }
+}
+
+function readDistinguishedMemory() {
+  const manager = getMemoryReporterManager();
+  const memory = {};
+  for (const attribute of MEMORY_REPORT_ATTRIBUTES) {
+    memory[attribute] = readMemoryAttribute(manager, attribute);
+  }
+  return memory;
+}
+
+function readOutParam(value) {
+  return Number(value.value ?? 0);
+}
+
+function getBrowserTabMemory(browser) {
+  const contentWindow = browser?.contentWindow;
+  if (!contentWindow) {
+    return null;
+  }
+
+  const jsObjectsSize = {};
+  const jsStringsSize = {};
+  const jsOtherSize = {};
+  const domSize = {};
+  const styleSize = {};
+  const otherSize = {};
+  const totalSize = {};
+  const jsMilliseconds = {};
+  const nonJSMilliseconds = {};
+
+  getMemoryReporterManager().sizeOfTab(
+    contentWindow,
+    jsObjectsSize,
+    jsStringsSize,
+    jsOtherSize,
+    domSize,
+    styleSize,
+    otherSize,
+    totalSize,
+    jsMilliseconds,
+    nonJSMilliseconds
+  );
+
+  return {
+    jsObjectsSize: readOutParam(jsObjectsSize),
+    jsStringsSize: readOutParam(jsStringsSize),
+    jsOtherSize: readOutParam(jsOtherSize),
+    domSize: readOutParam(domSize),
+    styleSize: readOutParam(styleSize),
+    otherSize: readOutParam(otherSize),
+    totalSize: readOutParam(totalSize),
+    jsMilliseconds: readOutParam(jsMilliseconds),
+    nonJSMilliseconds: readOutParam(nonJSMilliseconds),
+  };
+}
+
+function getBrowserURL(browser) {
+  try {
+    return (
+      browser.currentURI?.spec ?? browser.browsingContext?.currentURI?.spec
+    );
+  } catch {
+    return null;
+  }
+}
+
+function getOpenTabs() {
+  const windows = [];
+  let windowIndex = 0;
+
+  for (const chromeWindow of Services.wm.getEnumerator("navigator:browser")) {
+    const tabs = [];
+    for (const tab of chromeWindow.gBrowser?.tabs ?? []) {
+      const browser = tab.linkedBrowser;
+      const tabInfo = {
+        context: browser?.browsingContext?.id ?? null,
+        browserId: browser?.browserId ?? null,
+        label: tab.label ?? "",
+        url: getBrowserURL(browser),
+        selected: tab.selected,
+        pinned: tab.pinned,
+      };
+
+      try {
+        tabInfo.memory = getBrowserTabMemory(browser);
+      } catch (error) {
+        tabInfo.memoryError = error.message;
+      }
+
+      tabs.push(tabInfo);
+    }
+
+    windows.push({
+      index: windowIndex++,
+      title: chromeWindow.document?.title ?? "",
+      selectedTabIndex:
+        chromeWindow.gBrowser?.tabContainer?.selectedIndex ?? -1,
+      tabs,
+    });
+  }
+
+  return windows;
+}
+
+function normalizeMemoryReportFilename(filename) {
+  const normalized = filename ?? `umbrafox-memory-report-${Date.now()}.json.gz`;
+  assertString(normalized, "filename");
+  if (
+    !normalized ||
+    normalized == "." ||
+    normalized == ".." ||
+    !MEMORY_REPORT_FILENAME_RE.test(normalized)
+  ) {
+    throw createError(
+      "invalid argument",
+      "filename must contain only letters, numbers, dot, underscore, or dash"
+    );
+  }
+  return normalized.endsWith(".json.gz") ? normalized : `${normalized}.json.gz`;
+}
+
+async function dumpMemoryReport(params = {}) {
+  assertObject(params, "params");
+
+  const filename = normalizeMemoryReportFilename(params.filename);
+  const directory = PathUtils.join(
+    PathUtils.profileDir,
+    "umbrafox",
+    "diagnostics"
+  );
+  const path = PathUtils.join(directory, filename);
+
+  await IOUtils.makeDirectory(directory, {
+    ignoreExisting: true,
+    permissions: 0o700,
+  });
+
+  await new Promise(resolve => {
+    getMemoryInfoDumper().dumpMemoryReportsToNamedFile(
+      path,
+      () => resolve(),
+      null,
+      !!params.anonymize,
+      !!params.minimizeMemoryUsage
+    );
+  });
+  await IOUtils.setPermissions(path, 0o600);
+
+  return {
+    path,
+    anonymize: !!params.anonymize,
+    minimizeMemoryUsage: !!params.minimizeMemoryUsage,
+  };
 }
 
 /**
@@ -347,6 +560,10 @@ class UmbrafoxControlServiceImpl {
         return lazy.UmbrafoxControlInput.type(packet.params);
       case "umbrafox.input.wheel":
         return lazy.UmbrafoxControlInput.wheel(packet.params);
+      case "umbrafox.diagnostics.dumpMemoryReport":
+        return dumpMemoryReport(packet.params ?? {});
+      case "umbrafox.diagnostics.snapshot":
+        return this.diagnosticsSnapshot();
       case "umbrafox.status":
         return this.status();
       default:
@@ -369,6 +586,16 @@ class UmbrafoxControlServiceImpl {
       appVersion: Services.appinfo.version,
       platformVersion: Services.appinfo.platformVersion,
       appBuildID: Services.appinfo.appBuildID,
+    };
+  }
+
+  diagnosticsSnapshot() {
+    return {
+      ...this.status(),
+      processID: Services.appinfo.processID,
+      profileDir: PathUtils.profileDir,
+      memory: readDistinguishedMemory(),
+      windows: getOpenTabs(),
     };
   }
 

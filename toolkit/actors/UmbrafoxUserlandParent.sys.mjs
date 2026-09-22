@@ -19,8 +19,6 @@ function getOrigin(href) {
 
 export class UmbrafoxUserlandParent extends JSWindowActorParent {
   receiveMessage(message) {
-    ensureUmbrafoxUserlandRequestObserver();
-
     if (message.name != "GetDocumentUserlandScripts") {
       return [];
     }
@@ -33,12 +31,16 @@ export class UmbrafoxUserlandParent extends JSWindowActorParent {
     const scripts =
       Services.ppmm.sharedData.get(UMBRAFOX_USERLAND_SCRIPT_SHARED_DATA_KEY) ??
       [];
-    return scripts.filter(script => {
+    const matchingScripts = scripts.filter(script => {
       return (
         script?.enabled &&
         script.scope?.origin == origin &&
         script.scope?.targetKinds?.includes("document")
       );
     });
+    if (matchingScripts.length) {
+      ensureUmbrafoxUserlandRequestObserver();
+    }
+    return matchingScripts;
   }
 }

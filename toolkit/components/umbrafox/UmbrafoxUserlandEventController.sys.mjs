@@ -343,8 +343,17 @@ function getChannelBrowsingContextId(channel) {
 }
 
 function getRequestActor(browsingContextId) {
-  const browsingContext = BrowsingContext.get(browsingContextId);
-  return browsingContext?.currentWindowGlobal?.getActor("UmbrafoxUserland");
+  try {
+    const browsingContext = BrowsingContext.get(browsingContextId);
+    return (
+      browsingContext?.currentWindowGlobal?.getActor("UmbrafoxUserland") ?? null
+    );
+  } catch (error) {
+    if (error.name != "NotSupportedError") {
+      console.error(error);
+    }
+    return null;
+  }
 }
 
 function readRequestHeaders(channel) {
@@ -400,11 +409,19 @@ async function dispatchParentRequestEvent(channel, actor, browsingContextId) {
     );
     shouldResume = applyRequestDecision(channel, decision);
   } catch (error) {
-    console.error(error);
+    if (error.name != "AbortError") {
+      console.error(error);
+    }
   }
 
   if (shouldResume) {
-    channel.resume();
+    try {
+      channel.resume();
+    } catch (error) {
+      if (error.name != "NS_ERROR_NOT_AVAILABLE") {
+        console.error(error);
+      }
+    }
   }
 }
 

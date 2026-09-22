@@ -23,6 +23,18 @@ function sendWebSocketCommand(url, command) {
   });
 }
 
+function findSnapshotTab(snapshot, browser) {
+  const browsingContextId = browser.browsingContext.id;
+  for (const win of snapshot.windows) {
+    for (const tab of win.tabs) {
+      if (tab.context === browsingContextId) {
+        return tab;
+      }
+    }
+  }
+  return null;
+}
+
 add_task(async function test_control_service_status_and_webdriver_state() {
   const tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
@@ -60,6 +72,59 @@ add_task(async function test_control_service_status_and_webdriver_state() {
   });
   is(response.id, 1, "Response preserves the command id");
   is(response.result.channel, "umbrafox-control", "Status command succeeded");
+
+  const snapshotResponse = await sendWebSocketCommand(discovery.websocketUrl, {
+    id: 2,
+    method: "umbrafox.diagnostics.snapshot",
+    params: {},
+  });
+  is(snapshotResponse.id, 2, "Diagnostics snapshot preserves the command id");
+  is(
+    snapshotResponse.result.channel,
+    "umbrafox-control",
+    "Diagnostics snapshot includes service status"
+  );
+  is(
+    typeof snapshotResponse.result.processID,
+    "number",
+    "Diagnostics snapshot includes the process ID"
+  );
+  is(
+    typeof snapshotResponse.result.profileDir,
+    "string",
+    "Diagnostics snapshot includes the profile directory"
+  );
+  ok(snapshotResponse.result.memory, "Diagnostics snapshot includes memory");
+  ok(
+    Array.isArray(snapshotResponse.result.windows),
+    "Diagnostics snapshot includes browser windows"
+  );
+  const snapshotTab = findSnapshotTab(
+    snapshotResponse.result,
+    tab.linkedBrowser
+  );
+  ok(snapshotTab, "Diagnostics snapshot includes the test tab");
+  is(
+    snapshotTab.url,
+    tab.linkedBrowser.currentURI.spec,
+    "Diagnostics snapshot reports the test tab URL"
+  );
+
+  const rejectedDumpResponse = await sendWebSocketCommand(
+    discovery.websocketUrl,
+    {
+      id: 3,
+      method: "umbrafox.diagnostics.dumpMemoryReport",
+      params: {
+        filename: "../bad",
+      },
+    }
+  );
+  is(
+    rejectedDumpResponse.error?.code,
+    "invalid argument",
+    "Memory report dump rejects path-like filenames"
+  );
 
   const webdriverAfter = await SpecialPowers.spawn(
     tab.linkedBrowser,
