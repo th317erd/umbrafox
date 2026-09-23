@@ -294,6 +294,12 @@ const char kAppstringsBundleURL[] =
 
 static constexpr char kUmbrafoxUserlandNavigationAttemptTopic[] =
     "umbrafox-userland-navigation-attempt";
+static constexpr char kUmbrafoxUserlandScriptsActivePref[] =
+    "umbrafox.userlandScripts.active";
+
+static bool UmbrafoxUserlandScriptsActive() {
+  return Preferences::GetBool(kUmbrafoxUserlandScriptsActivePref, false);
+}
 
 static bool IsTopLevelDoc(BrowsingContext* aBrowsingContext,
                           nsILoadInfo* aLoadInfo) {
@@ -7780,16 +7786,17 @@ nsresult nsDocShell::MaybeHandleUmbrafoxUserlandNavigation(
   *aShouldContinue = true;
 
   if (!aLoadState || !aLoadState->URI() || !mBrowsingContext ||
-      aLoadState->UmbrafoxUserlandNavigationHandled()) {
+      aLoadState->UmbrafoxUserlandNavigationHandled() ||
+      !UmbrafoxUserlandScriptsActive()) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
+  if (!obs || !obs->HasObservers(kUmbrafoxUserlandNavigationAttemptTopic)) {
     return NS_OK;
   }
 
   aLoadState->SetUmbrafoxUserlandNavigationHandled(true);
-
-  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
-  if (!obs) {
-    return NS_OK;
-  }
 
   nsCOMPtr<nsIWritablePropertyBag2> bag =
       do_CreateInstance("@mozilla.org/hash-property-bag;1");

@@ -31,6 +31,57 @@ registerCleanupFunction(() => {
   publishUserlandScripts([]);
 });
 
+add_task(async function test_native_navigation_inert_after_userland_disabled() {
+  publishUserlandScripts([
+    {
+      id: "userland-disabled-navigation",
+      name: "Disabled navigation probe",
+      enabled: true,
+      scope: {
+        origin: TEST_ORIGIN,
+        targetKinds: ["document"],
+        sourceUrlPattern: null,
+      },
+      world: "default",
+      code: `
+        userland.on("navigation", event => {
+          localStorage.setItem(
+            "umbrafox-disabled-navigation-event",
+            event.href
+          );
+        });
+      `,
+      createdAt: 0,
+      updatedAt: 0,
+    },
+  ]);
+
+  await BrowserTestUtils.withNewTab(ORDER_URL, async browser => {
+    await SpecialPowers.spawn(browser, [], () => {
+      content.localStorage.removeItem("umbrafox-disabled-navigation-event");
+    });
+
+    publishUserlandScripts([]);
+
+    const loaded = BrowserTestUtils.browserLoaded(
+      browser,
+      false,
+      SCRIPT_EVENT_URL
+    );
+    BrowserTestUtils.startLoadingURIString(browser, SCRIPT_EVENT_URL);
+    await loaded;
+
+    const disabledEventHref = await SpecialPowers.spawn(browser, [], () =>
+      content.localStorage.getItem("umbrafox-disabled-navigation-event")
+    );
+    Assert.equal(
+      disabledEventHref,
+      null,
+      "Native navigation events are not dispatched after userland scripts are disabled"
+    );
+  });
+});
+
 add_task(async function test_dialog_and_navigation_userland_events() {
   publishUserlandScripts([
     {
