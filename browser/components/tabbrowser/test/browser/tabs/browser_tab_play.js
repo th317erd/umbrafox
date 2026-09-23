@@ -136,9 +136,9 @@ add_task(async function testDelayPlayWhenSwitchingTab() {
 });
 
 /*
- * The "Play Tab" icon unblocks media
+ * The "Play Tab" context menu item unblocks media
  */
-add_task(async function testDelayPlayWhenUsingButton() {
+add_task(async function testDelayPlayWhenUsingContextMenu() {
   info("Add media tabs");
   let tab0 = await addMediaTab();
   let tab1 = await addMediaTab();
@@ -151,25 +151,15 @@ add_task(async function testDelayPlayWhenUsingButton() {
   ok(activeMediaBlocked(tab0), "Tab0 is activemedia-blocked");
   ok(activeMediaBlocked(tab1), "Tab1 is activemedia-blocked");
 
-  info("Press the Play Tab icon on tab0");
-  let isPinned = tab0.pinned;
-  let isVerticalAndCollapsed =
-    Services.prefs.getBoolPref("sidebar.revamp", false) &&
-    Services.prefs.getBoolPref("sidebar.verticalTabs", false) &&
-    !window.SidebarController._state.launcherExpanded;
-  let icon0 =
-    isPinned || isVerticalAndCollapsed ? tab0.overlayIcon : tab0.audioButton;
-  await pressIcon(icon0);
+  info("Use the Play Tab context menu item on tab0");
+  await test_mute_tab(tab0, null, false);
 
   // tab0 unblocked, tab1 blocked
   ok(!activeMediaBlocked(tab0), "Tab0 is not activemedia-blocked");
   ok(activeMediaBlocked(tab1), "Tab1 is activemedia-blocked");
 
-  info("Press the Play Tab icon on tab1");
-  isPinned = tab1.pinned;
-  let icon1 =
-    isPinned || isVerticalAndCollapsed ? tab1.overlayIcon : tab1.audioButton;
-  await pressIcon(icon1);
+  info("Use the Play Tab context menu item on tab1");
+  await test_mute_tab(tab1, null, false);
 
   // tab0 unblocked, tab1 unblocked
   ok(!activeMediaBlocked(tab0), "Tab0 is not activemedia-blocked");

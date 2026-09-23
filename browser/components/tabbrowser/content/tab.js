@@ -29,7 +29,6 @@
             <image class="tab-icon-overlay" role="presentation"/>
             <image class="tab-note-icon-overlay" role="presentation"/>
           </stack>
-          <html:moz-button type="icon toolbar" size="small" class="tab-audio-button" tabindex="-1"></html:moz-button>
           <vbox class="tab-label-container"
                 align="start"
                 pack="center"
@@ -94,8 +93,6 @@
         ".tab-sharing-icon-overlay": "sharing,selected=visuallyselected,pinned",
         ".tab-icon-overlay":
           "sharing,pictureinpicture,crashed,busy,soundplaying,soundplaying-scheduledremoval,pinned,muted,blocked,selected=visuallyselected,activemedia-blocked",
-        ".tab-audio-button":
-          "crashed,soundplaying,soundplaying-scheduledremoval,pinned,muted,activemedia-blocked",
         ".tab-label-container":
           "pinned,selected=visuallyselected,labeldirection",
         ".tab-label":
@@ -359,16 +356,8 @@
       return this.overlayIcon?.matches(":hover");
     }
 
-    get _overAudioButton() {
-      return this.audioButton?.matches(":hover");
-    }
-
     get overlayIcon() {
       return this.querySelector(".tab-icon-overlay");
-    }
-
-    get audioButton() {
-      return this.querySelector(".tab-audio-button");
     }
 
     get throbber() {
@@ -543,11 +532,7 @@
 
       if (this.selected) {
         this.style.MozUserFocus = "ignore";
-      } else if (
-        event.target.classList.contains("tab-close-button") ||
-        event.target.classList.contains("tab-icon-overlay") ||
-        event.target.classList.contains("tab-audio-button")
-      ) {
+      } else if (event.target.classList.contains("tab-close-button")) {
         eventMaySelectTab = false;
       }
 
@@ -624,8 +609,6 @@
       if (event.altKey) {
         if (
           !event.target.classList.contains("tab-close-button") &&
-          !event.target.classList.contains("tab-icon-overlay") &&
-          !event.target.classList.contains("tab-audio-button") &&
           !this.selected &&
           !gBrowser.selectedTab.hidden &&
           Services.prefs.getBoolPref("browser.tabs.splitView.enabled", false) &&
@@ -648,33 +631,11 @@
 
       if (
         gBrowser.multiSelectedTabsCount > 0 &&
-        !event.target.classList.contains("tab-close-button") &&
-        !event.target.classList.contains("tab-icon-overlay") &&
-        !event.target.classList.contains("tab-audio-button")
+        !event.target.classList.contains("tab-close-button")
       ) {
         // Tabs were previously multi-selected and user clicks on a tab
         // without holding Ctrl/Cmd Key
         gBrowser.clearMultiSelectedTabs();
-      }
-
-      if (
-        event.target.classList.contains("tab-icon-overlay") ||
-        event.target.classList.contains("tab-audio-button")
-      ) {
-        if (this.activeMediaBlocked) {
-          if (this.multiselected) {
-            gBrowser.resumeDelayedMediaOnMultiSelectedTabs(this);
-          } else {
-            this.resumeDelayedMedia();
-          }
-        } else if (this.soundPlaying || this.muted) {
-          if (this.multiselected) {
-            gBrowser.toggleMuteAudioOnMultiSelectedTabs(this);
-          } else {
-            this.toggleMuteAudio();
-          }
-        }
-        return;
       }
 
       if (event.target.classList.contains("tab-close-button")) {

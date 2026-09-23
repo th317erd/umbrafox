@@ -226,9 +226,6 @@ add_task(async function test_expand_on_hover_pinned_tabs() {
   is(gBrowser.tabs.length, 3, "Tabstrip now has three tabs");
   gBrowser.selectedTab.toggleMuteAudio();
   let pinnedTabs = gBrowser.visibleTabs.filter(tab => tab.pinned);
-  let inlineMuteButton =
-    gBrowser.selectedTab.querySelector(".tab-audio-button");
-  let muteButtonComputedStyle = window.getComputedStyle(inlineMuteButton);
   let pinnedTabOriginalWidth = pinnedTabs[0].clientWidth;
   await mouseOverSidebarToExpand();
   await SidebarController.waitUntilStable();
@@ -249,9 +246,9 @@ add_task(async function test_expand_on_hover_pinned_tabs() {
   );
 
   is(
-    muteButtonComputedStyle.display,
-    "none",
-    "The expanded pinned tab is not showing the inline audio button."
+    gBrowser.selectedTab.querySelector(".tab-audio-button"),
+    null,
+    "The expanded pinned tab does not create the inline audio button."
   );
 
   await mouseOutSidebarToCollapse();

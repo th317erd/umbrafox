@@ -3,6 +3,34 @@
 
 "use strict";
 
+async function toggleMuteFromTabContextMenu(tab, expectMuted) {
+  let contextMenu = document.getElementById("tabContextMenu");
+  let popupShownPromise = BrowserTestUtils.waitForEvent(
+    contextMenu,
+    "popupshown"
+  );
+  EventUtils.synthesizeMouseAtCenter(tab, { type: "contextmenu", button: 2 });
+  await popupShownPromise;
+
+  let toggleMute = document.getElementById("context_toggleMuteTab");
+  ok(toggleMute, "Found the mute tab context menu item");
+  ok(!toggleMute.hidden, "The mute tab context menu item is visible");
+  ok(!toggleMute.disabled, "The mute tab context menu item is enabled");
+
+  let popupHiddenPromise = BrowserTestUtils.waitForEvent(
+    contextMenu,
+    "popuphidden"
+  );
+  contextMenu.activateItem(toggleMute);
+  await popupHiddenPromise;
+  await BrowserTestUtils.waitForMutationCondition(
+    tab,
+    { attributes: true },
+    () => tab.hasAttribute("muted") == expectMuted,
+    { msg: `Waiting for tab muted state to become ${expectMuted}` }
+  );
+}
+
 /**
  * The goal of this test is check the that "tab-icon-overlay" image is
  * showing when the tab is using PiP.
@@ -38,13 +66,17 @@ add_task(async () => {
 
       // Use tab to get the tab-icon-overlay element
       let tabIconOverlay = tab.getElementsByClassName("tab-icon-overlay")[0];
-      let tabAudioButton = tab.getElementsByClassName("tab-audio-button")[0];
+      is(
+        tab.getElementsByClassName("tab-audio-button").length,
+        0,
+        "The inline tab audio button is not created"
+      );
 
       // Not in PiP yet so the tab-icon-overlay does not have "pictureinpicture" attribute
       ok(!tabIconOverlay.hasAttribute("pictureinpicture"), "Not using PiP");
 
       // Sound is playing so tab should have "soundplaying" attribute
-      ok(tabAudioButton.hasAttribute("soundplaying"), "Sound is playing");
+      ok(tab.hasAttribute("soundplaying"), "Sound is playing");
 
       // Start the PiP
       let pipWin = await triggerPictureInPicture(browser, videoID);
@@ -53,11 +85,8 @@ add_task(async () => {
       // Check that video is still playing
       ok(!(await isVideoPaused(browser, videoID)), "The video is not paused.");
 
-      // Video is still playing so the tab-audio-button should have "soundplaying" as an attribute
-      ok(
-        tabAudioButton.hasAttribute("soundplaying"),
-        "Tab knows sound is playing"
-      );
+      // Video is still playing so the tab should have the "soundplaying" attribute.
+      ok(tab.hasAttribute("soundplaying"), "Tab knows sound is playing");
 
       // Now in PiP. "pictureinpicture" is an attribute
       ok(
@@ -65,27 +94,16 @@ add_task(async () => {
         "Tab knows were using PiP"
       );
 
-      // We know the tab has sound playing and it is using PiP so we can check the
-      // tab-audio-button image is showing
-      let style = window.getComputedStyle(
-        tabAudioButton.buttonEl.querySelector(".button-background")
-      );
-      Assert.equal(
-        style.backgroundImage,
-        'url("chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg")',
-        "Got the tab-audio-button image"
-      );
-
       // Check tab is not muted
-      ok(!tabAudioButton.hasAttribute("muted"), "Tab is not muted");
+      ok(!tab.hasAttribute("muted"), "Tab is not muted");
 
-      // Click on tab icon overlay to mute tab and check it is muted
-      tabAudioButton.click();
-      ok(tabAudioButton.hasAttribute("muted"), "Tab is muted");
+      // Use the tab context menu to mute tab and check it is muted
+      await toggleMuteFromTabContextMenu(tab, true);
+      ok(tab.hasAttribute("muted"), "Tab is muted");
 
-      // Click on tab icon overlay to unmute tab and check it is not muted
-      tabAudioButton.click();
-      ok(!tabAudioButton.hasAttribute("muted"), "Tab is not muted");
+      // Use the tab context menu to unmute tab and check it is not muted
+      await toggleMuteFromTabContextMenu(tab, false);
+      ok(!tab.hasAttribute("muted"), "Tab is not muted");
     }
   );
 });

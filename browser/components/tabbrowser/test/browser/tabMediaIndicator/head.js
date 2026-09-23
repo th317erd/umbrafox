@@ -98,70 +98,30 @@ function createSoundIndicatorObserver(tab) {
   };
 }
 
-/**
- * Sythesize mouse hover on the given icon, which would sythesize `mouseover`
- * and `mousemove` event on that. Return a promise that will be resolved when
- * the tooptip element shows.
- *
- * @param {tab icon} icon
- *        the icon on which we want to mouse hover
- * @param {tooltip element} tooltip
- *        the tab tooltip elementss
- */
-function hoverIcon(icon, tooltip) {
-  disableNonTestMouse(true);
+async function toggleMuteFromTabContextMenu(tab, expectMuted) {
+  let contextMenu = document.getElementById("tabContextMenu");
+  let popupShownPromise = BrowserTestUtils.waitForEvent(
+    contextMenu,
+    "popupshown"
+  );
+  EventUtils.synthesizeMouseAtCenter(tab, { type: "contextmenu", button: 2 });
+  await popupShownPromise;
 
-  if (!tooltip) {
-    tooltip = document.getElementById("tabbrowser-tab-tooltip");
-  }
+  let toggleMute = document.getElementById("context_toggleMuteTab");
+  ok(toggleMute, "Found the mute tab context menu item");
+  ok(!toggleMute.hidden, "The mute tab context menu item is visible");
+  ok(!toggleMute.disabled, "The mute tab context menu item is enabled");
 
-  let popupShownPromise = BrowserTestUtils.waitForEvent(tooltip, "popupshown");
-  EventUtils.synthesizeMouse(icon, 1, 1, { type: "mouseover" });
-  EventUtils.synthesizeMouse(icon, 2, 2, { type: "mousemove" });
-  EventUtils.synthesizeMouse(icon, 3, 3, { type: "mousemove" });
-  EventUtils.synthesizeMouse(icon, 4, 4, { type: "mousemove" });
-  return popupShownPromise;
-}
-
-/**
- * Leave mouse from the given icon, which would sythesize `mouseout`
- * and `mousemove` event on that.
- *
- * @param {tab icon} icon
- *        the icon on which we want to mouse hover
- * @param {tooltip element} tooltip
- *        the tab tooltip elementss
- */
-function leaveIcon(icon) {
-  EventUtils.synthesizeMouse(icon, 0, 0, { type: "mouseout" });
-  EventUtils.synthesizeMouseAtCenter(document.documentElement, {
-    type: "mousemove",
-  });
-  EventUtils.synthesizeMouseAtCenter(document.documentElement, {
-    type: "mousemove",
-  });
-  EventUtils.synthesizeMouseAtCenter(document.documentElement, {
-    type: "mousemove",
-  });
-
-  disableNonTestMouse(false);
-}
-
-/**
- * Sythesize mouse click on the given icon.
- *
- * @param {tab icon} icon
- *        the icon on which we want to mouse hover
- */
-async function clickIcon(icon) {
-  await hoverIcon(icon);
-  EventUtils.synthesizeMouseAtCenter(icon, { button: 0 });
-  leaveIcon(icon);
-}
-
-function disableNonTestMouse(disable) {
-  let utils = window.windowUtils;
-  utils.disableNonTestMouseEvents(disable);
+  let popupHiddenPromise = BrowserTestUtils.waitForEvent(
+    contextMenu,
+    "popuphidden"
+  );
+  contextMenu.activateItem(toggleMute);
+  await popupHiddenPromise;
+  await TestUtils.waitForCondition(
+    () => tab.linkedBrowser.audioMuted == expectMuted,
+    `Waiting for tab audio muted state to become ${expectMuted}`
+  );
 }
 
 /**

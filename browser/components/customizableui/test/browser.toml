@@ -179,6 +179,8 @@ skip-if = [
 
 ["browser_947987_removable_default.js"]
 
+["browser_umbrafox_control_toggle.js"]
+
 ["browser_948985_non_removable_defaultArea.js"]
 
 ["browser_952963_areaType_getter_no_area.js"]

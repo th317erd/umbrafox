@@ -283,13 +283,6 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
     ) {
       this._hiddenSoundPlayingStatusChanged(event.target);
     }
-    if (
-      event.detail.changed.includes("soundplaying") ||
-      event.detail.changed.includes("muted") ||
-      event.detail.changed.includes("activemedia-blocked")
-    ) {
-      this.updateTabSoundLabel(event.target);
-    }
   }
 
   on_TabHide(event) {
@@ -1724,28 +1717,6 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
     }
     CustomizableUI.removeListener(this);
     this.previewPanel?.forceReset();
-  }
-
-  updateTabSoundLabel(tab) {
-    // Add aria-label for inline audio button
-    const [unmute, mute, unblock] = gBrowser.tabLocalization.formatMessagesSync(
-      [
-        "tabbrowser-unmute-tab-audio-aria-label",
-        "tabbrowser-mute-tab-audio-aria-label",
-        "tabbrowser-unblock-tab-audio-aria-label",
-      ]
-    );
-    if (tab.audioButton) {
-      if (tab.hasAttribute("muted") || tab.hasAttribute("soundplaying")) {
-        let ariaLabel;
-        tab.linkedBrowser.audioMuted
-          ? (ariaLabel = unmute.attributes[0].value)
-          : (ariaLabel = mute.attributes[0].value);
-        tab.audioButton.setAttribute("aria-label", ariaLabel);
-      } else if (tab.hasAttribute("activemedia-blocked")) {
-        tab.audioButton.setAttribute("aria-label", unblock.attributes[0].value);
-      }
-    }
   }
 }
 

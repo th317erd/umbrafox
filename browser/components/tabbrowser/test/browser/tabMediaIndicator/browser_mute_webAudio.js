@@ -50,7 +50,7 @@ add_task(async function mute_web_audio() {
 
   info("- mute browser -");
   ok(!tab.linkedBrowser.audioMuted, "Audio should not be muted by default");
-  await clickIcon(tab.audioButton);
+  await toggleMuteFromTabContextMenu(tab, true);
   ok(tab.linkedBrowser.audioMuted, "Audio should be muted now");
 
   info("- stop web audip -");
@@ -61,7 +61,7 @@ add_task(async function mute_web_audio() {
 
   info("- unmute browser -");
   ok(tab.linkedBrowser.audioMuted, "Audio should be muted now");
-  await clickIcon(tab.audioButton);
+  await toggleMuteFromTabContextMenu(tab, false);
   ok(!tab.linkedBrowser.audioMuted, "Audio should be unmuted now");
 
   info("- tab should be audible -");

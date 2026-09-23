@@ -6,7 +6,7 @@ add_task(async function setPref() {
   });
 });
 
-add_task(async function muteTabs_usingButton() {
+add_task(async function muteTabs_usingContextMenu() {
   let tab0 = await addMediaTab();
   let tab1 = await addMediaTab();
   let tab2 = await addMediaTab();
@@ -39,14 +39,7 @@ add_task(async function muteTabs_usingButton() {
   }
 
   // Mute tab0 which is not multiselected, thus other tabs muted state should not be affected
-  let isPinned = tab0.pinned;
-  let isVerticalAndCollapsed =
-    Services.prefs.getBoolPref("sidebar.revamp", false) &&
-    Services.prefs.getBoolPref("sidebar.verticalTabs", false) &&
-    !window.SidebarController._state.launcherExpanded;
-  let icon =
-    isPinned || isVerticalAndCollapsed ? tab0.overlayIcon : tab0.audioButton;
-  await test_mute_tab(tab0, icon, true);
+  await test_mute_tab(tab0, null, true);
 
   ok(muted(tab0), "Tab0 is muted");
   for (let i = 1; i <= 4; i++) {
@@ -78,14 +71,7 @@ add_task(async function muteTabs_usingButton() {
   //  b) unmuted tabs (tab1, tab3) will become muted.
   //  b) media-blocked tabs (tab2) will remain media-blocked.
   // However tab4 (unmuted) which is not multiselected should not be affected.
-  isPinned = tab1.pinned;
-  isVerticalAndCollapsed =
-    Services.prefs.getBoolPref("sidebar.revamp", false) &&
-    Services.prefs.getBoolPref("sidebar.verticalTabs", false) &&
-    !window.SidebarController._state.launcherExpanded;
-  icon =
-    isPinned || isVerticalAndCollapsed ? tab1.overlayIcon : tab1.audioButton;
-  await test_mute_tab(tab1, icon, true);
+  await test_mute_tab(tab1, null, true);
 
   // Check mute state
   ok(muted(tab0), "Tab0 is still muted");
@@ -100,7 +86,7 @@ add_task(async function muteTabs_usingButton() {
   }
 });
 
-add_task(async function unmuteTabs_usingButton() {
+add_task(async function unmuteTabs_usingContextMenu() {
   let tab0 = await addMediaTab();
   let tab1 = await addMediaTab();
   let tab2 = await addMediaTab();
@@ -142,14 +128,7 @@ add_task(async function unmuteTabs_usingButton() {
   //  b) unmuted tabs (tab0) will remain unmuted.
   //  c) media-blocked tabs (tab1, tab2) will remain blocked.
   // However tab4 (muted) which is not multiselected should not be affected.
-  let isPinned = tab3.pinned;
-  let isVerticalAndCollapsed =
-    Services.prefs.getBoolPref("sidebar.revamp", false) &&
-    Services.prefs.getBoolPref("sidebar.verticalTabs", false) &&
-    !window.SidebarController._state.launcherExpanded;
-  let icon =
-    isPinned || isVerticalAndCollapsed ? tab3.overlayIcon : tab3.audioButton;
-  await test_mute_tab(tab3, icon, false);
+  await test_mute_tab(tab3, null, false);
 
   ok(!muted(tab0), "Tab0 is not muted");
   ok(!activeMediaBlocked(tab0), "Tab0 is not activemedia-blocked");
@@ -219,7 +198,7 @@ add_task(async function muteAndUnmuteTabs_usingKeyboard() {
   }
 });
 
-add_task(async function playTabs_usingButton() {
+add_task(async function playTabs_usingContextMenu() {
   let tab0 = await addMediaTab();
   let tab1 = await addMediaTab();
   let tab2 = await addMediaTab();
@@ -261,14 +240,7 @@ add_task(async function playTabs_usingButton() {
   //  b) unmuted tabs (tab3) will remain unmuted.
   //  c) media-blocked tabs (tab1, tab2) will become unblocked.
   // However tab4 (muted) which is not multiselected should not be affected.
-  let isPinned = tab2.pinned;
-  let isVerticalAndCollapsed =
-    Services.prefs.getBoolPref("sidebar.revamp", false) &&
-    Services.prefs.getBoolPref("sidebar.verticalTabs", false) &&
-    !window.SidebarController._state.launcherExpanded;
-  let icon =
-    isPinned || isVerticalAndCollapsed ? tab2.overlayIcon : tab2.audioButton;
-  await test_mute_tab(tab2, icon, false);
+  await test_mute_tab(tab2, null, false);
 
   ok(muted(tab0), "Tab0 is muted");
   ok(!activeMediaBlocked(tab0), "Tab0 is not activemedia-blocked");

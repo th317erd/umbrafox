@@ -200,11 +200,6 @@ async function play(tab, expectPlaying = true) {
   }
 }
 
-function disable_non_test_mouse(disable) {
-  let utils = window.windowUtils;
-  utils.disableNonTestMouseEvents(disable);
-}
-
 // The set of tabs which have ever had their mute state changed.
 // Used to determine whether the tab should have a muteReason value.
 let everMutedTabs = new WeakSet();
@@ -242,37 +237,55 @@ function get_wait_for_mute_promise(tab, expectMuted) {
   });
 }
 
-async function test_mute_tab(tab, icon, expectMuted) {
-  let mutedPromise = get_wait_for_mute_promise(tab, expectMuted);
-
+async function test_mute_tab(tab, _icon, expectMuted) {
   let activeTab = gBrowser.selectedTab;
-
-  // Sometimes, the tab's audio state is slow to update. If neither activemedia-blocked, soundplaying
-  // nor muted attribute is applied to the button, the audio button won't be rendered on the tab.
-  // To reduce flakiness, wait for any late attribute updates to ensure it is visible before attempting to click it.
-  await BrowserTestUtils.waitForMutationCondition(
-    tab,
-    { attributes: true, subtree: true },
-    () => BrowserTestUtils.isVisible(icon),
-    { msg: "audio button is visible before clicking it" }
+  let contextMenu = document.getElementById("tabContextMenu");
+  let popupShownPromise = BrowserTestUtils.waitForEvent(
+    contextMenu,
+    "popupshown"
   );
+  EventUtils.synthesizeMouseAtCenter(tab, { type: "contextmenu", button: 2 });
+  await popupShownPromise;
 
-  EventUtils.synthesizeMouseAtCenter(icon, { button: 0 });
+  let command;
+  let statePromise;
+  if (tab.activeMediaBlocked && !expectMuted) {
+    command = document.getElementById(
+      tab.multiselected ? "context_playSelectedTabs" : "context_playTab"
+    );
+    statePromise = wait_for_tab_media_blocked_event(tab, false);
+  } else {
+    command = document.getElementById(
+      tab.multiselected
+        ? "context_toggleMuteSelectedTabs"
+        : "context_toggleMuteTab"
+    );
+    statePromise = get_wait_for_mute_promise(tab, expectMuted);
+  }
+  ok(command, "Found the expected tab audio context menu command");
+  ok(!command.hidden, "The tab audio context menu command is visible");
+  ok(!command.disabled, "The tab audio context menu command is enabled");
+
+  let popupHiddenPromise = BrowserTestUtils.waitForEvent(
+    contextMenu,
+    "popuphidden"
+  );
+  contextMenu.activateItem(command);
+  await popupHiddenPromise;
 
   is(
     gBrowser.selectedTab,
     activeTab,
-    "Clicking on mute should not change the currently selected tab"
+    "Changing tab audio state from the context menu should not change the selected tab"
   );
 
-  // If the audio is playing, we should check whether clicking on icon affects
-  // the media element's playing state.
+  // If the audio is playing, audio state changes should update playback state.
   let isAudioPlaying = await is_audio_playing(tab);
   if (isAudioPlaying) {
     await wait_for_tab_playing_event(tab, !expectMuted);
   }
 
-  return mutedPromise;
+  return statePromise;
 }
 
 async function dragAndDrop(

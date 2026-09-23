@@ -82,6 +82,8 @@ appmenu-menu-button-opened2 =
 # instead of Options or Preferences.
 appmenuitem-settings =
     .label = Settings
+appmenuitem-umbrafox-control =
+    .label = UmbraLink
 
 ## Zoom and Fullscreen Controls
 

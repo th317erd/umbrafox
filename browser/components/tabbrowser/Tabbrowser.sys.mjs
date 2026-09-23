@@ -9516,7 +9516,7 @@ export class Tabbrowser {
     const tabCount = this.selectedTabs.includes(tab)
       ? this.selectedTabs.length
       : 1;
-    if (tab._overPlayingIcon || tab._overAudioButton) {
+    if (tab._overPlayingIcon) {
       let l10nId;
       const l10nArgs = { tabCount };
       if (tab.selected) {

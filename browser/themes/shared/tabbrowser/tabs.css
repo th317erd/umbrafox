@@ -690,6 +690,7 @@ tab-split-view-wrapper[dragtarget] {
     }
 
     &:is([soundplaying], [muted], [activemedia-blocked]) {
+      pointer-events: none;
       /* We want to make this look like the selected tab, but fully opaque. For that,
        * we build a stack of `--lwt-accent-color` (guaranteed opaque), then
        * `--toolbox-background-color`, then `--tab-background-color-selected`.
@@ -896,44 +897,6 @@ tab-split-view-wrapper[dragtarget] {
     removed from root such as when toggling the sidebar to expand with the toolbar button. */
     #tabbrowser-tabs[orient="vertical"]:not([expanded]) .tabbrowser-tab[tab-note]:not([crashed], [soundplaying], [muted], [activemedia-blocked]) & {
       display: revert;
-    }
-  }
-}
-
-.tab-audio-button {
-  display: none;
-  margin-inline-end: var(--tab-icon-margin-inline-end);
-  --icon-size: var(--icon-size-xsmall);
-  --button-size-icon-small: var(--tab-content-button-size);
-  --button-min-height-small: var(--tab-content-button-size);
-  --button-border-radius: var(--tab-border-radius);
-
-  @media not -moz-pref("browser.nova.enabled") {
-    --button-border-radius: var(--border-radius-small);
-  }
-
-  @media not -moz-pref("sidebar.visibility", "expand-on-hover") {
-    /* We need these rules to apply at all times when the sidebar.visibility
-      pref is not set to "expand-on-hover" as opposed to when the "sidebar-expand-on-hover" attribute
-      has not been added to root. There are certain scenarios when that attribute is temporarily
-      removed from root such as when toggling the sidebar to expand with the toolbar button. */
-    #tabbrowser-tabs[orient="horizontal"] &:not([pinned]):not([crashed]),
-    :root:not([sidebar-expand-on-hover]) #tabbrowser-tabs[orient="vertical"][expanded] &:not([pinned]):not([crashed]) {
-      &:is([soundplaying], [muted], [activemedia-blocked]) {
-        display: flex;
-      }
-
-      &[soundplaying]::part(button) {
-        background-image: url("chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg");
-      }
-
-      &[muted]::part(button) {
-        background-image: url("chrome://browser/skin/tabbrowser/tab-audio-muted-small.svg");
-      }
-
-      &[activemedia-blocked]::part(button) {
-        background-image: url("chrome://browser/skin/tabbrowser/tab-audio-blocked-circle-12.svg");
-      }
     }
   }
 }

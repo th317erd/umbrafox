@@ -16,8 +16,12 @@ ChromeUtils.defineESModuleGetters(this, {
     "moz-src:///browser/components/customizableui/PanelMultiView.sys.mjs",
   ReportBrokenSite:
     "moz-src:///browser/components/reportbrokensite/ReportBrokenSite.sys.mjs",
+  UmbrafoxControlService:
+    "resource://gre/modules/UmbrafoxControlService.sys.mjs",
   updateZoomUI: "resource:///modules/ZoomUI.sys.mjs",
 });
+
+const UMBRAFOX_CONTROL_ENABLED_PREF = "umbrafox.control.enabled";
 
 /**
  * Attributes copied from a `menu_HelpPopup` menuitem onto its app menu clone.
@@ -526,6 +530,9 @@ const PanelUI = {
       case "appMenu-settings-button":
         openPreferences();
         break;
+      case "appMenu-umbrafox-control-button":
+        this._toggleUmbrafoxControl(target).catch(console.error);
+        break;
       case "appMenu-more-button2":
         this.showMoreToolsPanel(target);
         break;
@@ -820,6 +827,41 @@ const PanelUI = {
       ASRouter.addImpression(message);
     }
     updateZoomUI(gBrowser.selectedBrowser);
+    PanelUI._updateUmbrafoxControlButton();
+  },
+
+  async _toggleUmbrafoxControl(button) {
+    const enabled = button.hasAttribute("checked");
+    button.disabled = true;
+    Services.prefs.setBoolPref(UMBRAFOX_CONTROL_ENABLED_PREF, enabled);
+    try {
+      if (enabled) {
+        await UmbrafoxControlService.start();
+      } else {
+        await UmbrafoxControlService.stop();
+      }
+    } catch (error) {
+      Services.prefs.setBoolPref(UMBRAFOX_CONTROL_ENABLED_PREF, !enabled);
+      throw error;
+    } finally {
+      button.disabled = false;
+      this._updateUmbrafoxControlButton();
+    }
+  },
+
+  _updateUmbrafoxControlButton() {
+    const button = PanelMultiView.getViewNode(
+      document,
+      "appMenu-umbrafox-control-button"
+    );
+    if (!button) {
+      return;
+    }
+    const enabled = Services.prefs.getBoolPref(
+      UMBRAFOX_CONTROL_ENABLED_PREF,
+      false
+    );
+    button.toggleAttribute("checked", enabled);
   },
 
   _onHelpViewShow() {

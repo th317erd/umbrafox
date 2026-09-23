@@ -78,64 +78,6 @@ async function show_tab(tab) {
   return tabShown;
 }
 
-async function test_tooltip(icon, expectedTooltip, isActiveTab) {
-  let tooltip = document.getElementById("tabbrowser-tab-tooltip");
-
-  await hover_icon(icon, tooltip);
-  while (document.hasPendingL10nMutations) {
-    // wait for correct menu text
-    await BrowserTestUtils.waitForEvent(document, "L10nMutationsFinished");
-  }
-  if (isActiveTab) {
-    // The active tab should have the keybinding shortcut in the tooltip.
-    // We check this by ensuring that the strings are not equal but the expected
-    // message appears in the beginning.
-    isnot(
-      tooltip.getAttribute("label"),
-      expectedTooltip,
-      "Tooltips should not be equal"
-    );
-    is(
-      tooltip.getAttribute("label").indexOf(expectedTooltip),
-      0,
-      "Correct tooltip expected"
-    );
-  } else {
-    is(
-      tooltip.getAttribute("label"),
-      expectedTooltip,
-      "Tooltips should be equal"
-    );
-  }
-  leave_icon(icon);
-}
-
-async function hover_icon(icon, tooltip) {
-  disable_non_test_mouse(true);
-
-  let popupShownPromise = BrowserTestUtils.waitForEvent(tooltip, "popupshown");
-  EventUtils.synthesizeMouse(icon, 1, 1, { type: "mouseover" });
-  EventUtils.synthesizeMouse(icon, 2, 2, { type: "mousemove" });
-  EventUtils.synthesizeMouse(icon, 3, 3, { type: "mousemove" });
-  EventUtils.synthesizeMouse(icon, 4, 4, { type: "mousemove" });
-  await popupShownPromise;
-}
-
-function leave_icon(icon) {
-  EventUtils.synthesizeMouse(icon, 0, 0, { type: "mouseout" });
-  EventUtils.synthesizeMouseAtCenter(document.documentElement, {
-    type: "mousemove",
-  });
-  EventUtils.synthesizeMouseAtCenter(document.documentElement, {
-    type: "mousemove",
-  });
-  EventUtils.synthesizeMouseAtCenter(document.documentElement, {
-    type: "mousemove",
-  });
-
-  disable_non_test_mouse(false);
-}
-
 function get_tab_state(tab) {
   return JSON.parse(SessionStore.getTabState(tab));
 }
@@ -211,18 +153,13 @@ async function test_muting_using_menu(tab, expectMuted) {
   await mutedPromise;
 }
 
-async function test_playing_icon_on_tab(tab, browser, isPinned) {
-  let isVerticalAndCollapsed =
-    Services.prefs.getBoolPref("sidebar.revamp", false) &&
-    Services.prefs.getBoolPref("sidebar.verticalTabs", false) &&
-    !window.SidebarController._state.launcherExpanded;
-  let icon =
-    isPinned || isVerticalAndCollapsed ? tab.overlayIcon : tab.audioButton;
-  let isActiveTab = tab === gBrowser.selectedTab;
-
+async function test_playing_icon_on_tab(tab, _browser) {
   await play(tab);
-
-  await test_tooltip(icon, "Mute tab", isActiveTab, tab);
+  is(
+    tab.querySelector(".tab-audio-button"),
+    null,
+    "The inline tab audio button is not created"
+  );
 
   ok(
     !("muted" in get_tab_state(tab)),
@@ -233,7 +170,7 @@ async function test_playing_icon_on_tab(tab, browser, isPinned) {
     "No muteReason property should be persisted"
   );
 
-  await test_mute_tab(tab, icon, true);
+  await test_mute_tab(tab, null, true);
 
   ok("muted" in get_tab_state(tab), "Muted attribute should be persisted");
   ok(
@@ -241,9 +178,7 @@ async function test_playing_icon_on_tab(tab, browser, isPinned) {
     "muteReason property should be persisted"
   );
 
-  await test_tooltip(icon, "Unmute tab", isActiveTab, tab);
-
-  await test_mute_tab(tab, icon, false);
+  await test_mute_tab(tab, null, false);
 
   ok(
     !("muted" in get_tab_state(tab)),
@@ -254,9 +189,7 @@ async function test_playing_icon_on_tab(tab, browser, isPinned) {
     "No muteReason property should be persisted"
   );
 
-  await test_tooltip(icon, "Mute tab", isActiveTab, tab);
-
-  await test_mute_tab(tab, icon, true);
+  await test_mute_tab(tab, null, true);
 
   await pause(tab);
 
@@ -268,9 +201,7 @@ async function test_playing_icon_on_tab(tab, browser, isPinned) {
   ok(tab.muted, "Tab should still be muted (property check)");
   ok(!tab.soundPlaying, "Tab should not be playing (property check)");
 
-  await test_tooltip(icon, "Unmute tab", isActiveTab, tab);
-
-  await test_mute_tab(tab, icon, false);
+  await test_mute_tab(tab, null, false);
 
   ok(
     !tab.hasAttribute("muted"),
@@ -409,16 +340,10 @@ async function test_swapped_browser_while_playing(oldTab, newBrowser) {
     "Expected the correct soundplaying attribute on the new tab"
   );
 
-  let isPinned = newTab.pinned;
-  let isVerticalAndCollapsed =
-    Services.prefs.getBoolPref("sidebar.revamp", false) &&
-    Services.prefs.getBoolPref("sidebar.verticalTabs", false) &&
-    !window.SidebarController._state.launcherExpanded;
-  let icon =
-    isPinned || isVerticalAndCollapsed
-      ? newTab.overlayIcon
-      : newTab.audioButton;
-  await test_tooltip(icon, "Unmute tab", true, newTab);
+  ok(
+    !newTab.querySelector(".tab-audio-button"),
+    "The inline tab audio button is still absent after swapping a playing browser"
+  );
 }
 
 async function test_swapped_browser_while_not_playing(oldTab, newBrowser) {
@@ -491,29 +416,16 @@ async function test_swapped_browser_while_not_playing(oldTab, newBrowser) {
     "Expected the correct soundplaying attribute on the new tab"
   );
 
-  let isPinned = newTab.pinned;
-  let isVerticalAndCollapsed =
-    Services.prefs.getBoolPref("sidebar.revamp", false) &&
-    Services.prefs.getBoolPref("sidebar.verticalTabs", false) &&
-    !window.SidebarController._state.launcherExpanded;
-  let icon =
-    isPinned || isVerticalAndCollapsed
-      ? newTab.overlayIcon
-      : newTab.audioButton;
-  await test_tooltip(icon, "Unmute tab", true, newTab);
+  ok(
+    !newTab.querySelector(".tab-audio-button"),
+    "The inline tab audio button is still absent after swapping an idle browser"
+  );
 }
 
 async function test_browser_swapping(tab) {
   // First, test swapping with a playing but muted tab.
   await play(tab);
-  let isPinned = tab.pinned;
-  let isVerticalAndCollapsed =
-    Services.prefs.getBoolPref("sidebar.revamp", false) &&
-    Services.prefs.getBoolPref("sidebar.verticalTabs", false) &&
-    !window.SidebarController._state.launcherExpanded;
-  let icon =
-    isPinned || isVerticalAndCollapsed ? tab.overlayIcon : tab.audioButton;
-  await test_mute_tab(tab, icon, true);
+  await test_mute_tab(tab, null, true);
 
   await BrowserTestUtils.withNewTab(
     {
@@ -559,14 +471,13 @@ async function test_click_on_pinned_tab_after_mute() {
     await play(tab);
 
     //   Mute the tab.
-    let icon = tab.overlayIcon;
-    await test_mute_tab(tab, icon, true);
+    await test_mute_tab(tab, null, true);
 
     // Pause playback and wait for it to finish.
     await pause(tab);
 
     // Unmute tab.
-    await test_mute_tab(tab, icon, false);
+    await test_mute_tab(tab, null, false);
 
     // Now click on the tab.
     EventUtils.synthesizeMouseAtCenter(tab.iconImage, { button: 0 });

@@ -221,14 +221,13 @@ export var Nova = {
       },
     },
 
-    // B04 - Tab chrome: mute control hovered on an audio-playing tab
+    // B04 - Tab chrome: audio-playing tab without inline mute control
     tabMuteHover: {
       selectors: [":root"],
       async applyConfig() {
         let win = await reset();
         await navigateTo(win, HOME_PAGE);
-        let tab = await openAudioTab(win, { background: false });
-        hover(tab.audioButton);
+        await openAudioTab(win, { background: false });
       },
     },
 
@@ -492,17 +491,6 @@ async function navigateTo(win, url) {
     url
   );
   await lazy.BrowserTestUtils.browserLoaded(win.gBrowser.selectedBrowser);
-}
-
-// Uses Window.synthesizeMouseEvent() directly rather than EventUtils.js,
-// since this module doesn't run in a mochitest scope that has it injected.
-function hover(element) {
-  let rect = element.getBoundingClientRect();
-  let elWin = element.documentGlobal;
-  let x = rect.left + rect.width / 2;
-  let y = rect.top + rect.height / 2;
-  elWin.synthesizeMouseEvent("mouseover", x, y);
-  elWin.synthesizeMouseEvent("mousemove", x, y);
 }
 
 function addTabGroup(win, tabCount, background, label = "QA") {
