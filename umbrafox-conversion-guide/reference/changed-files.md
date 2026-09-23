@@ -219,7 +219,7 @@ This inventory was generated from the current working tree when the guide was wr
 - `toolkit/components/moz.build`
 - `toolkit/components/umbrafox/`
 
-## Bot and local control channel
+## Bot and UmbraLink channel
 
 - `remote/webdriver-bidi/modules/root/umbrafox.sys.mjs`
 - `remote/webdriver-bidi/modules/ModuleRegistry.sys.mjs`
@@ -256,3 +256,27 @@ This inventory was generated from the current working tree when the guide was wr
 - `toolkit/content/tests/chrome/test_panel_keyup_escape.xhtml`
 - `toolkit/content/tests/chrome/chrome.toml`
 - `toolkit/content/tests/chrome/mochitest.toml`
+
+## Browser chrome control UI
+
+- `browser/base/content/appmenu-viewcache.inc.xhtml`
+- `browser/components/customizableui/content/panelUI.js`
+- `browser/locales/en-US/browser/appmenu.ftl`
+- `browser/components/customizableui/test/browser_umbrafox_control_toggle.js`
+- `browser/components/customizableui/test/browser.toml`
+- `browser/components/tabbrowser/content/tab.js`
+- `browser/components/tabbrowser/content/tabs.mjs`
+- `browser/components/tabbrowser/Tabbrowser.sys.mjs`
+- `browser/themes/shared/tabbrowser/tabs.css`
+- `browser/components/tabbrowser/test/browser/tabs/head.js`
+- `browser/components/tabbrowser/test/browser/tabs/browser_audioTabIcon.js`
+- `browser/components/tabbrowser/test/browser/tabs/browser_multiselect_tabs_mute_unmute.js`
+- `browser/components/tabbrowser/test/browser/tabs/browser_tab_play.js`
+- `browser/components/tabbrowser/test/browser/tabs/browser_multiselect_tabs_play.js`
+- `browser/components/tabbrowser/test/browser/tabMediaIndicator/head.js`
+- `browser/components/tabbrowser/test/browser/tabMediaIndicator/browser_mute_webAudio.js`
+- `browser/components/sidebar/tests/browser/browser_sidebar_expand_on_hover.js`
+- `browser/tools/mozscreenshots/mozscreenshots/extension/configurations/Nova.sys.mjs`
+- `toolkit/content/tests/browser/browser_delay_autoplay_silentAudioTrack_media.js`
+- `toolkit/components/pictureinpicture/tests/browser_tabIconOverlayPiP.js`
+- `umbrafox-conversion-guide/recipes/14-browser-chrome-control-ui.md`

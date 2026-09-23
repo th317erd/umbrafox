@@ -1,9 +1,10 @@
-# Recipe 12: Local control input
+# Recipe 12: UmbraLink input
 
 ## Goal
 
-Add the first native input command to the independent Umbrafox local control
-channel without starting Firefox Remote Agent, Marionette, or WebDriver BiDi.
+Add the first native input command to UmbraLink, the independent Umbrafox local
+control channel, without starting Firefox Remote Agent, Marionette, or WebDriver
+BiDi.
 
 The initial pointer command is:
 
@@ -82,7 +83,7 @@ tests.
 ## Rulebook notes
 
 This command is not web-exposed. It is only reachable through the local
-token-gated Umbrafox control channel. It does not add page globals, DOM APIs,
+token-gated UmbraLink channel. It does not add page globals, DOM APIs,
 WebIDL, CSS behavior, storage keys, HTTP headers, or new page-visible Umbrafox
 markers.
 

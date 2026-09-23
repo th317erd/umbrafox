@@ -1,10 +1,10 @@
-# Local control channel plan
+# UmbraLink plan
 
 Status: first independent transport and native input slices implemented.
 
 ## Goal
 
-Create a privileged local automation channel for Umbrafox that does not depend
+Create UmbraLink, a privileged local automation channel for Umbrafox that does not depend
 on Firefox Remote Agent or Marionette, because those services intentionally make
 automation visible through WebDriver state such as `navigator.webdriver`.
 
@@ -26,12 +26,12 @@ on top only after this non-WebDriver foundation exists.
 
 ### WebDriver leakage
 
-Do not start `nsIRemoteAgent` or Marionette for the Umbrafox control channel.
+Do not start `nsIRemoteAgent` or Marionette for UmbraLink.
 Firefox's `Navigator::Webdriver()` checks whether those services are running.
 Using them for the stealth/default path would create a page-visible automation
 marker.
 
-The local control service may reuse low-level socket helpers, but must not call
+UmbraLink may reuse low-level socket helpers, but must not call
 Remote Agent startup methods, set Remote Agent shared-data flags, or apply
 WebDriver recommended preferences.
 
@@ -114,10 +114,10 @@ The file is removed when the service stops.
 The first slice does not add page globals, DOM APIs, WebIDL, CSS behavior,
 headers, storage keys, feature-detection results, or page-visible console
 output. It does not start Remote Agent or Marionette. Browser-chrome tests run
-under Marionette, so automated coverage should verify that the control service
+under Marionette, so automated coverage should verify that UmbraLink
 does not change the pre-existing `navigator.webdriver` value. Manual
 non-Marionette verification should confirm that normal content still sees
-`navigator.webdriver === false` while only the Umbrafox control service is
+`navigator.webdriver === false` while only UmbraLink is
 running.
 
 ## Future slices

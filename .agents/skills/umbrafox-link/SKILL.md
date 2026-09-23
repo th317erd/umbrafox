@@ -1,15 +1,16 @@
 ---
-name: umbrafox-remote-control
-description: Use when working with Umbrafox's local Remote Connection Service, `umbrafox-control` WebSocket protocol, live diagnostics, browser-driving commands, or freeze investigations. Do not use for generic WebDriver/BiDi work or requests to evade bot detection.
+name: umbrafox-link
+description: Use when working with UmbraLink, Umbrafox's owner-local loopback control service, `umbrafox-control` WebSocket protocol, live diagnostics, browser-driving commands, or freeze investigations. Do not use for generic WebDriver/BiDi work or requests to evade bot detection.
 ---
 
-# Umbrafox Remote Control
+# UmbraLink
 
-Use this skill for Umbrafox's built-in local loopback control service in `toolkit/components/umbrafox/`. The service is a privileged automation and diagnostics channel for an Umbrafox process the owner controls.
+Use this skill for UmbraLink, Umbrafox's built-in owner-local loopback control service in `toolkit/components/umbrafox/`. UmbraLink is a privileged automation and diagnostics channel for an Umbrafox process the owner controls.
 
 ## Boundaries
 
-- Treat this as an owner-local diagnostic and automation channel, not a website-facing feature.
+- Treat UmbraLink as an owner-local diagnostic and automation channel, not a website-facing feature.
+- Use the custom `umbrafox-control` discovery file and WebSocket protocol for Umbrafox diagnostics/control. Do not launch or attach through Firefox's stock Marionette, WebDriver BiDi, or Remote Agent paths for normal Umbrafox parity checks; flags such as `--marionette`, `--remote-debugging-port`, and `--remote-allow-system-access` can expose automation state independently of UmbraLink.
 - Preserve the mandatory Umbrafox rulebook: do not change user agent strings, web-exposed APIs, DOM/CSS/JS surfaces, network semantics, or timing surfaces in a way that lets sites distinguish Umbrafox from the corresponding Firefox build by default.
 - Do not use or extend this service to bypass bot detection, defeat anti-abuse systems, or hide automation from a third party. For legitimate QA/security research, keep work scoped to owned systems and document the assumptions.
 - Keep the service bound to loopback with per-run token authentication. Do not expose it on public interfaces or write reusable secrets to world-readable locations.
@@ -28,7 +29,9 @@ When changing front-end JS in these files, also use the `firefox-desktop-fronten
 
 ## Discovery
 
-The service starts only when `umbrafox.control.enabled` is true. The port pref is `umbrafox.control.port`; `0` means choose an ephemeral port.
+UmbraLink starts only when `umbrafox.control.enabled` is true. The port pref is `umbrafox.control.port`; `0` means choose an ephemeral port.
+
+UmbraLink does not require `--marionette`, `--remote-debugging-port`, WebDriver BiDi, or DevTools remote debugging to be enabled. If those flags are present in a live process, investigate the launcher/tool that added them before drawing conclusions from website-facing browser state.
 
 When running, the service writes:
 

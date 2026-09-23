@@ -1,10 +1,10 @@
-# Recipe 11: Bot control channel
+# Recipe 11: Bot control channel and UmbraLink
 
 ## Goal
 
 Expose privileged bot-oriented command channels. The first committed channel was
-a WebDriver BiDi prototype; the current direction adds a local Umbrafox control
-service that does not start Firefox Remote Agent or Marionette.
+a WebDriver BiDi prototype; the current direction adds UmbraLink, an
+owner-local service that does not start Firefox Remote Agent or Marionette.
 
 ## Files changed
 
@@ -72,13 +72,13 @@ Then connect a WebDriver BiDi client and call:
 Without `--remote-allow-system-access`, `umbrafox.*` commands should return an
 unsupported-operation error.
 
-## Independent local control service
+## UmbraLink
 
 The WebDriver BiDi prototype is useful for development but is not suitable for
 the non-fingerprinting control path, because running Firefox Remote Agent makes
 `navigator.webdriver` true.
 
-The independent local service lives in
+UmbraLink is the independent local service. It lives in
 `toolkit/components/umbrafox/UmbrafoxControlService.sys.mjs`. BrowserGlue calls
 `maybeStart()` during `_beforeUIStartup`, but the service starts only when
 `umbrafox.control.enabled` is true. It binds to `localhost`, chooses an
@@ -98,11 +98,11 @@ The first supported command is:
 Native input commands are documented separately in
 `recipes/12-local-control-input.md`.
 
-This service must not import or start `nsIRemoteAgent`, Marionette, or
+UmbraLink must not import or start `nsIRemoteAgent`, Marionette, or
 WebDriver BiDi. Its browser test runs under Marionette, so it verifies that the
 service does not change the pre-existing `navigator.webdriver` value. Manual
 non-Marionette checks should verify that content sees `navigator.webdriver ===
-false` while only the Umbrafox control service is running.
+false` while only UmbraLink is running.
 
 ## Rebase notes
 

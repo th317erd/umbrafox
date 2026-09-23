@@ -21,6 +21,8 @@ Umbrafox currently changes Firefox in these broad ways:
 13. The built browser executable name is explicitly `umbrafox` via `MOZ_APP_NAME`.
 14. Web-facing user-agent identity is forced back to Firefox with `MOZ_APP_UA_NAME = Firefox`, so HTTP `User-Agent` and `navigator.userAgent` do not expose Umbrafox.
 15. Browser chrome panels ignore ordinary keydown events, survive GTK native focus-out caused by non-Escape keyboard shortcuts, and close from keyboard input only on Escape keyup, so extension and permission panels remain usable while typing.
+16. The app menu exposes a browser-chrome-only "UmbraLink" toggle for the local `umbrafox-control` WebSocket service; the service still does not require Marionette, WebDriver BiDi, or Remote Agent.
+17. Inline tab mute buttons/click targets are not created in the tab strip. Tab audio state remains intact, and tab muting remains available from the tab context menu and keyboard shortcut.
 
 ## Userland scripts state
 
@@ -82,6 +84,8 @@ The first document-start runtime slice is implemented. Browser startup and DevTo
 The first userland event slices are implemented in `toolkit/components/umbrafox/UmbrafoxUserlandEventController.sys.mjs`. Enabled document scripts can call `userland.on(...)` for `alert`, `prompt`, `confirm`, `navigation`, `script`, and `request` events. Dialog events are cancellable and can provide prompt/confirm return values. Navigation events can be cancelled or rewritten by changing `event.href`. Script events can rewrite `event.source` before Gecko compiles DOM document classic scripts, JavaScript modules, direct eval, indirect eval, and Function constructor bodies. Request events can mutate document-associated HTTP(S) request URLs, methods, and headers before send, hard-cancel explicit userland requests, or synthesize a successful string/object response through `respondWith(...)`.
 
 Navigation coverage now combines the `window.open(...)` wrapper with a native docshell bridge in `docshell/base/nsDocShell.cpp`. The bridge uses an internal observer topic and mutable property bag keyed by browsing-context id, with an internal `nsDocShellLoadState` marker serialized through `dom/ipc/DOMTypes.ipdlh` to avoid duplicate dispatch. Covered paths include primary anchor/area clicks, form submits, `location.assign(...)`, `location.replace(...)`, `location.href = ...`, hash navigations, meta refresh, and docshell external-protocol paths such as `zoom://` before external protocol dispatch. HTTP/server redirects are intentionally outside the `navigation` event and should be handled by future network interception/substitution APIs. History API URL changes still need a separate hook.
+
+The native docshell bridge is explicitly inert when `umbrafox.userlandScripts.active` is false and checks observer presence before marking a load state as handled. This preserves Firefox-equivalent default navigation behavior and prevents previously installed userland navigation handlers from observing future navigations after userland has been disabled.
 
 Script-source mutation coverage now combines `dom/script/ScriptLoader.cpp`, `dom/script/ScriptLoader.h`, `dom/script/ModuleLoader.cpp`, `js/public/Principals.h`, `js/src/vm/JSContext.cpp`, `js/src/vm/JSContext.h`, `js/src/builtin/Eval.cpp`, `js/src/vm/JSFunction.cpp`, `caps/nsScriptSecurityManager.cpp`, and `caps/nsScriptSecurityManager.h` with the same content-process event controller. The native hook emits `umbrafox-userland-script-source` after DOM script source is available and before classic/module source compilation. A separate SpiderMonkey host callback bridges direct eval, indirect eval, and Function constructor body source through the same event. While userland scripts are active, compiled script cache paths are bypassed or disabled so DOM source events are not skipped and rewritten compiled stencils are not reused outside userland. Workers, worklets, import maps, JSON modules, CSS modules, and WebAssembly modules still need separate hooks.
 
@@ -191,4 +195,22 @@ The search-engine selector test was previously verified with:
 
 ```bash
 ./mach xpcshell-test toolkit/components/search/tests/xpcshell/test_engine_selector_remote_settings.js
+```
+
+The disabled-userland native navigation guard was later verified with:
+
+```bash
+./mach build binaries
+./mach test --headless toolkit/components/umbrafox/tests/browser/browser_userland_events.js
+./mach lint docshell/base/nsDocShell.cpp toolkit/components/umbrafox/tests/browser/browser_userland_events.js
+./mach package
+```
+
+The browser chrome control UI slice was later verified with:
+
+```bash
+./mach lint browser/base/content/appmenu-viewcache.inc.xhtml browser/components/customizableui/content/panelUI.js browser/locales/en-US/browser/appmenu.ftl browser/components/customizableui/test/browser_umbrafox_control_toggle.js browser/components/customizableui/test/browser.toml browser/components/tabbrowser/content/tab.js browser/components/tabbrowser/content/tabs.mjs browser/components/tabbrowser/Tabbrowser.sys.mjs browser/themes/shared/tabbrowser/tabs.css browser/components/tabbrowser/test/browser/tabs/head.js browser/components/tabbrowser/test/browser/tabs/browser_audioTabIcon.js browser/components/tabbrowser/test/browser/tabs/browser_multiselect_tabs_mute_unmute.js browser/components/tabbrowser/test/browser/tabs/browser_tab_play.js browser/components/tabbrowser/test/browser/tabs/browser_multiselect_tabs_play.js browser/components/tabbrowser/test/browser/tabMediaIndicator/head.js browser/components/tabbrowser/test/browser/tabMediaIndicator/browser_mute_webAudio.js browser/components/sidebar/tests/browser/browser_sidebar_expand_on_hover.js browser/tools/mozscreenshots/mozscreenshots/extension/configurations/Nova.sys.mjs toolkit/content/tests/browser/browser_delay_autoplay_silentAudioTrack_media.js toolkit/components/pictureinpicture/tests/browser_tabIconOverlayPiP.js
+./mach test --headless browser/components/customizableui/test/browser_umbrafox_control_toggle.js
+./mach test --headless browser/components/tabbrowser/test/browser/tabs/browser_audioTabIcon.js browser/components/tabbrowser/test/browser/tabs/browser_multiselect_tabs_mute_unmute.js browser/components/tabbrowser/test/browser/tabs/browser_tab_play.js browser/components/tabbrowser/test/browser/tabs/browser_multiselect_tabs_play.js browser/components/tabbrowser/test/browser/tabMediaIndicator/browser_mute_webAudio.js
+./mach test --headless browser/components/sidebar/tests/browser/browser_sidebar_expand_on_hover.js toolkit/content/tests/browser/browser_delay_autoplay_silentAudioTrack_media.js toolkit/components/pictureinpicture/tests/browser_tabIconOverlayPiP.js
 ```

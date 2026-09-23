@@ -19,8 +19,8 @@ ships CDP support in this tree.
 
 Remote Agent is useful for development, but it is not suitable for the
 non-fingerprinting automation path because it participates in Firefox's
-WebDriver exposure state. Use `plans/03-local-control-channel.md` for the
-independent local channel.
+WebDriver exposure state. Use UmbraLink, documented in
+`plans/03-local-control-channel.md`, for the independent local channel.
 
 The first Umbrafox API surface should be a vendor-style WebDriver BiDi root
 module:
