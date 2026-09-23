@@ -11,8 +11,7 @@ use crate::pattern::image::ImagePattern;
 use crate::quad::{self, QuadDescriptor, QuadTransformState};
 use crate::quad_clip::QuadClipStack;
 use crate::render_task_cache::{RenderTaskCacheKey, RenderTaskCacheKeyKind, RenderTaskParent, to_cache_size};
-use crate::scene_building::{IsVisible};
-use crate::frame_builder::{FrameBuildingContext, FrameBuildingState, PictureContext};
+use crate::frame_builder::{FrameBuildingContext, FrameBuildingState};
 use crate::intern;
 use crate::internal_types::LayoutPrimitiveInfo;
 use crate::prim_store::{
@@ -45,7 +44,6 @@ impl NormalBorderData {
         clips: &QuadClipStack,
         quad_transform: &mut QuadTransformState,
         frame_context: &FrameBuildingContext,
-        pic_context: &PictureContext,
         targets: &[CommandBufferIndex],
         frame_state: &mut FrameBuildingState,
         scratch: &mut PrimitiveScratchBuffer,
@@ -178,8 +176,7 @@ impl NormalBorderData {
                     &None,
                     clips,
                     quad_transform,
-                    frame_context,
-                    pic_context,
+                    frame_context.spatial_tree,
                     targets,
                     frame_state,
                     scratch,
@@ -285,8 +282,7 @@ impl NormalBorderData {
                 &None,
                 clips,
                 quad_transform,
-                frame_context,
-                pic_context,
+                frame_context.spatial_tree,
                 targets,
                 frame_state,
                 scratch,
@@ -345,13 +341,6 @@ impl InternablePrimitive for NormalBorderPrim {
         PrimitiveKind::NormalBorder {
             data_handle,
         }
-    }
-}
-
-
-impl IsVisible for NormalBorderPrim {
-    fn is_visible(&self) -> bool {
-        true
     }
 }
 
@@ -445,12 +434,6 @@ impl InternablePrimitive for ImageBorder {
         PrimitiveKind::ImageBorder {
             data_handle
         }
-    }
-}
-
-impl IsVisible for ImageBorder {
-    fn is_visible(&self) -> bool {
-        true
     }
 }
 

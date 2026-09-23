@@ -179,7 +179,7 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   // is true and aLoadState and aReloadActiveEntry are not set then we should
   // attempt to reload based on the current document in the docshell.
   void NotifyOnHistoryReload(
-      bool aForceReload, bool& aCanReload,
+      uint32_t aReloadFlags, bool& aCanReload,
       Maybe<NotNull<RefPtr<nsDocShellLoadState>>>& aLoadState,
       Maybe<bool>& aReloadActiveEntry);
 
@@ -238,9 +238,11 @@ class CanonicalBrowsingContext final : public BrowsingContext {
 
   // Triggers a load in the process
   using BrowsingContext::LoadURI;
+  MOZ_CAN_RUN_SCRIPT
   void FixupAndLoadURIString(const nsAString& aURI,
                              const LoadURIOptions& aOptions,
                              ErrorResult& aError);
+  MOZ_CAN_RUN_SCRIPT
   void LoadURI(nsIURI* aURI, const LoadURIOptions& aOptions,
                ErrorResult& aError);
 
@@ -326,8 +328,7 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   void AddLoadingSessionHistoryEntry(uint64_t aLoadId,
                                      SessionHistoryEntry* aEntry);
 
-  void GetLoadingSessionHistoryInfoFromParent(
-      Maybe<LoadingSessionHistoryInfo>& aLoadingInfo);
+  void AdoptChildSHEntry(Maybe<LoadingSessionHistoryInfo>& aLoadingInfo);
 
   MOZ_CAN_RUN_SCRIPT
   void HistoryCommitIndexAndLength();

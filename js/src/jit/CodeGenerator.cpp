@@ -2496,6 +2496,55 @@ static bool PrepareAndExecuteRegExp(MacroAssembler& masm, Register regexp,
   }
   masm.bind(&notAtom);
 
+  // Try fast rejection using quickcheck data.
+  // This should be kept in sync with RegExpShared::quickCheckRejects.
+  Label doneQuickCheck;
+  masm.load8ZeroExtend(
+      Address(regexpReg, RegExpShared::offsetOfInternalFlags()), temp2);
+  masm.branchTest32(Assembler::Zero, temp2,
+                    Imm32(uint32_t(RegExpShared::InternalFlag::HasQuickCheck)),
+                    &doneQuickCheck);
+  masm.branchTwoByteString(input, &doneQuickCheck);
+
+  // if (index >= length) return false
+  masm.loadStringLength(input, temp2);
+  masm.branch32(Assembler::GreaterThanOrEqual, lastIndex, temp2,
+                &doneQuickCheck);
+
+  // Check the first character against the reject bitset
+  // Load chars[index] into temp2
+  masm.loadStringChars(input, temp2, CharEncoding::Latin1);
+  masm.load8ZeroExtend(BaseIndex(temp2, lastIndex, TimesOne), temp2);
+
+  // [word, bit] = quickCheckBitsetBit(chars[index])
+  static_assert(RegExpShared::QuickCheckBitsetBitsPerWord == 32);
+  masm.rshift32(Imm32(5), temp2, temp3);  // word in temp3
+  masm.and32(Imm32(0x1f), temp2);         // bit in temp2
+
+  // if ((quickCheckRejectBitset_[word] & bit) != 0) return true;
+  // (implemented as `(bitset[word] >> bit) & 1 == 1`)
+  masm.load32(BaseIndex(regexpReg, temp3, TimesFour,
+                        RegExpShared::offsetOfQuickCheckRejectBitset()),
+              temp3);
+  masm.flexibleRshift32(temp2, temp3);
+  masm.branchTest32(Assembler::NonZero, temp3, Imm32(1), notFound);
+
+  // if (index + sizeof(uint32_t) <= length) {
+  masm.loadStringLength(input, temp2);
+  masm.sub32(Imm32(4), temp2);
+  masm.branch32(Assembler::GreaterThan, lastIndex, temp2, &doneQuickCheck);
+
+  // Load 4 bytes into temp2
+  masm.loadStringChars(input, temp2, CharEncoding::Latin1);
+  masm.load32(BaseIndex(temp2, lastIndex, TimesOne), temp2);
+
+  // if ((word & quickCheckMask_) != quickCheckValue_) { return true; }
+  masm.and32(Address(regexpReg, RegExpShared::offsetOfQuickCheckMask()), temp2);
+  masm.branch32(Assembler::NotEqual,
+                Address(regexpReg, RegExpShared::offsetOfQuickCheckValue()),
+                temp2, notFound);
+  masm.bind(&doneQuickCheck);
+
   // If we don't need to look at the capture groups, we can leave pairCount at 1
   // (set above). The regexp code is special-cased to skip copying capture
   // groups if the pair count is 1, which also lets us avoid having to allocate
@@ -10568,13 +10617,17 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
       if (isReturnCall) {
         ReturnCallAdjustmentInfo retCallInfo(
             callBase->stackArgAreaSizeUnaligned(), inboundStackArgBytes_);
-        masm.wasmReturnCallIndirect(desc, callee, nullCheckFailed, retCallInfo);
+        // Discard the FaultingCodeRange returned by the following; we won't
+        // want to generate a stackmap here.
+        (void)masm.wasmReturnCallIndirect(desc, callee, nullCheckFailed,
+                                          retCallInfo);
         // The rest of the method is unnecessary for a return call.
         return;
       }
       MOZ_ASSERT(!isReturnCall);
-      masm.wasmCallIndirect(desc, callee, nullCheckFailed, &retOffset,
-                            &secondRetOffset);
+      // As above, discard the returned FaultingCodeRange.
+      (void)masm.wasmCallIndirect(desc, callee, nullCheckFailed, &retOffset,
+                                  &secondRetOffset);
       // Register reloading and realm switching are handled dynamically inside
       // wasmCallIndirect.  There are two return offsets, one for each call
       // instruction (fast path and slow path).
@@ -10609,7 +10662,7 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
       if (isReturnCall) {
         ReturnCallAdjustmentInfo retCallInfo(
             callBase->stackArgAreaSizeUnaligned(), inboundStackArgBytes_);
-        masm.wasmReturnCallRef(desc, callee, retCallInfo);
+        masm.wasmReturnCallRef(desc, callee, retCallInfo, nullptr, nullptr);
         // The rest of the method is unnecessary for a return call.
         return;
       }
@@ -10617,7 +10670,8 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
       // Register reloading and realm switching are handled dynamically inside
       // wasmCallRef.  There are two return offsets, one for each call
       // instruction (fast path and slow path).
-      masm.wasmCallRef(desc, callee, &retOffset, &secondRetOffset);
+      masm.wasmCallRef(desc, callee, &retOffset, &secondRetOffset, nullptr,
+                       nullptr);
       reloadInstance = false;
       reloadPinnedRegs = false;
       switchRealm = false;
@@ -10660,7 +10714,7 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
     MOZ_ASSERT(!switchRealm);
   }
   if (reloadPinnedRegs) {
-    masm.loadWasmPinnedRegsFromInstance(mozilla::Nothing());
+    masm.loadWasmPinnedRegsFromInstance();
   }
 
   switch (callee.which()) {

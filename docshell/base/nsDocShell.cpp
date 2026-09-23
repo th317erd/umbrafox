@@ -1060,11 +1060,12 @@ bool nsDocShell::MaybeHandleSubframeHistory(
           auto resolve =
               [currentLoadIdentifier, browsingContext, parentDoc, loadState,
                isNavigating, loadGroup, stopDetector](
-                  mozilla::Maybe<LoadingSessionHistoryInfo>&& aResult) {
-                RefPtr<nsDocShell> docShell =
-                    static_cast<nsDocShell*>(browsingContext->GetDocShell());
-                auto unblockParent = MakeScopeExit(
-                    [loadGroup, stopDetector, parentDoc, docShell]() {
+                  mozilla::Maybe<LoadingSessionHistoryInfo>&& aResult)
+                  MOZ_CAN_RUN_SCRIPT {
+                    RefPtr<nsDocShell> docShell = static_cast<nsDocShell*>(
+                        browsingContext->GetDocShell());
+                    auto unblockParent = MakeScopeExit([loadGroup, stopDetector,
+                                                        parentDoc, docShell]() {
                       if (docShell) {
                         docShell->mCheckingSessionHistory = false;
                       }
@@ -1072,26 +1073,26 @@ bool nsDocShell::MaybeHandleSubframeHistory(
                       parentDoc->UnblockOnload(false);
                     });
 
-                if (!docShell || !docShell->mCheckingSessionHistory) {
-                  return;
-                }
+                    if (!docShell || !docShell->mCheckingSessionHistory) {
+                      return;
+                    }
 
-                if (stopDetector->Canceled()) {
-                  return;
-                }
-                if (currentLoadIdentifier ==
-                        browsingContext->GetCurrentLoadIdentifier() &&
-                    aResult.isSome()) {
-                  loadState->SetLoadingSessionHistoryInfo(aResult.value());
-                  // This is an initial subframe load from the session
-                  // history, index doesn't need to be updated.
-                  loadState->SetLoadIsFromSessionHistory(0, false);
-                }
+                    if (stopDetector->Canceled()) {
+                      return;
+                    }
+                    if (currentLoadIdentifier ==
+                            browsingContext->GetCurrentLoadIdentifier() &&
+                        aResult.isSome()) {
+                      loadState->SetLoadingSessionHistoryInfo(aResult.value());
+                      // This is an initial subframe load from the session
+                      // history, index doesn't need to be updated.
+                      loadState->SetLoadIsFromSessionHistory(0, false);
+                    }
 
-                // We got the results back from the parent process, call
-                // LoadURI again with the possibly updated data.
-                docShell->LoadURI(loadState, isNavigating, true);
-              };
+                    // We got the results back from the parent process, call
+                    // LoadURI again with the possibly updated data.
+                    docShell->LoadURI(loadState, isNavigating, true);
+                  };
           auto reject = [loadGroup, stopDetector, browsingContext,
                          parentDoc](mozilla::ipc::ResponseRejectReason) {
             RefPtr<nsDocShell> docShell =
@@ -1103,14 +1104,13 @@ bool nsDocShell::MaybeHandleSubframeHistory(
             loadGroup->RemoveRequest(stopDetector, nullptr, NS_OK);
             parentDoc->UnblockOnload(false);
           };
-          contentChild->SendGetLoadingSessionHistoryInfoFromParent(
+          contentChild->SendAdoptChildSHEntry(
               mBrowsingContext, std::move(resolve), std::move(reject));
           return true;
         }
       } else {
         Maybe<LoadingSessionHistoryInfo> info;
-        mBrowsingContext->Canonical()->GetLoadingSessionHistoryInfoFromParent(
-            info);
+        mBrowsingContext->Canonical()->AdoptChildSHEntry(info);
         if (info.isSome()) {
           aLoadState->SetLoadingSessionHistoryInfo(info.value());
           // This is an initial subframe load from the session
@@ -4008,7 +4008,6 @@ nsresult nsDocShell::ReloadNavigable(
   // reload
   RefPtr<ChildSHistory> rootSH = GetRootSessionHistory();
   MOZ_LOG(gSHLog, LogLevel::Debug, ("nsDocShell %p Reload", this));
-  bool forceReload = IsForceReloadType(loadType);
   if (!XRE_IsParentProcess()) {
     ++mPendingReloadCount;
     nsCOMPtr<nsIDocumentViewer> viewer(mDocumentViewer);
@@ -4038,11 +4037,11 @@ nsresult nsDocShell::ReloadNavigable(
     }
 
     ContentChild::GetSingleton()->SendNotifyOnHistoryReload(
-        mBrowsingContext, forceReload,
+        mBrowsingContext, aReloadFlags,
         [docShell, doc, loadType, browsingContext, currentURI, referrerInfo,
          loadGroup, stopDetector](
             std::tuple<bool, Maybe<NotNull<RefPtr<nsDocShellLoadState>>>,
-                       Maybe<bool>>&& aResult) {
+                       Maybe<bool>>&& aResult) MOZ_CAN_RUN_SCRIPT {
           auto scopeExit = MakeScopeExit([loadGroup, stopDetector]() {
             if (loadGroup) {
               loadGroup->RemoveRequest(stopDetector, nullptr, NS_OK);
@@ -4072,8 +4071,8 @@ nsresult nsDocShell::ReloadNavigable(
                 gSHLog, LogLevel::Debug,
                 ("nsDocShell %p Reload - LoadHistoryEntry", docShell.get()));
             loadState.ref()->SetNotifiedBeforeUnloadListeners(true);
-            docShell->LoadHistoryEntry(loadState.ref(), loadType,
-                                       reloadingActiveEntry.ref());
+            docShell->LoadHistoryEntry(MOZ_KnownLive(loadState.ref().get()),
+                                       loadType, reloadingActiveEntry.ref());
           } else {
             MOZ_LOG(gSHLog, LogLevel::Debug,
                     ("nsDocShell %p ReloadDocument", docShell.get()));
@@ -4090,13 +4089,14 @@ nsresult nsDocShell::ReloadNavigable(
     Maybe<bool> reloadingActiveEntry;
     if (!mBrowsingContext->IsDiscarded()) {
       mBrowsingContext->Canonical()->NotifyOnHistoryReload(
-          forceReload, canReload, loadState, reloadingActiveEntry);
+          aReloadFlags, canReload, loadState, reloadingActiveEntry);
     }
     if (canReload) {
       if (loadState.isSome()) {
         MOZ_LOG(gSHLog, LogLevel::Debug,
                 ("nsDocShell %p Reload - LoadHistoryEntry", this));
-        LoadHistoryEntry(loadState.ref(), loadType, reloadingActiveEntry.ref());
+        LoadHistoryEntry(MOZ_KnownLive(loadState.ref().get()), loadType,
+                         reloadingActiveEntry.ref());
       } else {
         MOZ_LOG(gSHLog, LogLevel::Debug,
                 ("nsDocShell %p ReloadDocument", this));
@@ -6205,6 +6205,7 @@ nsresult nsDocShell::FilterStatusForErrorPage(
       aStatus == NS_ERROR_REDIRECT_LOOP ||
       aStatus == NS_ERROR_UNKNOWN_SOCKET_TYPE ||
       aStatus == NS_ERROR_NET_INTERRUPT || aStatus == NS_ERROR_NET_RESET ||
+      aStatus == NS_ERROR_NET_UNCLEAN_SHUTDOWN ||
       aStatus == NS_ERROR_PROXY_BAD_GATEWAY || aStatus == NS_ERROR_OFFLINE ||
       aStatus == NS_ERROR_MALWARE_URI || aStatus == NS_ERROR_PHISHING_URI ||
       aStatus == NS_ERROR_UNWANTED_URI || aStatus == NS_ERROR_HARMFUL_URI ||
@@ -8717,7 +8718,7 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
   // available in the process triggering the load, and we don't want the target
   // process to have to trust the triggering process to do the appropriate
   // checks for the BrowsingContext's sandbox flags.
-  MOZ_TRY(mBrowsingContext->CheckSandboxFlags(aLoadState));
+  MOZ_TRY(mBrowsingContext->EnsureSourceSandboxAllowsNavigation(aLoadState));
   MOZ_TRY(mBrowsingContext->CheckFramebusting(aLoadState));
 
   NS_ENSURE_STATE(!HasUnloadedParent());
@@ -10439,7 +10440,7 @@ nsresult nsDocShell::CompleteInitialAboutBlankLoad(
 
   // Mechanisms in Document will force a load from EndLoad()
   // even if there are still blockers.
-  doc->EndLoad();
+  doc->EndLoad(/* aFireDOMContentLoadedSync = */ true);
   // Can't assert any postcondition, because the load event
   // handler may have started loading something new in this
   // docshell.
@@ -11558,8 +11559,8 @@ nsresult nsDocShell::LoadHistoryEntry(nsDocShellLoadState* aLoadState,
     return NS_ERROR_FAILURE;
   }
 
-  // We are setting load type afterwards so we don't have to
-  // send it in an IPC message
+  // XXX FillLoadInfo doesn't copy mLoadType, so the load state arrives here
+  // without a load type set.
   aLoadState->SetLoadType(aLoadType);
 
   SetOngoingNavigation(Some(OngoingNavigation::Traversal));

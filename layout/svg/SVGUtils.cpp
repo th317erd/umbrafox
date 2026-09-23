@@ -838,20 +838,7 @@ gfxRect SVGUtils::GetBBox(nsIFrame* aFrame, SVGBBoxFlags aFlags,
         return gfxRect();
       }
 
-      gfxRect rec = text->TransformFrameRectFromTextChild(
-          aFrame->GetRectRelativeToSelf(), aFrame);
-
-      // Should also add the |x|, |y| of the SVGTextFrame itself, since
-      // the result obtained by TransformFrameRectFromTextChild doesn't
-      // include them.
-      rec += ThebesPoint(
-          CSSPoint::FromAppUnits(text->GetPosition()).ToUnknownPoint());
-
-      if (aFlags.contains(SVGBBoxFlag::DisregardCSSZoom)) {
-        rec.Scale(1 / aFrame->Style()->EffectiveZoom().ToFloat());
-      }
-
-      return rec;
+      return ThebesRect(text->GetSubtreeBBox(aFrame, {}, aFlags));
     }
   }
 
@@ -987,18 +974,16 @@ gfxRect SVGUtils::GetBBox(nsIFrame* aFrame, SVGBBoxFlags aFlags,
   return bbox;
 }
 
-gfxPoint SVGUtils::FrameSpaceInCSSPxToUserSpaceOffset(const nsIFrame* aFrame) {
+CSSPoint SVGUtils::FrameSpaceInCSSPxToUserSpaceOffset(const nsIFrame* aFrame) {
   if (!aFrame->HasAnyStateBits(NS_FRAME_SVG_LAYOUT)) {
     // The user space for non-SVG frames is defined as the bounding box of the
     // frame's border-box rects over all continuations.
-    return gfxPoint();
+    return {};
   }
 
   // Leaf frames apply their own offset inside their user space.
   if (FrameDoesNotIncludePositionInTM(aFrame)) {
-    return nsLayoutUtils::RectToGfxRect(aFrame->GetRect(),
-                                        AppUnitsPerCSSPixel())
-        .TopLeft();
+    return CSSRect::FromAppUnits(aFrame->GetRect()).TopLeft();
   }
 
   // For foreignObject frames, SVGUtils::GetBBox applies their local
@@ -1008,10 +993,11 @@ gfxPoint SVGUtils::FrameSpaceInCSSPxToUserSpaceOffset(const nsIFrame* aFrame) {
                               ->ChildToUserSpaceTransform();
     NS_ASSERTION(!transform.HasNonTranslation(),
                  "we're relying on this being an offset-only transform");
-    return transform.GetTranslation();
+    auto translation = transform.GetTranslation();
+    return CSSPoint(translation.x, translation.y);
   }
 
-  return gfxPoint();
+  return {};
 }
 
 static gfxRect GetBoundingBoxRelativeRect(const SVGAnimatedLength* aXYWH,
@@ -1579,7 +1565,8 @@ gfxMatrix SVGUtils::GetTransformMatrixInUserSpace(const nsIFrame* aFrame) {
     trans = nsStyleTransformMatrix::ReadTransforms(
         properties.mTranslate, properties.mRotate, properties.mScale,
         properties.mMotion.ptrOr(nullptr), properties.mTransform, refBox,
-        AppUnitsPerCSSPixel(), aFrame->Style()->EffectiveZoom());
+        AppUnitsPerCSSPixel(), aFrame->Style()->EffectiveZoom(),
+        nsStyleTransformMatrix::Zoomed::Yes);
   }
 
   trans.ChangeBasis(svgTransformOrigin);

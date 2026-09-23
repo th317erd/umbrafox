@@ -397,6 +397,10 @@ pref("browser.overlink-delay", 80);
   pref("browser.taskbarTabs.enabled", false);
 #endif
 
+// How the shell service should create desktop entries on Unix-likes.
+// See ShellService.sys.mjs for the valid APIs.
+pref("browser.shell.desktop-entry-api", "default");
+
 // Whether using `ctrl` or `command` when hitting return/enter
 // in the URL bar should add prefix 'www.' and suffix
 // Services.locale.urlFixupSuffix to the URL bar value prior to navigating.
@@ -463,6 +467,8 @@ pref("browser.urlbar.newtab.featureGate", true);
 #else
 pref("browser.urlbar.newtab.featureGate", false);
 #endif
+pref("browser.urlbar.newtab.variantA", false);
+pref("browser.urlbar.newtab.variantB", false);
 
 // Enable a certain level of urlbar logging to the Browser Console. See
 // ConsoleInstance.webidl.
@@ -1938,11 +1944,6 @@ pref("browser.topsites.useRemoteSetting", true);
 pref("browser.topsites.contile.enabled", false);
 pref("browser.topsites.contile.endpoint", "https://contile.services.mozilla.com/v1/tiles");
 
-// The base URL for the Quick Suggest anonymizing proxy. To make a request to
-// the proxy, include a campaign ID in the path.
-pref("browser.partnerlink.attributionURL", "https://topsites.services.mozilla.com/cid/");
-pref("browser.partnerlink.campaign.topsites", "amzn_2020_a1");
-
 // Activates preloading of the new tab url.
 pref("browser.newtab.preload", true);
 
@@ -2038,6 +2039,8 @@ pref("browser.newtabpage.activity-stream.discoverystream.promoCard.visible", fal
 pref("browser.newtabpage.activity-stream.newtabWallpapers.enabled", false);
 pref("browser.newtabpage.activity-stream.newtabWallpapers.customColor.enabled", false);
 pref("browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.enabled", false);
+// Keeps more than one custom wallpaper, shown as "Your images" in the picker
+pref("browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.library.enabled", false);
 
 // Utility preferences for custom wallpaper upload
 pref("browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.uuid", "");
@@ -2395,10 +2398,6 @@ pref("browser.ml.linkPreview.supportedLocales", "en");
 
 pref("browser.ml.pageAssist.enabled", false);
 
-// Set once the native ONNX runtime availability has been reported to telemetry,
-// so that the one-off probe behind it runs at most once per profile.
-pref("browser.ml.onnxNativeAvailabilityReported", false);
-
 // Smart Window Feature
 pref("browser.smartwindow.enabled", false);
 // Default endpoint for preset models
@@ -2439,7 +2438,7 @@ pref("browser.smartwindow.autoTabGrouping.timeoutMs", 8000);
 pref("browser.smartwindow.autoTabGrouping.loglevel", "Warn");
 
 // Smart Window: Smart Form Fill (bug 2055009).
-pref("browser.smartwindow.smartformfill.enabled", false);
+pref("browser.smartwindow.smartformfill.enabled", true);
 
 // Comma-separated ISO 3166-1 region codes where the feature is unavailable.
 pref("browser.smartwindow.smartformfill.disallowedRegions", "FR");
@@ -2453,12 +2452,16 @@ pref("browser.smartwindow.smartformfill.minFormFields", 4);
 pref("browser.smartwindow.agent.enabled", true);
 pref("browser.smartwindow.agent.supportedRegions", "US,CA");
 // Toolbar button that opens the monitor creation panel (bug 2062113).
-pref("browser.smartwindow.agent.toolbar.enabled", false);
+pref("browser.smartwindow.agent.toolbar.enabled", true);
 // Announces the monitor agent as a new feature with a dot on the toolbar
 // button, for as long as the rollout runs. Set on the default branch by Nimbus
 // so that dismissing it, which writes the user branch, survives the rollout
 // being re-applied (bug 2066576).
 pref("browser.smartwindow.agent.monitorAnnouncement", false);
+// Monitors pause themselves after this many days without their condition
+// being met, and after this many days in total. Zero disables the rule.
+pref("browser.smartwindow.agent.expiry.noMatchDays", 60);
+pref("browser.smartwindow.agent.expiry.maxAgeDays", 90);
 
 
 // Smart Window: Exa search endpoint, used by the search_the_web agentic flow (bug 2037948)
@@ -2517,7 +2520,7 @@ pref("identity.fxaccounts.remote.oauth.uri", "https://oauth.accounts.firefox.com
 pref("identity.fxaccounts.pairing.enabled", true);
 
 // The version of the pairing flow to be used by FxA.
-pref("identity.fxaccounts.pairing.version", 1);
+pref("identity.fxaccounts.pairing.version", 2);
 
 // The remote URI of the FxA pairing server
 pref("identity.fxaccounts.remote.pairing.uri", "wss://channelserver.services.mozilla.com");
@@ -3149,6 +3152,11 @@ pref("identity.fxaccounts.toolbar.pxiToolbarEnabled.vpnEnabled", true);
 // for users who don't have sync enabled
 pref("identity.fxaccounts.toolbar.syncSetup.panelAccessed", false);
 
+// Whether the user dismissed the app menu's sign-in promo. Once dismissed, the
+// promo is never shown again and the compact sign-in row takes its place. Only
+// the app menu's promo is dismissible; the account menu's is not (bug 2070687).
+pref("identity.fxaccounts.toolbar.appMenuSignInPromo.dismissed", false);
+
 // Toolbox preferences
 pref("devtools.toolbox.footer.height", 250);
 pref("devtools.toolbox.sidebar.width", 500);
@@ -3571,7 +3579,10 @@ pref("first-startup.category-tasks-enabled", true);
   pref("app.backgroundNotifications.receivePushMessages.perMessageTimeoutMs", 5000);
   pref("app.backgroundNotifications.receivePushMessages.totalTimeoutMs", 60000);
 
-  // Whether the push notification helper process should run.
+  // The helper runs only while both of these are true; available is Nimbus's
+  // and enabled is the user's. See pushNotificationHelper in
+  // FeatureManifest.yaml.
+  pref("app.backgroundNotifications.helper.available", false);
   pref("app.backgroundNotifications.helper.enabled", false);
   pref("app.backgroundNotifications.helper.loglevel", "Error");
 #endif
@@ -3764,8 +3775,6 @@ pref("browser.ipProtection.hasSeenFeature", false);
 // when it never hid the feature. The gate stops applying as soon as the browser
 // is updated to a different major version.
 pref("browser.ipProtection.l10nGateVersion", 0);
-// Pref to track if user has opened the VPN panel since location controls were introduced
-pref("browser.ipProtection.openedPanelWithLocation", false);
 // Pref to enable support for site exceptions
 pref("browser.ipProtection.features.siteExceptions", true);
 // Pref to enable support for site inclusions

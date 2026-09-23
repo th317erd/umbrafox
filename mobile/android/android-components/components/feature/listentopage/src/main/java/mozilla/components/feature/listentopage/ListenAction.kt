@@ -62,6 +62,31 @@ sealed interface ListenAction : Action {
          * @property playbackState What the player is doing now.
          */
         data class StateChangeObserved(val playbackState: PlaybackState) : Playback
+
+        /**
+         * How far through the article playback has got was worked out afresh.
+         *
+         * @property positionMs How far into the article.
+         * @property durationMs How long the whole article lasts.
+         */
+        data class ArticleProgressChanged(val positionMs: Long, val durationMs: Long) : Playback
+
+        /**
+         * The player moved on to a chunk and is reading it out.
+         *
+         * @property chunk The chunk being read.
+         * @property positionMs How far into [chunk] the player has got.
+         */
+        data class PlaybackStarted(val chunk: ChunkState, val positionMs: Long) : Playback
+
+        /** The player read out every chunk it had been given and the article has more to come. */
+        data object PlaybackWaiting : Playback
+
+        /** The player read the last chunk of the article out. */
+        data object PlaybackEnded : Playback
+
+        /** The player could not read the article out. */
+        data object PlaybackFailed : Playback
     }
 
     /** Actions reporting what the speech engine did with the article. */

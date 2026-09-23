@@ -977,7 +977,9 @@
 # Prefs starting with "beacon."
 #---------------------------------------------------------------------------
 
-# Is support for Navigator.sendBeacon enabled?
+# Should navigator.sendBeacon() actually send requests?
+# When false, sendBeacon() is still exposed and still reports success, but
+# no request is sent.
 - name: beacon.enabled
   type: bool
   value: true
@@ -2632,6 +2634,12 @@
   value: ""
   mirror: never
 
+# Bug 2037346
+- name: docshell.shistory.restoreSubframesOnReload
+  type: bool
+  value: @IS_NOT_NIGHTLY_BUILD@
+  mirror: always
+
 #---------------------------------------------------------------------------
 # Prefs starting with "dom."
 #---------------------------------------------------------------------------
@@ -2832,6 +2840,12 @@
   mirror: always
 
 - name: dom.require_user_interaction_for_beforeunload
+  type: bool
+  value: true
+  mirror: always
+
+# Fire DOMContentLoaded at the end of parsing, instead of from a task.
+- name: dom.document.domcontentloaded.synchronous.enabled
   type: bool
   value: true
   mirror: always
@@ -4234,22 +4248,6 @@
   mirror: always
 #endif
 
-# Whether the |unadjustedMovement| dictionary member of PointerLockOptions
-# is honored. When true, requestPointerLock({unadjustedMovement: true})
-# asks the widget to deliver raw, unaccelerated mouse delta in mouse events
-# while the lock is active.
-- name: dom.pointer-lock.unadjusted-movement.enabled
-  type: bool
-  value: true
-  mirror: always
-
-# Whether the parent process should reset pointer when pointer lock is
-# requested.
-- name: dom.pointer-lock.reset-to-center-from-parent.enabled
-  type: bool
-  value: true
-  mirror: always
-
 # re-SAB: Whether to allow postMessage of a SharedArrayBuffer if various
 # preconditions related to COOP and COEP are met
 - name: dom.postMessage.sharedArrayBuffer.withCOOP_COEP
@@ -4959,6 +4957,13 @@
 - name: dom.speculation_rules.same_origin_only
   type: RelaxedAtomicBool
   value: true
+  mirror: always
+
+# How long (ms) the cursor has to rest on a link before an "eager" eagerness
+# prefetch candidate matching it is enacted.
+- name: dom.speculation_rules.eager_hover_delay_ms
+  type: RelaxedAtomicUint32
+  value: 10
   mirror: always
 
 # How long (ms) the cursor has to rest on a link before a "moderate" eagerness
@@ -9267,7 +9272,7 @@
 # Whether we attempt to decode JXL images or not.
 - name: image.jxl.enabled
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # How many threads may work on a single JXL image decode, counting the thread doing the
@@ -9875,6 +9880,13 @@
   mirror: always
   set_spidermonkey_pref: startup
 
+  # Experimental support for deferred import evaluation in JavaScript.
+- name: javascript.options.experimental.defer_import_eval
+  type: bool
+  value: false
+  mirror: always
+  set_spidermonkey_pref: startup
+  fuzzing_safe: false
 #endif  // NIGHTLY_BUILD
 
   # Capture stack traces for OOM
@@ -10480,6 +10492,11 @@
 #endif
   mirror: once
 
+- name: layers.gpu-process.allow-headless
+  type: bool
+  value: false
+  mirror: once
+
 # If true, when the process is in the background, we refuse to launch the GPU
 # process and instead fail with a temporary error that we can recover from when
 # we enter the foreground and the GPU process launches.
@@ -11017,7 +11034,7 @@
 # Is support for CSS Borders 4 corner-shape enabled?
 - name: layout.css.corner-shape.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
   rust: true
 
@@ -12095,7 +12112,7 @@
 # Whether to disable layer pixel alignment in layout stuff.
 - name: layout.disable-pixel-alignment
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Whether scrollIntoView scrolls to `position: fixed` frames visually.
@@ -14039,6 +14056,15 @@
 #else
   value: 0
 #endif
+  mirror: always
+
+# Whether to rotate captured video frames to compensate for the rotation
+# reported by the capture backend, so that consumers receive an upright frame.
+# When false the buffer is delivered as captured and the rotation is passed
+# along for the consumer to apply.
+- name: media.webrtc.capture.apply-rotation
+  type: RelaxedAtomicBool
+  value: true
   mirror: always
 
 #if defined(XP_MACOSX)
@@ -16098,6 +16124,13 @@
   value: 1048576
   mirror: always
 
+# Whether nsStandardURL::Deserialize should reparse the URL
+# it got from the content process
+- name: network.ipc.reparse_deserialized_uri
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # If true, use the HSTS preload list.
 - name: network.stricttransportsecurity.preloadlist
   type: RelaxedAtomicBool
@@ -17069,7 +17102,7 @@
 # to the tail of the EvictionQ.
 - name: network.dns.mru_to_tail
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Whether to add additional record IPs to the cache
@@ -17401,6 +17434,13 @@
 - name: network.socket.prioritize_runnables
   type: RelaxedAtomicBool
   value: true
+  mirror: always
+
+# Specifies for how many miliseconds to keep processing socket thread events
+# after shutdown was triggered.
+- name: network.socket.shutdown_process_events_ms
+  type: RelaxedAtomicUint32
+  value: 3000
   mirror: always
 
 # Maximum duration (seconds) that transmitted data may remain unacknowledged
@@ -18071,11 +18111,16 @@
   value: ""
   mirror: never
 
-# When true, mirror the classic tracking-protection prefs onto the
-# ContentClassifier engine prefs. See ContentClassifierPrefMirror.h.
-- name: privacy.trackingprotection.content.mirror.enabled
-  type: bool
-  value: false
+# How the classic tracking-protection prefs drive the ContentClassifier
+# engine prefs. See ContentClassifierPrefMirror.h.
+#   0 (off)      - do not mirror, and release any prefs it mirrored.
+#   1 (on)       - mirror the ETP prefs onto the content prefs.
+#   2 (handover) - stop mirroring, but leave the mirrored values in place as
+#                  ordinary user prefs.
+# Unrecognized values behave as 0.
+- name: privacy.trackingprotection.content.mirror.mode
+  type: uint32_t
+  value: 0
   mirror: never
 
 # When true, fire an observer notification when filter lists finish loading.
@@ -18326,11 +18371,7 @@
 # Enable the heuristic to allow storage access for extended navigations with interaction
 - name: privacy.restrict3rdpartystorage.heuristic.navigation
   type: bool
-#if defined(ANDROID)
-  value: false
-#else
   value: true
-#endif
   mirror: always
 
 # Anti-tracking permission expiration.
@@ -18380,11 +18421,7 @@
 # Enable the heuristic to allow storage access for recent visited pages
 - name: privacy.restrict3rdpartystorage.heuristic.recently_visited
   type: bool
-#if defined(ANDROID)
-  value: true
-#else
   value: false
-#endif
   mirror: always
 
 # Valid time gap since last visit
@@ -19479,6 +19516,12 @@
   value: 52428800  # 50MB
   mirror: always
 
+- name: security.connection_allowlists.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+
 # Which mechanism the secret decoder ring should use for encryption. Decryption
 # can always happen with all mechanisms.
 # 0 - DES3_CBC
@@ -20330,6 +20373,8 @@
   type: RelaxedAtomicBool
 #if defined(XP_WIN)
   value: false
+#elif defined(XP_MACOSX) && defined(NIGHTLY_BUILD)
+  value: false
 #else
   value: true
 #endif
@@ -20804,6 +20849,16 @@
 - name: widget.macos.window-transforms.disabled
   type: RelaxedAtomicBool
   value: false
+  mirror: always
+
+# Whether the Picture-in-Picture player answers an accessibility "make this
+# application frontmost" request itself while it is our only window on the
+# active Space, instead of handing it to AppKit, whose handling of that request
+# pulls the user off the fullscreen Space the player is floating over
+# (bug 1688932). With this off every such request reaches AppKit as before.
+- name: widget.macos.pip-player-accessibility-frontmost.enabled
+  type: bool
+  value: true
   mirror: always
 #endif
 

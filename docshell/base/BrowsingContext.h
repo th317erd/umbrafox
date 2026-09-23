@@ -409,6 +409,9 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   // message.
   bool IsDiscarded() const { return mIsDiscarded; }
 
+  // https://html.spec.whatwg.org/#script-closable
+  bool IsScriptClosable() const;
+
   // Returns true if none of the BrowsingContext's ancestor BrowsingContexts or
   // WindowContexts are discarded or cached.
   bool AncestorsAreCurrent() const;
@@ -473,12 +476,13 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   void PrepareForProcessChange();
 
   // Triggers a load in the process which currently owns this BrowsingContext.
+  MOZ_CAN_RUN_SCRIPT
   nsresult LoadURI(nsDocShellLoadState* aLoadState,
                    bool aSetNavigating = false);
 
   nsresult InternalLoad(nsDocShellLoadState* aLoadState);
 
-  void Navigate(
+  MOZ_CAN_RUN_SCRIPT void Navigate(
       nsIURI* aURI, Document* aSourceDocument, nsIPrincipal& aSubjectPrincipal,
       ErrorResult& aRv,
       NavigationHistoryBehavior aHistoryHandling =
@@ -491,10 +495,13 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   // if it is cached, and returns true if it was.
   bool RemoveRootFromBFCacheSync();
 
-  // If the load state includes a source BrowsingContext has been passed, check
-  // to see if we are sandboxed from it as the result of an iframe or CSP
-  // sandbox.
-  nsresult CheckSandboxFlags(nsDocShellLoadState* aLoadState);
+  // Check to see if we are sandboxed from the source BrowsingContext as the
+  // result of an iframe or CSP sandbox. Reports a console error if so.
+  // This also applies to window.close(), aForClose adjusts the error.
+  nsresult EnsureSourceSandboxAllowsNavigation(BrowsingContext* aSourceBC,
+                                               bool aForClose = false);
+  nsresult EnsureSourceSandboxAllowsNavigation(nsDocShellLoadState* aLoadState,
+                                               bool aForClose = false);
 
   // If the current BrowsingContext is top-level, we run checks to see if
   // the source BrowsingContext is allowed to perform the navigation.
@@ -1252,6 +1259,11 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
       return GetBrowsingContext()->Release();
     }
 
+    // Deleted catch-all overload: every field must provide a `CanSet` whose
+    // value parameter exactly matches the field's type.
+    template <size_t I, typename T>
+    bool CanSet(FieldIndex<I>, const T&, ContentParent*) = delete;
+
    protected:
     friend class RemoteLocationProxy;
     BrowsingContext* GetBrowsingContext() override {
@@ -1272,11 +1284,6 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   void ActivenessChanged(bool aIsActive);
 
   using CanSetResult = syncedcontext::CanSetResult;
-
-  // Deleted catch-all overload: every field must provide a `CanSet` whose value
-  // parameter exactly matches the field's type.
-  template <size_t I, typename T>
-  bool CanSet(FieldIndex<I>, const T&, ContentParent*) = delete;
 
   // Overload `DidSet` to get notifications for a particular field being set.
   //

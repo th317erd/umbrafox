@@ -7,6 +7,7 @@
 
 #include "content_classifier_ffi.h"
 
+#include "mozilla/MemoryReporting.h"
 #include "nsError.h"
 #include "nsString.h"
 #include "nsTArray.h"
@@ -96,6 +97,9 @@ class ContentClassifierEngine final {
     }
   }
 
+  ContentClassifierEngine(const ContentClassifierEngine&) = delete;
+  ContentClassifierEngine& operator=(const ContentClassifierEngine&) = delete;
+
   nsresult InitFromRules(const nsTArray<nsCString>& aRules) {
     return content_classifier_engine_from_rules(&aRules, &mEngine);
   }
@@ -104,6 +108,21 @@ class ContentClassifierEngine final {
 
   ContentClassifierEngineResult CheckNetworkRequest(
       const ContentClassifierRequest& aRequest, bool aPreviouslyMatched);
+
+  // Heap usage of this engine, split by what holds it. See
+  // ContentClassifierEngineSizes for what is left out. |aMallocEnclosingSizeOf|
+  // comes from MOZ_DEFINE_MALLOC_ENCLOSING_SIZE_OF, or is null on builds
+  // without jemalloc, where nothing can be sized from an interior pointer and
+  // the engine estimates those parts instead.
+  ContentClassifierEngineSizes SizeOfIncludingThis(
+      MallocSizeOf aMallocSizeOf, MallocSizeOf aMallocEnclosingSizeOf) const {
+    ContentClassifierEngineSizes sizes =
+        mEngine ? content_classifier_engine_size_of(mEngine, aMallocSizeOf,
+                                                    aMallocEnclosingSizeOf)
+                : ContentClassifierEngineSizes{};
+    sizes.objects += aMallocSizeOf(this);
+    return sizes;
+  }
 
  private:
   ~ContentClassifierEngine() {
@@ -117,9 +136,6 @@ class ContentClassifierEngine final {
 
   const ContentClassifierFeature& mFeature;
   ContentClassifierFFIEngine* mEngine;
-
-  ContentClassifierEngine(const ContentClassifierEngine&) = delete;
-  ContentClassifierEngine& operator=(const ContentClassifierEngine&) = delete;
 };
 
 }  // namespace mozilla

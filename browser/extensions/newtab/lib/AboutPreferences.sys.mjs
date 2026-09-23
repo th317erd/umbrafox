@@ -9,6 +9,8 @@ import {
   isWidgetsContainerVisible,
 } from "resource://newtab/common/WidgetsRegistry.mjs";
 
+const ACTIVITY_STREAM_PREF_BRANCH = "browser.newtabpage.activity-stream.";
+
 export const PREFERENCES_LOADED_EVENT = "home-pane-loaded";
 export const PREFERENCES_LOADED_EVENT_SUBPANE = "customHomepage-pane-loaded";
 
@@ -108,86 +110,10 @@ export class AboutPreferences {
         id: "browser.newtabpage.activity-stream.widgets.enabled",
         type: "bool",
       },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.system.weather.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.weather.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.system.lists.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.lists.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.system.focusTimer.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.focusTimer.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.system.sportsWidget.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.sportsWidget.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.system.clocks.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.clocks.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.system.privacy.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.privacy.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.system.crossword.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.crossword.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.system.stocks.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.stocks.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.system.pictureOfTheDay.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.pictureOfTheDay.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.system.recentSearches.enabled",
-        type: "bool",
-      },
-      {
-        id: "browser.newtabpage.activity-stream.widgets.recentSearches.enabled",
-        type: "bool",
-      },
+      ...WIDGET_REGISTRY.filter(w => !w.retired).flatMap(w => [
+        { id: ACTIVITY_STREAM_PREF_BRANCH + w.systemEnabledPref, type: "bool" },
+        { id: ACTIVITY_STREAM_PREF_BRANCH + w.enabledPref, type: "bool" },
+      ]),
       {
         id: "browser.newtabpage.activity-stream.feeds.topsites",
         type: "bool",
@@ -264,19 +190,13 @@ export class AboutPreferences {
     // config enables it. The system-pref half reads the live dep value so the
     // toggle reacts to pref changes without a page refresh; the trainhopConfig
     // half is a snapshot (Nimbus sets it at load, it doesn't change live). The
-    // dep id matches the registry trainhopEnabledKey by convention.
+    // dep id is the same as the registry trainhopEnabledKey.
     const widgetPrefs = this.store.getState()?.Prefs?.values ?? {};
-    const widgetToggleVisible = registryId => {
-      const widget = WIDGET_REGISTRY.find(w => w.id === registryId);
-      // Resolve via the shared registry helper, but feed the LIVE system-pref
-      // value from deps so the toggle still reacts to about:config changes
-      // without a page refresh; the trainhop/widgetsSettings terms are a snapshot.
-      return deps =>
-        isWidgetToggleVisible(widget, {
-          ...widgetPrefs,
-          [widget.systemEnabledPref]: deps[widget.trainhopEnabledKey]?.value,
-        });
-    };
+    const widgetToggleVisible = widget => deps =>
+      isWidgetToggleVisible(widget, {
+        ...widgetPrefs,
+        [widget.systemEnabledPref]: deps[widget.trainhopEnabledKey]?.value,
+      });
 
     // Build-time snapshot of whether the Widgets container is shown, used only
     // to decide Weather's placement in the items list below. The Widgets group's
@@ -325,36 +245,6 @@ export class AboutPreferences {
       disabled: deps => !firefoxHomeActive(deps),
     });
 
-    // Weather
-    // @nova-cleanup(remove-conditional): Remove novaEnabled check and else branch; keep only the Nova registration block (weatherEnabled + weather addSetting calls)
-    if (novaEnabled) {
-      Preferences.addSetting({
-        id: "weatherEnabled",
-        pref: "browser.newtabpage.activity-stream.widgets.system.weather.enabled",
-      });
-
-      Preferences.addSetting({
-        id: "weather",
-        pref: "browser.newtabpage.activity-stream.widgets.weather.enabled",
-        deps: ["weatherEnabled", ...firefoxHomeDeps],
-        visible: widgetToggleVisible("weather"),
-        disabled: deps => !firefoxHomeActive(deps),
-      });
-    } else {
-      Preferences.addSetting({
-        id: "showWeather",
-        pref: "browser.newtabpage.activity-stream.system.showWeather",
-      });
-
-      Preferences.addSetting({
-        id: "weather",
-        pref: "browser.newtabpage.activity-stream.showWeather",
-        deps: ["showWeather", ...firefoxHomeDeps],
-        visible: ({ showWeather }) => showWeather.value,
-        disabled: deps => !firefoxHomeActive(deps),
-      });
-    }
-
     // Widgets: general
     Preferences.addSetting({
       id: "widgetsEnabled",
@@ -373,116 +263,47 @@ export class AboutPreferences {
       disabled: deps => !firefoxHomeActive(deps),
     });
 
-    // Widgets: lists
-    Preferences.addSetting({
-      id: "listsEnabled",
-      pref: "browser.newtabpage.activity-stream.widgets.system.lists.enabled",
-    });
+    // Widgets: one settings pair per registry entry.
+    const prefsWidgets = WIDGET_REGISTRY.filter(w => !w.retired);
+    for (const widget of prefsWidgets) {
+      Preferences.addSetting({
+        id: widget.trainhopEnabledKey,
+        pref: ACTIVITY_STREAM_PREF_BRANCH + widget.systemEnabledPref,
+      });
 
-    Preferences.addSetting({
-      id: "lists",
-      pref: "browser.newtabpage.activity-stream.widgets.lists.enabled",
-      deps: ["listsEnabled"],
-      visible: widgetToggleVisible("lists"),
-    });
+      Preferences.addSetting({
+        id: widget.id,
+        pref: ACTIVITY_STREAM_PREF_BRANCH + widget.enabledPref,
+        deps: [widget.trainhopEnabledKey],
+        visible: widgetToggleVisible(widget),
+      });
+    }
 
-    // Widgets: timer
-    Preferences.addSetting({
-      id: "timerEnabled",
-      pref: "browser.newtabpage.activity-stream.widgets.system.focusTimer.enabled",
-    });
+    // Weather's own top-level row, used when it is not nested in the Widgets group.
+    // @nova-cleanup(remove-conditional): Remove novaEnabled check and else branch; keep only the Nova registration block.
+    const weatherWidget = WIDGET_REGISTRY.find(w => w.id === "weather");
+    if (novaEnabled) {
+      Preferences.addSetting({
+        id: "weatherStandalone",
+        pref: ACTIVITY_STREAM_PREF_BRANCH + weatherWidget.enabledPref,
+        deps: [weatherWidget.trainhopEnabledKey, ...firefoxHomeDeps],
+        visible: widgetToggleVisible(weatherWidget),
+        disabled: deps => !firefoxHomeActive(deps),
+      });
+    } else {
+      Preferences.addSetting({
+        id: "showWeather",
+        pref: "browser.newtabpage.activity-stream.system.showWeather",
+      });
 
-    Preferences.addSetting({
-      id: "timer",
-      pref: "browser.newtabpage.activity-stream.widgets.focusTimer.enabled",
-      deps: ["timerEnabled"],
-      visible: widgetToggleVisible("focusTimer"),
-    });
-
-    // Widgets: sports
-    Preferences.addSetting({
-      id: "sportsWidgetEnabled",
-      pref: "browser.newtabpage.activity-stream.widgets.system.sportsWidget.enabled",
-    });
-
-    Preferences.addSetting({
-      id: "sportsWidget",
-      pref: "browser.newtabpage.activity-stream.widgets.sportsWidget.enabled",
-      deps: ["sportsWidgetEnabled"],
-      visible: widgetToggleVisible("sportsWidget"),
-    });
-
-    Preferences.addSetting({
-      id: "clocksEnabled",
-      pref: "browser.newtabpage.activity-stream.widgets.system.clocks.enabled",
-    });
-
-    Preferences.addSetting({
-      id: "clocks",
-      pref: "browser.newtabpage.activity-stream.widgets.clocks.enabled",
-      deps: ["clocksEnabled"],
-      visible: widgetToggleVisible("clocks"),
-    });
-
-    Preferences.addSetting({
-      id: "privacyEnabled",
-      pref: "browser.newtabpage.activity-stream.widgets.system.privacy.enabled",
-    });
-
-    Preferences.addSetting({
-      id: "privacy",
-      pref: "browser.newtabpage.activity-stream.widgets.privacy.enabled",
-      deps: ["privacyEnabled"],
-      visible: widgetToggleVisible("privacy"),
-    });
-
-    Preferences.addSetting({
-      id: "crosswordEnabled",
-      pref: "browser.newtabpage.activity-stream.widgets.system.crossword.enabled",
-    });
-
-    Preferences.addSetting({
-      id: "crossword",
-      pref: "browser.newtabpage.activity-stream.widgets.crossword.enabled",
-      deps: ["crosswordEnabled"],
-      visible: widgetToggleVisible("crossword"),
-    });
-
-    Preferences.addSetting({
-      id: "stocksEnabled",
-      pref: "browser.newtabpage.activity-stream.widgets.system.stocks.enabled",
-    });
-
-    Preferences.addSetting({
-      id: "stocks",
-      pref: "browser.newtabpage.activity-stream.widgets.stocks.enabled",
-      deps: ["stocksEnabled"],
-      visible: widgetToggleVisible("stocks"),
-    });
-
-    Preferences.addSetting({
-      id: "pictureOfTheDayEnabled",
-      pref: "browser.newtabpage.activity-stream.widgets.system.pictureOfTheDay.enabled",
-    });
-
-    Preferences.addSetting({
-      id: "pictureOfTheDay",
-      pref: "browser.newtabpage.activity-stream.widgets.pictureOfTheDay.enabled",
-      deps: ["pictureOfTheDayEnabled"],
-      visible: widgetToggleVisible("pictureOfTheDay"),
-    });
-
-    Preferences.addSetting({
-      id: "recentSearchesEnabled",
-      pref: "browser.newtabpage.activity-stream.widgets.system.recentSearches.enabled",
-    });
-
-    Preferences.addSetting({
-      id: "recentSearches",
-      pref: "browser.newtabpage.activity-stream.widgets.recentSearches.enabled",
-      deps: ["recentSearchesEnabled"],
-      visible: widgetToggleVisible("recentSearches"),
-    });
+      Preferences.addSetting({
+        id: "weatherStandalone",
+        pref: "browser.newtabpage.activity-stream.showWeather",
+        deps: ["showWeather", ...firefoxHomeDeps],
+        visible: ({ showWeather }) => showWeather.value,
+        disabled: deps => !firefoxHomeActive(deps),
+      });
+    }
 
     // Shortcuts
     Preferences.addSetting({

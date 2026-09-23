@@ -289,7 +289,7 @@ let JSWINDOWACTORS = {
         "AITab:OpenLink": { wantUntrusted: true },
       },
     },
-    matches: ["about:aitab", "about:aitab?*"],
+    matches: ["about:smartpage", "about:smartpage?*"],
     remoteTypes: ["privilegedabout"],
     enablePreference: "browser.smartwindow.aitab.enabled",
   },
@@ -324,10 +324,12 @@ let JSWINDOWACTORS = {
 
   BackupUI: {
     parent: {
-      esModuleURI: "resource:///actors/BackupUIParent.sys.mjs",
+      esModuleURI:
+        "moz-src:///browser/components/backup/actors/BackupUIParent.sys.mjs",
     },
     child: {
-      esModuleURI: "resource:///actors/BackupUIChild.sys.mjs",
+      esModuleURI:
+        "moz-src:///browser/components/backup/actors/BackupUIChild.sys.mjs",
       events: {
         "BackupUI:InitWidget": { wantUntrusted: true },
         "BackupUI:TriggerCreateBackup": { wantUntrusted: true },
@@ -593,13 +595,17 @@ let JSWINDOWACTORS = {
     onAddActor(register, unregister) {
       let isRegistered = false;
 
-      // Register the actor if an external chat provider is set, page summarization is enabled, or shortcuts are enabled
+      // Register the actor if an external chat provider is set, page summarization is enabled, shortcuts are enabled, or the selection menu is enabled.
       const maybeRegister = () => {
         if (
           Services.prefs.getCharPref("browser.ml.chat.provider", "") ||
           Services.prefs.getBoolPref("browser.ml.chat.page") ||
           Services.prefs.getBoolPref("browser.ml.chat.shortcuts") ||
-          Services.prefs.getBoolPref("browser.ml.chat.shortcuts.smartwindow")
+          Services.prefs.getBoolPref("browser.ml.chat.shortcuts.smartwindow") ||
+          (Services.prefs.getBoolPref(
+            "browser.highlightToSearch.featureGate"
+          ) &&
+            Services.prefs.getBoolPref("browser.highlightToSearch.enabled"))
         ) {
           if (!isRegistered) {
             register();
@@ -616,6 +622,14 @@ let JSWINDOWACTORS = {
       Services.prefs.addObserver("browser.ml.chat.shortcuts", maybeRegister);
       Services.prefs.addObserver(
         "browser.ml.chat.shortcuts.smartwindow",
+        maybeRegister
+      );
+      Services.prefs.addObserver(
+        "browser.highlightToSearch.featureGate",
+        maybeRegister
+      );
+      Services.prefs.addObserver(
+        "browser.highlightToSearch.enabled",
         maybeRegister
       );
       maybeRegister();

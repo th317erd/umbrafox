@@ -7,8 +7,8 @@ use api::{ColorF, ImageBufferKind, RepeatMode};
 use api::units::*;
 use crate::border::compute_border_repetition_1d;
 use crate::command_buffer::CommandBufferIndex;
-use crate::frame_builder::{FrameBuildingContext, FrameBuildingState, PictureContext};
-use crate::pattern::{PatternBuilder, PatternBuilderContext, PatternBuilderState};
+use crate::frame_builder::{FrameBuildingContext, FrameBuildingState};
+use crate::pattern::{PatternBuilder, PatternBuilderState};
 use crate::pattern::image::ImagePattern;
 use crate::quad::{QuadDescriptor, QuadTransformState, prepare_repeatable_quad};
 use crate::quad_clip::QuadClipStack;
@@ -25,21 +25,13 @@ pub fn prepare_border_image_nine_patch(
     transform: &mut QuadTransformState,
 
     frame_context: &FrameBuildingContext,
-    pic_context: &PictureContext,
     targets: &[CommandBufferIndex],
 
     frame_state: &mut FrameBuildingState,
     scratch: &mut PrimitiveScratchBuffer,
 ) {
-    let pattern_ctx = PatternBuilderContext {
-        spatial_tree: frame_context.spatial_tree,
-        prim_origin: desc.pattern_rect.min,
-    };
-
     let img_pattern = src_image.build(
-        None,
-        LayoutVector2D::zero(),
-        &pattern_ctx,
+        &desc.pattern_rect,
         &mut PatternBuilderState {
             frame_gpu_data: frame_state.frame_gpu_data,
             transforms: frame_state.transforms,
@@ -47,7 +39,7 @@ pub fn prepare_border_image_nine_patch(
     );
 
     for_each_border_image_segment(nine_patch, &desc.pattern_rect, src_image_size, &mut|src_rect, dst_rect, side, stretch_size, spacing, offset| {
-        let segment_src = frame_state.rg_builder.add_sub_rect(src_image.src_task_id, &src_rect);
+        let segment_src = frame_state.rg_builder.add_sub_rect(src_image.src_task_id, &src_rect.to_f32());
 
         let segment_pattern = ImagePattern {
             src_task_id: segment_src,
@@ -80,8 +72,7 @@ pub fn prepare_border_image_nine_patch(
             &None,
             clips,
             transform,
-            frame_context,
-            pic_context,
+            frame_context.spatial_tree,
             targets,
             frame_state,
             scratch,

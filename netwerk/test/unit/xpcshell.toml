@@ -523,6 +523,8 @@ prefs = ["browser.cache.disk.encryption.enabled=true"]
 
 ["test_cache2-45-clear-base-domain-context-evictor.js"]
 
+["test_cache2-44-no_cache_revalidating_hang.js"]
+
 ["test_cache2_clear_with_principal.js"]
 run-sequentially = ["true"] # httpd server
 
@@ -703,6 +705,8 @@ skip-if = [
 
 ["test_dns_override_for_localhost.js"]
 
+["test_dns_prefetch_family.js"]
+
 ["test_dns_proxy_bypass.js"]
 
 ["test_dns_retry.js"]
@@ -786,6 +790,9 @@ skip-if = [
 ["test_getHost.js"]
 
 ["test_gre_resources.js"]
+
+["test_h2_unclean_shutdown_retry.js"]
+prefs = ["network.http.speculative-parallel-limit=0"]
 
 ["test_h2proxy_connection_limit.js"]
 run-sequentially = ["true"] # node server exceptions dont replay well

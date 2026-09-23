@@ -35,17 +35,6 @@
     </issue>
 
     <issue
-        id="ExportedReceiver"
-        message="Exported receiver does not require permission"
-        errorLine1="        &lt;receiver android:name=&quot;.onboarding.WidgetPinnedReceiver&quot;"
-        errorLine2="         ~~~~~~~~">
-        <location
-            file="src/main/AndroidManifest.xml"
-            line="764"
-            column="10"/>
-    </issue>
-
-    <issue
         id="DataExtractionRules"
         message="The attribute `android:allowBackup` is deprecated from Android 12 and higher and may be removed in future versions. Consider adding the attribute `android:dataExtractionRules` specifying an `@xml` resource which configures cloud backups and device transfers on Android 12 and higher."
         errorLine1="        android:allowBackup=&quot;false&quot;"
@@ -54,17 +43,6 @@
             file="src/main/AndroidManifest.xml"
             line="70"
             column="30"/>
-    </issue>
-
-    <issue
-        id="NotifyDataSetChanged"
-        message="It will always be more efficient to use more specific change events if you can. Rely on `notifyDataSetChanged` as a last resort."
-        errorLine1="        historyAdapter.notifyDataSetChanged()"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/library/history/HistoryView.kt"
-            line="145"
-            column="9"/>
     </issue>
 
     <issue
@@ -97,17 +75,6 @@
             file="src/main/res/layout/library_site_item.xml"
             line="26"
             column="10"/>
-    </issue>
-
-    <issue
-        id="ContentDescription"
-        message="Missing `contentDescription` attribute on image"
-        errorLine1="    &lt;ImageView"
-        errorLine2="     ~~~~~~~~~">
-        <location
-            file="src/main/res/layout/sign_in_preference.xml"
-            line="17"
-            column="6"/>
     </issue>
 
 </issues>

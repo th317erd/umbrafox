@@ -11,6 +11,8 @@
 #include "nsWeakReference.h"        // for nsSupportsWeakReference, etc
 #include "nscore.h"                 // for nsresult
 
+#include "nsPIDOMWindow.h"
+
 #ifndef __gen_nsIWebProgressListener_h__
 #  include "nsIWebProgressListener.h"
 #endif
@@ -85,6 +87,7 @@ class nsEditingSession final : public nsIEditingSession,
 
   nsresult PrepareForEditing(nsPIDOMWindowOuter* aWindow);
 
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
   static void TimerCallback(nsITimer* aTimer, void* aClosure);
   nsCOMPtr<nsITimer> mLoadBlankDocTimer;
 

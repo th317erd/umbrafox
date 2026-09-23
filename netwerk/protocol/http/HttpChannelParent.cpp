@@ -68,10 +68,21 @@ using namespace mozilla;
 
 namespace geckoprofiler::markers {
 
-struct ChannelMarker {
-  static constexpr Span<const char> MarkerTypeName() {
-    return MakeStringSpan("ChannelMarker");
-  }
+struct ChannelMarker : public BaseMarkerType<ChannelMarker> {
+  static constexpr const char* Name = "ChannelMarker";
+  static constexpr const char* Description =
+      "Timestamp capturing various phases of a network channel's lifespan.";
+  using MS = MarkerSchema;
+  static constexpr MS::Location Locations[] = {
+      MS::Location::MarkerChart,
+      MS::Location::MarkerTable,
+  };
+  static constexpr MS::PayloadField PayloadFields[] = {
+      {"url", MS::InputType::CString, nullptr, MS::Format::Url},
+      // Bug 1618687 - Use channelId to segment "Waiting for Socket Thread".
+      {"channelId", MS::InputType::Uint64, nullptr, MS::Format::Integer},
+  };
+  static constexpr const char* TableLabel = "{marker.data.url}";
   static void StreamJSONMarkerData(
       mozilla::baseprofiler::SpliceableJSONWriter& aWriter,
       const mozilla::ProfilerString8View& aURL, uint64_t aChannelId) {
@@ -79,18 +90,6 @@ struct ChannelMarker {
       aWriter.StringProperty("url", aURL);
     }
     aWriter.IntProperty("channelId", static_cast<int64_t>(aChannelId));
-  }
-  static MarkerSchema MarkerTypeDisplay() {
-    using MS = MarkerSchema;
-    MS schema(MS::Location::MarkerChart, MS::Location::MarkerTable);
-    schema.SetTableLabel("{marker.data.url}");
-    schema.AddKeyFormat("url", MS::Format::Url);
-    // Bug 1618687 - Use channelId to segment "Waiting for Socket Thread".
-    schema.AddKeyFormat("channelId", MS::Format::Integer);
-    schema.AddStaticLabelValue(
-        "Description",
-        "Timestamp capturing various phases of a network channel's lifespan.");
-    return schema;
   }
 };
 
@@ -163,7 +162,7 @@ bool HttpChannelParent::Init(const HttpChannelCreationArgs& aArgs) {
           a.uri(), a.original(), a.doc(), a.referrerInfo(), a.apiRedirectTo(),
           a.topWindowURI(), a.loadFlags(), a.requestHeaders(),
           a.requestMethod(), a.uploadStream(), a.uploadStreamIsStreaming(),
-          a.priority(), a.classOfService(), a.redirectionLimit(), a.allowSTS(),
+          a.priority(), a.classOfService(), a.redirectionLimit(),
           a.thirdPartyFlags(), a.resumeAt(), a.startPos(), a.entityID(),
           a.allowSpdy(), a.allowHttp3(), a.allowAltSvc(), a.beConservative(),
           a.bypassProxy(), a.tlsFlags(), a.loadInfo(), a.cacheKey(),
@@ -427,13 +426,12 @@ bool HttpChannelParent::DoAsyncOpen(
     const RequestHeaderTuples& requestHeaders, const nsCString& requestMethod,
     const Maybe<IPCStream>& uploadStream, const bool& uploadStreamIsStreaming,
     const int16_t& priority, const ClassOfService& classOfService,
-    const uint8_t& redirectionLimit, const bool& allowSTS,
-    const uint32_t& thirdPartyFlags, const bool& doResumeAt,
-    const uint64_t& startPos, const nsCString& entityID, const bool& allowSpdy,
-    const bool& allowHttp3, const bool& allowAltSvc, const bool& beConservative,
-    const bool& bypassProxy, const uint32_t& tlsFlags,
-    const LoadInfoArgs& aLoadInfoArgs, const uint32_t& aCacheKey,
-    const uint64_t& aRequestContextID,
+    const uint8_t& redirectionLimit, const uint32_t& thirdPartyFlags,
+    const bool& doResumeAt, const uint64_t& startPos, const nsCString& entityID,
+    const bool& allowSpdy, const bool& allowHttp3, const bool& allowAltSvc,
+    const bool& beConservative, const bool& bypassProxy,
+    const uint32_t& tlsFlags, const LoadInfoArgs& aLoadInfoArgs,
+    const uint32_t& aCacheKey, const uint64_t& aRequestContextID,
     const Maybe<CorsPreflightArgs>& aCorsPreflightArgs,
     const uint32_t& aInitialRwin, const bool& aBlockAuthPrompt,
     const bool& aAllowStaleCacheContent, const bool& aPreferCacheLoadOverBypass,
@@ -633,7 +631,6 @@ bool HttpChannelParent::DoAsyncOpen(
     httpChannel->SetClassOfService(classOfService);
   }
   httpChannel->SetRedirectionLimit(redirectionLimit);
-  httpChannel->SetAllowSTS(allowSTS);
   httpChannel->SetThirdPartyFlags(thirdPartyFlags);
   httpChannel->SetAllowSpdy(allowSpdy);
   httpChannel->SetAllowHttp3(allowHttp3);

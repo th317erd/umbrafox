@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.listentopage
 
+import androidx.core.net.toUri
 import java.util.Locale
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -12,14 +13,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import mozilla.components.browser.state.selector.findTab
+import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.listentopage.content.Content
 import mozilla.components.feature.listentopage.content.ContentProvider
 import mozilla.components.feature.listentopage.content.TextChunker
+import mozilla.components.feature.listentopage.playback.ArticleDisplayData
 import mozilla.components.feature.listentopage.playback.AudioFileCache
 import mozilla.components.feature.listentopage.playback.ChunkAudio
 import mozilla.components.feature.listentopage.playback.PlaybackController
@@ -31,6 +37,7 @@ import mozilla.components.feature.listentopage.synthesis.SynthesisQueue
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.Store
 import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.ktx.kotlin.stripCommonSubdomains
 
 /**
  * [Middleware] that extracts the article a listening session reads out, synthesizes it and plays it.
@@ -49,7 +56,9 @@ import mozilla.components.support.base.log.logger.Logger
  * @property ioDispatcher The dispatcher for the work that must not run on the thread the store dispatched on.
  * @property chunker Splits article text into the chunks.
  */
+@Suppress("LongParameterList")
 class ListenMiddleware(
+    private val browserStore: BrowserStore,
     private val contentProvider: ContentProvider,
     private val synthesizerProvider: () -> SpeechSynthesizer,
     private val audioCache: AudioFileCache,
@@ -63,6 +72,7 @@ class ListenMiddleware(
     private val logger = Logger("ListenMiddleware")
 
     private var contentJob: Job? = null
+    private var tabClosureJob: Job? = null
     private var voicesJob: Job? = null
     private var playbackStatusJob: Job? = null
 
@@ -82,14 +92,11 @@ class ListenMiddleware(
     // What the session has made of the article, held so that the audio can be thrown away when the session ends.
     private var synthesisQueue: SynthesisQueue? = null
 
-    // Which chunk of the article is playing.
-    private var playingChunk = 0
+    // Which chunk of the article the player last reported reading out.
+    private var playingChunk = NO_CHUNK
 
-    // Whether the report before this one already said the chunk had ended.
-    //
-    // Only needed while the player is handed one chunk at a time. Bug 2064869's playlist would let its reports say
-    // which item ended, which is what this stands in for.
-    private var lastReportWasEnd = false
+    // The last chunk that was enqueued to the player.
+    private var appendedThrough = NO_CHUNK
 
     // The scope every piece of this session's synthesis runs in, so that ending the session cancels all of it at once,
     // including work that is still waiting its turn.
@@ -108,6 +115,10 @@ class ListenMiddleware(
         next: (ListenAction) -> Unit,
         action: ListenAction,
     ) {
+        // Read before the reducer runs, because afterwards the store already holds the voice the action carries and
+        // there would be nothing left to compare it against.
+        val previousVoice = store.state.voiceState.selectedVoice
+
         next(action)
 
         when (action) {
@@ -115,20 +126,26 @@ class ListenMiddleware(
                 endSession(releasePlayback = false)
                 observePlayback(store)
                 requestContent(store, action.tabId)
+                trackTabClosure(store, action.tabId)
             }
 
             ListenAction.Session.StopRequested -> endSession(releasePlayback = true)
 
-            is ListenAction.Content.ContentReady -> {
-                if (store.state.voiceState.availableVoices.isEmpty()) {
-                    store.requestVoices(action.languageTag)
+            is ListenAction.Content.ContentReady -> store.loadVoicesAndPlay(action.languageTag)
+
+            is ListenAction.Voices.VoiceSelected -> {
+                // Saved even when the voice is the one already reading, because the voice a load picks for itself is
+                // put in the store without being saved: the first tap on it is what makes the choice the user's own.
+                store.state.languageTag?.let { action.voice.persistChoiceFor(it) }
+
+                // Picking the voice already reading asks for nothing, so the audio is left alone. Making it again
+                // would throw away what has been synthesized only to restart the article in the very same voice.
+                if (action.voice != previousVoice) {
+                    store.changeVoiceTo(action.voice)
                 }
-                synthesizeAndPlay(store.state.tabId, store::dispatch)
             }
-            is ListenAction.Voices.VoiceSelected -> store.state.languageTag?.let { action.voice.persistChoiceFor(it) }
 
-            is ListenAction.Playback.StateChangeObserved -> advanceAfter(action.playbackState, store::dispatch)
-
+            is ListenAction.Playback,
             ListenAction.Content.ContentUnavailable,
             is ListenAction.Voices.AvailableVoicesLoaded,
             ListenAction.Voices.NoOfflineVoicesAvailable,
@@ -144,7 +161,54 @@ class ListenMiddleware(
     private fun observePlayback(store: ListenStore) {
         playbackStatusJob?.cancel()
         playbackStatusJob = scope.launch {
-            playbackController.status.collect { store.dispatch(ListenAction.Playback.StateChangeObserved(it)) }
+            playbackController.status.collect { store.reportPlayback(it) }
+        }
+    }
+
+    /**
+     * Reports to the Store what [playback] represents in terms of the article. Will also manipulate the queue as
+     * needed, since the player does not understand the context of the queue or full article.
+     */
+    private fun ListenStore.reportPlayback(playback: PlaybackState) {
+        // Every report moves the article on.
+        reportArticleProgress(playback)
+
+        when (playback.phase) {
+            PlaybackPhase.Failed -> dispatch(ListenAction.Playback.PlaybackFailed)
+            PlaybackPhase.Ended -> refillOrEnd(this::dispatch)
+
+            // If the player reaches a chunk that is not playing yet, it indicates the chunk is still loading
+            PlaybackPhase.Playing if playback.chunk.index != playingChunk -> {
+                playingChunk = playback.chunk.index
+                dispatch(ListenAction.Playback.PlaybackStarted(playback.chunk, playback.positionMs))
+                synthesizing(this::dispatch) {
+                    synthesisQueue?.let {
+                        it.workAheadOf(playingChunk)
+                    }
+                }
+            }
+
+            else -> dispatch(ListenAction.Playback.StateChangeObserved(playback))
+        }
+    }
+
+    private fun trackTabClosure(store: Store<ListenState, ListenAction>, tabId: String) {
+        tabClosureJob?.cancel()
+
+        val startingTab = browserStore.state.findTab(tabId)
+        val startingTabUrl = startingTab?.content?.url
+        val startingTabPageUrl = startingTab?.pageUrl
+
+        tabClosureJob = scope.launch {
+            browserStore.stateFlow
+                .first { state ->
+                    val tab = state.findTab(tabId) ?: return@first true
+                    // checks if the tab's url has been updated while listening to the tab
+                    tab.content.url != startingTabUrl && tab.pageUrl != startingTabPageUrl
+                }
+                .let {
+                    store.dispatch(ListenAction.Session.StopRequested)
+                }
         }
     }
 
@@ -186,35 +250,102 @@ class ListenMiddleware(
             return
         }
 
-        article = Article(tabId = tabId, text = content.text, languageTag = language)
+        article =
+            Article(
+                tabId = tabId,
+                text = content.text,
+                languageTag = language,
+                displayData = browserStore.state.findTab(tabId).describeArticle(),
+            )
         dispatch(ListenAction.Content.ContentReady(languageTag = language))
     }
 
-    private fun ListenStore.requestVoices(langTag: String) {
+    /**
+     * Loads the voices of the article language, unless they are loaded already, and then reads the article out.
+     *
+     * The load and the synthesis are one job rather than two because the engine reads with the voice it was last given:
+     * starting the synthesis alongside the load reads the opening of the article in whichever voice the engine happens
+     * to default to. A language with no offline voice is not read out at all.
+     */
+    private fun ListenStore.loadVoicesAndPlay(langTag: String) {
         voicesJob?.cancel()
-        voicesJob =
-            scope.launch(ioDispatcher) {
-                val engine = synthesizer()
-                settings.clearSavedVoicesOnEngineChange(engine.enginePackageName)
-                val voices = engine.loadAvailableVoices(langTag)
-
-                dispatch(
-                    if (voices.isEmpty()) {
-                        ListenAction.Voices.NoOfflineVoicesAvailable
-                    } else {
-                        ListenAction.Voices.AvailableVoicesLoaded(voices, voices.loadSavedVoiceFor(langTag))
-                    }
-                )
+        voicesJob = scope.launch {
+            if (state.voiceState.loadState != VoiceLoadState.Loaded && !loadVoices(langTag)) {
+                return@launch
             }
+
+            synthesizeAndPlay(state.tabId, this@loadVoicesAndPlay::dispatch)
+        }
     }
 
+    /**
+     * Asks the engine which offline voices it has for [langTag] and puts them in the store.
+     *
+     * @return Whether the article can be read out, which it cannot when the language has no offline voice.
+     */
+    private suspend fun ListenStore.loadVoices(langTag: String): Boolean =
+        withContext(ioDispatcher) {
+            val engine = synthesizer()
+            settings.clearSavedVoicesOnEngineChange(engine.enginePackageName)
+            val voices = engine.loadAvailableVoices(langTag)
+
+            if (voices.isEmpty()) {
+                dispatch(ListenAction.Voices.NoOfflineVoicesAvailable)
+                false
+            } else {
+                val selected = voices.loadSavedVoiceFor(langTag)
+                engine.setVoice(selected)
+                dispatch(ListenAction.Voices.AvailableVoicesLoaded(voices, selected))
+                true
+            }
+        }
+
     private suspend fun List<Voice>.loadSavedVoiceFor(langTag: String): Voice {
-        val savedId = settings.getSelectedVoiceId(langTag)
+        val savedId = settings.getSelectedVoiceId(langTag.language)
+        // The list is presumed sorted by a useful heuristic so `first()` is best
         return firstOrNull { it.id == savedId } ?: first()
     }
 
     private fun Voice.persistChoiceFor(langTag: String) {
-        scope.launch(ioDispatcher) { settings.setSelectedVoiceId(langTag, id) }
+        scope.launch(ioDispatcher) { settings.setSelectedVoiceId(langTag.language, id) }
+    }
+
+    /**
+     * Reads the article out again in [voice], from where the playback of the one before it had got to.
+     *
+     * The audio already made is in the previous voice, so it is thrown away rather than played to its end. "Where it
+     * had got to" is a position in the chunk that was playing, so it only resumes the reader where they were while the
+     * article is one chunk: the rest of it is re-chunked at the new voice's rate, which leaves no index the position of
+     * the old chunk can be carried over to.
+     *
+     * It takes over [voicesJob] rather than running beside it, so that a load still in flight cannot finish afterwards
+     * and put the engine back on the voice it had chosen for itself.
+     */
+    private fun ListenStore.changeVoiceTo(voice: Voice) {
+        // A voice can be picked with no session running, where there is nothing to make again and binding an engine
+        // to set it on would leave that engine bound with nothing to close it.
+        if (article == null) {
+            return
+        }
+
+        voicesJob?.cancel()
+        voicesJob = scope.launch {
+            val resumeAtMs = playbackController.currentPositionMs()
+
+            // Only this article's audio goes: the playback and the engine are kept, because the new voice reads over
+            // what is playing and reads with the engine already bound.
+            val emptying = synthesisQueue
+            synthesisQueue = null
+            stopSynthesizing { emptying?.clear() }
+
+            // Joined rather than only asked for, so that the request in flight cannot be handed the new voice and
+            // write its audio in it after the audio of the old voice has been thrown away.
+            teardownJob?.join()
+
+            withContext(ioDispatcher) { synthesizer().setVoice(voice) }
+
+            synthesizeAndPlay(state.tabId, this@changeVoiceTo::dispatch, resumeAtMs)
+        }
     }
 
     /**
@@ -223,52 +354,65 @@ class ListenMiddleware(
      * @param tabId The tab the live session is reading. A session that has already ended may still have written its
      *   article to the field, so anything extracted for a different tab is ignored.
      * @param dispatch Dispatch an action to the store.
+     * @param resumeAtMs Where to move the new audio to once it plays, or `0` to play it from the start.
      */
-    private fun synthesizeAndPlay(tabId: String?, dispatch: (ListenAction) -> Unit) {
+    private fun synthesizeAndPlay(tabId: String?, dispatch: (ListenAction) -> Unit, resumeAtMs: Long = 0L) {
         val article = article?.takeIf { it.tabId == tabId } ?: return
+        val firstChunkIndex = 0
 
-        playingChunk = 0
-        lastReportWasEnd = false
+        playingChunk = NO_CHUNK
+        appendedThrough = NO_CHUNK
+
         synthesizing(dispatch) {
             val queue = SynthesisQueue(synthesizer(), ChunkAudio(audioCache), chunker, ioDispatcher)
             synthesisQueue = queue
 
-            playbackController.play(queue.startReading(article.text, article.languageTag))
+            val opening = queue.startReading(article.text, article.languageTag)
+            playbackController.play(file = opening, articleDisplayData = article.displayData)
+            appendedThrough = firstChunkIndex
+            if (resumeAtMs > 0) {
+                playbackController.seekTo(resumeAtMs)
+            }
 
-            // Runs ahead of the opening while it plays, so the chunk after it is waiting rather than started when the
-            // opening ends.
-            queue.workAheadOf(playingChunk = 0)
+            // Runs ahead of the opening while it plays, so the chunk after it is queued behind it rather than started
+            // when the opening ends. A chunk that arrives after the opening has finished cannot be joined onto it.
+            queue.workAheadOf(playingChunk = firstChunkIndex)
         }
     }
 
     /**
-     * Plays the chunk after the one that has just finished, and moves the window on to it.
+     * The end of playback indicates either that queue synthesis is lagging or the article is complete. This determines
+     * which case has been reached and reacts accordingly.
      *
-     * Which chunk is playing is counted here rather than read from the report. That index is the player's own, and
-     * until bug 2064869 gives it a playlist holding the whole article, every chunk is handed over on its own and the
-     * player's index is always zero.
+     * @param dispatch Dispatch an action to the store.
      */
-    private fun advanceAfter(playback: PlaybackState, dispatch: (ListenAction) -> Unit) {
-        val alreadyEnded = lastReportWasEnd
-        lastReportWasEnd = playback.phase == PlaybackPhase.Ended
+    private fun refillOrEnd(dispatch: (ListenAction) -> Unit) {
+        val queue = synthesisQueue ?: return
 
-        if (!lastReportWasEnd || alreadyEnded) {
+        // Exit early if there are not additional chunks to synthesize
+        val missing = appendedThrough + 1
+        if (missing >= queue.chunkCount) {
+            dispatch(ListenAction.Playback.PlaybackEnded)
             return
         }
 
-        val queue = synthesisQueue ?: return
+        dispatch(ListenAction.Playback.PlaybackWaiting)
 
         synthesizing(dispatch) {
-            val next = playingChunk + 1
+            // In case we receive a repeated report of playback ending we check to see if the next chunk has already
+            // been queued
+            if (appendedThrough >= missing) {
+                return@synthesizing
+            }
 
-            // Normally made already, because the window runs ahead of what is playing. Making it here is the fallback
-            // for a device slow enough that synthesis fell behind, where a gap beats ending the article early. No
-            // chunk at all means the article has been read to its end.
-            val file = queue.audioFor(next) ?: return@synthesizing
-            playingChunk = next
-            playbackController.play(file)
+            val file = queue.audioFor(missing) ?: return@synthesizing
+            playbackController.enqueue(file)
+            appendedThrough = missing
 
-            queue.workAheadOf(next)
+            // Restart the player once there is synthesized content
+            playbackController.resume()
+
+            queue.workAheadOf(missing)
         }
     }
 
@@ -286,6 +430,15 @@ class ListenMiddleware(
             throw e
         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
             logger.warn("Could not work ahead on the article", e)
+        }
+
+        // now that the window has been synthesized, enqueue what was successfully synthesized with the player
+        while (appendedThrough + 1 < chunkCount) {
+            val next = appendedThrough + 1
+            val file = fileFor(next) ?: return
+
+            playbackController.enqueue(file)
+            appendedThrough = next
         }
     }
 
@@ -333,13 +486,10 @@ class ListenMiddleware(
     private fun endSession(releasePlayback: Boolean) {
         contentJob?.cancel()
         voicesJob?.cancel()
+        tabClosureJob?.cancel()
         article = null
-        playingChunk = 0
-        lastReportWasEnd = false
 
-        val ending = sessionScope
         val emptying = synthesisQueue
-        sessionScope = null
         synthesisQueue = null
 
         val closing = synthesizer.takeIf { releasePlayback }
@@ -348,15 +498,7 @@ class ListenMiddleware(
             synthesizer = null
         }
 
-        // Chained rather than replaced, so that waiting for the teardown waits for every teardown still to finish.
-        val earlier = teardownJob
-        teardownJob = scope.launch {
-            earlier?.join()
-
-            // Our cancellation asks the engine to stop but cannot un-write a file it has already produced, so nothing
-            // below may delete the audio before the request in flight has finished with it.
-            ending?.coroutineContext?.job?.cancelAndJoin()
-
+        stopSynthesizing {
             if (releasePlayback) {
                 playbackController.release()
 
@@ -373,11 +515,85 @@ class ListenMiddleware(
             }
         }
     }
+
+    /**
+     * Cancels every piece of synthesis in flight and then runs [andThen], leaving [teardownJob] to be waited on.
+     *
+     * @param andThen What to do once the synthesis has stopped. Our cancellation asks the engine to stop but cannot
+     *   un-write a file it has already produced, so throwing audio away belongs here: by the time this runs, the
+     *   request that was in flight has finished with its file.
+     */
+    private fun stopSynthesizing(andThen: suspend () -> Unit) {
+        playingChunk = NO_CHUNK
+        appendedThrough = NO_CHUNK
+
+        val ending = sessionScope
+        sessionScope = null
+
+        // Chained rather than replaced, so that waiting for the teardown waits for every teardown still to finish.
+        val earlier = teardownJob
+        teardownJob = scope.launch {
+            earlier?.join()
+            ending?.coroutineContext?.job?.cancelAndJoin()
+
+            andThen()
+        }
+    }
+
+    /**
+     * Works out how far through the whole article playback has got, and reports it when it has moved.
+     *
+     * The chunk is the one [playback] names rather than [playingChunk], so that the position and the chunk it is a
+     * position in always come from the same report.
+     */
+    private fun ListenStore.reportArticleProgress(playback: PlaybackState) {
+        val queue = synthesisQueue ?: return
+        val progress =
+            queue.progress(
+                previous = state.articleProgress,
+                playingChunk = playback.chunk.index,
+                chunkPositionMs = playback.positionMs,
+                chunkEnded = playback.phase == PlaybackPhase.Ended,
+            )
+
+        if (progress != state.articleProgress) {
+            dispatch(ListenAction.Playback.ArticleProgressChanged(progress.positionMs, progress.durationMs))
+        }
+    }
 }
 
+private const val NO_CHUNK = -1
+
+/**
+ * The page this tab shows: in reader mode the article the reader view renders, rather than the reader view's own URL.
+ */
+private val TabSessionState.pageUrl: String
+    get() = readerState.activeUrl ?: content.url
+
 /** The article of one listening session, the tab it was extracted from, and the language it is being read as. */
-private class Article(val tabId: String, val text: String, val languageTag: String)
+private class Article(
+    val tabId: String,
+    val text: String,
+    val languageTag: String,
+    val displayData: ArticleDisplayData,
+)
+
+/** What the playback notification and the lock screen say about the article in this tab. */
+private fun TabSessionState?.describeArticle(): ArticleDisplayData =
+    ArticleDisplayData(
+        title = this?.content?.title?.takeIf { it.isNotBlank() },
+        site = this?.pageUrl?.toUri()?.host?.takeIf { it.isNotBlank() }?.stripCommonSubdomains(),
+    )
 
 /** This language tag in the form everything downstream works from, or `null` when it names no language. */
 private fun String.asLanguageTagOrNull(): String? =
     trim().replace('_', '-').takeIf { Locale.forLanguageTag(it).language.isNotEmpty() }
+
+/**
+ * The language subtag of a BCP 47 tag, or the tag itself when it is too malformed to parse.
+ *
+ * The voice list ignores the region of the article language, so the saved choice has to ignore it too: a voice picked
+ * on an "en-US" article is the one offered again on an "en-GB" one, rather than being forgotten between them.
+ */
+private val String.language: String
+    get() = Locale.forLanguageTag(this).language.ifEmpty { this }

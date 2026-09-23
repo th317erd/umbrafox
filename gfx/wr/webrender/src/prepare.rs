@@ -44,7 +44,7 @@ use crate::util::MaxRect;
 use crate::box_shadow::prepare_box_shadow;
 
 use crate::pattern::gradient::linear_gradient_pattern;
-use crate::pattern::{Pattern, PatternBuilder, PatternBuilderContext, PatternBuilderState};
+use crate::pattern::{Pattern, PatternBuilder, PatternBuilderState};
 use crate::prim_store::gradient::{decompose_axis_aligned_gradient, linear_gradient_decomposes};
 use crate::segment::EdgeMask;
 use api::units::*;
@@ -52,7 +52,7 @@ use euclid::Scale;
 use crate::composite::CompositorSurfaceKind;
 use crate::command_buffer::{CommandBufferIndex, PrimitiveCommand};
 
-use crate::clip::ClipNodeRange;
+use crate::clip::{ClipDataStore, ClipNodeRange};
 use crate::pattern::image::ImagePattern;
 
 use crate::pattern::yuv::YuvPattern;
@@ -284,12 +284,10 @@ fn prepare_prim_for_render(
                 return;
             }
 
-            let device_coverage_rect = frame_state.surfaces[pic_context.surface_index.0]
-                .map_to_device_rect(&prim_info.clip_chain.pic_coverage_rect);
             frame_state.clip_store.fill_quad_clips(
                 quad_clips,
                 &prim_info.clip_chain,
-                device_coverage_rect,
+                &frame_state.surfaces[pic_context.surface_index.0],
                 &data_stores.clip,
             );
 
@@ -304,8 +302,7 @@ fn prepare_prim_for_render(
                 &None,
                 quad_clips,
                 quad_transform,
-                frame_context,
-                pic_context,
+                frame_context.spatial_tree,
                 targets,
                 frame_state,
                 scratch,
@@ -369,31 +366,10 @@ fn prepare_prim_for_render(
     }
 
     let prim_instance = &mut prim_instances[prim_instance_index];
-    let mut use_legacy_path = true;
     if !is_passthrough {
-        match &prim_instance.kind {
-            PrimitiveKind::Rectangle { .. }
-            | PrimitiveKind::RadialGradient { .. }
-            | PrimitiveKind::ConicGradient { .. }
-            | PrimitiveKind::LinearGradient { .. }
-            | PrimitiveKind::Image { .. }
-            | PrimitiveKind::NormalBorder { .. }
-            | PrimitiveKind::ImageBorder { .. }
-            | PrimitiveKind::LineDecoration { .. }
-            | PrimitiveKind::BackdropRender { .. }
-            | PrimitiveKind::BoxShadow { .. }
-            => {
-                use_legacy_path = false;
-            }
-            _ => {}
-        };
-
-        // In the new quad rendering path, want to skip the entry point to
-        // `update_clip_task` as that does old-style segmenting and mask
-        // generation.
-        let should_update_clip_task = match &mut prim_instance.kind {
-            PrimitiveKind::Picture { .. } => false,
-            _ => use_legacy_path,
+        let should_update_clip_task = match &prim_instance.kind {
+            PrimitiveKind::TextRun { .. } => true,
+            _ => false,
         };
 
         if should_update_clip_task {
@@ -413,7 +389,7 @@ fn prepare_prim_for_render(
                 pic_context,
                 frame_context,
                 frame_state,
-                data_stores,
+                &data_stores.clip,
                 scratch,
             ) {
                 return;
@@ -429,14 +405,10 @@ fn prepare_prim_for_render(
     // fields (state, clip_chain) aren't written by it.
     let prim_info = *scratch.frame.draw(draw_index);
 
-    // Mapped through the surface this primitive is drawn into, which is the
-    // space every quad render task and scissor rect below lives in.
-    let device_coverage_rect = frame_state.surfaces[pic_context.surface_index.0]
-        .map_to_device_rect(&prim_info.clip_chain.pic_coverage_rect);
     frame_state.clip_store.fill_quad_clips(
         quad_clips,
         &prim_info.clip_chain,
-        device_coverage_rect,
+        &frame_state.surfaces[pic_context.surface_index.0],
         &data_stores.clip,
     );
 
@@ -496,8 +468,7 @@ fn prepare_prim_for_render(
                     &None,
                     quad_clips,
                     quad_transform,
-                    frame_context,
-                    pic_context,
+                    frame_context.spatial_tree,
                     targets,
                     frame_state,
                     scratch,
@@ -514,8 +485,7 @@ fn prepare_prim_for_render(
                     &None,
                     quad_clips,
                     quad_transform,
-                    frame_context,
-                    pic_context,
+                    frame_context.spatial_tree,
                     targets,
                     frame_state,
                     scratch,
@@ -577,7 +547,7 @@ fn prepare_prim_for_render(
                 }
             };
 
-            let text_run_handle = prim_data.request_resources(
+            let text_run_handle = prim_data.kind.request_resources(
                 pattern_rect,
                 prim_info.clip_chain.local_clip_rect,
                 &transform.to_transform().with_destination::<_>(),
@@ -610,7 +580,6 @@ fn prepare_prim_for_render(
                 quad_clips,
                 quad_transform,
                 frame_context,
-                pic_context,
                 targets,
                 frame_state,
                 scratch,
@@ -650,7 +619,6 @@ fn prepare_prim_for_render(
                 quad_clips,
                 quad_transform,
                 frame_context,
-                pic_context,
                 targets,
                 frame_state,
                 scratch,
@@ -676,8 +644,7 @@ fn prepare_prim_for_render(
                 &None,
                 quad_clips,
                 quad_transform,
-                frame_context,
-                pic_context,
+                frame_context.spatial_tree,
                 targets,
                 frame_state,
                 scratch,
@@ -703,8 +670,7 @@ fn prepare_prim_for_render(
                     &None,
                     quad_clips,
                     quad_transform,
-                    frame_context,
-                    pic_context,
+                    frame_context.spatial_tree,
                     targets,
                     frame_state,
                     scratch,
@@ -738,8 +704,7 @@ fn prepare_prim_for_render(
                 &None,
                 quad_clips,
                 quad_transform,
-                frame_context,
-                pic_context,
+                frame_context.spatial_tree,
                 targets,
                 frame_state,
                 scratch,
@@ -768,8 +733,7 @@ fn prepare_prim_for_render(
                     &None,
                     quad_clips,
                     quad_transform,
-                    frame_context,
-                    pic_context,
+                    frame_context.spatial_tree,
                     targets,
                     frame_state,
                     scratch,
@@ -786,7 +750,6 @@ fn prepare_prim_for_render(
                 quad_clips,
                 quad_transform,
                 frame_context,
-                pic_context,
                 targets,
                 frame_state,
                 scratch,
@@ -816,8 +779,7 @@ fn prepare_prim_for_render(
                     stretch_size,
                     quad_clips,
                     quad_transform,
-                    frame_context,
-                    pic_context,
+                    frame_context.spatial_tree,
                     targets,
                     frame_state,
                     scratch,
@@ -881,8 +843,7 @@ fn prepare_prim_for_render(
                             &None,
                             quad_clips,
                             quad_transform,
-                            frame_context,
-                            pic_context,
+                            frame_context.spatial_tree,
                             targets,
                             frame_state,
                             scratch,
@@ -931,8 +892,7 @@ fn prepare_prim_for_render(
                 &cache_key,
                 quad_clips,
                 quad_transform,
-                frame_context,
-                pic_context,
+                frame_context.spatial_tree,
                 targets,
                 frame_state,
                 scratch,
@@ -962,8 +922,7 @@ fn prepare_prim_for_render(
                     stretch_size,
                     quad_clips,
                     quad_transform,
-                    frame_context,
-                    pic_context,
+                    frame_context.spatial_tree,
                     targets,
                     frame_state,
                     scratch,
@@ -984,8 +943,7 @@ fn prepare_prim_for_render(
                 &None,
                 quad_clips,
                 quad_transform,
-                frame_context,
-                pic_context,
+                frame_context.spatial_tree,
                 targets,
                 frame_state,
                 scratch,
@@ -1014,8 +972,7 @@ fn prepare_prim_for_render(
                     stretch_size,
                     quad_clips,
                     quad_transform,
-                    frame_context,
-                    pic_context,
+                    frame_context.spatial_tree,
                     targets,
                     frame_state,
                     scratch,
@@ -1067,8 +1024,7 @@ fn prepare_prim_for_render(
                 &cache_key,
                 quad_clips,
                 quad_transform,
-                frame_context,
-                pic_context,
+                frame_context.spatial_tree,
                 targets,
                 frame_state,
                 scratch,
@@ -1222,8 +1178,7 @@ fn prepare_prim_for_render(
                         &None,
                         quad_clips,
                         quad_transform,
-                        frame_context,
-                        pic_context,
+                        frame_context.spatial_tree,
                         targets,
                         frame_state,
                         scratch,
@@ -1269,7 +1224,7 @@ fn add_clip_mask_render_task(
     prim_spatial_node_index: SpatialNodeIndex,
     raster_spatial_node_index: SpatialNodeIndex,
     device_pixel_scale: DevicePixelScale,
-    data_stores: &DataStores,
+    clips: &ClipDataStore,
     frame_context: &FrameBuildingContext,
     frame_state: &mut FrameBuildingState,
 ) -> RenderTaskId {
@@ -1286,15 +1241,15 @@ fn add_clip_mask_render_task(
 
     let task_rect = device_rect.to_f32();
 
-    let mut clips = QuadClipStack::new();
+    let mut quad_clips = QuadClipStack::new();
     frame_state.clip_store.fill_quad_clips_from_range(
-        &mut clips,
+        &mut quad_clips,
         clip_node_range,
-        &data_stores.clip,
+        clips,
     );
 
     quad::prepare_clip_range(
-        &clips,
+        &quad_clips,
         clip_task_id,
         &task_rect,
         &prim_local_rect,
@@ -1318,7 +1273,7 @@ pub fn update_clip_task(
     pic_context: &PictureContext,
     frame_context: &FrameBuildingContext,
     frame_state: &mut FrameBuildingState,
-    data_stores: &DataStores,
+    clips: &ClipDataStore,
     scratch: &mut PrimitiveScratchBuffer,
 ) -> bool {
     let device_pixel_scale = frame_state.surfaces[pic_context.surface_index.0].device_pixel_scale;
@@ -1351,7 +1306,7 @@ pub fn update_clip_task(
             prim_spatial_node_index,
             root_spatial_node_index,
             device_pixel_scale,
-            data_stores,
+            clips,
             frame_context,
             frame_state,
         );
@@ -1394,23 +1349,20 @@ fn adjust_mask_scale_for_max_size(device_rect: DeviceIntRect, device_pixel_scale
 /// stop colors (in segment-local coords); `build` translates start/end into
 /// the prim's spatial-node space by adding `ctx.prim_origin`.
 struct LinearGradientSegmentPattern {
-    start: LayoutPoint,
-    end: LayoutPoint,
+    start: LayoutVector2D,
+    end: LayoutVector2D,
     stops: [GradientStop; 2],
 }
 
 impl PatternBuilder for LinearGradientSegmentPattern {
     fn build(
         &self,
-        _sub_rect: Option<DeviceRect>,
-        offset: LayoutVector2D,
-        ctx: &PatternBuilderContext,
+        pattern_rect: &LayoutRect,
         state: &mut PatternBuilderState,
     ) -> Pattern {
-        let prim_offset = offset + ctx.prim_origin.to_vector();
         linear_gradient_pattern(
-            self.start + prim_offset,
-            self.end + prim_offset,
+            pattern_rect.min + self.start,
+            pattern_rect.min + self.end,
             ExtendMode::Clamp,
             &self.stops,
             state.frame_gpu_data,

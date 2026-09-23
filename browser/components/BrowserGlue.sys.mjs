@@ -15,7 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource:///modules/asrouter/ASRouterDefaultConfig.sys.mjs",
   ASRouterNewTabHook: "resource:///modules/asrouter/ASRouterNewTabHook.sys.mjs",
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
-  BackupService: "resource:///modules/backup/BackupService.sys.mjs",
+  BackupService: "moz-src:///browser/components/backup/BackupService.sys.mjs",
   BrowserSearchTelemetry:
     "moz-src:///browser/components/search/BrowserSearchTelemetry.sys.mjs",
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
@@ -81,7 +81,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://gre/modules/UmbrafoxUserlandScriptRegistry.sys.mjs",
   WebChannel: "resource://gre/modules/WebChannel.sys.mjs",
   WebProtocolHandlerRegistrar:
-    "resource:///modules/WebProtocolHandlerRegistrar.sys.mjs",
+    "moz-src:///browser/components/protocolhandler/WebProtocolHandlerRegistrar.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 

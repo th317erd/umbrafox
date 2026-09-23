@@ -51,16 +51,39 @@ private fun reduceContent(state: ListenState, action: ListenAction.Content): Lis
 
 private fun reducePlayback(state: ListenState, action: ListenAction.Playback): ListenState =
     when (action) {
-        is ListenAction.Playback.StateChangeObserved ->
+        is ListenAction.Playback.StateChangeObserved -> state.copy(playbackState = action.playbackState)
+
+        is ListenAction.Playback.PlaybackStarted ->
             state.copy(
-                playbackState = action.playbackState,
-                error =
-                    if (action.playbackState.phase == PlaybackPhase.Failed) {
-                        ListenError.PlaybackFailed
-                    } else {
-                        state.error
-                    },
+                playbackState =
+                    state.playbackState.copy(
+                        phase = PlaybackPhase.Playing,
+                        chunk = action.chunk,
+                        positionMs = action.positionMs,
+                    )
             )
+
+        ListenAction.Playback.PlaybackWaiting ->
+            state.copy(playbackState = state.playbackState.copy(phase = PlaybackPhase.Buffering))
+
+        ListenAction.Playback.PlaybackEnded ->
+            state.copy(playbackState = state.playbackState.copy(phase = PlaybackPhase.Ended))
+
+        ListenAction.Playback.PlaybackFailed ->
+            state.copy(
+                playbackState = state.playbackState.copy(phase = PlaybackPhase.Failed),
+                error = ListenError.PlaybackFailed,
+            )
+        is ListenAction.Playback.ArticleProgressChanged -> {
+            val durationMs = action.durationMs.coerceAtLeast(0)
+            state.copy(
+                articleProgress =
+                    ArticleProgress(
+                        positionMs = action.positionMs.coerceIn(0, durationMs),
+                        durationMs = durationMs,
+                    )
+            )
+        }
     }
 
 private fun reduceSynthesis(state: ListenState, action: ListenAction.Synthesis): ListenState =
@@ -76,8 +99,18 @@ private fun reduceVoices(state: ListenState, action: ListenAction.Voices): Liste
         is ListenAction.Voices.AvailableVoicesLoaded ->
             state.copy(
                 voiceState =
-                    state.voiceState.copy(availableVoices = action.voices, selectedVoice = action.selectedVoice)
+                    state.voiceState.copy(
+                        availableVoices = action.voices,
+                        selectedVoice = action.selectedVoice,
+                        loadState = VoiceLoadState.Loaded,
+                    )
             )
 
-        ListenAction.Voices.NoOfflineVoicesAvailable -> state.copy(error = ListenError.NoOfflineVoice)
+        // The empty list is the answer, not the absence of one: the engine has been asked and has nothing offline for
+        // this language.
+        ListenAction.Voices.NoOfflineVoicesAvailable ->
+            state.copy(
+                voiceState = VoiceState(loadState = VoiceLoadState.Loaded),
+                error = ListenError.NoOfflineVoice,
+            )
     }

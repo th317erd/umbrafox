@@ -755,7 +755,6 @@ interface GleanImpl {
     httpsOnlyModeEnabled: GleanQuantity;
     httpsOnlyModeEnabledPbm: GleanQuantity;
     fissionPrincipals: GleanEventWithExtras<{ principalType?: string, scheme?: string, value?: string }>;
-    shadowedHtmlDocumentPropertyAccess: GleanEventWithExtras<{ name?: string }>;
     cspViolationInternalPage: GleanEventWithExtras<{ baseline?: string|boolean, blockeduridetails?: string, blockeduritype?: string, columnnumber?: string|number, directive?: string, linenumber?: string|number, sample?: string, selfdetails?: string, selftype?: string, sourcedetails?: string, sourcetype?: string }>;
     evalUsageParentProcess: GleanEventWithExtras<{ fileinfo?: string, value?: string }>;
     evalUsageSystemContext: GleanEventWithExtras<{ fileinfo?: string, value?: string }>;
@@ -7915,7 +7914,7 @@ interface GleanImpl {
     unableToApplyNotify: GleanCounter;
     unableToApplySubsequent: GleanCounter;
     updateOutcome: GleanEventWithExtras<{ can_stage?: string|boolean, is_background?: string|boolean, is_patch?: string|boolean, is_success?: string|boolean, previous_version?: string, target_version?: string, total_retries?: string|number }>;
-    bitshresult: Record<string, GleanCounter>;
+    bitsError: GleanEventWithExtras<{ code?: string, code_type?: string, error_action?: string|number, error_stage?: string|number, error_type?: string|number, patch_type?: string }>;
     moveResult: Record<string, GleanCounter>;
     noWindowAutoRestarts: GleanCounter;
     suppressPrompts: GleanBoolean;

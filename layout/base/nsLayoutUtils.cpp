@@ -3981,7 +3981,7 @@ already_AddRefed<nsFontMetrics> nsLayoutUtils::GetFontMetricsForComputedStyle(
   WritingMode wm(aComputedStyle);
   const nsStyleFont* styleFont = aComputedStyle->StyleFont();
   nsFontMetrics::Params params;
-  params.language = styleFont->mLanguage;
+  params.language = styleFont->GetLangAtom();
   params.explicitLanguage = styleFont->mExplicitLanguage;
   params.orientation =
       !aForceHorizontalMetrics && wm.IsVertical() && !wm.IsSideways()
@@ -9797,13 +9797,10 @@ nsPoint nsLayoutUtils::ComputeOffsetToUserSpace(nsDisplayListBuilder* aBuilder,
   // if we want "ctx" to be in user space, we first need to subtract the
   // frame's position so that SVG painting can later add it again and the
   // frame is painted in the right place.
-  gfxPoint toUserSpaceGfx =
-      SVGUtils::FrameSpaceInCSSPxToUserSpaceOffset(aFrame);
-  nsPoint toUserSpace =
-      nsPoint(nsPresContext::CSSPixelsToAppUnits(float(toUserSpaceGfx.x)),
-              nsPresContext::CSSPixelsToAppUnits(float(toUserSpaceGfx.y)));
+  nsPoint toUserSpace = CSSPoint::ToAppUnits(
+      SVGUtils::FrameSpaceInCSSPxToUserSpaceOffset(aFrame));
 
-  return (offsetToBoundingBox - toUserSpace);
+  return offsetToBoundingBox - toUserSpace;
 }
 
 /* static */
@@ -9815,7 +9812,7 @@ already_AddRefed<nsFontMetrics> nsLayoutUtils::GetMetricsFor(
   gfxFont::Orientation orientation =
       aIsVertical ? nsFontMetrics::eVertical : nsFontMetrics::eHorizontal;
   nsFontMetrics::Params params;
-  params.language = aStyleFont->mLanguage;
+  params.language = aStyleFont->GetLangAtom();
   params.explicitLanguage = aStyleFont->mExplicitLanguage;
   params.orientation = orientation;
   params.userFontSet =

@@ -106,7 +106,7 @@ use crate::pattern::mix_blend::{MixBlendPattern, FixedFunctionMixBlendPattern};
 use crate::pattern::filter::BlendFilterPattern;
 use crate::segment::EdgeMask;
 use api::ImageBufferKind;
-use crate::clip::{ClipChainInstance, ClipNodeId, ClipNodeFlags};
+use crate::clip::{ClipChainInstance, ClipDataStore, ClipNodeId, ClipNodeFlags};
 use crate::spatial_tree::{SpatialTree, CoordinateSpaceMapping, SpatialNodeIndex, VisibleFace};
 use crate::composite::{tile_kind, CompositeTileSurface, CompositorKind, NativeTileId};
 use crate::composite::{CompositeTileDescriptor, CompositeTile};
@@ -2368,7 +2368,7 @@ pub fn prepare_picture_clips(
     pic_scratch: &mut PictureScratch,
     clip_mask_instances: &mut Vec<ClipMaskKind>,
     prim_spatial_node_index: SpatialNodeIndex,
-    data_stores: &DataStores,
+    clips: &ClipDataStore,
     use_quads: bool,
     composite_target_clips: &mut QuadClipStack,
     pic_context: &PictureContext,
@@ -2437,7 +2437,7 @@ pub fn prepare_picture_clips(
             frame_state.clip_store.push_quad_clip(
                 &mut source_clips,
                 clip_instance,
-                &data_stores.clip,
+                clips,
             );
         }
 
@@ -2480,7 +2480,7 @@ pub fn prepare_picture_clips(
 
         for instance in target_masks {
             let clip_instance = frame_state.clip_store.get_instance_from_range(&clip_chain.clips_range, instance);
-            frame_state.clip_store.push_quad_clip(dest, clip_instance, &data_stores.clip);
+            frame_state.clip_store.push_quad_clip(dest, clip_instance, clips);
         }
 
         if !use_quads {
@@ -2611,7 +2611,7 @@ pub fn prepare_picture_primitive(
             pic_scratch,
             &mut scratch.frame.clip_mask_instances,
             prim_spatial_node_index,
-            data_stores,
+            &data_stores.clip,
             use_quads,
             &mut composite_clips,
             pic_context,
@@ -2705,12 +2705,16 @@ pub fn prepare_picture_primitive(
     // source task above, so the compositing quad must not
     // re-apply them (which would mask twice). Target clip masks
     // are applied here by the quad path, and are the only clips
-    // `composite_clips` holds.
+    // `composite_clips` holds. The clip bounds must be expressed in the
+    // same space as `transform`: when the picture is rasterized in a
+    // different coordinate system, the local clip rect was remapped
+    // above so that it is consistent with the compositing quad.
     let needs_mask = !composite_clips.is_empty();
+    let surface = &frame_state.surfaces[pic_context.surface_index.0];
     composite_clips.set_bounds(
-        prim_info.clip_chain.local_clip_rect,
-        frame_state.surfaces[pic_context.surface_index.0]
-            .map_to_device_rect(&prim_info.clip_chain.pic_coverage_rect),
+        local_clip_rect,
+        surface.map_to_device_rect(&prim_info.clip_chain.pic_coverage_rect),
+        surface.clipping_rect,
         needs_mask,
     );
     let composite_clips = &composite_clips;
@@ -2801,8 +2805,7 @@ pub fn prepare_picture_primitive(
                 &None,
                 composite_clips,
                 transform,
-                frame_context,
-                pic_context,
+                frame_context.spatial_tree,
                 targets,
                 frame_state,
                 scratch,
@@ -2870,8 +2873,7 @@ pub fn prepare_picture_primitive(
         &None,
         composite_clips,
         transform,
-        frame_context,
-        pic_context,
+        frame_context.spatial_tree,
         targets,
         frame_state,
         scratch,

@@ -613,9 +613,13 @@ export class PanelList extends HTMLElement {
    * be reached by keyboard this way, having no message to take an accesskey
    * from.
    *
-   * Only applies while focus is inside the panel. A panel-list that stays open
-   * over a focused field, as the Smartbar's mention panel does, filters itself
-   * from what the field receives, so the keystroke belongs to the field.
+   * Stands aside while an editable field outside the panel has focus. A
+   * panel-list that stays open over a focused field, as the Smartbar's mention
+   * panel does, filters itself from what the field receives, so the keystroke
+   * belongs to the field. Any other focus outside the panel, such as the
+   * anchor button or the document body after a XUL panel took focus on a
+   * mouse open, does not claim the letter. With focus outside every list, an
+   * open submenu takes the letter and its outer list stands aside.
    *
    * @param {string} key
    *   The pressed key.
@@ -626,9 +630,34 @@ export class PanelList extends HTMLElement {
     if (key.length != 1) {
       return false;
     }
-    let focused = this.getRootNode().activeElement;
-    if (!this.contains(focused)) {
-      return false;
+    // The focus chain from the document down through shadow roots, since the
+    // panel may sit in a shadow tree other than the focused element's.
+    let chain = [];
+    for (
+      let el = this.ownerDocument.activeElement;
+      el;
+      el = el.shadowRoot?.activeElement
+    ) {
+      chain.push(el);
+    }
+    let focused = chain.find(el => this.contains(el));
+    if (!focused) {
+      let deepest = chain.at(-1);
+      if (
+        deepest?.isContentEditable ||
+        ["input", "textarea", "select"].includes(deepest?.localName)
+      ) {
+        return false;
+      }
+      // Both this list and its open submenu hear the keystroke through their
+      // document listeners.
+      if (
+        [...this.querySelectorAll("panel-item[submenu]")].some(
+          item => item.submenuPanel?.open
+        )
+      ) {
+        return false;
+      }
     }
     let letter = key.toLowerCase();
     let startsWithLetter = item =>
@@ -1141,40 +1170,51 @@ export class PanelItem extends HTMLElement {
       }
       case "mouseup": {
         let event = /** @type {MouseEvent} */ (e);
-        if (
-          // preventClickEvent is undefined outside of chrome contexts.
-          !event.preventClickEvent ||
-          !this.panel?.clickOnMouseup ||
-          e.button != 0
-        ) {
+        if (!this.panel?.clickOnMouseup || e.button != 0) {
           break;
         }
 
         // A click event would be fired on the nearest common ancestor of
         // the mousedown and mouseup elements. We want to retarget the
-        // click to the panel-item where mouseup happened so we prevent
-        // the native click and synthesize one on the panel-list.
+        // click to the panel-item where mouseup happened, so we swallow the
+        // one the release generates and synthesize our own on the item.
         // This enables opening a panel-list and choosing an item with a
         // single click.
+        if (event.preventClickEvent) {
+          event.preventClickEvent();
+        } else {
+          // The retargeted click follows this event synchronously.
+          let swallowClick = retargeted => {
+            if (retargeted.isTrusted) {
+              retargeted.stopPropagation();
+              retargeted.preventDefault();
+              removeSwallowClick();
+            }
+          };
+          let removeSwallowClick = () =>
+            window.removeEventListener("click", swallowClick, {
+              capture: true,
+            });
+          window.addEventListener("click", swallowClick, { capture: true });
+          setTimeout(removeSwallowClick);
+        }
 
-        event.preventClickEvent();
-        this.button.dispatchEvent(
-          new PointerEvent("click", {
-            bubbles: true,
-            composed: true,
-            view: event.view,
-            shiftKey: event.shiftKey,
-            ctrlKey: event.ctrlKey,
-            altKey: event.altKey,
-            metaKey: event.metaKey,
-            screenX: event.screenX,
-            screenY: event.screenY,
-            clientX: event.clientX,
-            clientY: event.clientY,
-            button: event.button,
-            // The inputSource of the click event will always be MOZ_SOURCE_UNKNOWN.
-          })
-        );
+        let click = new PointerEvent("click", {
+          bubbles: true,
+          composed: true,
+          view: event.view,
+          shiftKey: event.shiftKey,
+          ctrlKey: event.ctrlKey,
+          altKey: event.altKey,
+          metaKey: event.metaKey,
+          screenX: event.screenX,
+          screenY: event.screenY,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          button: event.button,
+          // The inputSource of the click event will always be MOZ_SOURCE_UNKNOWN.
+        });
+        this.button.dispatchEvent(click);
         break;
       }
     }
