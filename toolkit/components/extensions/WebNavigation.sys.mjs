@@ -2,13 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
-const lazy = XPCOMUtils.declareLazy({
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   ClickHandlerParent: "resource:///actors/ClickHandlerParent.sys.mjs",
+  UmbrafoxDiagnostics: "resource://gre/modules/UmbrafoxDiagnostics.sys.mjs",
   UrlbarShared: "chrome://browser/content/urlbar/UrlbarShared.mjs",
   WebNavigationFrames: "resource://gre/modules/WebNavigationFrames.sys.mjs",
 });
@@ -17,6 +19,14 @@ const lazy = XPCOMUtils.declareLazy({
 // the data recent (similar to how is done in nsNavHistory,
 // e.g. nsNavHistory::CheckIsRecentEvent, but with a lower threshold value).
 const RECENT_DATA_THRESHOLD = 5 * 1000000;
+const PREF_UMBRAFOX_CONTROL_ENABLED = "umbrafox.control.enabled";
+
+function getUmbrafoxDiagnostics() {
+  if (!Services.prefs.getBoolPref(PREF_UMBRAFOX_CONTROL_ENABLED, false)) {
+    return null;
+  }
+  return lazy.UmbrafoxDiagnostics;
+}
 
 function getBrowser(bc) {
   return bc.top.embedderElement;
@@ -25,6 +35,9 @@ function getBrowser(bc) {
 export var WebNavigationManager = {
   /** @type {Map<string, Set<callback>>} */
   listeners: new Map(),
+
+  /** @type {WeakMap<callback, object>} */
+  listenerMetadata: new WeakMap(),
 
   /** @type {WeakMap<MozBrowser, object>} */
   recentTabTransitionData: new WeakMap(),
@@ -55,7 +68,7 @@ export var WebNavigationManager = {
     this.recentTabTransitionData = new WeakMap();
   },
 
-  addListener(type, listener) {
+  addListener(type, listener, metadata = null) {
     if (this.listeners.size == 0) {
       this.init();
     }
@@ -64,7 +77,15 @@ export var WebNavigationManager = {
       this.listeners.set(type, new Set());
     }
     let listeners = this.listeners.get(type);
+    if (listeners.has(listener)) {
+      return;
+    }
     listeners.add(listener);
+    this.listenerMetadata.set(listener, metadata ?? {});
+    getUmbrafoxDiagnostics()?.recordWebNavigationListenerAdded(
+      type,
+      metadata ?? {}
+    );
   },
 
   removeListener(type, listener) {
@@ -72,7 +93,16 @@ export var WebNavigationManager = {
     if (!listeners) {
       return;
     }
+    if (!listeners.has(listener)) {
+      return;
+    }
+    let metadata = this.listenerMetadata.get(listener) ?? {};
     listeners.delete(listener);
+    this.listenerMetadata.delete(listener);
+    getUmbrafoxDiagnostics()?.recordWebNavigationListenerRemoved(
+      type,
+      metadata
+    );
     if (listeners.size == 0) {
       this.listeners.delete(type);
     }
@@ -383,8 +413,26 @@ export var WebNavigationManager = {
       details[prop] = extra[prop];
     }
 
+    const diagnostics = getUmbrafoxDiagnostics();
+    diagnostics?.recordWebNavigationEvent(type, {
+      browserId: browser?.browserId,
+      frameId: details.frameId,
+      listenerCount: listeners.size,
+      parentFrameId: details.parentFrameId,
+      url: details.url,
+    });
+
     for (let listener of listeners) {
-      listener(details);
+      const startedAt = diagnostics?.markWebNavigationDispatchStart();
+      try {
+        listener(details);
+      } finally {
+        diagnostics?.recordWebNavigationDispatchFinished(
+          type,
+          this.listenerMetadata.get(listener),
+          startedAt
+        );
+      }
     }
   },
 };

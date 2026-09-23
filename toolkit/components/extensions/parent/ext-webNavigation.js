@@ -185,7 +185,9 @@ this.webNavigation = class extends ExtensionAPIPersistent {
         fire.async(data2);
       };
 
-      WebNavigation[event].addListener(listener);
+      WebNavigation[event].addListener(listener, {
+        extensionId: extension.id,
+      });
       return {
         unregister() {
           WebNavigation[event].removeListener(listener);

@@ -591,8 +591,8 @@ pref("toolkit.asyncshutdown.log", false);
   pref("browser.dom.window.dump.enabled", false, sticky);
   pref("devtools.console.stdout.chrome", false, sticky);
 #else
-  pref("browser.dom.window.dump.enabled", true, sticky);
-  pref("devtools.console.stdout.chrome", true, sticky);
+  pref("browser.dom.window.dump.enabled", false, sticky);
+  pref("devtools.console.stdout.chrome", false, sticky);
 #endif
 
 pref("devtools.console.stdout.content", false, sticky);

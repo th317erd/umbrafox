@@ -9,6 +9,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   HttpServer: "chrome://remote/content/server/httpd.sys.mjs",
   UmbrafoxControlInput: "resource://gre/modules/UmbrafoxControlInput.sys.mjs",
+  UmbrafoxDiagnostics: "resource://gre/modules/UmbrafoxDiagnostics.sys.mjs",
 });
 
 const PREF_ENABLED = "umbrafox.control.enabled";
@@ -294,6 +295,41 @@ function getBrowserURL(browser) {
   }
 }
 
+function getBrowserProcessInfo(browser) {
+  if (!browser?.isRemoteBrowser || !browser.frameLoader) {
+    return {
+      isRemoteBrowser: false,
+      topLevelPid: null,
+      pids: [],
+    };
+  }
+
+  const topLevelPid = browser.frameLoader.remoteTab?.osPid ?? null;
+  const pids = new Set();
+  if (topLevelPid) {
+    pids.add(topLevelPid);
+  }
+
+  const stack = [browser.browsingContext];
+  while (stack.length) {
+    const browsingContext = stack.pop();
+    if (!browsingContext) {
+      continue;
+    }
+    stack.push(...browsingContext.children);
+    const pid = browsingContext.currentWindowGlobal?.osPid;
+    if (pid) {
+      pids.add(pid);
+    }
+  }
+
+  return {
+    isRemoteBrowser: true,
+    topLevelPid,
+    pids: [...pids].sort((a, b) => a - b),
+  };
+}
+
 function getOpenTabs() {
   const windows = [];
   let windowIndex = 0;
@@ -310,6 +346,12 @@ function getOpenTabs() {
         selected: tab.selected,
         pinned: tab.pinned,
       };
+
+      try {
+        tabInfo.process = getBrowserProcessInfo(browser);
+      } catch (error) {
+        tabInfo.processError = error.message;
+      }
 
       try {
         tabInfo.memory = getBrowserTabMemory(browser);
@@ -595,6 +637,7 @@ class UmbrafoxControlServiceImpl {
       processID: Services.appinfo.processID,
       profileDir: PathUtils.profileDir,
       memory: readDistinguishedMemory(),
+      umbrafoxDiagnostics: lazy.UmbrafoxDiagnostics.snapshot(),
       windows: getOpenTabs(),
     };
   }

@@ -96,6 +96,10 @@ add_task(async function test_control_service_status_and_webdriver_state() {
   );
   ok(snapshotResponse.result.memory, "Diagnostics snapshot includes memory");
   ok(
+    snapshotResponse.result.umbrafoxDiagnostics,
+    "Diagnostics snapshot includes Umbrafox diagnostics"
+  );
+  ok(
     Array.isArray(snapshotResponse.result.windows),
     "Diagnostics snapshot includes browser windows"
   );
@@ -108,6 +112,16 @@ add_task(async function test_control_service_status_and_webdriver_state() {
     snapshotTab.url,
     tab.linkedBrowser.currentURI.spec,
     "Diagnostics snapshot reports the test tab URL"
+  );
+  ok(snapshotTab.process, "Diagnostics snapshot reports process metadata");
+  is(
+    typeof snapshotTab.process.isRemoteBrowser,
+    "boolean",
+    "Process metadata reports remote browser state"
+  );
+  ok(
+    Array.isArray(snapshotTab.process.pids),
+    "Process metadata reports process IDs"
   );
 
   const rejectedDumpResponse = await sendWebSocketCommand(
