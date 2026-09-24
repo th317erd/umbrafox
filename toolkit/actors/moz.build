@@ -72,6 +72,8 @@ MOZ_SRC_FILES += [
     "ThumbnailsChild.sys.mjs",
     "TLSCertificateBindingChild.sys.mjs",
     "UAWidgetsChild.sys.mjs",
+    "UmbrafoxControlDiagnosticsChild.sys.mjs",
+    "UmbrafoxControlDiagnosticsParent.sys.mjs",
     "UmbrafoxControlInputChild.sys.mjs",
     "UmbrafoxControlInputParent.sys.mjs",
     "UmbrafoxUserlandChild.sys.mjs",

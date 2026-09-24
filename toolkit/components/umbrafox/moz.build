@@ -11,6 +11,7 @@ with Files("docs/**"):
     SCHEDULES.exclusive = ["docs"]
 
 EXTRA_JS_MODULES += [
+    "UmbrafoxControlDiagnostics.sys.mjs",
     "UmbrafoxControlInput.sys.mjs",
     "UmbrafoxControlService.sys.mjs",
     "UmbrafoxDiagnostics.sys.mjs",

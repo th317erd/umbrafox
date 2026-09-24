@@ -44,6 +44,7 @@ When new Firefox source arrives:
    - `recipes/12-local-control-input.md`
    - `recipes/13-panel-keyup-escape.md`
    - `recipes/14-browser-chrome-control-ui.md`
+   - `recipes/15-umbralink-diagnostics.md`
 7. Use `reference/changed-files.md` as the file-level checklist.
 8. Use `reference/known-gotchas.md` before deciding a rebase is done.
 9. Use `reference/web-identity-leak-log.md` to preserve every web-visible

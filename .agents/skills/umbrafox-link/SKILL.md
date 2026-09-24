@@ -119,6 +119,62 @@ Parameters:
 
 Filenames may contain only letters, numbers, dot, underscore, and dash. Path-like names must be rejected.
 
+`umbrafox.gfx.snapshot` returns read-only graphics/compositor state:
+
+- desktop environment and active chrome window layer-manager details
+- `nsIGfxInfo` adapter fields, feature decisions, failures, crash guards, and target frame rate where available
+- codec support summary when `nsIGfxInfo` has populated it
+
+`umbrafox.media.snapshot` returns read-only media diagnostics:
+
+- audio backend, preferred sample rate, max channels, and audio devices from chrome window utils
+- codec support summary
+- decoder-adjacent process summaries for RDD, GPU, and utility decoder actors
+- open tabs and frame media elements, including existing `audio`/`video` element state, source URLs, ready/network state, time ranges, dimensions, Firefox frame counters such as `mozDecodedFrames` when present, and `getVideoPlaybackQuality()` totals/dropped frames
+
+Parameters:
+
+```json
+{
+  "context": 42,
+  "includeEmptyFrames": false
+}
+```
+
+Omit `context` to inspect all open browser tabs. `context` is a browsing context ID from a diagnostics snapshot.
+
+`umbrafox.performance.snapshot` returns read-only process/performance state:
+
+- parent and child process memory/CPU totals from `ChromeUtils.requestProcInfo()`
+- process tree, child types, utility actors, and window URI/title metadata
+- profiler active/paused status, supported features, active configuration, elapsed time, and buffer state
+
+Parameters:
+
+```json
+{
+  "includeThreads": false,
+  "includeWindows": true
+}
+```
+
+`umbrafox.performance.profile.dump` writes the current profiler capture under:
+
+```text
+<profile>/umbrafox/diagnostics/profiles/
+```
+
+Parameters:
+
+```json
+{
+  "filename": "optional-name.json",
+  "sinceTime": 0
+}
+```
+
+The profiler must already be active. Filenames follow the same no-path rule as memory reports.
+
 Input commands target a top-level browsing context from a diagnostics snapshot:
 
 - `umbrafox.input.click`

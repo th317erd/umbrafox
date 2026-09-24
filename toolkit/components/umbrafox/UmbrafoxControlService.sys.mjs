@@ -8,6 +8,8 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   HttpServer: "chrome://remote/content/server/httpd.sys.mjs",
+  UmbrafoxControlDiagnostics:
+    "resource://gre/modules/UmbrafoxControlDiagnostics.sys.mjs",
   UmbrafoxControlInput: "resource://gre/modules/UmbrafoxControlInput.sys.mjs",
   UmbrafoxDiagnostics: "resource://gre/modules/UmbrafoxDiagnostics.sys.mjs",
 });
@@ -606,6 +608,18 @@ class UmbrafoxControlServiceImpl {
         return dumpMemoryReport(packet.params ?? {});
       case "umbrafox.diagnostics.snapshot":
         return this.diagnosticsSnapshot();
+      case "umbrafox.gfx.snapshot":
+        return lazy.UmbrafoxControlDiagnostics.gfxSnapshot();
+      case "umbrafox.media.snapshot":
+        return lazy.UmbrafoxControlDiagnostics.mediaSnapshot(
+          packet.params ?? {}
+        );
+      case "umbrafox.performance.snapshot":
+        return lazy.UmbrafoxControlDiagnostics.performanceSnapshot(
+          packet.params ?? {}
+        );
+      case "umbrafox.performance.profile.dump":
+        return lazy.UmbrafoxControlDiagnostics.dumpProfile(packet.params ?? {});
       case "umbrafox.status":
         return this.status();
       default:

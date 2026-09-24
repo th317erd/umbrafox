@@ -97,6 +97,8 @@ The first supported command is:
 
 Native input commands are documented separately in
 `recipes/12-local-control-input.md`.
+Read-only graphics, media, and performance diagnostics are documented in
+`recipes/15-umbralink-diagnostics.md`.
 
 UmbraLink must not import or start `nsIRemoteAgent`, Marionette, or
 WebDriver BiDi. Its browser test runs under Marionette, so it verifies that the

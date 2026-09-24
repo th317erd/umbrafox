@@ -227,7 +227,10 @@ This inventory was generated from the current working tree when the guide was wr
 - `remote/webdriver-bidi/test/xpcshell/test_UmbrafoxModule.js`
 - `remote/webdriver-bidi/test/xpcshell/xpcshell.toml`
 - `toolkit/components/umbrafox/UmbrafoxControlService.sys.mjs`
+- `toolkit/components/umbrafox/UmbrafoxControlDiagnostics.sys.mjs`
 - `toolkit/components/umbrafox/UmbrafoxControlInput.sys.mjs`
+- `toolkit/actors/UmbrafoxControlDiagnosticsChild.sys.mjs`
+- `toolkit/actors/UmbrafoxControlDiagnosticsParent.sys.mjs`
 - `toolkit/actors/UmbrafoxControlInputChild.sys.mjs`
 - `toolkit/actors/UmbrafoxControlInputParent.sys.mjs`
 - `toolkit/actors/moz.build`
@@ -238,6 +241,8 @@ This inventory was generated from the current working tree when the guide was wr
 - `browser/components/BrowserGlue.sys.mjs`
 - `browser/app/profile/firefox.js`
 - `toolkit/modules/ActorManagerParent.sys.mjs`
+- `.agents/skills/umbrafox-link/SKILL.md`
+- `umbrafox-conversion-guide/recipes/15-umbralink-diagnostics.md`
 
 ## Bot control channel
 
