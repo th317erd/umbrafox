@@ -1,0 +1,22 @@
+<!doctype html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<html lang="en">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Local performance fixture</title>
+  <link rel="stylesheet" href="fixture.css" media="screen" />
+  <main>
+    <h1>Local performance fixture</h1>
+    <output id="status">Waiting</output>
+    <section id="rows" aria-label="Layout workload"></section>
+    <canvas
+      id="canvas"
+      width="128"
+      height="128"
+      aria-label="Canvas copy workload"
+    ></canvas>
+  </main>
+  <script type="module" src="fixture.mjs"></script>
+</html>

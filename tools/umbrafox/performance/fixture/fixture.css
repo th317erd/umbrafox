@@ -1,0 +1,33 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* stylelint-disable stylelint-plugin-mozilla/use-design-tokens -- Standalone web fixture: fixed geometry and colors are test inputs; browser chrome tokens are unavailable. */
+
+body {
+  margin: 1rem;
+  color: #202020;
+  background: #fff;
+  font: 1rem sans-serif;
+}
+
+h1 {
+  font-size: 1.25rem;
+}
+#rows {
+  inline-size: 128px;
+}
+.row {
+  block-size: 2px;
+  inline-size: 32px;
+  background: #247553;
+}
+.row.wide {
+  inline-size: 48px;
+  background: #2756a3;
+}
+canvas {
+  display: block;
+  inline-size: 128px;
+  block-size: 128px;
+}
