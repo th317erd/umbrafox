@@ -5,6 +5,7 @@
 #ifndef UmbrafoxUserlandMutation_h
 #define UmbrafoxUserlandMutation_h
 
+#include "mozilla/StaticPrefs_umbrafox.h"
 #include "nsCOMPtr.h"
 #include "nsStringFwd.h"
 
@@ -24,7 +25,10 @@ class UmbrafoxUserlandMutation {
     nsCOMPtr<nsINode> mReplacementNode;
   };
 
-  static bool ShouldDispatchMutation(nsINode* aTarget);
+  static bool ShouldDispatchMutation(nsINode* aTarget) {
+    return StaticPrefs::umbrafox_userlandScripts_active() &&
+           ShouldDispatchActiveMutation(aTarget);
+  }
 
   static bool MaybeDispatchChildListMutation(
       nsINode* aTarget, const nsACString& aOperation, nsIContent* aAddedNode,
@@ -44,6 +48,9 @@ class UmbrafoxUserlandMutation {
   static bool MaybeDispatchCharacterDataMutation(CharacterData* aTarget,
                                                  const nsAString& aOldData,
                                                  nsAString& aNewData);
+
+ private:
+  static bool ShouldDispatchActiveMutation(nsINode* aTarget);
 };
 
 }  // namespace mozilla::dom

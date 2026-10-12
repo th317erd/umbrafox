@@ -622,6 +622,9 @@ pref("browser.urlbar.quicksuggest.enabled", false);
 // experimentation. It can be any of "default", "interest", and "random".
 pref("browser.urlbar.quicksuggest.rankingMode", "default");
 
+// Apply Firefox's regional Suggest defaults only when explicitly selected.
+pref("browser.urlbar.quicksuggest.regionDefaults.enabled", false);
+
 // Whether Firefox Suggest will use the new Rust backend instead of the original
 // JS backend.
 pref("browser.urlbar.quicksuggest.rustEnabled", true);

@@ -10,6 +10,7 @@
 #include "gfxPlatform.h"
 #include "gtest/gtest.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/layers/LayersSurfaces.h"
 
 namespace mozilla {
 
@@ -105,7 +106,7 @@ class WebGLTextureUploadInit : public ::testing::Test {
     webgl::TexUnpackBlobDesc alloc = {aTexTarget, {kTexSize, kTexSize, aDepth}};
     alloc.unpacking.rowLength = kTexSize;
     alloc.unpacking.imageHeight = kTexSize;
-    mWebgl->TexImage(0, LOCAL_GL_RGBA, {0, 0, 0}, kPI, alloc);
+    ASSERT_TRUE(mWebgl->TexImage(0, LOCAL_GL_RGBA, {0, 0, 0}, kPI, alloc));
   }
 
   // TexStorage is the only way to get an uninitialized compressed image; a
@@ -125,7 +126,7 @@ class WebGLTextureUploadInit : public ::testing::Test {
     sub.unpacking.alignmentInTypeElems = 1;
     sub.unpacking.rowLength = aSize.x;
     sub.unpacking.imageHeight = aSize.y;
-    mWebgl->TexImage(0, 0, aOffset, kPI, sub);
+    ASSERT_TRUE(mWebgl->TexImage(0, 0, aOffset, kPI, sub));
   }
 
   void TexSubImageFromUnmappableSurface(GLenum aImageTarget,
@@ -136,7 +137,7 @@ class WebGLTextureUploadInit : public ::testing::Test {
     sub.unpacking.alignmentInTypeElems = 1;
     sub.unpacking.rowLength = aSize;
     sub.unpacking.imageHeight = aSize;
-    mWebgl->TexImage(0, 0, aOffset, kPI, sub);
+    ASSERT_FALSE(mWebgl->TexImage(0, 0, aOffset, kPI, sub));
   }
 
   void CompressedSubImageFromBytes(const uvec3& aOffset, const uvec3& aSize) {
@@ -186,6 +187,47 @@ TEST_F(WebGLTextureUploadInit, FullUploadSuccessClearsSlice) {
   << "A successful upload should not truncate the level.";
   EXPECT_FALSE(imageInfo.mUninitializedSlices)
       << "Slices should be cleared after a successful full texture upload.";
+}
+
+TEST_F(WebGLTextureUploadInit, DescriptorFailureReturnsFalseWithoutFallback) {
+  BindAndAllocUninitialized(LOCAL_GL_TEXTURE_2D);
+  webgl::TexUnpackBlobDesc upload = {LOCAL_GL_TEXTURE_2D,
+                                     {kTexSize, kTexSize, 1}};
+  upload.sd = Some(layers::SurfaceDescriptor());
+  upload.structuredSrcSize = Some(uvec2{kTexSize, kTexSize});
+  upload.allowSurfaceDescriptorFallback = true;
+  EXPECT_FALSE(mWebgl->TexImage(0, 0, {0, 0, 0}, kPI, upload));
+  const auto& info = mTex->ImageInfoAt(LOCAL_GL_TEXTURE_2D, 0);
+  ASSERT_TRUE(info.mUninitializedSlices);
+  EXPECT_TRUE((*info.mUninitializedSlices)[0]);
+  ExpectNoError("Descriptor blit failure need not set a GL error.");
+}
+
+TEST_F(WebGLTextureUploadInit, DescriptorFailureUsesProvidedSurfaceFallback) {
+  BindAndAllocUninitialized(LOCAL_GL_TEXTURE_2D);
+  webgl::TexUnpackBlobDesc upload = {LOCAL_GL_TEXTURE_2D,
+                                     {kTexSize, kTexSize, 1}};
+  upload.sd = Some(layers::SurfaceDescriptor());
+  upload.structuredSrcSize = Some(uvec2{kTexSize, kTexSize});
+  upload.allowSurfaceDescriptorFallback = true;
+  upload.sourceSurf = gfx::Factory::CreateDataSourceSurface(
+      gfx::IntSize(kTexSize, kTexSize), gfx::SurfaceFormat::B8G8R8A8, true);
+  ASSERT_TRUE(upload.sourceSurf);
+  EXPECT_TRUE(mWebgl->TexImage(0, 0, {0, 0, 0}, kPI, upload));
+  EXPECT_FALSE(mTex->ImageInfoAt(LOCAL_GL_TEXTURE_2D, 0).mUninitializedSlices);
+  ExpectNoError("Successful fallback should retain ordinary upload semantics.");
+}
+
+TEST_F(WebGLTextureUploadInit, DescriptorFailureDefaultBehaviorIsUnchanged) {
+  BindAndAllocUninitialized(LOCAL_GL_TEXTURE_2D);
+  webgl::TexUnpackBlobDesc upload = {LOCAL_GL_TEXTURE_2D,
+                                     {kTexSize, kTexSize, 1}};
+  upload.sd = Some(layers::SurfaceDescriptor());
+  upload.structuredSrcSize = Some(uvec2{kTexSize, kTexSize});
+  ASSERT_FALSE(upload.allowSurfaceDescriptorFallback);
+  EXPECT_TRUE(mWebgl->TexImage(0, 0, {0, 0, 0}, kPI, upload));
+  EXPECT_FALSE(mTex->ImageInfoAt(LOCAL_GL_TEXTURE_2D, 0).mUninitializedSlices);
+  ExpectNoError("The default descriptor path retains its previous behavior.");
 }
 
 TEST_F(WebGLTextureUploadInit, PartialUploadSuccessMarkedInitialized) {

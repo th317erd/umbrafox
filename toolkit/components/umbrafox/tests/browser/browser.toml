@@ -1,5 +1,7 @@
 [DEFAULT]
 
+["browser_control_browser.js"]
+
 ["browser_control_input.js"]
 
 ["browser_control_service.js"]
@@ -21,3 +23,6 @@ support-files = [
   "file_userland_script_event.html",
   "file_userland_script_event.js",
 ]
+
+["browser_userland_mutation_gate.js"]
+support-files = ["file_userland_order.html"]

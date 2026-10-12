@@ -51,6 +51,40 @@ class NotFoundError extends Error {
   }
 }
 
+function readZipEntry(zipReader, entryName) {
+  const input = zipReader.getInputStream(entryName);
+  let stream;
+  let bytes;
+  let failed = false;
+  let failure;
+  try {
+    const length = input.available();
+    stream = Cc["@mozilla.org/scriptableinputstream;1"].createInstance(
+      Ci.nsIScriptableInputStream
+    );
+    stream.init(input);
+    bytes = stream.readBytes(length);
+  } catch (ex) {
+    failed = true;
+    failure = ex;
+  }
+  // Attempt both closes without replacing the first failure.
+  for (const handle of [stream, input]) {
+    try {
+      handle?.close();
+    } catch (ex) {
+      if (!failed) {
+        failed = true;
+        failure = ex;
+      }
+    }
+  }
+  if (failed) {
+    throw failure;
+  }
+  return bytes;
+}
+
 // Helper for the `download` method for commonly used methods, to help with
 // lazily accessing the record and attachment content.
 class LazyRecordAndBuffer {
@@ -202,6 +236,8 @@ export class Downloader {
       `${Services.uuid.generateUUID().toString().slice(1, -1)}.zip`
     );
     let allSuccess = true;
+    let zipReader;
+    let writeStarted = false;
 
     try {
       // 1. Download the zip archive to disk
@@ -214,12 +250,13 @@ export class Downloader {
       }
 
       const downloaded = await resp.arrayBuffer();
+      writeStarted = true;
       await IOUtils.write(tmpZipFilePath, new Uint8Array(downloaded), {
         tmpPath: `${tmpZipFilePath}.tmp`,
       });
 
       // 2. Read the zipped content
-      const zipReader = Cc["@mozilla.org/libjar/zip-reader;1"].createInstance(
+      zipReader = Cc["@mozilla.org/libjar/zip-reader;1"].createInstance(
         Ci.nsIZipReader
       );
 
@@ -244,34 +281,18 @@ export class Downloader {
         const entryName = zipFiles[i];
         try {
           // 3. Read the meta.json entry
-          const recordZStream = zipReader.getInputStream(entryName);
-          const recordDataLength = recordZStream.available();
-          const recordStream = Cc[
-            "@mozilla.org/scriptableinputstream;1"
-          ].createInstance(Ci.nsIScriptableInputStream);
-          recordStream.init(recordZStream);
-          const recordBytes = recordStream.readBytes(recordDataLength);
-          const recordBlob = new Blob([recordBytes], {
-            type: "application/json",
-          });
-          const record = JSON.parse(await recordBlob.text());
-          recordZStream.close();
-          recordStream.close();
+          const recordBytes = readZipEntry(zipReader, entryName);
+          // Preserve the task boundary without a Blob round trip.
+          await new Promise(resolve =>
+            Services.tm.dispatchToMainThread(resolve)
+          );
+          const record = JSON.parse(recordBytes);
 
           // 4. Read the attachment entry
-          const zStream = zipReader.getInputStream(record.id);
-          const dataLength = zStream.available();
-          const stream = Cc[
-            "@mozilla.org/scriptableinputstream;1"
-          ].createInstance(Ci.nsIScriptableInputStream);
-          stream.init(zStream);
-          const fileBytes = stream.readBytes(dataLength);
+          const fileBytes = readZipEntry(zipReader, record.id);
           const blob = new Blob([fileBytes]);
 
           cacheEntries.push([record.id, { record, blob }]);
-
-          stream.close();
-          zStream.close();
         } catch (ex) {
           lazy.console.warn(
             `${this.bucketName}/${this.collectionName}: Unable to extract attachment of ${entryName}.`,
@@ -300,6 +321,29 @@ export class Downloader {
         ex
       );
       return false;
+    } finally {
+      try {
+        zipReader?.close();
+      } catch (ex) {
+        allSuccess = false;
+        lazy.console.warn(
+          "Unable to close remote-settings attachment bundle.",
+          ex
+        );
+      }
+      if (writeStarted) {
+        for (const path of [tmpZipFilePath, `${tmpZipFilePath}.tmp`]) {
+          try {
+            await IOUtils.remove(path, { ignoreAbsent: true });
+          } catch (ex) {
+            allSuccess = false;
+            lazy.console.warn(
+              "Unable to remove remote-settings attachment bundle.",
+              ex
+            );
+          }
+        }
+      }
     }
 
     return allSuccess;

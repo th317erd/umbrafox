@@ -229,6 +229,13 @@ pub struct PrimitiveInstanceData {
     data: [i32; 4],
 }
 
+#[cfg(feature = "umbra-perf-probes")]
+impl PrimitiveInstanceData {
+    pub(crate) fn sampling_words(&self) -> [i32; 4] {
+        self.data
+    }
+}
+
 // Keep these in sync with the corresponding #defines in shared.glsl
 /// Specifies that an RGB CompositeInstance or ScalingInstance's UV coordinates are normalized.
 const UV_TYPE_NORMALIZED: u32 = 0;
@@ -267,6 +274,25 @@ pub struct CompositeInstance {
 }
 
 impl CompositeInstance {
+    #[cfg(feature = "umbra-perf-probes")]
+    pub(crate) fn sampling_bits(&self) -> [u32; 38] {
+        let uv0 = self.uv_rects[0].to_array();
+        let uv1 = self.uv_rects[1].to_array();
+        let uv2 = self.uv_rects[2].to_array();
+        [
+            self.rect.min.x, self.rect.min.y, self.rect.max.x, self.rect.max.y,
+            self.clip_rect.min.x, self.clip_rect.min.y, self.clip_rect.max.x, self.clip_rect.max.y,
+            self.color.r, self.color.g, self.color.b, self.color.a,
+            self._padding, self.color_space_or_uv_type, self.yuv_format, self.yuv_channel_bit_depth,
+            uv0[0], uv0[1], uv0[2], uv0[3], uv1[0], uv1[1], uv1[2], uv1[3],
+            uv2[0], uv2[1], uv2[2], uv2[3], self.flip.0, self.flip.1,
+            self.rounded_clip_rect.min.x, self.rounded_clip_rect.min.y,
+            self.rounded_clip_rect.max.x, self.rounded_clip_rect.max.y,
+            self.rounded_clip_radii[0], self.rounded_clip_radii[1],
+            self.rounded_clip_radii[2], self.rounded_clip_radii[3],
+        ].map(f32::to_bits)
+    }
+
     pub fn new(
         rect: DeviceRect,
         clip_rect: DeviceRect,
@@ -786,4 +812,3 @@ impl ImageSource {
         }
     }
 }
-

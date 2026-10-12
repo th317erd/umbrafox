@@ -295,8 +295,17 @@ void RemoteMediaManagerParent::Open(
   }
 }
 
+static void FreeSurfaceDescriptorBuffer(RemoteMediaManagerParent* aManager,
+                                        SurfaceDescriptorBuffer& aSdb) {
+  if (aSdb.data().type() == MemoryOrShmem::TShmem) {
+    aManager->DeallocShmem(aSdb.data().get_Shmem());
+  }
+  aSdb = SurfaceDescriptorBuffer();
+}
+
 mozilla::ipc::IPCResult RemoteMediaManagerParent::RecvReadback(
-    const SurfaceDescriptorGPUVideo& aSD, SurfaceDescriptor* aResult) {
+    const SurfaceDescriptorGPUVideo& aSD,
+    const Maybe<gfx::IntSize>& aReadbackSize, SurfaceDescriptor* aResult) {
   const SurfaceDescriptorRemoteDecoder& sd = aSD;
   RefPtr<Image> image = mImageMap[sd.handle()];
   if (!image) {
@@ -306,23 +315,34 @@ mozilla::ipc::IPCResult RemoteMediaManagerParent::RecvReadback(
 
   // Read directly into the shmem to avoid extra copies, if possible.
   SurfaceDescriptorBuffer sdb;
-  nsresult rv = image->BuildSurfaceDescriptorBuffer(
-      sdb, Image::BuildSdbFlags::RgbOnly, [&](uint32_t aBufferSize) {
-        Shmem buffer;
-        if (!AllocShmem(aBufferSize, &buffer)) {
-          return MemoryOrShmem();
-        }
-        return MemoryOrShmem(std::move(buffer));
-      });
+  auto allocate = [&](uint32_t aBufferSize) {
+    Shmem buffer;
+    if (!AllocShmem(aBufferSize, &buffer)) {
+      return MemoryOrShmem();
+    }
+    return MemoryOrShmem(std::move(buffer));
+  };
+
+  nsresult rv = NS_ERROR_NOT_IMPLEMENTED;
+  if (aReadbackSize.isSome()) {
+    rv = image->BuildSurfaceDescriptorBufferForSize(
+        sdb, Image::BuildSdbFlags::RgbOnly, aReadbackSize.ref(), allocate);
+    if (NS_FAILED(rv)) {
+      FreeSurfaceDescriptorBuffer(this, sdb);
+      *aResult = null_t();
+      return IPC_OK();
+    }
+  } else {
+    rv = image->BuildSurfaceDescriptorBuffer(sdb, Image::BuildSdbFlags::RgbOnly,
+                                             allocate);
+  }
 
   if (NS_SUCCEEDED(rv)) {
     *aResult = std::move(sdb);
     return IPC_OK();
   }
 
-  if (sdb.data().type() == MemoryOrShmem::TShmem) {
-    DeallocShmem(sdb.data().get_Shmem());
-  }
+  FreeSurfaceDescriptorBuffer(this, sdb);
   *aResult = null_t();
   return IPC_OK();
 }

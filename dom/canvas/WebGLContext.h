@@ -855,7 +855,7 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr {
                     const uvec2& size) const;
 
   // TexSubImage if `!respectFormat`
-  void TexImage(uint32_t level, GLenum respecFormat, uvec3 offset,
+  bool TexImage(uint32_t level, GLenum respecFormat, uvec3 offset,
                 const webgl::PackingInfo& pi,
                 const webgl::TexUnpackBlobDesc&) const;
 

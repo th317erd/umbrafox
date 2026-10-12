@@ -40,10 +40,11 @@ Use three explicitly tested levels:
 | Bounded diagnostic markers | Missing stage durations, dimensions, counts, opaque run-local joins | Early enable check, fixed caps and reported truncation; all costly new probes require release compile-time exclusion even when bounded |
 | Detailed experiment traces | Sampling operands, per-resource history, expensive stacks/pixel/driver data | Release compile-time exclusion required before accepting new probes; verify absence of state/hooks/payload construction, not just a false pref |
 
-This is a contract and migration target, not a claim the current detailed WR
-prototype has already been compiled out. Its sampling module, hooks and state
-currently remain in the build. Do not remove upstream counters used by actual
-engine decisions merely because they also feed diagnostics.
+This is a contract and migration target, not a claim the currently installed WR
+prototype has already been compiled out. The 2026-09-27 source patch gates its
+sampling module, hooks and state, but packaged exclusion remains unverified.
+Do not remove upstream counters used by actual engine decisions merely because
+they also feed diagnostics.
 
 P2 must first name one opt-in configure switch and trace its C++ define/Cargo
 feature propagation through Gecko and Wrench, including feature unification.
@@ -52,6 +53,16 @@ imports, fields, initialization, helper definitions, call-site argument evaluati
 and dependencies under the gate; do not gate actual rendering behavior with it.
 The packaged browser's effective feature graph and code, not just a standalone
 feature-OFF unit test, establish release exclusion.
+
+The current migration uses opt-in `--enable-umbra-perf-probes`, the
+`MOZ_UMBRA_PERF_PROBES` configure/define output, `gkrust-shared/umbra_perf_probes`,
+and `umbra-perf-probes` in the bindings and WebRender crates. Wrench forwards
+the same Cargo feature separately. All defaults are OFF. This gate must never
+select opacity optimization or alter rendering. Existing installed binaries
+predate it; effective flags and binary identity remain mandatory evidence.
+New diagnostic builds need both compile-time inclusion and the marker-specific
+runtime eligibility conditions below. A Cargo feature alone does not install
+a marker sink in a non-Gecko embedder.
 
 ## Required probe specification
 

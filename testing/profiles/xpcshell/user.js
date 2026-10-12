@@ -5,6 +5,8 @@
 // Base preferences file used by the xpcshell harness
 /* globals user_pref */
 /* eslint quotes: 0 */
+// Preserve regional Suggest behavior for tests that exercise the feature.
+user_pref("browser.urlbar.quicksuggest.regionDefaults.enabled", true);
 user_pref("app.normandy.api_url", "https://%(server)s/selfsupport-dummy/");
 user_pref("browser.safebrowsing.downloads.remote.url", "https://%(server)s/safebrowsing-dummy");
 user_pref("extensions.systemAddon.update.url", "http://%(server)s/dummy-system-addons.xml");

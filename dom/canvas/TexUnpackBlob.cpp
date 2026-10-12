@@ -1007,7 +1007,7 @@ bool TexUnpackSurface::BlitSd(
     }
     if (!gl->BlitHelper()->BlitSdToFramebuffer(
             sd, {xOffset, yOffset, size.x, size.y}, dstOrigin, fbSize,
-            convertAlpha)) {
+            convertAlpha, mDesc.destFormat)) {
       gfxCriticalNote << "BlitSdToFramebuffer failed for type "
                       << int(sd.type());
       if (allowFallback) {
@@ -1214,7 +1214,8 @@ bool TexUnpackSurface::TexOrSubImage(bool isSubImage, bool needsRespec,
                            {xOffset, yOffset, zOffset}, dui->internalFormat,
                            dstPI, false, true, true, true) &&
                BlitSd(sd, isSubImage, needsRespec, tex, level, dui, xOffset,
-                      yOffset, zOffset, dstPI, out_error)) {
+                      yOffset, zOffset, dstPI, out_error,
+                      mDesc.allowSurfaceDescriptorFallback)) {
       // The SD wasn't an RGBA shmem, but were able to blit the SD directly to
       // the texture.
       return true;

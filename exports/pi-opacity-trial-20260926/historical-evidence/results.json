@@ -1,0 +1,92 @@
+[
+  {
+    "scenario": "odd-double",
+    "verdict": "PASS",
+    "changedPixels": 0,
+    "repeatAE": 0,
+    "dimensions": [
+      1920,
+      1080
+    ],
+    "off": {
+      "candidates": 87,
+      "promoted": 0,
+      "shaderSelections": 0,
+      "hash": "Opacity oracle ready 56391226",
+      "rectangles": [
+        "Box2D((16.0, 24.0), (658.0, 386.0))"
+      ],
+      "firstCandidate": "update=6 candidate=1 frame=1 slice=3 surface=3 primitive_surface=4 key=#3:1 generation=ImageGeneration(1) preferred=true root=false alpha=PremultipliedAlpha color_alpha=1 mask=false atomic=false sub_slice=0/1 yuv_remaining=0 rect=Box2D((16.0, 24.0), (658.0, 386.0)) result=Err(OverlaySurfaceLimit)"
+    },
+    "on": {
+      "candidates": 88,
+      "promoted": 88,
+      "shaderSelections": 88,
+      "hash": "Opacity oracle ready 56391226",
+      "rectangles": [
+        "Box2D((16.0, 24.0), (658.0, 386.0))"
+      ],
+      "firstCandidate": "update=6 candidate=1 frame=1 slice=3 surface=3 primitive_surface=3 key=#3:1 generation=ImageGeneration(0) preferred=true root=true alpha=PremultipliedAlpha color_alpha=0.25 mask=false atomic=false sub_slice=0/2 yuv_remaining=0 rect=Box2D((16.0, 24.0), (658.0, 386.0)) result=Ok(Overlay)"
+    }
+  },
+  {
+    "scenario": "even-odd",
+    "verdict": "FAIL",
+    "changedPixels": 20,
+    "repeatAE": 0,
+    "dimensions": [
+      1920,
+      1080
+    ],
+    "off": {
+      "candidates": 88,
+      "promoted": 0,
+      "shaderSelections": 0,
+      "hash": "Opacity oracle ready 6e5e9bdd",
+      "rectangles": [
+        "Box2D((16.0, 24.0), (658.99994, 390.99997))"
+      ],
+      "firstCandidate": "update=7 candidate=1 frame=1 slice=3 surface=3 primitive_surface=4 key=#3:1 generation=ImageGeneration(0) preferred=true root=false alpha=PremultipliedAlpha color_alpha=1 mask=false atomic=false sub_slice=0/1 yuv_remaining=0 rect=Box2D((16.0, 24.0), (658.99994, 390.99997)) result=Err(OverlaySurfaceLimit)"
+    },
+    "on": {
+      "candidates": 86,
+      "promoted": 86,
+      "shaderSelections": 86,
+      "hash": "Opacity oracle ready 6e5e9bdd",
+      "rectangles": [
+        "Box2D((16.0, 24.0), (659.0, 391.0))"
+      ],
+      "firstCandidate": "update=7 candidate=1 frame=1 slice=3 surface=3 primitive_surface=3 key=#3:1 generation=ImageGeneration(1) preferred=true root=true alpha=PremultipliedAlpha color_alpha=0.25 mask=false atomic=false sub_slice=0/2 yuv_remaining=0 rect=Box2D((16.0, 24.0), (659.0, 391.0)) result=Ok(Overlay)"
+    }
+  },
+  {
+    "scenario": "odd-nearest",
+    "verdict": "PASS",
+    "changedPixels": 0,
+    "repeatAE": 0,
+    "dimensions": [
+      1920,
+      1080
+    ],
+    "off": {
+      "candidates": 87,
+      "promoted": 0,
+      "shaderSelections": 0,
+      "hash": "Opacity oracle ready 56391226",
+      "rectangles": [
+        "Box2D((16.0, 24.0), (659.0, 390.99997))"
+      ],
+      "firstCandidate": "update=7 candidate=1 frame=1 slice=3 surface=3 primitive_surface=4 key=#3:1 generation=ImageGeneration(1) preferred=true root=false alpha=PremultipliedAlpha color_alpha=1 mask=false atomic=false sub_slice=0/1 yuv_remaining=0 rect=Box2D((16.0, 24.0), (659.0, 390.99997)) result=Err(OverlaySurfaceLimit)"
+    },
+    "on": {
+      "candidates": 87,
+      "promoted": 87,
+      "shaderSelections": 87,
+      "hash": "Opacity oracle ready 56391226",
+      "rectangles": [
+        "Box2D((16.0, 24.0), (659.0, 391.0))"
+      ],
+      "firstCandidate": "update=5 candidate=1 frame=1 slice=3 surface=3 primitive_surface=3 key=#3:1 generation=ImageGeneration(0) preferred=true root=true alpha=PremultipliedAlpha color_alpha=0.25 mask=false atomic=false sub_slice=0/2 yuv_remaining=0 rect=Box2D((16.0, 24.0), (659.0, 391.0)) result=Ok(Overlay)"
+    }
+  }
+]

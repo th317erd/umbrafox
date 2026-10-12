@@ -1086,8 +1086,26 @@ void DeleteSurfaceDescriptorUserData(void* aClosure) {
   delete sd;
 }
 
+bool RemoteMediaManagerChild::CanReadback() {
+  nsCOMPtr<nsISerialEventTarget> managerThread = GetManagerThread();
+  if (!managerThread) {
+    return false;
+  }
+  bool available = false;
+  RefPtr<Runnable> task = NS_NewRunnableFunction(
+      "RemoteMediaManagerChild::CanReadback",
+      [&]() { available = CanSend() && GetIPCChannel()->CanSend(); });
+  return NS_SUCCEEDED(SyncRunnable::DispatchToThread(managerThread, task)) &&
+         available;
+}
+
 already_AddRefed<SourceSurface> RemoteMediaManagerChild::Readback(
     const SurfaceDescriptorGPUVideo& aSD) {
+  return Readback(aSD, IntSize());
+}
+
+already_AddRefed<SourceSurface> RemoteMediaManagerChild::Readback(
+    const SurfaceDescriptorGPUVideo& aSD, const IntSize& aReadbackSize) {
   // We can't use NS_DispatchAndSpinEventLoopUntilComplete here since that will
   // spin the event loop while it waits. This function can be called from JS and
   // we don't want that to happen.
@@ -1097,16 +1115,20 @@ already_AddRefed<SourceSurface> RemoteMediaManagerChild::Readback(
   }
 
   SurfaceDescriptor sd;
+  Maybe<IntSize> readbackSize =
+      aReadbackSize.IsEmpty() ? Nothing() : Some(aReadbackSize);
   RefPtr<Runnable> task =
       NS_NewRunnableFunction("RemoteMediaManagerChild::Readback", [&]() {
         if (CanSend()) {
-          SendReadback(aSD, &sd);
+          SendReadback(aSD, readbackSize, &sd);
         }
       });
   SyncRunnable::DispatchToThread(managerThread, task);
 
   if (sd.type() != SurfaceDescriptor::TSurfaceDescriptorBuffer) {
-    LOGE("Unexpected SurfaceDescriptor type in Readback");
+    if (readbackSize.isNothing()) {
+      LOGE("Unexpected SurfaceDescriptor type in Readback");
+    }
     return nullptr;
   }
   auto& sdb = sd.get_SurfaceDescriptorBuffer();

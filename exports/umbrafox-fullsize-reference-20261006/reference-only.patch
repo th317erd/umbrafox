@@ -1,0 +1,135 @@
+--- a/dom/canvas/CanvasRenderingContext2D.cpp
++++ b/dom/canvas/CanvasRenderingContext2D.cpp
+@@ -5916,48 +5916,6 @@
+       .PostTranslate(shiftLeftTopToOrigin);
+ }
+ 
+-static layers::GPUVideoImage* GetDMABufGPUVideoImage(layers::Image* aImage) {
+-  layers::GPUVideoImage* gpuVideo =
+-      aImage ? aImage->AsGPUVideoImage() : nullptr;
+-  if (!gpuVideo || gpuVideo->GetRemoteDecoderVideoType() !=
+-                       layers::RemoteDecoderVideoType::DMABuf) {
+-    return nullptr;
+-  }
+-  return gpuVideo;
+-}
+-
+-static already_AddRefed<SourceSurface>
+-MaybeGetScaledSourceSurfaceForRemoteVideo(layers::Image* aImage,
+-                                          const gfx::Rect& aSourceRect,
+-                                          const gfx::Rect& aDestRect,
+-                                          const gfx::IntSize& aImageSize,
+-                                          const Matrix& aTransform,
+-                                          SamplingFilter aSamplingFilter,
+-                                          VideoRotation aRotationDeg) {
+-  layers::GPUVideoImage* gpuVideo = GetDMABufGPUVideoImage(aImage);
+-  if (!gpuVideo || aRotationDeg != VideoRotation::kDegree_0 ||
+-      !aTransform.IsIdentity() || aSamplingFilter != SamplingFilter::LINEAR ||
+-      aSourceRect.x != 0.0 || aSourceRect.y != 0.0 ||
+-      aSourceRect.width != aImageSize.width ||
+-      aSourceRect.height != aImageSize.height) {
+-    return nullptr;
+-  }
+-
+-  const IntSize readbackSize = IntSize::Ceil(aDestRect.width, aDestRect.height);
+-  if (readbackSize.IsEmpty() || readbackSize.width != aDestRect.width ||
+-      readbackSize.height != aDestRect.height ||
+-      (readbackSize.width >= aImageSize.width &&
+-       readbackSize.height >= aImageSize.height)) {
+-    return nullptr;
+-  }
+-
+-  RefPtr<SourceSurface> surface = gpuVideo->GetAsSourceSurface(readbackSize);
+-  if (!surface || surface->GetSize() != readbackSize) {
+-    return nullptr;
+-  }
+-  return surface.forget();
+-}
+-
+ // -
+ 
+ bool ValidSurfaceDescriptorForRemoteCanvas2d(
+@@ -6150,7 +6108,6 @@
+   DirectDrawInfo drawInfo;
+   Maybe<layers::SurfaceDescriptor> surfaceDescriptor;
+   SurfaceFromElementResult res;
+-  bool deferRemoteVideoReadback = false;
+ 
+   if (!srcSurf) {
+     // The canvas spec says that drawImage should draw the first frame
+@@ -6189,31 +6146,20 @@
+       res = CanvasRenderingContext2D::CachedSurfaceFromElement(element);
+       if (!res.mSourceSurface) {
+         HTMLVideoElement* video = HTMLVideoElement::FromNodeOrNull(element);
+-        const bool canUseRemoteVideoReadback =
+-            video && !(NeedToApplyFilter() || NeedToDrawShadow());
+-        if (canUseRemoteVideoReadback) {
+-          const bool canUseRemoteCanvasFastPath =
+-              mBufferProvider->IsAccelerated() && mTarget->IsRecording();
++        if (video && mBufferProvider->IsAccelerated() &&
++            mTarget->IsRecording() &&
++            !(NeedToApplyFilter() || NeedToDrawShadow())) {
+           res = nsLayoutUtils::SurfaceFromElement(
+               video, sfeFlags, mTarget, /* aOptimizeSourceSurface */ false);
+-          if (canUseRemoteCanvasFastPath) {
+-            surfaceDescriptor =
+-                MaybeGetSurfaceDescriptorForRemoteCanvas(res, Nothing());
+-          }
++          surfaceDescriptor =
++              MaybeGetSurfaceDescriptorForRemoteCanvas(res, Nothing());
+           if (surfaceDescriptor.isNothing() && res.mLayersImage) {
+-            if (GetDMABufGPUVideoImage(res.mLayersImage)) {
+-              deferRemoteVideoReadback = true;
+-            } else if (canUseRemoteCanvasFastPath &&
+-                       (res.mSourceSurface =
+-                            res.mLayersImage->GetAsSourceSurface())) {
++            if ((res.mSourceSurface = res.mLayersImage->GetAsSourceSurface())) {
+               RefPtr<SourceSurface> opt =
+                   mTarget->OptimizeSourceSurface(res.mSourceSurface);
+               if (opt) {
+                 res.mSourceSurface = opt;
+               }
+-            } else if (!canUseRemoteCanvasFastPath) {
+-              res =
+-                  nsLayoutUtils::SurfaceFromElement(element, sfeFlags, mTarget);
+             }
+           }
+         } else {
+@@ -6222,12 +6168,12 @@
+       }
+     }
+ 
+-    if (surfaceDescriptor.isNothing() && !deferRemoteVideoReadback) {
++    if (surfaceDescriptor.isNothing()) {
+       srcSurf = res.GetSourceSurface();
+     }
+ 
+     if (!srcSurf && surfaceDescriptor.isNothing() &&
+-        !res.mDrawInfo.mImgContainer && !deferRemoteVideoReadback) {
++        !res.mDrawInfo.mImgContainer) {
+       // https://html.spec.whatwg.org/#check-the-usability-of-the-image-argument:
+       //
+       // Only throw if the request is broken and the element is an
+@@ -6361,22 +6307,6 @@
+     rotationDeg = video->RotationDegrees();
+   }
+ 
+-  if (deferRemoteVideoReadback) {
+-    srcSurf = MaybeGetScaledSourceSurfaceForRemoteVideo(
+-        res.mLayersImage, sourceRect, destRect, imgSize,
+-        mTarget->GetTransform(), samplingFilter, rotationDeg);
+-    if (srcSurf) {
+-      RefPtr<SourceSurface> opt = mTarget->OptimizeSourceSurface(srcSurf);
+-      if (opt) {
+-        srcSurf = opt;
+-      }
+-      const IntSize readbackSize = srcSurf->GetSize();
+-      sourceRect = gfx::Rect(0, 0, readbackSize.width, readbackSize.height);
+-    } else {
+-      srcSurf = res.GetSourceSurface();
+-    }
+-  }
+-
+   if (!srcSurf && surfaceDescriptor.isNothing() &&
+       !res.mDrawInfo.mImgContainer) {
+     return;

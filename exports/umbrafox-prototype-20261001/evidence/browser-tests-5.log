@@ -1,0 +1,401 @@
+Skipping test file installation (up to date). Run with --force to force reinstallation.
+Streaming resource usage profile to: /home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/.mozbuild/logs/test/profile_log_20261001_105309.json
+ 0:00.15 INFO These variables are available in the mozinfo environment and can be used to skip tests conditionally:
+ 0:00.15 INFO     a11y_checks: False
+ 0:00.15 INFO     android: False
+ 0:00.15 INFO     apple_catalina: False
+ 0:00.15 INFO     apple_silicon: False
+ 0:00.15 INFO     appname: umbrafox
+ 0:00.15 INFO     arch: x86_64
+ 0:00.15 INFO     artifact: False
+ 0:00.15 INFO     asan: False
+ 0:00.15 INFO     automation: False
+ 0:00.15 INFO     bin_suffix: 
+ 0:00.15 INFO     bits: 64
+ 0:00.15 INFO     buildapp: browser
+ 0:00.15 INFO     buildtype: opt
+ 0:00.15 INFO     buildtype_guess: opt
+ 0:00.15 INFO     cc_type: clang
+ 0:00.15 INFO     ccov: False
+ 0:00.15 INFO     condprof: False
+ 0:00.15 INFO     coverage: False
+ 0:00.15 INFO     crashreporter: True
+ 0:00.15 INFO     datareporting: True
+ 0:00.15 INFO     dbus_enabled: True
+ 0:00.15 INFO     debug: False
+ 0:00.15 INFO     devedition: False
+ 0:00.15 INFO     display: x11
+ 0:00.15 INFO     e10s: True
+ 0:00.15 INFO     early_beta_or_earlier: True
+ 0:00.15 INFO     enterprise: False
+ 0:00.15 INFO     fission: True
+ 0:00.15 INFO     has_sandbox: True
+ 0:00.15 INFO     headless: True
+ 0:00.15 INFO     healthreport: True
+ 0:00.15 INFO     http2: False
+ 0:00.15 INFO     http3: False
+ 0:00.15 INFO     inc_origin_init: False
+ 0:00.15 INFO     is_emulator: False
+ 0:00.15 INFO     is_ubuntu: True
+ 0:00.15 INFO     isolated_process: False
+ 0:00.15 INFO     linux_distro: Ubuntu
+ 0:00.15 INFO     macos_vm: False
+ 0:00.15 INFO     mda_gpu: False
+ 0:00.15 INFO     mingw: False
+ 0:00.15 INFO     mozconfig: /home/wyatt/Projects/umbrafox-workspace/umbrafox/mozconfig
+ 0:00.15 INFO     msix: False
+ 0:00.15 INFO     nightly_build: True
+ 0:00.15 INFO     nogpu: False
+ 0:00.15 INFO     normandy: True
+ 0:00.15 INFO     nova: True
+ 0:00.15 INFO     official: False
+ 0:00.15 INFO     opt: True
+ 0:00.15 INFO     os: linux
+ 0:00.15 INFO     os_version: 24.04
+ 0:00.15 INFO     pgo: False
+ 0:00.15 INFO     platform_guess: linux64
+ 0:00.15 INFO     processor: x86_64
+ 0:00.15 INFO     release_or_beta: False
+ 0:00.15 INFO     require_signing: False
+ 0:00.15 INFO     sessionHistoryInParent: True
+ 0:00.15 INFO     socketprocess_e10s: False
+ 0:00.15 INFO     socketprocess_networking: False
+ 0:00.15 INFO     standalone: False
+ 0:00.15 INFO     stylo: True
+ 0:00.15 INFO     swgl: False
+ 0:00.15 INFO     sync: True
+ 0:00.15 INFO     telemetry: False
+ 0:00.15 INFO     tests_enabled: True
+ 0:00.15 INFO     toolkit: gtk
+ 0:00.15 INFO     topobjdir: /home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu
+ 0:00.15 INFO     topsrcdir: /home/wyatt/Projects/umbrafox-workspace/umbrafox
+ 0:00.15 INFO     tsan: False
+ 0:00.15 INFO     ubsan: False
+ 0:00.15 INFO     updater: True
+ 0:00.15 INFO     verify: False
+ 0:00.15 INFO     verify_fission: False
+ 0:00.15 INFO     version: Ubuntu 24.04
+ 0:00.15 INFO     vertical_tab: False
+ 0:00.15 INFO     win10_2009: False
+ 0:00.15 INFO     win11_2009: False
+ 0:00.15 INFO     wmfme: 0
+ 0:00.15 INFO     xorigin: False
+ 0:00.15 INFO Checking for ssltunnel processes...
+ 0:00.20 INFO Checking for xpcshell processes...
+ 0:00.23 SUITE_START: mochitest-browser - running 3 tests
+ 0:00.23 INFO Running manifest: toolkit/components/umbrafox/tests/browser/browser.toml
+ 0:00.35 pid:3164544 Full command: /home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/dist/bin/pk12util -i /home/wyatt/Projects/umbrafox-workspace/umbrafox/build/pgo/certs/mochitest.client -w /tmp/tmpmdkyockh.mozrunner/.crtdbpw -d /tmp/tmpmdkyockh.mozrunner
+pid:3164544 pk12util: PKCS12 IMPORT SUCCESSFUL
+
+ 0:00.36 INFO HTTP test server port 8888 already in use, falling back to port 39113
+ 0:00.36 INFO MochitestServer : launching ['/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/dist/bin/xpcshell', '-g', '/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/dist/bin', '-e', "const _PROFILE_PATH = '/tmp/tmpmdkyockh.mozrunner'; const _SERVER_PORT = '39113'; const _SERVER_ADDR = '127.0.0.1'; const _TEST_PREFIX = undefined; const _DISPLAY_RESULTS = false; const _HTTPD_PATH = '/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/dist/bin/components'; ", '-f', '/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/_tests/testing/mochitest/server.js']
+ 0:00.36 INFO runtests.py | Server pid: 3164548
+ 0:00.36 INFO runtests.py | Websocket server pid: 3164549
+ 0:00.36 INFO runtests.py | SSL tunnel pid: 3164550
+[3164552] Sandbox: CanCreateUserNamespace() unshare(CLONE_NEWPID): EPERM
+ 0:00.46 INFO use http3 server: False
+ 0:00.47 INFO Use build node at /home/wyatt/.mozbuild/node/bin/node
+ 0:00.47 INFO mozserve | Found moz-http2 server path: /home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/_tests/testing/mochitest/xpcshell/moz-http2/moz-http2.js
+ 0:00.47 INFO Found node at /home/wyatt/.mozbuild/node/bin/node
+ 0:00.53 INFO mozserve | moz-http2 server msg: HTTP2 server listening on ports 42655,33787
+
+ 0:00.53 INFO moz-http2 server started on ports 42655, 33787
+ 0:00.53 INFO node moz-http2 [stderr] (node:3164592) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+
+ 0:00.53 INFO node moz-http2 [stderr] (Use `node --trace-deprecation ...` to show where the warning was created)
+
+ 0:00.53 INFO runtests.py | Running with scheme: http
+ 0:00.53 INFO runtests.py | Running with e10s: True
+ 0:00.53 INFO runtests.py | Running with fission: True
+ 0:00.53 INFO runtests.py | Running with cross-origin iframes: False
+ 0:00.53 INFO runtests.py | Running with socketprocess_e10s: False
+ 0:00.53 INFO runtests.py | Running http tests: start.
+
+ 0:00.56 WARNING Found 'firefox' running before starting test browser!
+ 0:00.56 WARNING {'cmdline': ['/snap/firefox/8969/usr/lib/firefox/firefox'], 'name': 'firefox', 'pid': 182920, 'username': 'wyatt', 'ppid': 84360}
+
+ 0:00.56 INFO Application command: /home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/dist/bin/umbrafox -marionette -remote-allow-system-access -foreground -profile /tmp/tmpmdkyockh.mozrunner
+ 0:00.57 INFO runtests.py | Application pid: 3164601
+ 0:00.57 Started process `GECKO(3164601)`
+ 0:00.58 GECKO(3164601) [3164606] Sandbox: CanCreateUserNamespace() unshare(CLONE_NEWPID): EPERM
+ 0:00.61 GECKO(3164601) *** You are running in headless mode.
+ 0:00.67 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_socket_pid3164640.log
+ 0:01.03 GECKO(3164601) 1790877190641	Marionette	INFO	Marionette enabled
+ 0:01.03 GECKO(3164601) 1790877190642	Marionette	TRACE	Received observer notification final-ui-startup
+ 0:01.03 GECKO(3164601) 1790877190642	Marionette	DEBUG	Initializing Marionette
+ 0:01.10 GECKO(3164601) console.error: "Warning: unrecognized command line flag" "-foreground"
+ 0:01.11 GECKO(3164601) 1790877190722	Marionette	INFO	Listening on port 2828
+ 0:01.12 GECKO(3164601) 1790877190724	Marionette	DEBUG	Marionette is listening
+ 0:01.13 GECKO(3164601) 1790877190738	Marionette	DEBUG	Accepted connection 0 from 127.0.0.1:39962
+ 0:01.14 GECKO(3164601) 1790877190745	Marionette	DEBUG	Closed connection 0
+ 0:01.14 GECKO(3164601) 1790877190745	Marionette	DEBUG	Accepted connection 1 from 127.0.0.1:39970
+ 0:01.23 GECKO(3164601) 1790877190837	Marionette	DEBUG	1 -> [0,1,"WebDriver:NewSession",{"strictFileInteractability":true}]
+ 0:01.24 GECKO(3164601) 1790877190843	Marionette	DEBUG	Waiting for initial application window
+ 0:01.40 GECKO(3164601) [Parent 3164601: Main Thread]: I/SlowChromeEvent Please do not use mouseenter/leave events in chrome. They are slower than mouseover/out! chrome://browser/content/tabbrowser/tabs.mjs:46:10
+ 0:01.53 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3164706.log
+ 0:01.53 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3164706.log
+ 0:01.53 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_rdd_pid3164714.log
+ 0:01.53 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_rdd_pid3164714.log
+ 0:01.59 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3164743.log
+ 0:01.59 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3164743.log
+ 0:01.67 GECKO(3164601) [GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
+ 0:02.09 GECKO(3164601) console.error: services.settings:
+ 0:02.09 GECKO(3164601)   Message: EmptyDatabaseError: "main/nimbus-desktop-experiments" has not been synced yet
+ 0:02.09 GECKO(3164601)   Stack:
+ 0:02.09 GECKO(3164601)     EmptyDatabaseError@resource://services-settings/Database.sys.mjs:19:5
+ 0:02.09 GECKO(3164601) list@resource://services-settings/Database.sys.mjs:96:13
+ 0:02.09 GECKO(3164601) async*get@resource://services-settings/RemoteSettingsClient.sys.mjs:570:28
+ 0:02.09 GECKO(3164601) async*getRecipesFromCollection/recipes<@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:793:16
+ 0:02.09 GECKO(3164601) #raceShutdown@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:749:34
+ 0:02.09 GECKO(3164601) getRecipesFromCollection@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:792:41
+ 0:02.09 GECKO(3164601) getRecipesFromAllCollections@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:648:39
+ 0:02.09 GECKO(3164601) #updateImpl@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:518:33
+ 0:02.09 GECKO(3164601) async*updateRecipes/<@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:435:55
+ 0:02.09 GECKO(3164601) LockGrantedCallback*withUpdateLock@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:371:26
+ 0:02.09 GECKO(3164601) updateRecipes@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:435:18
+ 0:02.09 GECKO(3164601) enable@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:323:16
+ 0:02.09 GECKO(3164601) #init@resource://nimbus/ExperimentAPI.sys.mjs:325:28
+ 0:02.09 GECKO(3164601) async*init@resource://nimbus/ExperimentAPI.sys.mjs:264:49
+ 0:02.09 GECKO(3164601) finishInit@resource://normandy/Normandy.sys.mjs:108:30
+ 0:02.09 GECKO(3164601) async*init@resource://normandy/Normandy.sys.mjs:79:16
+ 0:02.09 GECKO(3164601) async*fn@resource://gre/modules/BrowserUtils.sys.mjs:83:33
+ 0:02.09 GECKO(3164601) callSingleListener@resource://gre/modules/BrowserUtils.sys.mjs:768:15
+ 0:02.09 GECKO(3164601) callModulesFromCategory@resource://gre/modules/BrowserUtils.sys.mjs:819:23
+ 0:02.09 GECKO(3164601) BG__beforeUIStartup@resource:///modules/BrowserGlue.sys.mjs:440:23
+ 0:02.09 GECKO(3164601) BG_observe@resource:///modules/BrowserGlue.sys.mjs:207:14
+ 0:02.41 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_utility_pid3164812.log
+ 0:02.41 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_utility_pid3164812.log
+ 0:02.47 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3164822.log
+ 0:02.47 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3164822.log
+ 0:02.48 GECKO(3164601) 1790877192084	Marionette	TRACE	Received observer notification browser-idle-startup-tasks-finished
+ 0:02.66 GECKO(3164601) 1790877192265	RemoteAgent	TRACE	[4] ProgressListener Start: expectNavigation=false resolveWhenStarted=false unloadTimeout=5000 waitForExplicitStart=false
+ 0:02.66 GECKO(3164601) 1790877192265	RemoteAgent	TRACE	[4] ProgressListener Setting unload timer (5000ms)
+ 0:02.66 GECKO(3164601) 1790877192266	RemoteAgent	TRACE	[4] Wait for initial navigation: isUncommittedInitial=false, isLoadingDocument=false
+ 0:02.66 GECKO(3164601) 1790877192266	RemoteAgent	TRACE	[4] Document already finished loading: about:blank
+ 0:02.66 GECKO(3164601) 1790877192266	RemoteAgent	TRACE	[4] ProgressListener Stop: has error=false url=about:blank
+ 0:02.67 GECKO(3164601) 1790877192278	Marionette	DEBUG	1 <- [1,1,null,{"sessionId":"9ed84167-36da-47fe-9240-b75098d12d9f","capabilities":{"acceptInsecureCerts":false,"browserName":"umbrafox","browserVersion":"158.0a1","platformName":"linux","setWindowRect":true,"unhandledPromptBehavior":"dismiss and notify","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0","moz:buildID":"20261001103920","moz:headless":true,"moz:platformVersion":"7.0.0-34-generic","moz:processID":3164601,"moz:profile":"/tmp/tmpmdkyockh.mozrunner","moz:shutdownTimeout":60000,"pageLoadStrategy":"normal","timeouts":{"implicit":0,"pageLoad":300000,"script":30000},"strictFileInteractability":true,"moz:accessibilityChecks":false,"moz:webdriverClick":true,"moz:windowless":false,"proxy":{}}}]
+ 0:02.68 GECKO(3164601) 1790877192288	Marionette	DEBUG	1 -> [0,2,"Addon:Install",{"temporary":false,"path":"/tmp/tmpy7gw858h.zip"}]
+ 0:02.71 GECKO(3164601) 1790877192323	Marionette	DEBUG	1 <- [1,2,null,{"value":"special-powers@mozilla.org"}]
+ 0:02.72 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3164869.log
+ 0:02.72 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3164869.log
+ 0:02.72 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3164873.log
+ 0:02.72 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3164873.log
+ 0:02.72 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3164878.log
+ 0:02.73 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3164878.log
+ 0:02.74 GECKO(3164601) 1790877192351	Marionette	DEBUG	1 -> [0,3,"Addon:Install",{"temporary":false,"path":"/tmp/tmpwtqac1dv.zip"}]
+ 0:02.76 GECKO(3164601) 1790877192369	Marionette	DEBUG	1 <- [1,3,null,{"value":"mochikit@mozilla.org"}]
+ 0:02.76 GECKO(3164601) 1790877192371	Marionette	DEBUG	1 -> [0,4,"Marionette:GetContext",{}]
+ 0:02.76 GECKO(3164601) 1790877192371	Marionette	DEBUG	1 <- [1,4,null,{"value":"content"}]
+ 0:02.76 GECKO(3164601) 1790877192371	Marionette	DEBUG	1 -> [0,5,"Marionette:SetContext",{"value":"chrome"}]
+ 0:02.76 GECKO(3164601) 1790877192371	Marionette	DEBUG	1 <- [1,5,null,{"value":null}]
+ 0:02.77 GECKO(3164601) 1790877192374	Marionette	DEBUG	1 -> [0,6,"WebDriver:ExecuteScript",{"script":"/* This Source Code Form is subject to the terms of the Mozilla Public\n * License, v. 2.0. If a copy of the MPL was not distr ... \n// the flavor and url to load.\nlet ev = new CustomEvent(\"mochitest-load\", { detail: [flavor, url] });\nwin.dispatchEvent(ev);","args":[{"flavor":"browser-chrome","testUrl":"about:blank"}],"newSandbox":true,"sandbox":"default","line":2377,"filename":"_tests/testing/mochitest/runtests.py"}]
+ 0:02.77 GECKO(3164601) 1790877192378	RemoteAgent	TRACE	WebDriverProcessData actor created for PID 3164601
+ 0:02.77 GECKO(3164601) 1790877192379	Marionette	TRACE	[1] MarionetteCommands actor created for window id 2
+ 0:02.79 GECKO(3164601) 1790877192397	Marionette	DEBUG	1 <- [1,6,null,{"value":null}]
+ 0:02.79 GECKO(3164601) 1790877192398	Marionette	DEBUG	1 -> [0,7,"Marionette:SetContext",{"value":"content"}]
+ 0:02.79 GECKO(3164601) 1790877192399	Marionette	DEBUG	1 <- [1,7,null,{"value":null}]
+ 0:02.82 GECKO(3164601) 1790877192427	Marionette	DEBUG	1 -> [0,8,"WebDriver:DeleteSession",{}]
+ 0:02.82 GECKO(3164601) 1790877192427	Marionette	TRACE	[1] MarionetteCommands actor destroyed for window id 2
+ 0:02.82 GECKO(3164601) 1790877192429	Marionette	DEBUG	1 <- [1,8,null,{"value":null}]
+ 0:02.83 INFO runtests.py | Waiting for browser...
+ 0:02.83 GECKO(3164601) 1790877192434	Marionette	DEBUG	Closed connection 1
+ 0:02.87 INFO *** Start BrowserChrome Test Results ***
+ 0:02.87 INFO checking for open sidebars
+ 0:02.87 INFO checking window state
+ 0:03.00 TEST_START: toolkit/components/umbrafox/tests/browser/browser_control_browser.js
+ 0:03.01 INFO Entering setup bound 
+ 0:03.01 INFO Leaving setup bound 
+ 0:03.01 INFO Entering test test_authenticated_navigation_and_execution
+ 0:03.12 GECKO(3164601) 1790877192732	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 accepted
+ 0:03.15 GECKO(3164601) 1790877192758	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 -> {"id":1,"method":"umbrafox.script.execute","params":{"context":14,"body":"return {url: location.href, webdriver: navigator.webdriver, value: arguments[0] + 1};","args":[41]}}
+ 0:03.15 GECKO(3164601) 1790877192762	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 <- {"id":1,"result":{"context":14,"document":19327352833,"url":"https://example.com/","realm":"page","result":{"type":"json","value":{"url":"https://example.com/","webdriver":true,"value":42}}}}
+ 0:03.21 GECKO(3164601) 1790877192770	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 -> {"id":2,"method":"umbrafox.script.execute","params":{"context":14,"body":"return await Promise.resolve(17);"}}
+ 0:03.21 GECKO(3164601) 1790877192771	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 <- {"id":2,"result":{"context":14,"document":19327352833,"url":"https://example.com/","realm":"page","result":{"type":"json","value":17}}}
+ 0:03.21 GECKO(3164601) 1790877192772	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 -> {"id":3,"method":"umbrafox.script.execute","params":{"context":14,"body":"return undefined;"}}
+ 0:03.21 GECKO(3164601) 1790877192772	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 <- {"id":3,"result":{"context":14,"document":19327352833,"url":"https://example.com/","realm":"page","result":{"type":"undefined"}}}
+ 0:03.21 GECKO(3164601) 1790877192773	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 -> {"id":4,"method":"umbrafox.script.execute","params":{"context":14,"body":"return typeof Services;"}}
+ 0:03.21 GECKO(3164601) 1790877192773	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 <- {"id":4,"result":{"context":14,"document":19327352833,"url":"https://example.com/","realm":"page","result":{"type":"json","value":"undefined"}}}
+ 0:03.21 GECKO(3164601) 1790877192774	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 -> {"id":5,"method":"umbrafox.script.execute","params":{"context":14,"realm":"browser","body":"return {pid: Services.appinfo.processID, chrome: window.document.documentElement.getAttribute('windowtype')};"}}
+ 0:03.21 GECKO(3164601) 1790877192775	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 <- {"id":5,"result":{"context":14,"document":19327352833,"url":"https://example.com/","realm":"browser","result":{"type":"json","value":{"pid":3164601,"chrome":"navigator:browser"}}}}
+ 0:03.21 GECKO(3164601) 1790877192776	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 -> {"id":6,"method":"umbrafox.script.execute","params":{"context":14,"body":"throw new Error('expected failure');"}}
+ 0:03.21 GECKO(3164601) 1790877192776	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 <- {"id":6,"error":{"code":"javascript error","message":"expected failure"}}
+ 0:03.21 GECKO(3164601) 1790877192777	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 -> {"id":7,"method":"umbrafox.script.execute","params":{"context":14,"body":"return document;"}}
+ 0:03.21 GECKO(3164601) 1790877192778	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 <- {"id":7,"error":{"code":"serialization error","message":"Expected bounded JSON data without cycles, accessors or unsupported values"}}
+ 0:03.21 GECKO(3164601) 1790877192778	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 -> {"id":8,"method":"umbrafox.script.execute","params":{"context":14,"body":"return new Promise(() => {});","timeoutMs":50}}
+ 0:03.22 GECKO(3164601) 1790877192828	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 <- {"id":8,"error":{"code":"timeout","message":"Control operation timed out"}}
+ 0:03.28 GECKO(3164601) 1790877192836	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 -> {"id":9,"method":"umbrafox.browsingContext.navigate","params":{"context":14,"url":"https://example.org/","wait":"complete"}}
+ 0:03.28 GECKO(3164601) 1790877192836	RemoteAgent	TRACE	[14] ProgressListener Start: expectNavigation=true resolveWhenStarted=false unloadTimeout=200 waitForExplicitStart=true
+ 0:03.28 GECKO(3164601) 1790877192836	RemoteAgent	TRACE	[14] ProgressListener Skip setting the unload timer
+ 0:03.28 GECKO(3164601) 1790877192838	RemoteAgent	TRACE	[14] ProgressListener Loading state: isStart=true isStop=false status=0x0, loadType=0x1, seenStartFlag=false
+ 0:03.28 GECKO(3164601) 1790877192838	RemoteAgent	TRACE	[14] ProgressListener Started loading https://example.org/
+ 0:03.29 GECKO(3164601) 1790877192898	RemoteAgent	TRACE	[15] ProgressListener Loading state: isStart=false isStop=true status=0x0, loadType=0x1, seenStartFlag=true
+ 0:03.29 GECKO(3164601) 1790877192898	RemoteAgent	TRACE	[15] ProgressListener Stop: has error=false url=https://example.org/
+ 0:03.29 GECKO(3164601) 1790877192898	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 <- {"id":9,"result":{"context":15,"document":21474836481,"url":"https://example.org/","wait":"complete"}}
+ 0:03.29 GECKO(3164601) 1790877192899	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 -> {"id":10,"method":"umbrafox.script.execute","params":{"context":15,"document":19327352833,"body":"return 1;"}}
+ 0:03.29 GECKO(3164601) 1790877192899	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 <- {"id":10,"error":{"code":"stale document","message":"Document no longer matches the requested identity"}}
+ 0:03.30 GECKO(3164601) 1790877192904	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 -> {"id":11,"method":"umbrafox.browsingContext.navigate","params":{"context":15,"url":"https://example.org/#fragment"}}
+ 0:03.30 GECKO(3164601) 1790877192904	RemoteAgent	TRACE	[15] ProgressListener Start: expectNavigation=true resolveWhenStarted=false unloadTimeout=200 waitForExplicitStart=true
+ 0:03.30 GECKO(3164601) 1790877192904	RemoteAgent	TRACE	[15] ProgressListener Skip setting the unload timer
+ 0:03.30 GECKO(3164601) 1790877192908	RemoteAgent	TRACE	[15] ProgressListener Location=fragmentNavigated: https://example.org/#fragment
+ 0:03.30 GECKO(3164601) 1790877192908	RemoteAgent	TRACE	[15] ProgressListener Stop: has error=false url=https://example.org/#fragment
+ 0:03.30 GECKO(3164601) 1790877192908	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 <- {"id":11,"result":{"context":15,"document":21474836481,"url":"https://example.org/#fragment","wait":"complete"}}
+ 0:03.30 GECKO(3164601) 1790877192910	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 -> {"id":12,"method":"umbrafox.browsingContext.create","params":{"context":15}}
+ 0:03.31 GECKO(3164601) 1790877192914	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 <- {"id":12,"result":{"context":16,"document":31,"url":"about:blank"}}
+ 0:03.31 GECKO(3164601) 1790877192916	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 -> {"id":13,"method":"umbrafox.browsingContext.close","params":{"context":16}}
+ 0:03.31 GECKO(3164601) 1790877192918	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 <- {"id":13,"result":{"context":16,"closed":true}}
+ 0:03.31 INFO Leaving test test_authenticated_navigation_and_execution
+ 0:03.31 INFO Entering test test_private_and_container_execution
+ 0:03.32 GECKO(3164601) 1790877192927	RemoteAgent	DEBUG	UmbrafoxControlConnection 76250b26-b714-4f28-aedd-16cc48d71c70 accepted
+ 0:03.37 GECKO(3164601) [Parent 3164601: Main Thread]: I/SlowChromeEvent Please do not use mouseenter/leave events in chrome. They are slower than mouseover/out! chrome://browser/content/tabbrowser/tabs.mjs:46:10
+ 0:03.64 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3164981.log
+ 0:03.64 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3164981.log
+ 0:03.79 GECKO(3164601) 1790877193392	RemoteAgent	DEBUG	UmbrafoxControlConnection 76250b26-b714-4f28-aedd-16cc48d71c70 -> {"id":1,"method":"umbrafox.script.execute","params":{"context":21,"body":"return location.hostname;"}}
+ 0:03.79 GECKO(3164601) 1790877193394	RemoteAgent	DEBUG	UmbrafoxControlConnection 76250b26-b714-4f28-aedd-16cc48d71c70 <- {"id":1,"result":{"context":21,"document":23622320129,"url":"https://example.com/","realm":"page","result":{"type":"json","value":"example.com"}}}
+ 0:03.83 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3165015.log
+ 0:03.83 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3165015.log
+ 0:03.88 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3165049.log
+ 0:03.88 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3165049.log
+ 0:03.89 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3165053.log
+ 0:03.89 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3165053.log
+ 0:03.89 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3165058.log
+ 0:03.89 GECKO(3164601) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpmdkyockh.mozrunner/runtests_leaks_tab_pid3165058.log
+ 0:03.95 GECKO(3164601) 1790877193553	RemoteAgent	DEBUG	UmbrafoxControlConnection 76250b26-b714-4f28-aedd-16cc48d71c70 -> {"id":2,"method":"umbrafox.script.execute","params":{"context":22,"body":"return location.hostname;"}}
+ 0:03.95 GECKO(3164601) 1790877193556	RemoteAgent	DEBUG	UmbrafoxControlConnection 76250b26-b714-4f28-aedd-16cc48d71c70 <- {"id":2,"result":{"context":22,"document":25769803777,"url":"https://example.com/","realm":"page","result":{"type":"json","value":"example.com"}}}
+ 0:03.98 INFO Leaving test test_private_and_container_execution
+ 0:04.00 GECKO(3164601) 1790877193593	RemoteAgent	DEBUG	UmbrafoxControlConnection 737b3beb-4c70-4c3f-adcf-89c552dfc647 closed
+ 0:04.00 GECKO(3164601) 1790877193593	RemoteAgent	DEBUG	UmbrafoxControlConnection 76250b26-b714-4f28-aedd-16cc48d71c70 closed
+ 0:04.00 INFO checking for open popups
+ 0:04.23 GECKO(3164601) MEMORY STAT vsizeMaxContiguous not supported in this build configuration.
+ 0:04.23 GECKO(3164601) MEMORY STAT | vsize 11431MB | residentFast 438MB | heapAllocated 331MB
+ 0:04.23 INFO checking for open sidebars
+ 0:04.23 INFO checking window state
+ 0:04.23 TEST_END: Test PASS. Subtests passed 23/23. Unexpected 0
+ 0:04.33 TEST_START: toolkit/components/umbrafox/tests/browser/browser_control_input.js
+ 0:04.34 INFO Entering setup bound 
+ 0:04.34 INFO Leaving setup bound 
+ 0:04.34 INFO Entering test test_pointer_move_dispatches_trusted_mouse_events
+ 0:04.39 GECKO(3164601) 1790877193999	RemoteAgent	DEBUG	UmbrafoxControlConnection 2b92e6cb-d4c1-4804-bc4b-2bf85cbd113e accepted
+ 0:04.39 GECKO(3164601) 1790877194000	RemoteAgent	DEBUG	UmbrafoxControlConnection 2b92e6cb-d4c1-4804-bc4b-2bf85cbd113e -> {"id":2,"method":"umbrafox.input.pointerMove","params":{"context":24,"fromX":5,"fromY":5,"x":85,"y":45,"durationMs":0,"steps":4,"profile":"linear","seed":7}}
+ 0:04.45 GECKO(3164601) 1790877194061	RemoteAgent	DEBUG	UmbrafoxControlConnection 2b92e6cb-d4c1-4804-bc4b-2bf85cbd113e <- {"id":2,"result":{"context":24,"from":{"x":5,"y":5},"to":{"x":85,"y":45},"profile":"linear","seed":7,"durationMs":0,"path":[{"x":25,"y":15},{"x":45,"y":25},{"x":65,"y":35},{"x":85,"y":45}]}}
+ 0:04.47 GECKO(3164601) 1790877194082	RemoteAgent	DEBUG	UmbrafoxControlConnection 2b92e6cb-d4c1-4804-bc4b-2bf85cbd113e closed
+ 0:04.49 INFO Leaving test test_pointer_move_dispatches_trusted_mouse_events
+ 0:04.49 INFO Entering test test_pointer_buttons_wheel_and_keyboard
+ 0:04.53 GECKO(3164601) 1790877194139	RemoteAgent	DEBUG	UmbrafoxControlConnection 670263b1-705b-49c0-a0f2-cc9d8f13c747 accepted
+ 0:04.53 GECKO(3164601) 1790877194139	RemoteAgent	DEBUG	UmbrafoxControlConnection 670263b1-705b-49c0-a0f2-cc9d8f13c747 -> {"id":3,"method":"umbrafox.input.pointerDown","params":{"context":25,"x":20,"y":30,"button":0}}
+ 0:04.54 GECKO(3164601) 1790877194144	RemoteAgent	DEBUG	UmbrafoxControlConnection 670263b1-705b-49c0-a0f2-cc9d8f13c747 <- {"id":3,"result":{"context":25,"point":{"x":20,"y":30},"button":0}}
+ 0:04.54 GECKO(3164601) 1790877194146	RemoteAgent	DEBUG	UmbrafoxControlConnection 670263b1-705b-49c0-a0f2-cc9d8f13c747 closed
+ 0:04.54 GECKO(3164601) 1790877194148	RemoteAgent	DEBUG	UmbrafoxControlConnection 15df8904-2258-48c5-861b-84f8ed6324ee accepted
+ 0:04.54 GECKO(3164601) 1790877194148	RemoteAgent	DEBUG	UmbrafoxControlConnection 15df8904-2258-48c5-861b-84f8ed6324ee -> {"id":4,"method":"umbrafox.input.pointerUp","params":{"context":25,"button":0}}
+ 0:04.54 GECKO(3164601) 1790877194149	RemoteAgent	DEBUG	UmbrafoxControlConnection 15df8904-2258-48c5-861b-84f8ed6324ee <- {"id":4,"result":{"context":25,"point":{"x":20,"y":30},"button":0}}
+ 0:04.54 GECKO(3164601) 1790877194151	RemoteAgent	DEBUG	UmbrafoxControlConnection 15df8904-2258-48c5-861b-84f8ed6324ee closed
+ 0:04.54 GECKO(3164601) 1790877194152	RemoteAgent	DEBUG	UmbrafoxControlConnection e5ff6161-d7bb-498f-aa96-1150a61c9c45 accepted
+ 0:04.54 GECKO(3164601) 1790877194152	RemoteAgent	DEBUG	UmbrafoxControlConnection e5ff6161-d7bb-498f-aa96-1150a61c9c45 -> {"id":5,"method":"umbrafox.input.click","params":{"context":25,"x":40,"y":50}}
+ 0:04.55 GECKO(3164601) 1790877194154	RemoteAgent	DEBUG	UmbrafoxControlConnection e5ff6161-d7bb-498f-aa96-1150a61c9c45 <- {"id":5,"result":{"context":25,"point":{"x":40,"y":50},"button":0,"clickCount":1}}
+ 0:04.55 GECKO(3164601) 1790877194155	RemoteAgent	DEBUG	UmbrafoxControlConnection e5ff6161-d7bb-498f-aa96-1150a61c9c45 closed
+ 0:04.55 GECKO(3164601) 1790877194156	RemoteAgent	DEBUG	UmbrafoxControlConnection e4618233-a5bf-4c60-b68e-f7b89c23db88 accepted
+ 0:04.55 GECKO(3164601) 1790877194156	RemoteAgent	DEBUG	UmbrafoxControlConnection e4618233-a5bf-4c60-b68e-f7b89c23db88 -> {"id":6,"method":"umbrafox.input.wheel","params":{"context":25,"x":60,"y":70,"deltaY":25}}
+ 0:04.55 GECKO(3164601) 1790877194157	RemoteAgent	DEBUG	UmbrafoxControlConnection e4618233-a5bf-4c60-b68e-f7b89c23db88 <- {"id":6,"result":{"context":25,"point":{"x":60,"y":70},"deltaX":0,"deltaY":25,"deltaZ":0}}
+ 0:04.57 GECKO(3164601) 1790877194175	RemoteAgent	DEBUG	UmbrafoxControlConnection e4618233-a5bf-4c60-b68e-f7b89c23db88 closed
+ 0:04.61 GECKO(3164601) 1790877194221	RemoteAgent	DEBUG	UmbrafoxControlConnection 9ca1173a-f1d2-4a94-a649-b9ae3c9fbc2c accepted
+ 0:04.61 GECKO(3164601) 1790877194221	RemoteAgent	DEBUG	UmbrafoxControlConnection 9ca1173a-f1d2-4a94-a649-b9ae3c9fbc2c -> {"id":7,"method":"umbrafox.input.type","params":{"context":25,"text":"abc"}}
+ 0:04.63 GECKO(3164601) 1790877194234	RemoteAgent	DEBUG	UmbrafoxControlConnection 9ca1173a-f1d2-4a94-a649-b9ae3c9fbc2c <- {"id":7,"result":{"context":25,"textLength":3}}
+ 0:04.63 GECKO(3164601) 1790877194236	RemoteAgent	DEBUG	UmbrafoxControlConnection 9ca1173a-f1d2-4a94-a649-b9ae3c9fbc2c closed
+ 0:04.63 GECKO(3164601) 1790877194237	RemoteAgent	DEBUG	UmbrafoxControlConnection 3349587c-e17b-4ec5-b26b-ae60e77f107a accepted
+ 0:04.63 GECKO(3164601) 1790877194237	RemoteAgent	DEBUG	UmbrafoxControlConnection 3349587c-e17b-4ec5-b26b-ae60e77f107a -> {"id":8,"method":"umbrafox.input.keyDown","params":{"context":25,"key":""}}
+ 0:04.63 GECKO(3164601) 1790877194240	RemoteAgent	DEBUG	UmbrafoxControlConnection 3349587c-e17b-4ec5-b26b-ae60e77f107a <- {"id":8,"result":{"context":25,"key":"Enter","code":"Enter","location":0}}
+ 0:04.63 GECKO(3164601) 1790877194241	RemoteAgent	DEBUG	UmbrafoxControlConnection 3349587c-e17b-4ec5-b26b-ae60e77f107a closed
+ 0:04.63 GECKO(3164601) 1790877194242	RemoteAgent	DEBUG	UmbrafoxControlConnection 7728edf5-a50c-4648-972a-199440f38fdd accepted
+ 0:04.63 GECKO(3164601) 1790877194242	RemoteAgent	DEBUG	UmbrafoxControlConnection 7728edf5-a50c-4648-972a-199440f38fdd -> {"id":9,"method":"umbrafox.input.keyUp","params":{"context":25,"key":""}}
+ 0:04.63 GECKO(3164601) 1790877194243	RemoteAgent	DEBUG	UmbrafoxControlConnection 7728edf5-a50c-4648-972a-199440f38fdd <- {"id":9,"result":{"context":25,"key":"Enter","code":"Enter","location":0}}
+ 0:04.63 GECKO(3164601) 1790877194243	RemoteAgent	DEBUG	UmbrafoxControlConnection 7728edf5-a50c-4648-972a-199440f38fdd closed
+ 0:04.65 INFO Leaving test test_pointer_buttons_wheel_and_keyboard
+ 0:04.66 INFO checking for open popups
+ 0:05.00 GECKO(3164601) MEMORY STAT | vsize 11432MB | residentFast 437MB | heapAllocated 330MB
+ 0:05.00 INFO checking for open sidebars
+ 0:05.00 INFO checking window state
+ 0:05.00 TEST_END: Test PASS. Subtests passed 27/28. Unexpected 0
+ 0:05.11 TEST_START: toolkit/components/umbrafox/tests/browser/browser_control_service.js
+ 0:05.11 INFO Entering setup bound 
+ 0:05.12 INFO Leaving setup bound 
+ 0:05.12 INFO Entering test test_control_service_status_and_webdriver_state
+ 0:05.20 GECKO(3164601) 1790877194805	RemoteAgent	DEBUG	UmbrafoxControlConnection b8f24e80-268e-4fe3-8953-33ec12523517 accepted
+ 0:05.20 GECKO(3164601) 1790877194805	RemoteAgent	DEBUG	UmbrafoxControlConnection b8f24e80-268e-4fe3-8953-33ec12523517 -> {"id":1,"method":"umbrafox.status","params":{}}
+ 0:05.20 GECKO(3164601) 1790877194805	RemoteAgent	DEBUG	UmbrafoxControlConnection b8f24e80-268e-4fe3-8953-33ec12523517 <- {"id":1,"result":{"channel":"umbrafox-control","protocol":"umbrafox-json","running":true,"host":"localhost","port":38779,"path":"/umbrafox-control","appName":"Umbrafox","appVersion":"158.0a1","platformVersion":"158.0a1","appBuildID":"20261001103920"}}
+ 0:05.20 GECKO(3164601) 1790877194806	RemoteAgent	DEBUG	UmbrafoxControlConnection b8f24e80-268e-4fe3-8953-33ec12523517 closed
+ 0:05.20 GECKO(3164601) 1790877194810	RemoteAgent	DEBUG	UmbrafoxControlConnection e8f8e61a-d7a2-43a3-a41d-54449b5eb3e8 accepted
+ 0:05.20 GECKO(3164601) 1790877194811	RemoteAgent	DEBUG	UmbrafoxControlConnection e8f8e61a-d7a2-43a3-a41d-54449b5eb3e8 -> {"id":2,"method":"umbrafox.diagnostics.snapshot","params":{}}
+ 0:05.22 GECKO(3164601) 1790877194828	RemoteAgent	DEBUG	UmbrafoxControlConnection e8f8e61a-d7a2-43a3-a41d-54449b5eb3e8 <- {"id":2,"result":{"channel":"umbrafox-control","protocol":"umbrafox-json","running":true,"host":"localhost","port":38779,"path":"/umbrafox-control","appName":"Umbrafox","appVersion":"158.0a1","platformVersion":"158.0a1","appBuildID":"20261001103920","processID":3164601,"profileDir":"/tmp/tmpmdkyockh.mozrunner","memory":{"vsize":11984367616,"resident":462499840,"residentFast":462499840,"residentPeak":494411776,"residentUnique":323485696,"heapAllocated":345191520,"heapOverheadFraction":846,"JSMainRuntimeGCHeap":30408704,"JSMainRuntimeTemporaryPeak":2174976,"JSMainRuntimeCompartmentsSystem":1,"JSMainRuntimeCompartmentsUser":2,"JSMainRuntimeRealmsSystem":14,"JSMainRuntimeRealmsUser":2,"imagesContentUsedUncompressed":247120,"storageSQLite":8976080,"lowMemoryEventsPhysical":null,"ghostWindows":0,"pageFaultsHard":1},"umbrafoxDiagnostics":{"enabled":false,"startedAt":1790877194828,"uptimeMs":0,"webNavigation":{"events":{},"listeners":[],"recentEvents":[],"slowEvents":[]}},"windows":[{"index":0,"title":"UmbraLink diagnostics test — Umbrafox","selectedTabIndex":1,"tabs":[{"context":26,"browserId":24,"label":"New Tab","url":"about:blank","selected":false,"pinned":false,"process":{"isRemoteBrowser":true,"topLevelPid":3164869,"pids":[3164869]},"memory":null},{"context":27,"browserId":25,"label":"UmbraLink diagnostics test","url":"data:text/html;charset=utf-8,%3C!doctype%20html%3E%0A%20%20%20%20%3Cmeta%20charset%3D%22utf-8%22%3E%0A%20%20%20%20%3Ctitle%3E ... itle%3E%0A%20%20%20%20%3Cvideo%20id%3D%22video%22%3E%3C%2Fvideo%3E%0A%20%20%20%20%3Caudio%20id%3D%22audio%22%3E%3C%2Faudio%3E","selected":true,"pinned":false,"process":{"isRemoteBrowser":true,"topLevelPid":3164706,"pids":[3164706]},"memory":null}]}]}}
+ 0:05.23 GECKO(3164601) 1790877194832	RemoteAgent	DEBUG	UmbrafoxControlConnection e8f8e61a-d7a2-43a3-a41d-54449b5eb3e8 closed
+ 0:05.23 GECKO(3164601) 1790877194833	RemoteAgent	DEBUG	UmbrafoxControlConnection 523bf3cd-80f7-4660-adcd-3fa860507bb8 accepted
+ 0:05.23 GECKO(3164601) 1790877194834	RemoteAgent	DEBUG	UmbrafoxControlConnection 523bf3cd-80f7-4660-adcd-3fa860507bb8 -> {"id":3,"method":"umbrafox.gfx.snapshot","params":{}}
+ 0:05.23 GECKO(3164601) 1790877194836	RemoteAgent	DEBUG	UmbrafoxControlConnection 523bf3cd-80f7-4660-adcd-3fa860507bb8 <- {"id":3,"result":{"collectedAt":1790877194835,"nowMs":4651.807184,"desktopEnvironment":"kde","windows":[{"index":0,"type":"navigator:browser","devicePixelRatio":1,"layerManagerType":"WebRender (Software)","layerManagerRemote":true},{"index":1,"type":null,"devicePixelRatio":1,"layerManagerType":"Fallback","layerManagerRemote":false},{"index":2,"type":null,"devicePixelRatio":1,"layerManagerType":"WebRender (Software)","layerManagerRemote":true}],"adapters":[{"property":"adapterDescription","value":"NVIDIA GeForce RTX 2060/PCIe/SSE2"},{"property":"adapterVendorID","value":"0x10de"},{"property":"adapterDeviceID","value":"0x1f08"},{"property":"adapterSubsysID","value":null},{"property":"adapterRAM","value":0},{"property":"adapterDriver","value":""},{"property":"adapterDriverVendor","value":"nvidia/unknown"},{"property":"adapterDriverVersion","value":"580.159.3.0"},{"property":"adapterDriverDate","value":""},{"property":"adapterDescription2","value":null},{"property":"adapterVendorID2","value":""},{"property":"adapterDeviceID2","value":""},{"property":"adapterSubsysID2","value":null},{"property":"adapterRAM2","value":null},{"property":"adapterDriver2","value":null},{"property":"adapterDriverVendor2","value":null},{"property":"adapterDriverVersion2","value":null},{"property":"adapterDriverDate2","value":null},{"property":"isGPU2Active","value":false}],"features":{"compositor":"webrender_software","hwCompositing":{"status":"blocked:FEATURE_FAILURE_COMP_HEADLESSMODE"},"gpuProcess":{"status":"unused"},"webrender":{"status":"unavailable-no-hw-compositing"},"wrCompositor":{"status":"blocklisted:FEATURE_FAILURE_WEBRENDER_COMPOSITOR_DISABLED"},"openglCompositing":{"status":"unavailable:FEATURE_FAILURE_OPENGL_NEED_HWCOMP"}},"info":{"AzureFallbackCanvasBackend":"skia","AzureCanvasBackend":"skia","AzureContentBackend":"skia","ApzWheelInput":1,"ApzTouchInput":1,"ApzDragInput":1,"ApzKeyboardInput":1,"ApzAutoscrollInput":1,"ApzZoomingInput":1,"CMSOutputProfileInUse":"sRGB (overridden by native_srgb/force_srgb)","CMSOutputProfile":"Empty profile data","DisplayCount":1,"Display0":"1366x768@0Hz scales:1.000000|1.000000 SDR"},"failures":["[GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt"],"failureIndices":[0],"featureLog":{"features":[{"name":"HW_COMPOSITING","description":"Compositing","status":"blocked","log":[{"type":"default","status":"available"},{"type":"runtime","status":"blocked","failureId":"FEATURE_FAILURE_COMP_HEADLESSMODE","message":"Acceleratio [... truncated after 2500 characters]
+ 0:05.23 GECKO(3164601) 1790877194837	RemoteAgent	DEBUG	UmbrafoxControlConnection 523bf3cd-80f7-4660-adcd-3fa860507bb8 closed
+ 0:05.23 GECKO(3164601) 1790877194838	RemoteAgent	DEBUG	UmbrafoxControlConnection e7b4d020-e607-4658-bcb6-3e83198cc81d accepted
+ 0:05.23 GECKO(3164601) 1790877194838	RemoteAgent	DEBUG	UmbrafoxControlConnection e7b4d020-e607-4658-bcb6-3e83198cc81d -> {"id":4,"method":"umbrafox.media.snapshot","params":{}}
+ 0:05.25 GECKO(3164601) 1790877194860	RemoteAgent	DEBUG	UmbrafoxControlConnection e7b4d020-e607-4658-bcb6-3e83198cc81d <- {"id":4,"result":{"collectedAt":1790877194850,"nowMs":4667.061429,"audio":{"currentAudioBackend":"pulse-rust","currentMaxAudioChannels":2,"currentPreferredSampleRate":48000,"audioOutputDevices":[{"name":"Arctis Pro Wireless Game","groupId":"/devices/pci0000:00/0000:00:08.1/0000:2f:00.3/usb7/7-2/7-2.3/7-2.3:1.0/sound/card1","vendor":"SteelSeries ApS","type":2,"state":2,"preferred":15,"supportedFormat":12336,"defaultFormat":16,"maxChannels":2,"defaultRate":48000,"maxRate":384000,"minRate":1,"maxLatency":0,"minLatency":0},{"name":"Starship/Matisse HD Audio Controller Analog Stereo","groupId":"/devices/pci0000:00/0000:00:08.1/0000:2f:00.4/sound/card2","vendor":"Advanced Micro Devices, Inc. [AMD]","type":2,"state":2,"preferred":0,"supportedFormat":12336,"defaultFormat":4096,"maxChannels":2,"defaultRate":48000,"maxRate":384000,"minRate":1,"maxLatency":0,"minLatency":0},{"name":"TU106 High Definition Audio Controller Digital Stereo (HDMI)","groupId":"/devices/pci0000:00/0000:00:03.1/0000:2d:00.1/sound/card0","vendor":"NVIDIA Corporation","type":2,"state":2,"preferred":0,"supportedFormat":12336,"defaultFormat":4096,"maxChannels":2,"defaultRate":48000,"maxRate":384000,"minRate":1,"maxLatency":0,"minLatency":0}],"audioInputDevices":[{"name":"Arctis Pro Wireless Chat","groupId":"/devices/pci0000:00/0000:00:08.1/0000:2f:00.3/usb7/7-2/7-2.3/7-2.3:1.0/sound/card1","vendor":"SteelSeries ApS","type":1,"state":2,"preferred":15,"supportedFormat":12336,"defaultFormat":16,"maxChannels":1,"defaultRate":48000,"maxRate":384000,"minRate":1,"maxLatency":0,"minLatency":0},{"name":"Monitor of Starship/Matisse HD Audio Controller Analog Stereo","groupId":"/devices/pci0000:00/0000:00:08.1/0000:2f:00.4/sound/card2","vendor":"Advanced Micro Devices, Inc. [AMD]","type":1,"state":2,"preferred":0,"supportedFormat":12336,"defaultFormat":4096,"maxChannels":2,"defaultRate":48000,"maxRate":384000,"minRate":1,"maxLatency":0,"minLatency":0},{"name":"Starship/Matisse HD Audio Controller Analog Stereo","groupId":"/devices/pci0000:00/0000:00:08.1/0000:2f:00.4/sound/card2","vendor":"Advanced Micro Devices, Inc. [AMD]","type":1,"state":1,"preferred":0,"supportedFormat":12336,"defaultFormat":4096,"maxChannels":2,"defaultRate":48000,"maxRate":384000,"minRate":1,"maxLatency":0,"minLatency":0},{"name":"Monitor of Arctis Pro Wireless Game","groupId":"/devices/pci0000:00/0000:00:08.1/0000:2f:00.3/usb7/7-2/7-2.3/7-2.3:1.0/sound/card1","vendor":"SteelSeries ApS","type":1,"state":2,"preferred":0,"supportedFor [... truncated after 2500 characters]
+ 0:05.26 GECKO(3164601) 1790877194862	RemoteAgent	DEBUG	UmbrafoxControlConnection e7b4d020-e607-4658-bcb6-3e83198cc81d closed
+ 0:05.26 GECKO(3164601) 1790877194863	RemoteAgent	DEBUG	UmbrafoxControlConnection 3394ac71-57b3-4d3d-aa15-5bde5ae2e607 accepted
+ 0:05.26 GECKO(3164601) 1790877194863	RemoteAgent	DEBUG	UmbrafoxControlConnection 3394ac71-57b3-4d3d-aa15-5bde5ae2e607 -> {"id":5,"method":"umbrafox.performance.snapshot","params":{}}
+ 0:05.26 GECKO(3164601) 1790877194868	RemoteAgent	DEBUG	UmbrafoxControlConnection 3394ac71-57b3-4d3d-aa15-5bde5ae2e607 <- {"id":5,"result":{"collectedAt":1790877194868,"nowMs":4684.8704720000005,"processID":3164601,"cpuTimeSinceProcessStartMs":5152,"profiler":{"active":true,"paused":false,"samplingPaused":false,"elapsedTimeMs":4684.924451999999,"buffer":{"currentPosition":25395177,"totalSize":67108864,"generation":0},"activeConfiguration":{"features":["js","screenshots","ipcmessages","processcpu","memory"],"threads":["GeckoMain","Compositor","Renderer","DOM Worker"],"interval":10,"capacity":67108864,"activeTabID":0},"supportedFeatures":["js","mainthreadio","fileio","fileioall","nomarkerstacks","screenshots","seqstyle","stackwalk","jsallocations","nostacksampling","ipcmessages","audiocallbacktracing","cpuallthreads","samplingallthreads","markersallthreads","unregisteredthreads","processcpu","power","cpufreq","bandwidth","memory","tracing","sandbox","flows","jssources"],"allFeatures":["java","js","mainthreadio","fileio","fileioall","nomarkerstacks","screenshots","seqstyle","stackwalk","jsallocations","nostacksampling","nativeallocations","ipcmessages","audiocallbacktracing","notimerresolutionchange","cpuallthreads","samplingallthreads","markersallthreads","unregisteredthreads","processcpu","power","cpufreq","bandwidth","memory","tracing","sandbox","flows","jssources"]},"process":{"pid":3164601,"type":"browser","childID":null,"origin":null,"memory":291688448,"cpuTime":5147770029,"cpuTimeMs":5148,"cpuCycleCount":0,"threadCount":111,"utilityActors":[],"windows":[],"children":[{"pid":3164706,"type":"web","childID":3,"origin":"","memory":31846400,"cpuTime":180713291,"cpuTimeMs":181,"cpuCycleCount":0,"threadCount":30,"utilityActors":[],"windows":[{"outerWindowId":54,"documentURI":"data:text/html;charset=utf-8,%3C!doctype%20html%3E%0A%20%20%20%20%3Cmeta%20charset%3D%22utf-8%22%3E%0A%20%20%20%20%3Ctitle%3E ... itle%3E%0A%20%20%20%20%3Cvideo%20id%3D%22video%22%3E%3C%2Fvideo%3E%0A%20%20%20%20%3Caudio%20id%3D%22audio%22%3E%3C%2Faudio%3E","documentTitle":"UmbraLink diagnostics test","isProcessRoot":true,"isInProcess":false}]},{"pid":3164640,"type":"socket","childID":0,"origin":"","memory":16556032,"cpuTime":50590944,"cpuTimeMs":51,"cpuCycleCount":0,"threadCount":9,"utilityActors":[],"windows":[]},{"pid":3165049,"type":"preallocated","childID":13,"origin":"","memory":22941696,"cpuTime":57859453,"cpuTimeMs":58,"cpuCycleCount":0,"threadCount":29,"utilityActors":[],"windows":[]},{"pid":3165053,"type":"preallocated","childID":14,"origin":"","memory":22917120,"cpuTime":56425293,"cpuTimeMs":56,"c [... truncated after 2500 characters]
+ 0:05.26 GECKO(3164601) 1790877194870	RemoteAgent	DEBUG	UmbrafoxControlConnection 3394ac71-57b3-4d3d-aa15-5bde5ae2e607 closed
+ 0:05.26 GECKO(3164601) 1790877194871	RemoteAgent	DEBUG	UmbrafoxControlConnection 91ca0ff8-2368-40ad-be03-a08b26dfb198 accepted
+ 0:05.26 GECKO(3164601) 1790877194871	RemoteAgent	DEBUG	UmbrafoxControlConnection 91ca0ff8-2368-40ad-be03-a08b26dfb198 -> {"id":6,"method":"umbrafox.diagnostics.dumpMemoryReport","params":{"filename":"../bad"}}
+ 0:05.26 GECKO(3164601) 1790877194871	RemoteAgent	DEBUG	UmbrafoxControlConnection 91ca0ff8-2368-40ad-be03-a08b26dfb198 <- {"id":6,"error":{"code":"invalid argument","message":"filename must contain only letters, numbers, dot, underscore, or dash"}}
+ 0:05.26 GECKO(3164601) 1790877194872	RemoteAgent	DEBUG	UmbrafoxControlConnection 91ca0ff8-2368-40ad-be03-a08b26dfb198 closed
+ 0:05.27 INFO Leaving test test_control_service_status_and_webdriver_state
+ 0:05.28 INFO checking for open popups
+ 0:05.62 GECKO(3164601) MEMORY STAT | vsize 11501MB | residentFast 453MB | heapAllocated 326MB
+ 0:05.62 INFO checking for open sidebars
+ 0:05.62 INFO checking window state
+ 0:05.62 TEST_END: Test PASS. Subtests passed 34/34. Unexpected 0
+ 0:05.64 GECKO(3164601) Completed ShutdownLeaks collections in process 3164601
+ 0:05.64 INFO TEST-START | Shutdown
+ 0:05.64 INFO Browser Chrome Test Summary
+ 0:05.64 INFO Passed:  84
+ 0:05.64 INFO Failed:  0
+ 0:05.64 INFO Todo:    1
+ 0:05.64 INFO Mode:    e10s
+ 0:05.64 INFO *** End BrowserChrome Test Results ***
+ 0:05.69 GECKO(3164601) Exiting due to channel error.
+ 0:05.69 GECKO(3164601) Exiting due to channel error.
+ 0:05.69 GECKO(3164601) Exiting due to channel error.
+ 0:05.69 GECKO(3164601) Exiting due to channel error.
+ 0:05.69 GECKO(3164601) Exiting due to channel error.
+ 0:05.69 GECKO(3164601) Exiting due to channel error.
+ 0:05.69 GECKO(3164601) Exiting due to channel error.
+ 0:05.71 Main app process: exit 0
+ 0:05.71 INFO runtests.py | Main app process exited normally
+ 0:05.71 INFO runtests.py | Application ran for: 0:00:05.144309
+ 0:05.71 INFO zombiecheck | Reading PID log: /tmp/tmp9goy8balpidlog
+ 0:05.71 INFO ==> process 3164601 launched child process 3164640
+ 0:05.71 INFO ==> process 3164601 launched child process 3164698
+ 0:05.71 INFO zombiecheck | Checking for orphan process with PID: 3164640
+ 0:05.71 INFO zombiecheck | Checking for orphan process with PID: 3164698
+ 0:05.71 INFO runtests.py | Running http tests: end. status: 0
+ 0:05.71 INFO Stopping web server
+ 0:05.73 INFO Server shut down.
+ 0:05.73 INFO Web server killed.
+ 0:05.73 INFO Stopping web socket server
+ 0:05.73 INFO Stopping ssltunnel
+ 0:05.74 WARNING leakcheck | refcount logging is off, so leaks can't be detected!
+ 0:05.75 INFO Buffered messages finished
+TEST-INFO | checking window state
+Browser Chrome Test Summary
+	Passed: 84
+	Failed: 0
+	Todo: 1
+	Retried: 0
+	Mode: e10s
+*** End BrowserChrome Test Results ***
+ 0:05.75 INFO Buffered messages finished
+ 0:05.75 SUITE_END
+ 0:05.75 
+Overall Summary
+===============
+
+mochitest-browser
+~~~~~~~~~~~~~~~~~
+Ran 88 checks (85 subtests, 3 tests)
+Expected results: 88
+Unexpected results: 0
+OK

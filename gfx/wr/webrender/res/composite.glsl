@@ -225,6 +225,7 @@ void main(void) {
 // TODO(gw): Do we need to support this on ESSL1?
 #ifndef WR_FEATURE_TEXTURE_EXTERNAL_ESSL1
 #ifndef WR_FEATURE_FAST_PATH
+#ifndef WR_FEATURE_NO_RECT_AA
     // Apply compositor clip
     float aa_range = compute_aa_range(vNormalizedDevicePos);
 
@@ -239,6 +240,7 @@ void main(void) {
 
     // Apply clip alpha
     color *= clip_alpha;
+#endif
 #endif
 #endif
 

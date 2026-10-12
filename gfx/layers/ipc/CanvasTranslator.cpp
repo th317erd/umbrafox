@@ -10,6 +10,7 @@
 #include "SharedSurface.h"
 #include "WebGLParent.h"
 #include "gfxGradientCache.h"
+#include "mozilla/AutoRestore.h"
 #include "mozilla/DataMutex.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/SyncRunnable.h"
@@ -92,6 +93,7 @@ StaticRefPtr<gfx::SharedContextWebgl> CanvasTranslator::sSharedContext;
 bool CanvasTranslator::EnsureSharedContextWebgl() {
   if (!mSharedContext || mSharedContext->IsContextLost()) {
     if (mSharedContext) {
+      mSharedContext->ClearVideoSurfaceCache();
       ForceDrawTargetWebglFallback();
       if (mRemoteTextureOwner) {
         // Ensure any shared surfaces referring to the old context go away.
@@ -101,9 +103,15 @@ bool CanvasTranslator::EnsureSharedContextWebgl() {
     // Check if the global shared context is still valid. If not, instantiate
     // a new one before we try to use it.
     if (!sSharedContext || sSharedContext->IsContextLost()) {
+      if (sSharedContext) {
+        sSharedContext->ClearVideoSurfaceCache();
+      }
       sSharedContext = gfx::SharedContextWebgl::Create();
     }
     mSharedContext = sSharedContext;
+    if (mSharedContext) {
+      mSharedContext->ClearVideoSurfaceCache();
+    }
     // If we can't get a new context, then the only thing left to do is block
     // new canvases.
     if (!mSharedContext || mSharedContext->IsContextLost()) {
@@ -117,8 +125,13 @@ bool CanvasTranslator::EnsureSharedContextWebgl() {
 
 void CanvasTranslator::Shutdown() {
   if (sSharedContext) {
-    gfx::CanvasRenderThread::Dispatch(NS_NewRunnableFunction(
-        "CanvasTranslator::Shutdown", []() { sSharedContext = nullptr; }));
+    gfx::CanvasRenderThread::Dispatch(
+        NS_NewRunnableFunction("CanvasTranslator::Shutdown", []() {
+          if (sSharedContext) {
+            sSharedContext->ClearVideoSurfaceCache();
+          }
+          sSharedContext = nullptr;
+        }));
   }
 }
 
@@ -759,6 +772,17 @@ bool CanvasTranslator::TranslateRecording() {
   MOZ_ASSERT(IsInTaskQueue());
   MOZ_DIAGNOSTIC_ASSERT_IF(mFlushCheckpoint, HasPendingEvent());
 
+  AutoRestore<bool> restoreTranslating(mIsTranslating);
+  mIsTranslating = true;
+  if (mSharedContext) {
+    mSharedContext->ClearVideoSurfaceCache();
+  }
+  auto clearVideoSurfaceCache = MakeScopeExit([&] {
+    if (mSharedContext) {
+      mSharedContext->ClearVideoSurfaceCache();
+    }
+  });
+
   if (mHeader->readerState == State::Failed) {
     return false;
   }
@@ -985,6 +1009,9 @@ void CanvasTranslator::BeginTransaction() {
 void CanvasTranslator::Flush() {}
 
 void CanvasTranslator::EndTransaction() {
+  if (mSharedContext) {
+    mSharedContext->ClearVideoSurfaceCache();
+  }
   Flush();
   mIsInTransaction = false;
 }
@@ -1136,6 +1163,7 @@ void CanvasTranslator::ClearCachedResources() {
   mUsedSurfaceDescriptorForSurfaceDescriptor = Nothing();
 
   if (mSharedContext) {
+    mSharedContext->ClearVideoSurfaceCache();
     mSharedContext->OnMemoryPressure();
   }
 
@@ -1491,6 +1519,10 @@ bool CanvasTranslator::PushRemoteTexture(
 void CanvasTranslator::ClearTextureInfo() {
   MOZ_ASSERT(mIPDLClosed);
 
+  if (mSharedContext) {
+    mSharedContext->ClearVideoSurfaceCache();
+  }
+
   DataSurfaceBufferWillChange(0, false);
 
   mUsedDataSurfaceForSurfaceDescriptor = nullptr;
@@ -1551,7 +1583,8 @@ static bool SDIsSupportedRemoteDecoder(const SurfaceDescriptor& sd) {
 
   if (sdrd.videoType() == RemoteDecoderVideoType::Buffer ||
       sdrd.videoType() == RemoteDecoderVideoType::MacIOSurface ||
-      sdrd.videoType() == RemoteDecoderVideoType::D3D10) {
+      sdrd.videoType() == RemoteDecoderVideoType::D3D10 ||
+      sdrd.videoType() == RemoteDecoderVideoType::DMABuf) {
     return true;
   }
 
@@ -1634,9 +1667,77 @@ CanvasTranslator::MaybeRecycleDataSurfaceForSurfaceDescriptor(
   return do_AddRef(usedWrapper);
 }
 
+#ifdef MOZ_WIDGET_GTK
+already_AddRefed<gfx::SourceSurface>
+CanvasTranslator::GetZeroCopySurfaceFromDMABuf(
+    TextureHost* aTextureHost, SurfaceDescriptorRemoteDecoderId aFrameID) {
+  bool imported = false;
+  auto clearOnFailure = MakeScopeExit([&] {
+    if (!imported && mSharedContext) {
+      mSharedContext->ClearVideoSurfaceCache();
+    }
+  });
+  if (!aTextureHost) {
+    return nullptr;
+  }
+  // The wrapping texture hosts forward GetTextureHostType(), so it does not
+  // identify the concrete host. Use the descriptor type instead, and only go
+  // through TextureHost virtuals below.
+  Maybe<SurfaceDescriptor> ownedDescriptor;
+  const SurfaceDescriptor* hostSd = aTextureHost->BorrowSurfaceDescriptor();
+  if (!hostSd) {
+    ownedDescriptor.emplace(aTextureHost->GetSurfaceDescriptor());
+    hostSd = &*ownedDescriptor;
+  }
+  if (hostSd->type() != SurfaceDescriptor::TSurfaceDescriptorDMABuf) {
+    return nullptr;
+  }
+  const gfx::IntSize size = aTextureHost->GetSize();
+  if (size.IsEmpty()) {
+    return nullptr;
+  }
+  // The blit emits BGRA-ordered bytes for BGRA destinations (see
+  // GLBlitHelper), matching the rest of the canvas pipeline, so tag the
+  // surface BGRA whatever the source layout was.
+  gfx::SurfaceFormat format;
+  switch (aTextureHost->GetFormat()) {
+    case gfx::SurfaceFormat::B8G8R8A8:
+    case gfx::SurfaceFormat::R8G8B8A8:
+      format = gfx::SurfaceFormat::B8G8R8A8;
+      break;
+    case gfx::SurfaceFormat::B8G8R8X8:
+    case gfx::SurfaceFormat::R8G8B8X8:
+    case gfx::SurfaceFormat::NV12:
+    case gfx::SurfaceFormat::YUV420:
+    case gfx::SurfaceFormat::P010:
+    case gfx::SurfaceFormat::P016:
+      format = gfx::SurfaceFormat::B8G8R8X8;
+      break;
+    default:
+      return nullptr;
+  }
+  if (!EnsureSharedContextWebgl() || !mSharedContext) {
+    return nullptr;
+  }
+  RefPtr<gfx::SourceSurface> surface =
+      mIsTranslating ? mSharedContext->ImportVideoSurfaceDescriptor(
+                           *hostSd, size, format, aTextureHost, aFrameID)
+                     : mSharedContext->ImportSurfaceDescriptor(*hostSd, size,
+                                                               format, true);
+  imported = !!surface;
+  return surface.forget();
+}
+#endif
+
 already_AddRefed<gfx::SourceSurface>
 CanvasTranslator::LookupSourceSurfaceFromSurfaceDescriptor(
     const SurfaceDescriptor& aDesc) {
+  bool importedVideo = false;
+  auto clearOnOtherSurface = MakeScopeExit([&] {
+    if (!importedVideo && mSharedContext) {
+      mSharedContext->ClearVideoSurfaceCache();
+    }
+  });
   if (!SDIsSupportedRemoteDecoder(aDesc)) {
     return nullptr;
   }
@@ -1700,6 +1801,21 @@ CanvasTranslator::LookupSourceSurfaceFromSurfaceDescriptor(
         MaybeRecycleDataSurfaceForSurfaceDescriptor(texture, sdrd);
     return surf.forget();
   }
+
+#ifdef MOZ_WIDGET_GTK
+  if (sdrd.videoType() == RemoteDecoderVideoType::DMABuf) {
+    if (RefPtr<gfx::SourceSurface> surf =
+            GetZeroCopySurfaceFromDMABuf(texture, sdrd.id())) {
+      importedVideo = true;
+      return surf.forget();
+    }
+    // The zero-copy import can fail for an unsupported layout or a lost shared
+    // context, in which case read the frame back rather than dropping the draw.
+    RefPtr<gfx::DataSourceSurface> surf =
+        MaybeRecycleDataSurfaceForSurfaceDescriptor(texture, sdrd);
+    return surf.forget();
+  }
+#endif
 
   MOZ_ASSERT_UNREACHABLE("unexpected to be called");
   return nullptr;

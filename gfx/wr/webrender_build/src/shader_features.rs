@@ -134,6 +134,7 @@ pub fn get_shader_features(flags: ShaderFeatureFlags) -> ShaderFeatures {
         list.add("YUV");
         composite_features.push(list.finish());
     }
+    composite_features.push("NO_RECT_AA,TEXTURE_2D".to_string());
     shaders.insert("composite", composite_features);
 
     // Prim shaders

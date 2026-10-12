@@ -1,0 +1,309 @@
+{
+  "verdict": "MEASUREMENTS_COMPLETE",
+  "runs": [
+    {
+      "label": "baseline-off",
+      "feature": "off",
+      "logging": "on",
+      "expectedEnv": {
+        "LP_PERF": null,
+        "LP_DEBUG": null,
+        "GALLIVM_PERF": null,
+        "GALLIVM_DEBUG": null,
+        "MESA_SHADER_CACHE_DISABLE": null
+      },
+      "verdict": "BASELINE_PASS",
+      "sameMode": {
+        "reference": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/off-on/capture/frame.png",
+        "actual": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/baseline-off/capture/frame.png",
+        "AE": 0,
+        "changedChannels": 0,
+        "parity": true,
+        "rows": []
+      },
+      "repeat": {
+        "reference": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/baseline-off/capture/frame.png",
+        "actual": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/baseline-off/capture/repeat.png",
+        "AE": 0,
+        "changedChannels": 0,
+        "parity": true,
+        "rows": []
+      },
+      "geometry": {
+        "bounds": {
+          "minX": 4,
+          "minY": 4,
+          "maxX": 1283,
+          "maxY": 975
+        },
+        "DPR": 1,
+        "viewport": [
+          1280,
+          972
+        ],
+        "framebuffer": [
+          1920,
+          1080
+        ],
+        "readbackHash": "6e5e9bdd"
+      },
+      "shaderSelections": 0,
+      "promotion": {
+        "candidates": 87,
+        "promoted": 0
+      },
+      "operandRecords": 59,
+      "trace": {
+        "submission": "DocumentId { namespace_id: IdNamespace(2), id: 0 }:10:GpuFrameId(11)",
+        "quads": 10,
+        "draws": 10,
+        "composites": 5
+      }
+    },
+    {
+      "label": "baseline-on",
+      "feature": "on",
+      "logging": "on",
+      "expectedEnv": {
+        "LP_PERF": null,
+        "LP_DEBUG": null,
+        "GALLIVM_PERF": null,
+        "GALLIVM_DEBUG": null,
+        "MESA_SHADER_CACHE_DISABLE": null
+      },
+      "verdict": "BASELINE_PASS",
+      "sameMode": {
+        "reference": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/on-on/capture/frame.png",
+        "actual": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/baseline-on/capture/frame.png",
+        "AE": 0,
+        "changedChannels": 0,
+        "parity": true,
+        "rows": []
+      },
+      "repeat": {
+        "reference": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/baseline-on/capture/frame.png",
+        "actual": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/baseline-on/capture/repeat.png",
+        "AE": 0,
+        "changedChannels": 0,
+        "parity": true,
+        "rows": []
+      },
+      "geometry": {
+        "bounds": {
+          "minX": 4,
+          "minY": 4,
+          "maxX": 1283,
+          "maxY": 975
+        },
+        "DPR": 1,
+        "viewport": [
+          1280,
+          972
+        ],
+        "framebuffer": [
+          1920,
+          1080
+        ],
+        "readbackHash": "6e5e9bdd"
+      },
+      "shaderSelections": 88,
+      "promotion": {
+        "candidates": 88,
+        "promoted": 88
+      },
+      "operandRecords": 47,
+      "trace": {
+        "submission": "DocumentId { namespace_id: IdNamespace(2), id: 0 }:11:GpuFrameId(12)",
+        "quads": 8,
+        "draws": 8,
+        "composites": 5
+      }
+    },
+    {
+      "label": "diagnostic-off",
+      "feature": "off",
+      "logging": "on",
+      "expectedEnv": {
+        "LP_PERF": "no_rast_linear",
+        "LP_DEBUG": null,
+        "GALLIVM_PERF": null,
+        "GALLIVM_DEBUG": null,
+        "MESA_SHADER_CACHE_DISABLE": null
+      },
+      "verdict": "MEASUREMENT_VALID",
+      "sameMode": {
+        "reference": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/off-on/capture/frame.png",
+        "actual": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/diagnostic-off/capture/frame.png",
+        "AE": 0,
+        "changedChannels": 0,
+        "parity": true,
+        "rows": []
+      },
+      "repeat": {
+        "reference": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/diagnostic-off/capture/frame.png",
+        "actual": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/diagnostic-off/capture/repeat.png",
+        "AE": 0,
+        "changedChannels": 0,
+        "parity": true,
+        "rows": []
+      },
+      "geometry": {
+        "bounds": {
+          "minX": 4,
+          "minY": 4,
+          "maxX": 1283,
+          "maxY": 975
+        },
+        "DPR": 1,
+        "viewport": [
+          1280,
+          972
+        ],
+        "framebuffer": [
+          1920,
+          1080
+        ],
+        "readbackHash": "6e5e9bdd"
+      },
+      "shaderSelections": 0,
+      "promotion": {
+        "candidates": 88,
+        "promoted": 0
+      },
+      "operandRecords": 59,
+      "trace": {
+        "submission": "DocumentId { namespace_id: IdNamespace(2), id: 0 }:10:GpuFrameId(11)",
+        "quads": 10,
+        "draws": 10,
+        "composites": 5
+      }
+    },
+    {
+      "label": "diagnostic-on",
+      "feature": "on",
+      "logging": "on",
+      "expectedEnv": {
+        "LP_PERF": "no_rast_linear",
+        "LP_DEBUG": null,
+        "GALLIVM_PERF": null,
+        "GALLIVM_DEBUG": null,
+        "MESA_SHADER_CACHE_DISABLE": null
+      },
+      "verdict": "MEASUREMENT_VALID",
+      "sameMode": {
+        "reference": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/on-on/capture/frame.png",
+        "actual": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/diagnostic-on/capture/frame.png",
+        "AE": 0,
+        "changedChannels": 0,
+        "parity": true,
+        "rows": []
+      },
+      "repeat": {
+        "reference": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/diagnostic-on/capture/frame.png",
+        "actual": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/diagnostic-on/capture/repeat.png",
+        "AE": 0,
+        "changedChannels": 0,
+        "parity": true,
+        "rows": []
+      },
+      "geometry": {
+        "bounds": {
+          "minX": 4,
+          "minY": 4,
+          "maxX": 1283,
+          "maxY": 975
+        },
+        "DPR": 1,
+        "viewport": [
+          1280,
+          972
+        ],
+        "framebuffer": [
+          1920,
+          1080
+        ],
+        "readbackHash": "6e5e9bdd"
+      },
+      "shaderSelections": 87,
+      "promotion": {
+        "candidates": 87,
+        "promoted": 87
+      },
+      "operandRecords": 47,
+      "trace": {
+        "submission": "DocumentId { namespace_id: IdNamespace(2), id: 0 }:10:GpuFrameId(11)",
+        "quads": 8,
+        "draws": 8,
+        "composites": 5
+      }
+    }
+  ],
+  "baseline": {
+    "reference": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/baseline-off/capture/frame.png",
+    "actual": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/baseline-on/capture/frame.png",
+    "AE": 20,
+    "changedChannels": 20,
+    "parity": false,
+    "rows": [
+      {
+        "y": 339,
+        "pixels": 20,
+        "channels": 20,
+        "signedChannelCounts": [
+          {
+            "-1": 1
+          },
+          {
+            "1": 12,
+            "-1": 7
+          },
+          {},
+          {}
+        ]
+      }
+    ]
+  },
+  "diagnostic": {
+    "reference": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/diagnostic-off/capture/frame.png",
+    "actual": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/diagnostic-on/capture/frame.png",
+    "AE": 20,
+    "changedChannels": 20,
+    "parity": false,
+    "rows": [
+      {
+        "y": 339,
+        "pixels": 20,
+        "channels": 20,
+        "signedChannelCounts": [
+          {
+            "-1": 1
+          },
+          {
+            "1": 12,
+            "-1": 7
+          },
+          {},
+          {}
+        ]
+      }
+    ]
+  },
+  "across": {
+    "off": {
+      "reference": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/baseline-off/capture/frame.png",
+      "actual": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/diagnostic-off/capture/frame.png",
+      "AE": 0,
+      "changedChannels": 0,
+      "parity": true,
+      "rows": []
+    },
+    "on": {
+      "reference": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/baseline-on/capture/frame.png",
+      "actual": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/diagnostic-on/capture/frame.png",
+      "AE": 0,
+      "changedChannels": 0,
+      "parity": true,
+      "rows": []
+    }
+  }
+}

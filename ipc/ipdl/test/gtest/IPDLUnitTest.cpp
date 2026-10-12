@@ -21,13 +21,15 @@
 
 namespace mozilla::_ipdltest {
 
-MOZ_RUNINIT static std::unordered_map<std::string_view,
-                                      ipc::IToplevelProtocol* (*)()>
-    sAllocChildActorRegistry;
+static auto& AllocChildActorRegistry() {
+  static std::unordered_map<std::string_view, ipc::IToplevelProtocol* (*)()>
+      registry;
+  return registry;
+}
 
 const char* RegisterAllocChildActor(const char* aName,
                                     ipc::IToplevelProtocol* (*aFunc)()) {
-  sAllocChildActorRegistry[aName] = aFunc;
+  AllocChildActorRegistry()[aName] = aFunc;
   return aName;
 }
 
@@ -162,7 +164,7 @@ ipc::IPCResult IPDLUnitTestChild::RecvStart(const nsCString& aName,
                                             ipc::ScopedPort aPort,
                                             const nsID& aMessageChannelId) {
   auto* allocChildActor =
-      sAllocChildActorRegistry[std::string_view{aName.get()}];
+      AllocChildActorRegistry()[std::string_view{aName.get()}];
   if (!allocChildActor) {
     ADD_FAILURE() << "No AllocChildActor for name " << aName.get()
                   << " registered!";

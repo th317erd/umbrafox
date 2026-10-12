@@ -474,6 +474,14 @@ class CanvasTranslator final : public gfx::InlineTranslator,
       TextureHost* aTextureHost,
       const SurfaceDescriptorRemoteDecoder& aSurfaceDescriptor);
 
+#ifdef MOZ_WIDGET_GTK
+  // Imports a DMABuf video frame into the canvas GL context and converts it
+  // on the GPU, returning a directly samplable surface (no CPU download).
+  // Falls back to nullptr when GL import is unavailable.
+  already_AddRefed<gfx::SourceSurface> GetZeroCopySurfaceFromDMABuf(
+      TextureHost* aTextureHost, SurfaceDescriptorRemoteDecoderId aFrameID);
+#endif
+
   bool UsePendingCanvasTranslatorEvents();
   void PostCanvasTranslatorEvents(const MutexAutoLock& aProofOfLock);
   void HandleCanvasTranslatorEvents();
@@ -483,6 +491,7 @@ class CanvasTranslator final : public gfx::InlineTranslator,
   const RefPtr<SharedSurfacesHolder> mSharedSurfacesHolder;
   static StaticRefPtr<gfx::SharedContextWebgl> sSharedContext;
   RefPtr<gfx::SharedContextWebgl> mSharedContext;
+  bool mIsTranslating = false;
   RefPtr<RemoteTextureOwnerClient> mRemoteTextureOwner;
 
   size_t mDefaultBufferSize = 0;

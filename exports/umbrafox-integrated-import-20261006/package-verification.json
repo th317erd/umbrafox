@@ -1,0 +1,30 @@
+{
+  "buildID": "20261006095500",
+  "files": 46,
+  "archiveEntries": 57,
+  "uncompressedBytes": 475122469,
+  "archive": {
+    "name": "umbrafox-integrated-import-20261006095500-linux-x86_64.tar.xz",
+    "bytes": 107770016,
+    "sha256": "2700a1b01cb4cbd84e36e05a7f1e350fd342b1dfc717cdf409e9bd1862aacb68"
+  },
+  "manifestSHA256": "e770fd478f4a2e469184b22d340bbe53387cd8f5190f44a5c45a67a3124b2dfb",
+  "iniBuildIDs": {
+    "application.ini": "20261006095500",
+    "platform.ini": "20261006095500"
+  },
+  "toolkitBuildID": "20261006095500",
+  "frontendArchives": {
+    "omni.ja": {
+      "entries": 2676,
+      "changed": [
+        "modules/AppConstants.sys.mjs"
+      ]
+    },
+    "browser/omni.ja": {
+      "entries": 5368,
+      "changed": []
+    }
+  },
+  "installed": false
+}

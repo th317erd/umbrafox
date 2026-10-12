@@ -487,6 +487,7 @@ pub struct SceneBuilder<'a> {
     /// array so that multiple different systems (e.g. tile-cache, visibility, property
     /// animation bindings) can store index buffers to prim instances.
     prim_instances: Vec<PrimitiveInstance>,
+    opacity_images: FastHashMap<usize, (LayoutPrimitiveInfo, Image)>,
 
 
     /// A list of surfaces (backing textures) that are relevant for this scene.
@@ -558,6 +559,7 @@ impl<'a> SceneBuilder<'a> {
             snapshot_pictures: Vec::new(),
             next_plane_splitter_index: 0,
             prim_instances: mem::take(&mut recycler.prim_instances),
+            opacity_images: FastHashMap::default(),
             surfaces: mem::take(&mut recycler.surfaces),
             clip_tree_builder: recycler.clip_tree_builder.take().unwrap_or_else(|| ClipTreeBuilder::new()),
             extra_stacking_context_stack: Vec::new(),
@@ -2165,6 +2167,62 @@ impl<'a> SceneBuilder<'a> {
         sc_info
     }
 
+    fn fold_single_image_opacity(&mut self, sc: &FlattenedStackingContext) -> bool {
+        if !self.config.enable_single_image_opacity
+            || !matches!(self.config.compositor_kind, crate::composite::CompositorKind::Draw { .. })
+            || !self.sc_stack.is_empty()
+            || !matches!(sc.context_3d, Picture3DContext::Out)
+            || !sc.blit_reason.is_empty()
+            || !sc.flags.is_empty()
+            || sc.composite_ops.mix_blend_mode.is_some()
+            || sc.composite_ops.snapshot.is_some()
+            || !sc.composite_ops.filter_datas.is_empty()
+            || !sc.prim_list.child_pictures.is_empty()
+            || sc.prim_list.clusters.len() != 1
+        {
+            return false;
+        }
+        let amount = match sc.composite_ops.filters.as_slice() {
+            [Filter::Opacity(PropertyBinding::Value(value), amount)]
+                if value.is_finite() && amount.is_finite() => amount.clamp(0.0, 1.0),
+            _ => return false,
+        };
+        let cluster = &sc.prim_list.clusters[0];
+        let range = cluster.prim_range();
+        if range.len() != 1
+            || !self.spatial_tree.is_root_coord_system(cluster.spatial_node_index)
+            || !self.spatial_tree.is_root_coord_system(sc.spatial_node_index)
+        {
+            return false;
+        }
+        let index = range.start;
+        let Some((info, image)) = self.opacity_images.get(&index) else { return false; };
+        if !info.flags.contains(PrimitiveFlags::PREFER_COMPOSITOR_SURFACE)
+            || image.alpha_type != AlphaType::PremultipliedAlpha
+            || ColorF::from(image.color) != ColorF::WHITE
+            || image.sub_rect.is_some()
+            || LayoutSize::from(image.tile_spacing) != LayoutSize::zero()
+        {
+            return false;
+        }
+        let instance = &self.prim_instances[index];
+        if self.clip_tree_builder.clip_node_has_complex_clips(instance.clip_node_id, &self.interners.clip)
+            || self.clip_tree_builder.clip_node_has_complex_clips(sc.clip_node_id, &self.interners.clip)
+        {
+            return false;
+        }
+        let PrimitiveKind::Image { data_handle, opacity: 1.0 } = instance.kind else { return false; };
+        let info = *info;
+        let instance = PrimitiveInstance::new(
+            PrimitiveKind::Image { data_handle, opacity: amount },
+            instance.clip_node_id,
+        );
+        self.add_primitive_to_draw_list(
+            instance, info.rect, info.clip_rect, cluster.spatial_node_index, info.flags,
+        );
+        true
+    }
+
     fn pop_stacking_context(
         &mut self,
         info: StackingContextInfo,
@@ -2191,6 +2249,10 @@ impl<'a> SceneBuilder<'a> {
         }
 
         let stacking_context = self.sc_stack.pop().unwrap();
+
+        if !info.needs_extra_stacking_context && self.fold_single_image_opacity(&stacking_context) {
+            return;
+        }
 
         let mut source = match stacking_context.context_3d {
             // TODO(gw): For now, as soon as this picture is in
@@ -2985,11 +3047,7 @@ impl<'a> SceneBuilder<'a> {
             })
         };
 
-        self.add_primitive(
-            spatial_node_index,
-            clip_node_id,
-            &info,
-            Image {
+        let image = Image {
                 key: image_key,
                 tile_spacing: tile_spacing.into(),
                 stretch_size,
@@ -2997,8 +3055,14 @@ impl<'a> SceneBuilder<'a> {
                 image_rendering,
                 alpha_type,
                 sub_rect,
-            },
-        );
+            };
+        if self.config.enable_single_image_opacity
+            && matches!(self.config.compositor_kind, crate::composite::CompositorKind::Draw { .. })
+            && info.flags.contains(PrimitiveFlags::PREFER_COMPOSITOR_SURFACE)
+        {
+            self.opacity_images.insert(self.prim_instances.len(), (info, image.clone()));
+        }
+        self.add_primitive(spatial_node_index, clip_node_id, &info, image);
     }
 
     pub fn add_yuv_image(

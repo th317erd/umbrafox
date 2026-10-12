@@ -57,7 +57,7 @@ function validateContext(context, threadHandle) {
         context.resultThreadHandle === threadHandle) &&
       nonnegative(context.rootRange?.start) &&
       Number.isFinite(context.rootRange?.end) &&
-      context.rootRange.end >= context.rootRange.start,
+      context.rootRange.end > context.rootRange.start,
     "Invalid or filtered thread context"
   );
 }
@@ -180,7 +180,11 @@ function validateExports(phaseExport, markerExport, expectedCount) {
       "Phase marker does not match thread export"
     );
   }
-  return { threadHandle, range };
+  // Marker times are zero-based; context retains the original root range.
+  return {
+    threadHandle,
+    range: { start: 0, end: range.end - range.start },
+  };
 }
 
 function collectPhases(

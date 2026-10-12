@@ -86,6 +86,7 @@ pref_groups = [
     "timer",
     "toolkit",
     "ui",
+    "umbrafox",
     "urlclassifier",
     "view_source",
     "webgl",

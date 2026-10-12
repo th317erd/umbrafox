@@ -7,4 +7,5 @@ part of upstream Firefox.
 :maxdepth: 2
 
 userland
+control
 ```

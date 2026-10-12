@@ -1,0 +1,220 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#![allow(dead_code, unused_variables, unused_imports)]
+
+use std::cell::Cell;
+use std::time::Duration;
+
+#[cfg(feature = "umbra-perf-probes")]
+#[path = /* SAMPLING_PATH */]
+mod sampling;
+
+thread_local! {
+    static THREAD_ACTIVE: Cell<bool> = const { Cell::new(false) };
+    static MARKERS: Cell<bool> = const { Cell::new(false) };
+    static QUERIES: Cell<usize> = const { Cell::new(0) };
+    static FACTORIES: Cell<usize> = const { Cell::new(0) };
+    static SINK: Cell<usize> = const { Cell::new(0) };
+}
+
+fn factory() { FACTORIES.with(|count| count.set(count.get() + 1)); }
+fn add_text_marker(_: &str, _: &str, _: Duration) {
+    SINK.with(|count| count.set(count.get() + 1));
+}
+
+mod gecko_profiler {
+    pub fn current_thread_is_being_profiled_for_markers() -> bool {
+        super::QUERIES.with(|count| count.set(count.get() + 1));
+        super::MARKERS.with(|value| value.get())
+    }
+}
+
+struct GeckoProfilerHooks;
+impl GeckoProfilerHooks {
+    fn thread_is_being_profiled(&self) -> bool {
+        THREAD_ACTIVE.with(|value| value.get())
+    }
+    /* ELIGIBILITY */
+}
+
+mod profiler {
+    #[cfg(feature = "umbra-perf-probes")]
+    pub fn umbra_markers_enabled() -> bool {
+        super::GeckoProfilerHooks.umbra_markers_enabled()
+    }
+}
+
+#[derive(Clone, Copy)]
+struct DebugFlags(bool);
+impl DebugFlags {
+    const SURFACE_PROMOTION_LOGGING: Self = Self(true);
+    fn contains(self, flag: Self) -> bool { self.0 && flag.0 }
+}
+
+#[derive(Clone, Copy)]
+struct DrawTarget;
+impl DrawTarget {
+    fn to_framebuffer_rect(self, value: u8) -> u8 { factory(); value }
+}
+#[derive(Clone, Copy)]
+struct Rect;
+impl Rect { fn to_i32(self) -> u8 { factory(); 1 } }
+struct Swizzle;
+impl Default for Swizzle { fn default() -> Self { factory(); Self } }
+enum TextureSource { TextureCache(usize, Swizzle) }
+enum LoadOp { Clear(u8), Load, DontCare }
+struct Target { clear_color: Option<u8>, used_rect: Option<u8> }
+struct Clear { color_load: LoadOp, rect: Option<(u8, u8, u8)>, precise: bool, with_quads: bool }
+struct Frame { present: bool, has_been_rendered: bool }
+struct Document;
+impl std::fmt::Debug for Document {
+    fn fmt(&self, out: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        factory();
+        out.write_str("doc")
+    }
+}
+type BlendMode = u8;
+
+struct Renderer {
+    debug_flags: DebugFlags,
+    #[cfg(feature = "umbra-perf-probes")]
+    sampling_trace: Option<sampling::Trace>,
+}
+
+impl Renderer {
+    /* METHODS */
+
+    fn submit_clear(&mut self, draw_target: DrawTarget, dirty_rect: Rect) {
+        /* CLEAR */
+    }
+
+    fn submit_target(&mut self, texture_id: usize, target: Target, clear: Clear, draw_target: DrawTarget) {
+        /* TARGET */
+    }
+
+    fn submit_start(&mut self, frame: &Frame, doc_id: Document, cpu_frame_id: u64) {
+        /* START */
+    }
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn sampling_composite_clear(&mut self, _: u8) { SINK.with(|count| count.set(count.get() + 1)); }
+    #[cfg(feature = "umbra-perf-probes")]
+    fn sampling_target(&mut self, _: TextureSource, _: Option<u8>, _: Option<u8>, _: DrawTarget) {}
+    #[cfg(feature = "umbra-perf-probes")]
+    fn sampling_clear(&mut self, _: &str, _: Option<u8>, _: bool, _: bool) {}
+    #[cfg(feature = "umbra-perf-probes")]
+    fn begin_sampling_trace(&mut self, _: &Frame, document: &std::fmt::Arguments<'_>, _: u64) {
+        let _ = format!("{}", document);
+    }
+}
+
+fn parameter_shape(/* PARAMETER */) {
+    #[cfg(feature = "umbra-perf-probes")]
+    assert_eq!(sampling_blend, 1);
+}
+
+fn renderer(enabled: bool, active: bool, markers: bool) -> Renderer {
+    THREAD_ACTIVE.with(|value| value.set(active));
+    MARKERS.with(|value| value.set(markers));
+    QUERIES.with(|value| value.set(0));
+    FACTORIES.with(|value| value.set(0));
+    SINK.with(|value| value.set(0));
+    Renderer {
+        debug_flags: DebugFlags(enabled),
+        #[cfg(feature = "umbra-perf-probes")]
+        sampling_trace: Some(sampling::Trace::new("fixture".into())),
+    }
+}
+
+fn submit(renderer: &mut Renderer) {
+    renderer.submit_clear(DrawTarget, Rect);
+    renderer.submit_target(1, Target { clear_color: None, used_rect: None },
+        Clear { color_load: LoadOp::Load, rect: None, precise: false, with_quads: false }, DrawTarget);
+    renderer.submit_start(&Frame { present: true, has_been_rendered: false }, Document, 1);
+}
+
+#[test]
+fn disabled_modes_do_not_construct_arguments() {
+    for (enabled, active, markers) in [(false, true, true), (true, false, true), (true, true, false)] {
+        submit(&mut renderer(enabled, active, markers));
+        FACTORIES.with(|value| assert_eq!(value.get(), 0));
+        SINK.with(|value| assert_eq!(value.get(), 0));
+    }
+}
+
+#[test]
+fn feature_controls_entire_argument_expressions() {
+    submit(&mut renderer(true, true, true));
+    FACTORIES.with(|value| assert_eq!(value.get(), if cfg!(feature = "umbra-perf-probes") { 4 } else { 0 }));
+    parameter_shape(#[cfg(feature = "umbra-perf-probes")] 1);
+}
+
+#[cfg(feature = "umbra-perf-probes")]
+#[test]
+fn marker_predicate_preserves_thread_filter_and_rejects_sample_only() {
+    for (active, markers, expected) in [(false, false, false), (false, true, false), (true, false, false), (true, true, true)] {
+        let _ = renderer(true, active, markers);
+        assert_eq!(GeckoProfilerHooks.umbra_markers_enabled(), expected);
+        QUERIES.with(|value| assert_eq!(value.get(), usize::from(active)));
+    }
+}
+
+#[cfg(feature = "umbra-perf-probes")]
+#[test]
+fn observed_stop_discards_partial_trace_before_resume() {
+    let mut renderer = renderer(true, true, true);
+    assert!(renderer.sampling_active());
+    MARKERS.with(|value| value.set(false));
+    assert!(!renderer.sampling_active());
+    assert!(renderer.sampling_trace.is_none());
+    MARKERS.with(|value| value.set(true));
+    assert!(!renderer.sampling_active());
+    renderer.finish_sampling_trace();
+    SINK.with(|value| assert_eq!(value.get(), 0));
+}
+
+#[cfg(feature = "umbra-perf-probes")]
+#[test]
+fn no_trace_skips_profiler_query() {
+    let mut renderer = renderer(true, true, true);
+    renderer.sampling_trace = None;
+    assert!(!renderer.sampling_active());
+    QUERIES.with(|value| assert_eq!(value.get(), 0));
+}
+
+#[cfg(feature = "umbra-perf-probes")]
+#[test]
+fn finish_always_drops_even_when_disabled() {
+    for (enabled, active, markers) in [(false, true, true), (true, false, true), (true, true, false)] {
+        let mut renderer = renderer(enabled, active, markers);
+        renderer.finish_sampling_trace();
+        assert!(renderer.sampling_trace.is_none());
+        SINK.with(|value| assert_eq!(value.get(), 0));
+    }
+}
+
+#[cfg(feature = "umbra-perf-probes")]
+#[test]
+fn failed_trace_retains_reason_until_single_finish() {
+    let mut renderer = renderer(true, true, true);
+    renderer.sampling_trace.as_mut().unwrap().fail("fixture-limit");
+    assert!(!renderer.sampling_active());
+    assert!(!renderer.sampling_inspect());
+    renderer.submit_clear(DrawTarget, Rect);
+    FACTORIES.with(|value| assert_eq!(value.get(), 0));
+    assert_eq!(renderer.sampling_trace.as_ref().unwrap().failure, Some("fixture-limit"));
+    renderer.finish_sampling_trace();
+    renderer.finish_sampling_trace();
+    SINK.with(|value| assert_eq!(value.get(), 1));
+}
+
+#[test]
+fn unpresented_or_already_rendered_frames_skip_start_payload() {
+    for frame in [Frame { present: false, has_been_rendered: false },
+                  Frame { present: true, has_been_rendered: true }] {
+        renderer(true, true, true).submit_start(&frame, Document, 1);
+        FACTORIES.with(|value| assert_eq!(value.get(), 0));
+    }
+}

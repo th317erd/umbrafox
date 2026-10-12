@@ -238,11 +238,40 @@ This inventory was generated from the current working tree when the guide was wr
 - `toolkit/components/umbrafox/tests/browser/browser_control_service.js`
 - `toolkit/components/umbrafox/tests/browser/browser_control_input.js`
 - `toolkit/components/umbrafox/tests/browser/browser.toml`
+
+## Linux DMABUF video-to-canvas readback
+
+- `dom/canvas/CanvasRenderingContext2D.cpp`
+- `dom/media/ipc/PRemoteMediaManager.ipdl`
+- `dom/media/ipc/RemoteMediaManagerChild.cpp`
+- `dom/media/ipc/RemoteMediaManagerChild.h`
+- `dom/media/ipc/RemoteMediaManagerParent.cpp`
+- `dom/media/ipc/RemoteMediaManagerParent.h`
+- `gfx/gl/GLBlitHelper.cpp`
+- `gfx/gl/GLBlitHelper.h`
+- `gfx/layers/DMABUFSurfaceImage.cpp`
+- `gfx/layers/DMABUFSurfaceImage.h`
+- `gfx/layers/GPUVideoImage.h`
+- `gfx/layers/ImageContainer.cpp`
+- `gfx/layers/ImageContainer.h`
+- `widget/gtk/DMABufSurface.cpp`
+- `widget/gtk/DMABufSurface.h`
+
+## UmbraLink diagnostics and browser toggle
+
 - `browser/components/BrowserGlue.sys.mjs`
 - `browser/app/profile/firefox.js`
 - `toolkit/modules/ActorManagerParent.sys.mjs`
 - `.agents/skills/umbrafox-link/SKILL.md`
 - `umbrafox-conversion-guide/recipes/15-umbralink-diagnostics.md`
+
+## Performance engineering
+
+- `bot-docs/plans/performance-program.md`
+- `bot-docs/docs/performance/`
+- `bot-docs/reports/performance/`
+- `tools/umbrafox/performance/`
+- `umbrafox-conversion-guide/recipes/17-performance-engineering.md`
 
 ## Bot control channel
 

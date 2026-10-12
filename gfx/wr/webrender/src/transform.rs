@@ -18,6 +18,11 @@ use crate::util::{TransformedRectKind, MatrixHelpers};
 pub struct GpuTransformId(pub u32);
 
 impl GpuTransformId {
+    #[cfg(feature = "umbra-perf-probes")]
+    pub(crate) fn sampling_index(self) -> usize {
+        (self.0 & Self::INDEX_MASK) as usize
+    }
+
     /// Identity transform ID.
     pub const IDENTITY: Self = GpuTransformId(0);
     const INDEX_MASK: u32 = 0x003fffff;
@@ -97,6 +102,11 @@ pub struct TransformData {
 }
 
 impl TransformData {
+    #[cfg(feature = "umbra-perf-probes")]
+    pub(crate) fn sampling_bits(&self) -> [[u32; 16]; 2] {
+        [self.transform.to_array().map(f32::to_bits), self.inv_transform.to_array().map(f32::to_bits)]
+    }
+
     fn invalid() -> Self {
         TransformData {
             transform: LayoutToPictureTransform::identity(),

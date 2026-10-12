@@ -679,6 +679,20 @@ let JSWINDOWACTORS = {
     safeForUntrustedWebProcess: true,
   },
 
+  UmbrafoxControlExecution: {
+    parent: {
+      esModuleURI:
+        "moz-src:///toolkit/actors/UmbrafoxControlExecutionParent.sys.mjs",
+    },
+    child: {
+      esModuleURI:
+        "moz-src:///toolkit/actors/UmbrafoxControlExecutionChild.sys.mjs",
+    },
+    messageManagerGroups: ["browsers"],
+    allFrames: true,
+    safeForUntrustedWebProcess: true,
+  },
+
   UmbrafoxControlInput: {
     parent: {
       esModuleURI:

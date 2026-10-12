@@ -63,6 +63,14 @@ nsresult DMABUFSurfaceImage::BuildSurfaceDescriptorBuffer(
   return Image::BuildSurfaceDescriptorBuffer(aSdBuffer, aFlags, aAllocate);
 }
 
+nsresult DMABUFSurfaceImage::BuildSurfaceDescriptorBufferForSize(
+    SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
+    const gfx::IntSize& aSize,
+    const std::function<MemoryOrShmem(uint32_t)>& aAllocate) {
+  return mSurface->BuildSurfaceDescriptorBufferForSize(aSdBuffer, aFlags, aSize,
+                                                       aAllocate);
+}
+
 TextureClient* DMABUFSurfaceImage::GetTextureClient(
     KnowsCompositor* aKnowsCompositor) {
   if (!mTextureClient) {

@@ -4,7 +4,6 @@
 
 #include "UmbrafoxUserlandMutation.h"
 
-#include "mozilla/Preferences.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/CharacterData.h"
 #include "mozilla/dom/Document.h"
@@ -19,20 +18,13 @@
 
 namespace mozilla::dom {
 
-static constexpr char kUmbrafoxUserlandScriptsActivePref[] =
-    "umbrafox.userlandScripts.active";
 static constexpr char kUmbrafoxUserlandMutationAttemptTopic[] =
     "umbrafox-userland-mutation-attempt";
 
 static uint32_t sUmbrafoxUserlandMutationDispatchDepth = 0;
 
-static bool UmbrafoxUserlandScriptsActive() {
-  return Preferences::GetBool(kUmbrafoxUserlandScriptsActivePref, false);
-}
-
-bool UmbrafoxUserlandMutation::ShouldDispatchMutation(nsINode* aTarget) {
-  if (sUmbrafoxUserlandMutationDispatchDepth ||
-      !UmbrafoxUserlandScriptsActive() || !aTarget) {
+bool UmbrafoxUserlandMutation::ShouldDispatchActiveMutation(nsINode* aTarget) {
+  if (sUmbrafoxUserlandMutationDispatchDepth || !aTarget) {
     return false;
   }
   if (!nsContentUtils::IsSafeToRunScript()) {

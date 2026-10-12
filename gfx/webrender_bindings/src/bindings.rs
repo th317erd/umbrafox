@@ -1015,6 +1015,12 @@ impl ProfilerHooks for GeckoProfilerHooks {
     fn thread_is_being_profiled(&self) -> bool {
         unsafe { gecko_profiler_thread_is_being_profiled() }
     }
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn umbra_markers_enabled(&self) -> bool {
+        self.thread_is_being_profiled()
+            && gecko_profiler::current_thread_is_being_profiled_for_markers()
+    }
 }
 
 static PROFILER_HOOKS: GeckoProfilerHooks = GeckoProfilerHooks {};
@@ -1297,6 +1303,7 @@ fn placeholder_frame_builder_config() -> FrameBuilderConfig {
         low_quality_pinch_zoom: false,
         max_shared_surface_size: 4096,
         enable_dithering: false,
+        enable_single_image_opacity: false,
     }
 }
 
@@ -2346,6 +2353,7 @@ pub extern "C" fn wr_window_new(
         max_shared_surface_size,
         enable_dithering,
         enable_shared_instance_buffer,
+        enable_single_image_opacity: static_prefs::pref!("gfx.webrender.single-image-opacity.enabled"),
         ..Default::default()
     };
 

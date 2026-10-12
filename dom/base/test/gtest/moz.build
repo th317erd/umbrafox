@@ -9,6 +9,7 @@ UNIFIED_SOURCES += [
     "TestParser.cpp",
     "TestScheduler.cpp",
     "TestTextDirective.cpp",
+    "TestUmbrafoxMutationGate.cpp",
     "TestXMLSerializerNoBreakLink.cpp",
     "TestXPathGenerator.cpp",
 ]

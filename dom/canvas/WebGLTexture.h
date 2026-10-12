@@ -236,7 +236,7 @@ class WebGLTexture final : public WebGLContextBoundObject,
                   const uvec3& size);
 
   // TexSubImage iff `!respecFormat`
-  void TexImage(uint32_t level, GLenum respecFormat, const uvec3& offset,
+  bool TexImage(uint32_t level, GLenum respecFormat, const uvec3& offset,
                 const webgl::PackingInfo& pi, const webgl::TexUnpackBlobDesc&);
 
   // CompressedTexSubImage iff `sub`

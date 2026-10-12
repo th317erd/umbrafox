@@ -726,6 +726,10 @@ class _QuickSuggest {
    *   names are relative to `browser.urlbar.`.
    */
   intendedDefaultPrefs(region, locale) {
+    if (!lazy.UrlbarPrefs.get("quicksuggest.regionDefaults.enabled")) {
+      return { ...this.#unmodifiedDefaultPrefs };
+    }
+
     let regionLocalePrefs = Object.fromEntries(
       Object.entries(SUGGEST_PREFS)
         .map(([prefName, { defaultValues }]) => {
@@ -755,6 +759,12 @@ class _QuickSuggest {
    *   The name of the pref relative to `browser.urlbar`.
    */
   onPrefChanged(pref) {
+    if (pref == "quicksuggest.regionDefaults.enabled") {
+      this.#initPrefs();
+      this.#updateAll();
+      return;
+    }
+
     // If the Terms of Use (ToU) pref changed, recalculate pref defaults since
     // some prefs depend on it.
     if (pref == lazy.TelemetryReportingPolicy.TOU_ACCEPTED_DATE_PREF) {

@@ -1,6 +1,7 @@
 const { Downloader } = ChromeUtils.importESModule(
   "resource://services-settings/Attachments.sys.mjs"
 );
+const attachmentIOUtils = Cu.getGlobalForObject(Downloader).IOUtils;
 
 const RECORD = {
   id: "1f3a0802-648d-11ea-bd79-876a8b69c377",
@@ -768,9 +769,41 @@ add_task(
 
 add_task(clear_state);
 
+async function cacheAllAndCheckCleanup(target = downloader, force = false) {
+  const paths = [];
+  const originalWrite = attachmentIOUtils.write;
+  attachmentIOUtils.write = (path, bytes, options) => {
+    if (path.endsWith(".zip")) {
+      paths.push(path, options.tmpPath);
+    }
+    return originalWrite(path, bytes, options);
+  };
+  try {
+    let result;
+    try {
+      result = await target.cacheAll(force);
+    } finally {
+      attachmentIOUtils.write = originalWrite;
+    }
+    Assert.equal(
+      paths.length,
+      2,
+      "Observed the archive and staging file paths"
+    );
+    for (const path of paths) {
+      Assert.ok(!(await IOUtils.exists(path)), "Temporary file was removed");
+    }
+    return result;
+  } finally {
+    for (const path of paths) {
+      await IOUtils.remove(path, { ignoreAbsent: true });
+    }
+  }
+}
+
 add_task(async function test_cacheAll_happy_path() {
   // verify bundle is downloaded succesfully
-  const allSuccess = await downloader.cacheAll();
+  const allSuccess = await cacheAllAndCheckCleanup();
   Assert.ok(
     allSuccess,
     "Attachments cacheAll succesfully downloaded a bundle and saved all attachments"
@@ -802,7 +835,7 @@ add_task(async function test_cacheAll_happy_path() {
 add_task(async function test_cacheAll_using_real_db() {
   const client = RemoteSettings("some-collection");
 
-  const allSuccess = await client.attachments.cacheAll();
+  const allSuccess = await cacheAllAndCheckCleanup(client.attachments);
 
   Assert.ok(
     allSuccess,
@@ -823,6 +856,36 @@ add_task(async function test_cacheAll_using_real_db() {
 
 add_task(clear_state);
 
+add_task(async function test_cacheAll_avoids_metadata_blob() {
+  const moduleGlobal = Cu.getGlobalForObject(Downloader);
+  const originalBlob = moduleGlobal.Blob;
+  let metadataBlobs = 0;
+  let attachmentBlobs = 0;
+  moduleGlobal.Blob = class extends originalBlob {
+    constructor(parts, options) {
+      if (options?.type === "application/json") {
+        metadataBlobs++;
+      } else {
+        attachmentBlobs++;
+      }
+      super(parts, options);
+    }
+  };
+  try {
+    Assert.equal(await cacheAllAndCheckCleanup(), true);
+    Assert.equal(metadataBlobs, 0, "Metadata does not need a Blob round trip");
+    Assert.equal(attachmentBlobs, 2, "Attachment storage is unchanged");
+    Assert.equal(downloader.cache["1"].record.title, "test1");
+    Assert.equal(await downloader.cache["1"].blob.text(), "test1\n");
+    Assert.equal(downloader.cache["2"].record.title, "test2");
+    Assert.equal(await downloader.cache["2"].blob.text(), "test2\n");
+  } finally {
+    moduleGlobal.Blob = originalBlob;
+  }
+});
+
+add_task(clear_state);
+
 add_task(async function test_cacheAll_skips_with_existing_data() {
   downloader.cache = {
     1: "1",
@@ -839,7 +902,7 @@ add_task(async function test_cacheAll_does_not_skip_if_force_is_true() {
   downloader.cache = {
     1: "1",
   };
-  const allSuccess = await downloader.cacheAll(true);
+  const allSuccess = await cacheAllAndCheckCleanup(downloader, true);
   Assert.equal(
     allSuccess,
     true,
@@ -865,7 +928,7 @@ add_task(clear_state);
 add_task(async function test_cacheAll_failed_unzip() {
   downloader.bucketName = "error-bucket";
   downloader.collectionName = "bad-zip";
-  const allSuccess = await downloader.cacheAll();
+  const allSuccess = await cacheAllAndCheckCleanup();
   Assert.equal(
     allSuccess,
     false,
@@ -883,14 +946,71 @@ add_task(async function test_cacheAll_failed_save() {
     throw new Error("boom");
   };
 
-  const allSuccess = await client.attachments.cacheAll();
+  try {
+    const allSuccess = await cacheAllAndCheckCleanup(client.attachments);
+    Assert.equal(
+      allSuccess,
+      false,
+      "Attachments cacheAll failed to save entries in DB and returned false"
+    );
+  } finally {
+    client.db.saveAttachments = backup;
+  }
+});
 
-  Assert.equal(
-    allSuccess,
-    false,
-    "Attachments cacheAll failed to save entries in DB and returned false"
-  );
-  client.db.saveAttachments = backup;
+add_task(clear_state);
+
+add_task(async function test_cacheAll_partial_write_cleanup() {
+  const originalWrite = attachmentIOUtils.write;
+  let partialWrites = 0;
+  attachmentIOUtils.write = async (path, bytes, options) => {
+    if (path.endsWith(".zip")) {
+      partialWrites++;
+      await originalWrite(options.tmpPath, new Uint8Array([1, 2, 3]));
+      throw new Error("Injected partial archive write");
+    }
+    return originalWrite(path, bytes, options);
+  };
+  try {
+    Assert.equal(await cacheAllAndCheckCleanup(), false);
+    Assert.equal(partialWrites, 1, "The staging file was actually written");
+  } finally {
+    attachmentIOUtils.write = originalWrite;
+  }
+});
+
+add_task(clear_state);
+
+add_task(async function test_cacheAll_failed_remove_reports_failure() {
+  const originalRemove = attachmentIOUtils.remove;
+  const attempted = [];
+  let retainedPath;
+  attachmentIOUtils.remove = async (path, options) => {
+    attempted.push(path);
+    if (path.endsWith(".zip")) {
+      retainedPath = path;
+      throw new Error("Injected archive removal failure");
+    }
+    return originalRemove(path, options);
+  };
+  try {
+    Assert.equal(await downloader.cacheAll(), false);
+    Assert.ok(retainedPath, "An archive removal was attempted");
+    Assert.ok(
+      await IOUtils.exists(retainedPath),
+      "Failed removal leaves evidence"
+    );
+    Assert.ok(
+      attempted.includes(`${retainedPath}.tmp`),
+      "Staging-file cleanup is still attempted"
+    );
+  } finally {
+    attachmentIOUtils.remove = originalRemove;
+    if (retainedPath) {
+      await originalRemove(retainedPath, { ignoreAbsent: true });
+      await originalRemove(`${retainedPath}.tmp`, { ignoreAbsent: true });
+    }
+  }
 });
 
 add_task(clear_state);

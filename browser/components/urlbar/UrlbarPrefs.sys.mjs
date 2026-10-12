@@ -439,6 +439,8 @@ const PREF_URLBAR_DEFAULTS = /** @type {PreferenceDefinition[]} */ ([
   // The type of Realtime suggestion that the user selected 'Dismiss' as CSV.
   ["quicksuggest.realtimeOptIn.dismissTypes", ""],
 
+  ["quicksuggest.regionDefaults.enabled", false],
+
   // Whether Firefox Suggest will use the new Rust backend instead of the
   // original JS backend.
   ["quicksuggest.rustEnabled", true],

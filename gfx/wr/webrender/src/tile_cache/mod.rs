@@ -50,6 +50,8 @@ use peek_poke::{PeekPoke, ensure_red_zone};
 use std::fmt::{Display, Error, Formatter};
 use std::{marker, mem};
 use std::sync::atomic::{AtomicUsize, Ordering};
+#[cfg(feature = "umbra-perf-probes")]
+use std::time::Duration;
 
 pub use self::slice_builder::{
     TileCacheBuilder, TileCacheConfig,
@@ -746,6 +748,10 @@ pub struct DeferredDirtyTest {
 pub struct TileCacheInstance {
     // The current debug flags for the system.
     pub debug_flags: DebugFlags,
+    #[cfg(feature = "umbra-perf-probes")]
+    profiled_rgb_candidates: usize,
+    #[cfg(feature = "umbra-perf-probes")]
+    profiled_rgb_update: usize,
     /// Index of the tile cache / slice for this frame builder. It's determined
     /// by the setup_picture_caching method during flattening, which splits the
     /// picture tree into multiple slices. It's used as a simple input to the tile
@@ -875,6 +881,10 @@ impl TileCacheInstance {
 
         TileCacheInstance {
             debug_flags: params.debug_flags,
+            #[cfg(feature = "umbra-perf-probes")]
+            profiled_rgb_candidates: 0,
+            #[cfg(feature = "umbra-perf-probes")]
+            profiled_rgb_update: 0,
             slice: params.slice,
             slice_flags: params.slice_flags,
             spatial_node_index: params.spatial_node_index,
@@ -1066,6 +1076,10 @@ impl TileCacheInstance {
         frame_context: &FrameVisibilityContext,
         frame_state: &mut FrameVisibilityState,
     ) {
+        #[cfg(feature = "umbra-perf-probes")]
+        {
+            self.profiled_rgb_candidates = 0;
+        }
         let surface = &frame_state.surfaces[surface_index.0];
         let pic_rect = surface.unclipped_local_rect;
 
@@ -1768,6 +1782,7 @@ impl TileCacheInstance {
         data_stores: &DataStores,
         clip_store: &ClipStore,
         image_dependency: ImageDependency,
+        modulation: api::PremultipliedColorF,
         api_key: ImageKey,
         resource_cache: &mut ResourceCache,
         composite_state: &mut CompositeState,
@@ -1807,6 +1822,7 @@ impl TileCacheInstance {
             clip_store,
             ExternalSurfaceDependency::Rgb {
                 image_dependency,
+                modulation,
             },
             &api_keys,
             resource_cache,
@@ -2365,9 +2381,12 @@ impl TileCacheInstance {
                     prim_info.color_binding = Some(color_u.into());
                 }
             }
-            PrimitiveKind::Image { data_handle, .. } => {
+            PrimitiveKind::Image { data_handle, opacity } => {
                 let image_key = &data_stores.image[data_handle];
                 let image_data = &image_key.kind;
+                if opacity != 1.0 {
+                    prim_info.opacity_bindings.push(PropertyBinding::Value(opacity).into());
+                }
 
                 // For now, assume that for compositor surface purposes, any RGBA image may be
                 // translucent. See the comment in `add_prim` in this source file for more
@@ -2384,7 +2403,7 @@ impl TileCacheInstance {
                     if image_properties.descriptor.is_opaque() &&
                        image_properties.tiling.is_none() &&
                        image_data.tile_spacing == LayoutSize::zero() &&
-                       image_data.color.a >= 1.0 {
+                       image_data.color.a * opacity >= 1.0 {
                         backdrop_candidate = Some(BackdropInfo {
                             opaque_rect: pic_coverage_rect,
                             spanning_opaque_color: None,
@@ -2393,7 +2412,7 @@ impl TileCacheInstance {
                         });
                     }
 
-                    is_opaque = image_properties.descriptor.is_opaque();
+                    is_opaque = image_properties.descriptor.is_opaque() && opacity >= 1.0;
                 }
 
                 let mut promotion_result: Result<CompositorSurfaceKind, SurfacePromotionFailure> = Ok(CompositorSurfaceKind::Blit);
@@ -2439,6 +2458,7 @@ impl TileCacheInstance {
                                 key: image_data.key,
                                 generation: resource_cache.get_image_generation(image_data.key),
                             },
+                            ColorF::new(1.0, 1.0, 1.0, opacity).premultiplied(),
                             image_data.key,
                             resource_cache,
                             composite_state,
@@ -2447,6 +2467,41 @@ impl TileCacheInstance {
                             is_opaque,
                             kind,
                         );
+                    }
+                }
+
+                #[cfg(feature = "umbra-perf-probes")]
+                if self.debug_flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING)
+                    && profiler::umbra_markers_enabled()
+                {
+                    // Include unpreferred images so absent candidacy is distinguishable from rejection.
+                    if self.profiled_rgb_candidates < 64 {
+                        if self.profiled_rgb_candidates == 0 {
+                            static NEXT_PROFILED_RGB_UPDATE: AtomicUsize = AtomicUsize::new(1);
+                            self.profiled_rgb_update = NEXT_PROFILED_RGB_UPDATE.fetch_add(1, Ordering::Relaxed);
+                        }
+                        let message = format!(
+                            "update={} candidate={} frame={} slice={} surface={} primitive_surface={} key={:?} generation={:?} preferred={} root={} alpha={:?} color_alpha={} mask={} atomic={} sub_slice={}/{} yuv_remaining={} rect={:?} result={:?}",
+                            self.profiled_rgb_update, self.profiled_rgb_candidates + 1,
+                            self.frame_id.as_u64(), self.slice, self.surface_index.0,
+                            prim_surface_index.0, image_data.key,
+                            resource_cache.get_image_generation(image_data.key),
+                            image_key.common.flags.contains(PrimitiveFlags::PREFER_COMPOSITOR_SURFACE),
+                            is_root_tile_cache, image_data.alpha_type, image_data.color.a * opacity,
+                            prim_clip_chain.needs_mask,
+                            self.slice_flags.contains(SliceFlags::IS_ATOMIC),
+                            sub_slice_index, self.sub_slices.len(), self.yuv_images_remaining,
+                            pic_coverage_rect, promotion_result,
+                        );
+                        profiler::add_text_marker("WR RGB promotion", &message, Duration::ZERO);
+                        self.profiled_rgb_candidates += 1;
+                    } else if self.profiled_rgb_candidates == 64 {
+                        profiler::add_text_marker(
+                            "WR RGB promotion truncated",
+                            &format!("update={} frame={} slice={} limit=64", self.profiled_rgb_update, self.frame_id.as_u64(), self.slice),
+                            Duration::ZERO,
+                        );
+                        self.profiled_rgb_candidates += 1;
                     }
                 }
 

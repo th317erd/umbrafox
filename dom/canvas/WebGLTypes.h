@@ -1164,6 +1164,10 @@ struct TexUnpackBlobDesc final {
 
   webgl::PixelUnpackStateWebgl unpacking;
   bool applyUnpackTransforms = true;
+  gfx::SurfaceFormat destFormat = gfx::SurfaceFormat::UNKNOWN;
+  // Internal descriptor importers can fall back after blit failure. Not
+  // serialized.
+  bool allowSurfaceDescriptorFallback = false;
 
   // -
 

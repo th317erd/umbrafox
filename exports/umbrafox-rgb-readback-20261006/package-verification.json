@@ -1,0 +1,30 @@
+{
+  "buildID": "20261006111504",
+  "files": 46,
+  "archiveEntries": 57,
+  "uncompressedBytes": 475122949,
+  "archive": {
+    "name": "umbrafox-rgb-readback-20261006111504-linux-x86_64.tar.xz",
+    "bytes": 107766516,
+    "sha256": "71f6addde29258baff9e0f8cad10a6ef2ae3dd64a0d220649c9f4bf49ea57587"
+  },
+  "manifestSHA256": "a5da86b656e6bd241e309329f0072367d2bfc891650c500abb47fe561b071a11",
+  "iniBuildIDs": {
+    "application.ini": "20261006111504",
+    "platform.ini": "20261006111504"
+  },
+  "toolkitBuildID": "20261006111504",
+  "frontendArchives": {
+    "omni.ja": {
+      "entries": 2676,
+      "changed": [
+        "modules/AppConstants.sys.mjs"
+      ]
+    },
+    "browser/omni.ja": {
+      "entries": 5368,
+      "changed": []
+    }
+  },
+  "installed": false
+}

@@ -7,6 +7,21 @@ LOCAL_INCLUDES += [
     "/dom/workers",
 ]
 
+LOCAL_INCLUDES += CONFIG["SKIA_INCLUDES"]
+
+SOURCES += [
+    "TestCanvasSurfaceImport.cpp",
+]
+
+if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
+    LOCAL_INCLUDES += ["/gfx/gl"]
+    SOURCES += [
+        "TestCanvasVideoSurfaceCache.cpp",
+        "TestDMABufProducerFence.cpp",
+        "TestDMABufReadback.cpp",
+    ]
+    SOURCES["TestDMABufProducerFence.cpp"].flags += CONFIG["MOZ_GTK3_CFLAGS"]
+
 UNIFIED_SOURCES += [
     "TestOffscreenCanvas.cpp",
     "TestSanitizeRenderer.cpp",

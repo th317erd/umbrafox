@@ -17,6 +17,7 @@ UNIFIED_SOURCES += [
     "TestFontFallback.cpp",
     "TestFontOverlapPrevention.cpp",
     "TestGfxWidgets.cpp",
+    "TestGPUVideoImage.cpp",
     "TestMatrix.cpp",
     "TestMoz2D.cpp",
     "TestPoint.cpp",
@@ -33,6 +34,7 @@ UNIFIED_SOURCES += [
 
 SOURCES += [
     "SwizzleGeneric.cpp",
+    "TestGPUVideoReadbackIPC.cpp",
 ]
 
 if CONFIG["OS_TARGET"] != "Android":

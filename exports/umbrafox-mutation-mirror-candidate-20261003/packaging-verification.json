@@ -1,0 +1,7 @@
+{
+  "stagedFileCount": 46,
+  "stagedTreeByteEquality": true,
+  "unstrippedDistExecutableSHA256": "03d5b64e3f62dca068c91e9e1ce50fae1a1935d13279c78915787c9667ec918e",
+  "packagedExecutableSHA256": "0ca9e768f64ab36078bbcde61ce788f681c73cfbf670b25aa89c286ab1323f14",
+  "initialDirectDistComparison": "Rejected: packaging uses configured llvm-strip --strip-debug; compare the packaging staging tree instead."
+}

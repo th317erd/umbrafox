@@ -12,6 +12,7 @@ import {
   lstat,
   mkdir,
   open as openFile,
+  readdir,
   readFile,
   realpath,
   writeFile,
@@ -22,6 +23,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 import {
+  applicationDataPaths,
   browserEnvironment,
   connectControl,
   createBoundedLogger,
@@ -35,6 +37,87 @@ import {
   validateResult,
   withTimeout,
 } from "./helpers.mjs";
+import {
+  captureLifecycle,
+  createLifecycleBudget,
+  createLifecycleEvidence,
+  readLifecycleHost,
+  startLifecycleMonitor,
+  validateLifecycleTab,
+  validateLifecycleWindows,
+  waitForLifecycleReady,
+} from "./lifecycle-capture.mjs";
+import { getLifecyclePlan, serializeLifecycleSnapshot } from "./lifecycle.mjs";
+
+export function profilePreferences(suite) {
+  const prefs = {
+    "umbrafox.control.enabled": true,
+    "umbrafox.control.port": 0,
+  };
+  if (suite === "lifecycle") {
+    prefs["startup.homepage_welcome_url"] = "";
+    prefs["startup.homepage_welcome_url.additional"] = "";
+    prefs["datareporting.policy.dataSubmissionEnabled"] = false;
+  }
+  return prefs;
+}
+
+async function saveLifecycleBoundary(
+  save,
+  phase,
+  snapshot,
+  graphics,
+  admission,
+  diagnostics = null
+) {
+  if (
+    snapshot.processID !== admission.diagnostics.processID ||
+    snapshot.profiler?.active !== false
+  ) {
+    throw new Error("Lifecycle boundary identity/profiler mismatch");
+  }
+  if (
+    !Array.isArray(graphics.windows) ||
+    graphics.windows.filter(item => item?.type === "navigator:browser")
+      .length !== 1 ||
+    graphics.windows.some(
+      item => !item || !["navigator:browser", null].includes(item.type)
+    )
+  ) {
+    throw new Error("Lifecycle graphics browser-window coverage invalid");
+  }
+  const expectedURL =
+    phase === "before" ? admission.urls[0] : admission.urls.at(-1);
+  if (
+    diagnostics &&
+    (diagnostics.processID !== admission.diagnostics.processID ||
+      diagnostics.profileDir !== admission.diagnostics.profileDir ||
+      diagnostics.channel !== "umbrafox-control")
+  ) {
+    throw new Error("Lifecycle after diagnostics identity mismatch");
+  }
+  let tabContext = phase === "before" ? admission.context : null;
+  if (diagnostics) {
+    tabContext = validateLifecycleTab(
+      diagnostics,
+      expectedURL,
+      admission.context
+    );
+  }
+  await save(`lifecycle-isolation-${phase}.json`, {
+    expectedURL,
+    ...validateLifecycleWindows(snapshot, expectedURL),
+    tabContext,
+    selectionContextObserved: phase === "before" || diagnostics !== null,
+    setupRPCs: admission.attempts,
+    additionalSetupRPCs: admission.attempts - 1,
+    nonBrowserGraphicsWindows: graphics.windows.filter(
+      item => item.type !== "navigator:browser"
+    ),
+    limitation:
+      "Observed windows only; background/hidden windows are separate. No continuous tab, outbound-network or whole-memory isolation claim.",
+  });
+}
 
 async function hashFile(path, signal) {
   const hash = createHash("sha256");
@@ -53,7 +136,158 @@ export async function checkBus(path) {
   }
 }
 
-export async function collectProvenance(options, root, signal, save) {
+async function readProvenanceINI(path, signal) {
+  const handle = await openFile(path, "r");
+  try {
+    signal.throwIfAborted();
+    const metadata = await handle.stat();
+    if (
+      !metadata.isFile() ||
+      !Number.isSafeInteger(metadata.size) ||
+      metadata.size > 65536
+    ) {
+      throw new Error("Lifecycle INI input cap/type invalid");
+    }
+    const buffer = Buffer.alloc(65537);
+    let offset = 0;
+    while (offset < buffer.length) {
+      signal.throwIfAborted();
+      const { bytesRead } = await handle.read(
+        buffer,
+        offset,
+        buffer.length - offset,
+        offset
+      );
+      if (!bytesRead) {
+        break;
+      }
+      offset += bytesRead;
+    }
+    signal.throwIfAborted();
+    if (offset > 65536 || offset !== metadata.size) {
+      throw new Error("Lifecycle INI input cap/size changed");
+    }
+    return buffer.subarray(0, offset);
+  } finally {
+    await handle.close();
+  }
+}
+
+async function readApplicationDirectory(path, empty, signal, io) {
+  signal.throwIfAborted();
+  const metadata = await io.lstat(path);
+  signal.throwIfAborted();
+  if (
+    !metadata.isDirectory() ||
+    metadata.uid !== process.getuid() ||
+    (metadata.mode & 0o7777) !== 0o700
+  ) {
+    throw new Error("Application-data directory must be owner-private (0700)");
+  }
+  const canonical = await io.realpath(path);
+  signal.throwIfAborted();
+  if (canonical !== path) {
+    throw new Error("Application-data directory must not be aliased");
+  }
+  if (empty) {
+    const entries = await io.readdir(path);
+    signal.throwIfAborted();
+    if (entries.length) {
+      throw new Error("Application-data directory must be empty before launch");
+    }
+  }
+  return Object.freeze({
+    dev: metadata.dev,
+    ino: metadata.ino,
+    uid: metadata.uid,
+    mode: metadata.mode & 0o7777,
+  });
+}
+
+export async function createOutputRoot(root, signal, operations = {}) {
+  signal.throwIfAborted();
+  applicationDataPaths(root);
+  const io = { mkdir, lstat, realpath, ...operations };
+  const parentDirectory = dirname(root);
+  const canonicalParent = await io.realpath(parentDirectory);
+  signal.throwIfAborted();
+  if (canonicalParent !== parentDirectory) {
+    throw new Error(
+      "Application-data output parent must be canonical, not aliased"
+    );
+  }
+  await io.mkdir(root, { mode: 0o700 });
+  const identity = await readApplicationDirectory(root, false, signal, io);
+  return Object.freeze({ root, identity });
+}
+
+function compareApplicationIdentity(identity, expected) {
+  if (
+    !expected ||
+    ["dev", "ino", "uid", "mode"].some(
+      field => identity[field] !== expected[field]
+    )
+  ) {
+    throw new Error(
+      "Application-data directory identity missing or changed before launch"
+    );
+  }
+}
+
+export async function createApplicationData(output, signal, operations = {}) {
+  signal.throwIfAborted();
+  const paths = applicationDataPaths(output?.root);
+  const io = { mkdir, lstat, realpath, readdir, ...operations };
+  compareApplicationIdentity(
+    await readApplicationDirectory(paths.root, false, signal, io),
+    output.identity
+  );
+  const creation = { root: output.identity };
+  const identities = new Set([`${creation.root.dev}:${creation.root.ino}`]);
+  for (const key of ["appData", "localAppData", "tempDir"]) {
+    signal.throwIfAborted();
+    await io.mkdir(paths[key], { mode: 0o700 });
+    signal.throwIfAborted();
+    creation[key] = await readApplicationDirectory(
+      paths[key],
+      true,
+      signal,
+      io
+    );
+    const identity = `${creation[key].dev}:${creation[key].ino}`;
+    if (identities.has(identity)) {
+      throw new Error(
+        "Application-data directories must have distinct identities"
+      );
+    }
+    identities.add(identity);
+  }
+  return Object.freeze({ ...paths, creation: Object.freeze(creation) });
+}
+
+export async function verifyApplicationData(evidence, signal, operations = {}) {
+  signal.throwIfAborted();
+  const paths = applicationDataPaths(evidence?.root);
+  const io = { lstat, realpath, readdir, ...operations };
+  for (const key of ["root", "appData", "localAppData", "tempDir"]) {
+    if (evidence[key] !== paths[key] || !evidence.creation?.[key]) {
+      throw new Error(
+        "Application-data creation evidence is missing or inconsistent"
+      );
+    }
+    const identity = await readApplicationDirectory(
+      paths[key],
+      key !== "root",
+      signal,
+      io
+    );
+    compareApplicationIdentity(identity, evidence.creation[key]);
+  }
+}
+
+export async function collectProvenance(options, output, signal, save) {
+  signal.throwIfAborted();
+  const { root } = output;
   const binary = await realpath(options.binary);
   await access(binary, constants.X_OK);
   const handle = await openFile(binary, "r");
@@ -73,10 +307,12 @@ export async function collectProvenance(options, root, signal, save) {
   } finally {
     await handle.close();
   }
+  const applicationData = await createApplicationData(output, signal);
   const environment = browserEnvironment(
     process.env,
     options.profile,
-    options.suite
+    options.suite,
+    applicationData
   );
   const files = {};
   for (const fileName of [
@@ -86,7 +322,23 @@ export async function collectProvenance(options, root, signal, save) {
     "platform.ini",
   ]) {
     const path = join(dirname(binary), fileName);
+    let preservingINI = false;
     try {
+      if (
+        options.suite === "lifecycle" &&
+        options["lifecycle-plan"] === "soak-30m" &&
+        ["application.ini", "platform.ini"].includes(fileName)
+      ) {
+        const resolved = await realpath(path);
+        const bytes = await readProvenanceINI(resolved, signal);
+        files[fileName] = {
+          path: resolved,
+          sha256: createHash("sha256").update(bytes).digest("hex"),
+        };
+        preservingINI = true;
+        await save(fileName, bytes);
+        continue;
+      }
       files[fileName] = {
         path: await realpath(path),
         sha256: await hashFile(path, signal),
@@ -95,7 +347,11 @@ export async function collectProvenance(options, root, signal, save) {
         await copyFile(path, join(root, fileName), constants.COPYFILE_EXCL);
       }
     } catch (error) {
-      if (fileName !== "platform.ini" || error.code !== "ENOENT") {
+      if (
+        preservingINI ||
+        fileName !== "platform.ini" ||
+        error.code !== "ENOENT"
+      ) {
         throw error;
       }
       files[fileName] = null;
@@ -109,21 +365,29 @@ export async function collectProvenance(options, root, signal, save) {
     "helpers.mjs",
     "run.mjs",
     ...(options.suite === "userland-cache" ? ["userland-cache.mjs"] : []),
+    ...(options.suite === "lifecycle"
+      ? ["lifecycle.mjs", "lifecycle-capture.mjs"]
+      : []),
   ]) {
     fixtureHashes[fileName] = await hashFile(
       fileURLToPath(new URL(fileName, import.meta.url)),
       signal
     );
   }
-  const userlandModules = options.suite === "userland-cache" ? {} : undefined;
+  const userlandModules = ["userland-cache", "lifecycle"].includes(
+    options.suite
+  )
+    ? {}
+    : undefined;
   if (userlandModules) {
     for (const moduleName of [
       "modules/UmbrafoxUserlandScriptRegistry.sys.mjs",
       "modules/UmbrafoxUserlandScriptStore.sys.mjs",
       "modules/UmbrafoxUserlandScriptRuntime.sys.mjs",
       "modules/UmbrafoxUserlandEventController.sys.mjs",
-      "actors/UmbrafoxUserlandParent.sys.mjs",
-      "actors/UmbrafoxUserlandChild.sys.mjs",
+      "moz-src/toolkit/actors/UmbrafoxUserlandParent.sys.mjs",
+      "moz-src/toolkit/actors/UmbrafoxUserlandChild.sys.mjs",
+      "modules/ActorManagerParent.sys.mjs",
     ]) {
       try {
         const path = await realpath(join(dirname(binary), moduleName));
@@ -139,11 +403,13 @@ export async function collectProvenance(options, root, signal, save) {
       }
     }
   }
+  signal.throwIfAborted();
   await save("provenance.json", {
     files,
     fixtureHashes,
     ...(userlandModules ? { userlandModules } : {}),
     environment,
+    applicationData,
     host: {
       platform: platform(),
       release: release(),
@@ -155,7 +421,8 @@ export async function collectProvenance(options, root, signal, save) {
     isolation:
       "New explicit profile; headless; no remote agent, Marionette, or WebDriver; ambient environment allowlisted.",
   });
-  return { binary, environment };
+  signal.throwIfAborted();
+  return { binary, environment, applicationData };
 }
 
 export async function captureWorkloads({
@@ -173,8 +440,35 @@ export async function captureWorkloads({
   signal,
   server,
   validateUserlandCacheResult,
+  validateLifecycleResult,
+  lifecycleCapture = captureLifecycle,
+  monitor,
+  budget,
 }) {
-  const diagnostics = await control.request("umbrafox.diagnostics.snapshot");
+  const plan =
+    options.suite === "lifecycle"
+      ? getLifecyclePlan(options["lifecycle-plan"])
+      : null;
+  const soak = plan?.name === "soak-30m";
+  if (soak) {
+    budget.admit(0);
+  }
+  const admission =
+    options.suite === "lifecycle"
+      ? await waitForLifecycleReady({
+          control,
+          server,
+          owned,
+          profile,
+          bounded,
+          signal,
+          save,
+          plan,
+        })
+      : null;
+  const diagnostics =
+    admission?.diagnostics ??
+    (await control.request("umbrafox.diagnostics.snapshot"));
   if (
     diagnostics.processID !== owned.child.pid ||
     diagnostics.profileDir !== profile ||
@@ -183,17 +477,24 @@ export async function captureWorkloads({
     throw new Error("UmbraLink does not match the owned browser/profile");
   }
   await save("diagnostics-before.json", diagnostics);
-  await save(
-    "graphics-before.json",
-    await control.request("umbrafox.gfx.snapshot")
-  );
+  const graphicsBefore = await control.request("umbrafox.gfx.snapshot");
+  await save("graphics-before.json", graphicsBefore);
   const before = await control.request("umbrafox.performance.snapshot", {
-    includeThreads: true,
-    includeWindows: false,
+    includeThreads: options.suite !== "lifecycle",
+    includeWindows: options.suite === "lifecycle",
   });
   await save("performance-before.json", before);
   if (before.profiler?.active !== (options.profile === "on")) {
     throw new Error("Observed profiler mode does not match requested mode");
+  }
+  if (admission) {
+    await saveLifecycleBoundary(
+      save,
+      "before",
+      before,
+      graphicsBefore,
+      admission
+    );
   }
   if (options.profile === "on") {
     for (const feature of environment.env.MOZ_PROFILER_STARTUP_FEATURES.split(
@@ -204,9 +505,34 @@ export async function captureWorkloads({
       }
     }
   }
+  if (soak) {
+    budget.admit(0);
+  }
   milestone("workloadReleased");
   server.start();
-  const result = await bounded(server.result, "Fixture completion");
+  if (options.suite === "lifecycle") {
+    await lifecycleCapture({
+      control,
+      owned,
+      profile,
+      server,
+      save,
+      bounded,
+      signal,
+      monitor,
+      admission,
+      plan,
+      budget,
+    });
+  }
+  if (soak) {
+    budget.admit(plan.checkpoints.length);
+  }
+  const result = await bounded(
+    server.result,
+    "Fixture completion",
+    ...(soak ? [120000] : [])
+  );
   milestone("workloadCompleted");
   await save("samples.json", result);
   if (options.suite === "userland-cache") {
@@ -216,6 +542,15 @@ export async function captureWorkloads({
       workloads: null,
       explanation:
         "Diagnostic cache-path evidence only; logging is enabled and no release timing score is computed.",
+    });
+  } else if (options.suite === "lifecycle") {
+    await validateLifecycleResult(result, options);
+    await save("statistics.json", {
+      mode: soak ? "lifecycle-soak-observation-only" : "lifecycle-smoke-only",
+      workloads: null,
+      explanation: soak
+        ? "Bounded NONE lifecycle observations only; no causal leak, whole-memory isolation, or release timing score."
+        : "Bounded lifecycle correctness and resource smoke only; no leak slope, controller ownership, active-state certification for unrelated, or release timing score.",
     });
   } else {
     validateResult(result, options);
@@ -236,17 +571,32 @@ export async function captureWorkloads({
       workloads: statistics,
     });
   }
-  await save(
-    "graphics-after.json",
-    await control.request("umbrafox.gfx.snapshot")
-  );
-  await save(
-    "performance-after.json",
-    await control.request("umbrafox.performance.snapshot", {
-      includeThreads: true,
-      includeWindows: false,
-    })
-  );
+  const graphicsAfter = await control.request("umbrafox.gfx.snapshot");
+  await save("graphics-after.json", graphicsAfter);
+  const after = await control.request("umbrafox.performance.snapshot", {
+    includeThreads: options.suite !== "lifecycle",
+    includeWindows: options.suite === "lifecycle",
+  });
+  await save("performance-after.json", after);
+  let diagnosticsAfter = null;
+  if (soak) {
+    budget.admit(plan.checkpoints.length);
+    diagnosticsAfter = await control.request("umbrafox.diagnostics.snapshot");
+    await save("diagnostics-after.json", diagnosticsAfter);
+    if (!diagnosticsAfter) {
+      throw new Error("Lifecycle after diagnostics missing");
+    }
+  }
+  if (admission) {
+    await saveLifecycleBoundary(
+      save,
+      "after",
+      after,
+      graphicsAfter,
+      admission,
+      diagnosticsAfter
+    );
+  }
   if (options.profile === "on") {
     const profileDump = await control.request(
       "umbrafox.performance.profile.dump",
@@ -359,7 +709,7 @@ export async function prepareFixtureEvidence(
   if (suite === "basic") {
     secrets.push(new URL(server.url).pathname);
   }
-  if (suite === "userland-cache") {
+  if (["userland-cache", "lifecycle"].includes(suite)) {
     await mkdir(join(profile, "umbrafox"), { mode: 0o700 });
     await writeFile(
       join(profile, "umbrafox", "userland-scripts.json"),
@@ -367,7 +717,7 @@ export async function prepareFixtureEvidence(
       { flag: "wx", mode: 0o600 }
     );
     await save("userland-script-store.json", server.scriptStore);
-    await save("userland-cache-metadata.json", server.metadata);
+    await save(`${suite}-metadata.json`, server.metadata);
   }
 }
 
@@ -408,17 +758,197 @@ export async function preserveFixtureState({
   return failure;
 }
 
+export async function finishLifecycle({
+  owned,
+  server,
+  monitor,
+  control,
+  logger,
+  log,
+  report,
+  save,
+  scrub,
+  failure,
+  abort,
+  cancelLog,
+  budget,
+  operationTimeoutMs = 1000,
+}) {
+  let firstFailure = failure;
+  const failed = (error, label) => {
+    firstFailure ??= error;
+    report.status = "cleanup-failed";
+    report.cleanupErrors ??= [];
+    report.cleanupErrors.push({
+      operation: label,
+      error: scrub(error.message),
+    });
+  };
+  const attempt = async (label, operation, cap = operationTimeoutMs) => {
+    let settled = false;
+    let started = false;
+    try {
+      const milliseconds = Math.min(cap, budget.remaining(true));
+      const operationSignal = AbortSignal.timeout(
+        Math.max(1, Math.floor(milliseconds))
+      );
+      started = true;
+      const pending = Promise.resolve().then(() => operation(operationSignal));
+      pending.then(
+        () => {
+          settled = true;
+        },
+        () => {
+          settled = true;
+        }
+      );
+      return await withTimeout(pending, milliseconds, label);
+    } catch (error) {
+      failed(error, label);
+      if (started && !settled) {
+        report.unsettledCleanup ??= [];
+        report.unsettledCleanup.push(label);
+      }
+      return undefined;
+    }
+  };
+  try {
+    firstFailure = await preserveFixtureState({
+      server,
+      save,
+      report,
+      scrub,
+      failure: firstFailure,
+      timeoutMs: Math.min(2000, budget.remaining(true)),
+    });
+  } catch (error) {
+    failed(error, "fixture state");
+  }
+  abort("Run finished; cancel outstanding work");
+  await attempt("Lifecycle monitor stop", () => monitor?.stop());
+  await attempt("Lifecycle control close", () => control?.close());
+  if (owned) {
+    try {
+      const milliseconds = Math.min(5000, budget.remaining(true));
+      report.cleanup = await stopOwned(
+        owned,
+        milliseconds,
+        AbortSignal.timeout(Math.max(1, Math.floor(milliseconds)))
+      );
+    } catch (error) {
+      report.cleanup = {
+        status: "cleanup-failed",
+        reason: scrub(error.message),
+      };
+    }
+    if (report.cleanup.status !== "clean") {
+      failed(
+        new Error("Owned browser cleanup failed; no SIGKILL escalation"),
+        "owned process group"
+      );
+      owned.child.unref();
+      owned.child.stdout?.destroy();
+      owned.child.stderr?.destroy();
+    }
+  }
+  await attempt("Lifecycle fixture close", () => server?.close());
+  if (owned && report.cleanup?.status === "clean") {
+    await attempt("Lifecycle browser output drain", () => owned.closed);
+  }
+  report.log = await attempt("Lifecycle log finish", () => logger?.finish());
+  cancelLog();
+  await attempt("Lifecycle log close", () => log?.close());
+  try {
+    if (logger || owned) {
+      validateLogEvidence(report.log, "lifecycle");
+    }
+  } catch (error) {
+    failed(error, "log completeness");
+  }
+  return firstFailure;
+}
+
+export async function finishStandard({
+  owned,
+  server,
+  logger,
+  log,
+  report,
+  scrub,
+  failure,
+  suite,
+}) {
+  let firstFailure = failure;
+  if (owned) {
+    try {
+      report.cleanup = await stopOwned(owned);
+    } catch (error) {
+      report.cleanup = {
+        status: "cleanup-failed",
+        reason: scrub(error.message),
+      };
+    }
+    if (report.cleanup.status !== "clean") {
+      report.status = "cleanup-failed";
+      firstFailure ??= new Error(
+        "Browser cleanup failed; inspect run.json and process.json"
+      );
+      owned.child.unref();
+      owned.child.stdout?.destroy();
+      owned.child.stderr?.destroy();
+    }
+  }
+  try {
+    await server?.close();
+  } catch (error) {
+    firstFailure ??= error;
+    report.status = "cleanup-failed";
+  }
+  try {
+    if (owned && report.cleanup?.status === "clean") {
+      await withTimeout(owned.closed, 1000, "Browser output drain");
+    }
+    report.log = await logger?.finish();
+  } catch (error) {
+    firstFailure ??= error;
+    report.status = "cleanup-failed";
+  }
+  try {
+    await log?.close();
+  } catch (error) {
+    firstFailure ??= error;
+    report.status = "cleanup-failed";
+  }
+  try {
+    validateLogEvidence(report.log, suite);
+  } catch (error) {
+    firstFailure ??= error;
+    if (report.status === "passed") {
+      report.status = "failed";
+    }
+  }
+  return firstFailure;
+}
+
 export async function main(args) {
   const options = parseArgs(args);
+  const lifecyclePlan =
+    options.suite === "lifecycle"
+      ? getLifecyclePlan(options["lifecycle-plan"])
+      : null;
+  const lifecycleBudget =
+    options.suite === "lifecycle"
+      ? createLifecycleBudget(options["timeout-ms"], undefined, lifecyclePlan)
+      : null;
   if (platform() !== "linux" || !["x64", "ia32"].includes(arch())) {
     throw new Error("This local harness requires Linux x86 and /proc");
   }
   await checkBus(options.bus);
-  await mkdir(options.output, { mode: 0o700 });
-  const root = await realpath(options.output);
-  const profile = join(root, "profile");
   const controller = new AbortController();
   const { signal } = controller;
+  const output = await createOutputRoot(options.output, signal);
+  const { root } = output;
+  const profile = join(root, "profile");
   const abort = reason => {
     if (!signal.aborted) {
       controller.abort(new Error(reason));
@@ -429,7 +959,7 @@ export async function main(args) {
   process.on("SIGTERM", interrupt);
   const timeout = setTimeout(
     () => abort("Run deadline exceeded"),
-    options["timeout-ms"]
+    lifecycleBudget ? lifecycleBudget.remaining() : options["timeout-ms"]
   );
   let busChecking = false;
   const busTimer = setInterval(async () => {
@@ -453,12 +983,32 @@ export async function main(args) {
     }
     return text;
   };
-  const save = (fileName, value) =>
-    writeFile(
+  let cleaningUp = false;
+  const logController = new AbortController();
+  const lifecycleSave = lifecycleBudget
+    ? createLifecycleEvidence({
+        root,
+        scrub,
+        budget: lifecycleBudget,
+        signal,
+        plan: lifecyclePlan,
+        serializeFixture:
+          lifecyclePlan.name === "soak-30m"
+            ? (value, scrubText) =>
+                serializeLifecycleSnapshot(value, options, scrubText)
+            : undefined,
+      })
+    : null;
+  const save = (fileName, value, phase = "work") => {
+    if (lifecycleSave) {
+      return lifecycleSave(fileName, value, cleaningUp ? "cleanup" : phase);
+    }
+    return writeFile(
       join(root, fileName),
       scrub(JSON.stringify(value, null, 2)) + "\n",
       { mode: 0o600 }
     );
+  };
   const report = {
     version: 1,
     status: "running",
@@ -466,6 +1016,10 @@ export async function main(args) {
     mode: {
       basic: options.profile === "on" ? "attribution-only" : "local-timing",
       "userland-cache": "diagnostic-only",
+      lifecycle:
+        lifecyclePlan?.name === "soak-30m"
+          ? "lifecycle-soak-observation-only"
+          : "lifecycle-smoke-only",
     }[options.suite],
     limitations: [
       "Local smoke/survey only, not a cold/warm benchmark. Trials are correlated within one process run.",
@@ -478,6 +1032,9 @@ export async function main(args) {
   let owned;
   let server;
   let validateUserlandCacheResult;
+  let validateLifecycleResult;
+  let monitor;
+  let startupTimeout;
   let control;
   let log;
   let logger;
@@ -486,22 +1043,72 @@ export async function main(args) {
   const launchTime = performance.now();
   const milestone = milestoneName => {
     report.milestones[milestoneName] = performance.now() - launchTime;
+    if (milestoneName === "workloadReleased") {
+      clearTimeout(startupTimeout);
+    }
   };
-  const bounded = (promise, label, milliseconds = options["timeout-ms"]) =>
-    withTimeout(promise, milliseconds, label, signal);
+  const bounded = (promise, label, milliseconds = options["timeout-ms"]) => {
+    try {
+      return withTimeout(
+        promise,
+        lifecycleBudget
+          ? Math.min(milliseconds, lifecycleBudget.remaining())
+          : milliseconds,
+        label,
+        signal
+      );
+    } catch (error) {
+      promise.catch(() => {});
+      return Promise.reject(error);
+    }
+  };
   try {
     await save("run.json", report);
-    const { binary, environment } = await collectProvenance(
+    if (lifecycleBudget) {
+      lifecycleBudget.admit(0);
+      await save("lifecycle-preflight.json", {
+        controllerPID: process.pid,
+        controllerTimeOriginMs: performance.timeOrigin,
+        host: await bounded(
+          readLifecycleHost(root),
+          "Lifecycle host preflight",
+          3000
+        ),
+        caps: {
+          totalMs: options["timeout-ms"],
+          cleanupReserveMs: 15000,
+          terminalReportReserveMs: 2000,
+          startupMs: 30000,
+          resourceIntervalMs: 5000,
+          evidenceBytes: 64 * 1024 ** 2,
+          ordinaryEvidenceBytes: 54 * 1024 ** 2,
+          terminalEvidenceBytes: 2 * 1024 ** 2,
+          artifactBytes: 256 * 1024 ** 2,
+          ownedRSSBytes: "min(4 GiB, 25% MemTotal, post-warmup+1 GiB)",
+          ownedProcesses: "min(32, baseline+8)",
+          ownedFDs: "min(2048, baseline+256)",
+          ownedThreads: "min(512, baseline+128)",
+        },
+        ...(lifecyclePlan.name === "soak-30m"
+          ? {
+              plan: lifecyclePlan,
+              minimumSnapshotRPCs: 28,
+              snapshotRPCFormula:
+                "27 + setup attempts = 28 + additionalSetupRPCs; minimum includes one accepted setup diagnostics call.",
+              setupRPCs:
+                "Variable positive-readiness diagnostics; attempts/additionalSetupRPCs recorded separately. Discovery/WebSocket setup is not an extra status RPC; no status RPC is issued.",
+            }
+          : {}),
+      });
+    }
+    const { binary, environment, applicationData } = await collectProvenance(
       options,
-      root,
+      output,
       signal,
       save
     );
     await mkdir(profile, { mode: 0o700 });
-    const prefs = {
-      "umbrafox.control.enabled": true,
-      "umbrafox.control.port": 0,
-    };
+    const prefs = profilePreferences(options.suite);
     await writeFile(
       join(profile, "user.js"),
       Object.entries(prefs)
@@ -517,6 +1124,10 @@ export async function main(args) {
       const userlandModule = await import("./userland-cache.mjs");
       server = await userlandModule.createUserlandCacheServer(options, signal);
       validateUserlandCacheResult = userlandModule.validateUserlandCacheResult;
+    } else if (options.suite === "lifecycle") {
+      const lifecycleModule = await import("./lifecycle.mjs");
+      server = await lifecycleModule.createLifecycleServer(options, signal);
+      validateLifecycleResult = lifecycleModule.validateLifecycleResult;
     } else {
       server = await createFixtureServer({
         trials: options.trials,
@@ -525,10 +1136,41 @@ export async function main(args) {
     }
     await prepareFixtureEvidence(options.suite, profile, server, save, secrets);
     log = await openFile(join(root, "browser.log"), "wx", 0o600);
-    logger = createBoundedLogger(text => log.write(text), scrub);
+    logger = createBoundedLogger(
+      text => {
+        if (!lifecycleBudget) {
+          return log.write(text);
+        }
+        logController.signal.throwIfAborted();
+        const milliseconds = Math.min(
+          1000,
+          lifecycleBudget.remaining(cleaningUp)
+        );
+        return writeFile(join(root, "browser.log"), text, {
+          flag: "a",
+          signal: AbortSignal.any([
+            logController.signal,
+            AbortSignal.timeout(Math.max(1, Math.floor(milliseconds))),
+          ]),
+        });
+      },
+      scrub,
+      8 * 1024 * 1024,
+      lifecycleBudget
+        ? () => abort("Lifecycle browser log cap exceeded")
+        : undefined
+    );
     await checkBus(options.bus);
+    await verifyApplicationData(applicationData, signal);
     signal.throwIfAborted();
     milestone("beforeSpawn");
+    if (lifecycleBudget) {
+      lifecycleBudget.admit(0);
+      startupTimeout = setTimeout(
+        () => abort("Lifecycle startup exceeded 30 seconds"),
+        30000
+      );
+    }
     owned = await spawnOwned(
       binary,
       [
@@ -561,6 +1203,16 @@ export async function main(args) {
     if (owned.identityError || !owned.identity) {
       throw new Error("Could not prove detached browser ownership");
     }
+    if (lifecycleBudget) {
+      monitor = await startLifecycleMonitor({
+        owned,
+        root,
+        signal,
+        abort,
+        save,
+        plan: lifecyclePlan,
+      });
+    }
     const discoveryPath = join(profile, "umbrafox", "control.json");
     const discovery = await readDiscovery(discoveryPath, signal);
     secrets.push(discovery.token, encodeURIComponent(discovery.token));
@@ -581,6 +1233,9 @@ export async function main(args) {
       signal,
       server,
       validateUserlandCacheResult,
+      validateLifecycleResult,
+      monitor,
+      budget: lifecycleBudget,
     });
     await checkBus(options.bus);
     signal.throwIfAborted();
@@ -589,66 +1244,56 @@ export async function main(args) {
     failure = error;
     report.status = "failed";
     report.error = scrub(error.message);
+    if (error.partialEvidenceError) {
+      report.partialEvidenceError = scrub(error.partialEvidenceError);
+    }
   } finally {
     shuttingDown = true;
-    failure = await preserveFixtureState({
-      server,
-      save,
-      report,
-      scrub,
-      failure,
-    });
-    abort("Run finished; cancel outstanding work");
-    clearTimeout(timeout);
-    clearInterval(busTimer);
-    control?.close();
-    if (owned) {
-      try {
-        report.cleanup = await stopOwned(owned);
-      } catch (error) {
-        report.cleanup = {
-          status: "cleanup-failed",
-          reason: scrub(error.message),
-        };
+    cleaningUp = true;
+    clearTimeout(startupTimeout);
+    if (lifecycleBudget) {
+      failure = await finishLifecycle({
+        owned,
+        server,
+        monitor,
+        control,
+        logger,
+        log,
+        report,
+        save,
+        scrub,
+        failure,
+        abort,
+        cancelLog: () => logController.abort(),
+        budget: lifecycleBudget,
+      });
+      if (lifecyclePlan.name === "soak-30m") {
+        report.resourceMonitor = monitor?.summary() ?? null;
       }
-      if (report.cleanup.status !== "clean") {
-        report.status = "cleanup-failed";
-        failure ??= new Error(
-          "Browser cleanup failed; inspect run.json and process.json"
-        );
-        owned.child.unref();
-        owned.child.stdout?.destroy();
-        owned.child.stderr?.destroy();
-      }
-    }
-    try {
-      await server?.close();
-    } catch (error) {
-      failure ??= error;
-      report.status = "cleanup-failed";
-    }
-    try {
-      if (owned && report.cleanup?.status === "clean") {
-        await withTimeout(owned.closed, 1000, "Browser output drain");
-      }
-      report.log = await logger?.finish();
-    } catch (error) {
-      failure ??= error;
-      report.status = "cleanup-failed";
-    }
-    try {
-      await log?.close();
-    } catch (error) {
-      failure ??= error;
-      report.status = "cleanup-failed";
-    }
-    try {
-      validateLogEvidence(report.log, options.suite);
-    } catch (error) {
-      failure ??= error;
-      if (report.status === "passed") {
-        report.status = "failed";
-      }
+      clearTimeout(timeout);
+      clearInterval(busTimer);
+    } else {
+      failure = await preserveFixtureState({
+        server,
+        save,
+        report,
+        scrub,
+        failure,
+      });
+      abort("Run finished; cancel outstanding work");
+      clearTimeout(timeout);
+      clearInterval(busTimer);
+      control?.close();
+      failure = await finishStandard({
+        owned,
+        server,
+        logger,
+        log,
+        report,
+        scrub,
+        failure,
+        suite: options.suite,
+      });
     }
     process.removeListener("SIGINT", interrupt);
     process.removeListener("SIGTERM", interrupt);

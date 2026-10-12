@@ -4,7 +4,10 @@
 
 import { runUserlandScripts } from "resource://gre/modules/UmbrafoxUserlandScriptRunner.sys.mjs";
 import { UMBRAFOX_USERLAND_SCRIPT_SHARED_DATA_KEY } from "resource://gre/modules/UmbrafoxUserlandScriptRegistry.sys.mjs";
-import { UmbrafoxUserlandEventController } from "resource://gre/modules/UmbrafoxUserlandEventController.sys.mjs";
+import {
+  UmbrafoxUserlandEventController,
+  prepareUmbrafoxUserlandRequestCapability,
+} from "resource://gre/modules/UmbrafoxUserlandEventController.sys.mjs";
 
 function getSharedData() {
   if (
@@ -70,11 +73,30 @@ function runDocumentUserlandScripts(
     return Promise.resolve([]);
   }
 
+  const preparation =
+    typeof contextWindow.addEventListener == "function"
+      ? prepareUmbrafoxUserlandRequestCapability(contextWindow)
+      : null;
+  const execute = requestCapability =>
+    executeDocumentUserlandScripts(window, scripts, {
+      contextWindow,
+      sandboxPrototype,
+      requestCapability,
+    });
+  return preparation ? preparation.then(execute) : execute();
+}
+
+function executeDocumentUserlandScripts(
+  window,
+  scripts,
+  { contextWindow, sandboxPrototype, requestCapability }
+) {
   const document = contextWindow.document;
   const userland =
     typeof contextWindow.addEventListener == "function"
       ? new UmbrafoxUserlandEventController(contextWindow, {
           browsingContextId: getBrowsingContextId(window),
+          requestCapability,
         })
       : undefined;
   return runUserlandScripts(

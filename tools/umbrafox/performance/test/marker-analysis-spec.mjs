@@ -16,14 +16,14 @@ const bounded = { timeout: 5000 };
 const options = { expectedTrials: 1, expectedWarmup: 0 };
 const workloads = ["js", "dom-batched", "dom-interleaved", "canvas"];
 
-function fixture() {
+function fixture(rootRange = { start: 0, end: 100 }) {
   const context = {
     selectedThreadHandle: "t-103",
     selectedThreads: [{ threadIndex: 103, name: "GeckoMain" }],
     resultThreadHandle: null,
     resultThreads: [],
     currentViewRange: null,
-    rootRange: { start: 0, end: 100 },
+    rootRange,
   };
   const markers = workloads.flatMap((workload, index) => {
     const label = `local-perf:trial:0:${workload}`;
@@ -123,6 +123,116 @@ test(
     assert.throws(() => analyzeMarkers(phases, content), /phase coverage/);
   }
 );
+
+test("nonzero raw origins allow early normalized phases", bounded, () => {
+  const { phases, content } = fixture({ start: 100, end: 200 });
+  const report = analyzeMarkers(phases, content, options);
+  assert.equal(report.phases[0].startMs, 10);
+  assert.equal(report.phases.at(-1).endMs, 80);
+});
+
+test("normalized phases may end exactly at the capture span", bounded, () => {
+  const { phases, content } = fixture({ start: 5, end: 85 });
+  assert.equal(
+    analyzeMarkers(phases, content, options).phases.at(-1).endMs,
+    80
+  );
+});
+
+test("rejects phases beyond the normalized capture span", bounded, () => {
+  const { phases, content } = fixture({ start: 5, end: 80 });
+  assert.throws(
+    () => analyzeMarkers(phases, content, options),
+    /capture range mismatch/
+  );
+});
+
+test(
+  "raw origin translation leaves normalized analysis unchanged",
+  bounded,
+  () => {
+    const input = fixture();
+    setMarkers(input.content, [
+      { name: "Styles", start: 9, duration: 3 },
+      { name: "Styles", start: 11, duration: 4 },
+      { name: "Reflow (sync)", start: 10, duration: 5 },
+    ]);
+    const expected = analyzeMarkers(input.phases, input.content, options);
+    for (const start of [0.25, 50, 10000]) {
+      const { phases, content } = structuredClone(input);
+      phases.context.rootRange = { start, end: start + 100 };
+      content.context.rootRange = { start, end: start + 100 };
+      assert.deepEqual(analyzeMarkers(phases, content, options), expected);
+    }
+  }
+);
+
+for (const start of [0, 40]) {
+  test(`rejects empty capture range at ${start}`, bounded, () => {
+    const { phases, content } = fixture({ start, end: start });
+    for (const marker of phases.markers) {
+      marker.start = 0;
+      if (marker.data.entryType === "measure") {
+        marker.duration = 0;
+      }
+    }
+    content.flatMarkers = structuredClone(phases.markers);
+    assert.throws(() => analyzeMarkers(phases, content, options));
+  });
+}
+
+for (const [caseName, rootRange] of [
+  ["negative start", { start: -1, end: 100 }],
+  ["NaN start", { start: NaN, end: 100 }],
+  ["infinite start", { start: Infinity, end: Infinity }],
+  ["NaN end", { start: 0, end: NaN }],
+  ["infinite end", { start: 0, end: Infinity }],
+  ["reversed", { start: 100, end: 99 }],
+  ["missing start", { end: 100 }],
+  ["string start", { start: "0", end: 100 }],
+  ["string end", { start: 0, end: "100" }],
+]) {
+  test(`rejects ${caseName} capture context in either export`, bounded, () => {
+    for (const inputName of ["phases", "content"]) {
+      const input = fixture();
+      input[inputName].context.rootRange = rootRange;
+      assert.throws(
+        () => analyzeMarkers(input.phases, input.content, options),
+        /Invalid or filtered thread context/
+      );
+    }
+  });
+}
+
+for (const [caseName, rootRange] of [
+  ["one-sided origin shift", { start: 6, end: 106 }],
+  ["one-sided end change", { start: 5, end: 104 }],
+  ["normalized and raw context mix", { start: 0, end: 100 }],
+]) {
+  test(`rejects ${caseName} before normalizing bounds`, bounded, () => {
+    const { phases, content } = fixture({ start: 5, end: 105 });
+    content.context.rootRange = rootRange;
+    assert.throws(
+      () => analyzeMarkers(phases, content, options),
+      /Export time ranges do not match/
+    );
+  });
+}
+
+for (const inputName of ["phases", "content"]) {
+  test(`rejects one-sided ${inputName} timestamp offsets`, bounded, () => {
+    const input = fixture({ start: 5, end: 105 });
+    const markers =
+      inputName === "phases" ? input.phases.markers : input.content.flatMarkers;
+    for (const marker of markers) {
+      marker.start += 5;
+    }
+    assert.throws(
+      () => analyzeMarkers(input.phases, input.content, options),
+      /Phase marker does not match thread export/
+    );
+  });
+}
 
 for (const [caseName, change] of [
   ["incomplete phase", ({ phases }) => phases.markers.pop()],

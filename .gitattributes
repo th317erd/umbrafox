@@ -1,6 +1,9 @@
 # Prevent line ending normalization to follow the mercurial behavior
 * -text
 
+# Preserve archived evidence, including whitespace in patch context and logs.
+exports/** -whitespace
+
 # To show the test headers in WPT metadata diffs, you can combine the attributes below with the
 # following CLI invocation:
 #

@@ -35,6 +35,7 @@
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/layers/ImageDataSerializer.h"
 #include "mozilla/layers/RemoteTextureMap.h"
+#include "mozilla/layers/TextureHost.h"
 #include "nsContentUtils.h"
 #include "nsIMemoryReporter.h"
 #include "skia/include/core/SkPixmap.h"
@@ -419,6 +420,7 @@ void SharedContextWebgl::ClearCachesIfNecessary() {
   if (!mShouldClearCaches.exchange(false)) {
     return;
   }
+  ClearVideoSurfaceCache();
   ClearZeroBuffer();
   ClearAllTextures();
   if (mEmptyTextureMemory) {
@@ -712,6 +714,9 @@ void SharedContextWebgl::SetBlendState(CompositionOp aOp,
 bool SharedContextWebgl::SetTarget(DrawTargetWebgl* aDT,
                                    const RefPtr<TextureHandle>& aHandle,
                                    const IntSize& aViewportSize) {
+  if (aHandle && aHandle == mVideoSurfaceHandle) {
+    ClearVideoSurfaceCache();
+  }
   if (!mWebgl || mWebgl->IsContextLost()) {
     return false;
   }
@@ -2750,21 +2755,24 @@ bool SharedContextWebgl::UploadSurface(DataSourceSurface* aData,
   if (aTex) {
     mWebgl->BindTexture(LOCAL_GL_TEXTURE_2D, aTex);
   }
-  mWebgl->TexImage(0, aInit ? intFormat : 0,
-                   {uint32_t(dstOffset.x), uint32_t(dstOffset.y), 0}, texPI,
-                   texDesc);
+  const bool uploaded = mWebgl->TexImage(
+      0, aInit ? intFormat : 0,
+      {uint32_t(dstOffset.x), uint32_t(dstOffset.y), 0}, texPI, texDesc);
   if (aTex) {
     mWebgl->BindTexture(LOCAL_GL_TEXTURE_2D, mLastTexture);
   }
   if (usingPBO) {
     mWebgl->BindBuffer(LOCAL_GL_PIXEL_UNPACK_BUFFER, nullptr);
   }
-  return true;
+  return uploaded;
 }
 
 void SharedContextWebgl::UploadSurfaceToHandle(
     const RefPtr<DataSourceSurface>& aData, const IntPoint& aSrcOffset,
     const RefPtr<TextureHandle>& aHandle) {
+  if (aHandle == mVideoSurfaceHandle) {
+    ClearVideoSurfaceCache();
+  }
   BackingTexture* backing = aHandle->GetBackingTexture();
   RefPtr<WebGLTexture> tex = backing->GetWebGLTexture();
   if (mLastTexture != tex) {
@@ -2823,6 +2831,9 @@ void SharedContextWebgl::ClearRenderTex(BackingTexture* aBacking) {
 void SharedContextWebgl::BindScratchFramebuffer(TextureHandle* aHandle,
                                                 bool aInit,
                                                 const IntSize& aViewportSize) {
+  if (aHandle == mVideoSurfaceHandle) {
+    ClearVideoSurfaceCache();
+  }
   BackingTexture* backing = aHandle->GetBackingTexture();
   if (aInit) {
     InitRenderTex(backing);
@@ -6722,9 +6733,66 @@ std::shared_ptr<gl::SharedSurface> SharedContextWebgl::ExportSharedSurface(
   return sharedSurface;
 }
 
+void SharedContextWebgl::ClearVideoSurfaceCache() {
+  mVideoSurfaceHandle = nullptr;
+  mVideoSurfaceFrameID = {};
+  mVideoSurfaceHost = nullptr;
+}
+
+already_AddRefed<SourceSurface>
+SharedContextWebgl::ImportVideoSurfaceDescriptor(
+    const layers::SurfaceDescriptor& aDesc, const IntSize& aSize,
+    SurfaceFormat aFormat, layers::TextureHost* aTextureHost,
+    layers::SurfaceDescriptorRemoteDecoderId aFrameID) {
+  if (aTextureHost && aFrameID.IsValid() && !mShouldClearCaches &&
+      !IsContextLost() && mVideoSurfaceHost == aTextureHost &&
+      mVideoSurfaceFrameID == aFrameID) {
+    RefPtr<TextureHandle> handle = mVideoSurfaceHandle.get();
+    if (handle && handle->IsValid() && handle->GetSize() == aSize &&
+        handle->GetFormat() == aFormat &&
+        handle->GetSamplingOffset() == IntPoint()) {
+      RefPtr<SourceSurface> surface = handle->GetSurface();
+      if (!surface) {
+        RefPtr<SourceSurfaceWebgl> webglSurface = new SourceSurfaceWebgl(this);
+        webglSurface->SetHandle(handle);
+        surface = webglSurface;
+      }
+      if (surface->GetType() == SurfaceType::WEBGL) {
+        auto* webglSurface = static_cast<SourceSurfaceWebgl*>(surface.get());
+        if (webglSurface->mSharedContext == this &&
+            webglSurface->mHandle == handle && !webglSurface->mData &&
+            !webglSurface->mReadBuffer && surface->GetSize() == aSize &&
+            surface->GetFormat() == aFormat) {
+          handle->remove();
+          mTextureHandles.insertFront(handle);
+          return surface.forget();
+        }
+      }
+    }
+  }
+
+  ClearVideoSurfaceCache();
+  RefPtr<SourceSurface> surface =
+      ImportSurfaceDescriptor(aDesc, aSize, aFormat, true);
+  if (surface && surface->GetType() == SurfaceType::WEBGL && aTextureHost &&
+      aFrameID.IsValid() && !IsContextLost() && !mShouldClearCaches) {
+    auto* webglSurface = static_cast<SourceSurfaceWebgl*>(surface.get());
+    const RefPtr<TextureHandle>& handle = webglSurface->mHandle;
+    if (handle && handle->IsValid() && handle->GetSize() == aSize &&
+        handle->GetFormat() == aFormat &&
+        handle->GetSamplingOffset() == IntPoint()) {
+      mVideoSurfaceHost = aTextureHost;
+      mVideoSurfaceFrameID = aFrameID;
+      mVideoSurfaceHandle = handle;
+    }
+  }
+  return surface.forget();
+}
+
 already_AddRefed<SourceSurface> SharedContextWebgl::ImportSurfaceDescriptor(
     const layers::SurfaceDescriptor& aDesc, const IntSize& aSize,
-    SurfaceFormat aFormat) {
+    SurfaceFormat aFormat, bool aAllowFallback) {
+  ClearVideoSurfaceCache();
   if (IsContextLost()) {
     return nullptr;
   }
@@ -6734,6 +6802,7 @@ already_AddRefed<SourceSurface> SharedContextWebgl::ImportSurfaceDescriptor(
   if (!handle) {
     return nullptr;
   }
+
   BackingTexture* backing = handle->GetBackingTexture();
   RefPtr<WebGLTexture> tex = backing->GetWebGLTexture();
   if (mLastTexture != tex) {
@@ -6741,12 +6810,18 @@ already_AddRefed<SourceSurface> SharedContextWebgl::ImportSurfaceDescriptor(
     mLastTexture = tex;
   }
   if (!backing->IsInitialized()) {
-    backing->MarkInitialized();
+    if (!aAllowFallback) {
+      backing->MarkInitialized();
+    }
     InitTexParameters(tex);
     if (handle->GetSize() != backing->GetSize()) {
-      UploadSurface(nullptr, backing->GetFormat(),
-                    IntRect(IntPoint(), backing->GetSize()), IntPoint(), true,
-                    true);
+      const bool initialized = UploadSurface(
+          nullptr, backing->GetFormat(),
+          IntRect(IntPoint(), backing->GetSize()), IntPoint(), true, true);
+      if (aAllowFallback && !initialized) {
+        return nullptr;
+      }
+      backing->MarkInitialized();
     }
   }
 
@@ -6754,14 +6829,21 @@ already_AddRefed<SourceSurface> SharedContextWebgl::ImportSurfaceDescriptor(
   webgl::TexUnpackBlobDesc texDesc = {
       LOCAL_GL_TEXTURE_2D, {uint32_t(aSize.width), uint32_t(aSize.height), 1}};
   texDesc.sd = Some(aDesc);
+  texDesc.destFormat = aFormat;
+  texDesc.allowSurfaceDescriptorFallback = aAllowFallback;
   texDesc.structuredSrcSize = uvec2::FromSize(aSize);
   GLenum intFormat =
       aFormat == SurfaceFormat::A8 ? LOCAL_GL_R8 : LOCAL_GL_RGBA8;
   GLenum extFormat =
       aFormat == SurfaceFormat::A8 ? LOCAL_GL_RED : LOCAL_GL_RGBA;
   webgl::PackingInfo texPI = {extFormat, LOCAL_GL_UNSIGNED_BYTE};
-  mWebgl->TexImage(0, handle->GetSize() == backing->GetSize() ? intFormat : 0,
-                   {uint32_t(bounds.x), uint32_t(bounds.y), 0}, texPI, texDesc);
+  const bool uploaded = mWebgl->TexImage(
+      0, handle->GetSize() == backing->GetSize() ? intFormat : 0,
+      {uint32_t(bounds.x), uint32_t(bounds.y), 0}, texPI, texDesc);
+  if (aAllowFallback && (!uploaded || IsContextLost())) {
+    return nullptr;
+  }
+  backing->MarkInitialized();
 
   RefPtr<SourceSurfaceWebgl> surface = new SourceSurfaceWebgl(this);
   surface->SetHandle(handle);

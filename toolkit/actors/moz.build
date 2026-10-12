@@ -74,6 +74,8 @@ MOZ_SRC_FILES += [
     "UAWidgetsChild.sys.mjs",
     "UmbrafoxControlDiagnosticsChild.sys.mjs",
     "UmbrafoxControlDiagnosticsParent.sys.mjs",
+    "UmbrafoxControlExecutionChild.sys.mjs",
+    "UmbrafoxControlExecutionParent.sys.mjs",
     "UmbrafoxControlInputChild.sys.mjs",
     "UmbrafoxControlInputParent.sys.mjs",
     "UmbrafoxUserlandChild.sys.mjs",

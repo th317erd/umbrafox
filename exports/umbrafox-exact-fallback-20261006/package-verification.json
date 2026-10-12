@@ -1,0 +1,30 @@
+{
+  "buildID": "20261006153147",
+  "files": 46,
+  "archiveEntries": 57,
+  "uncompressedBytes": 475126813,
+  "archive": {
+    "name": "umbrafox-exact-fallback-20261006153147-linux-x86_64.tar.xz",
+    "bytes": 107782260,
+    "sha256": "147a2501536855dca2916893ec5ab36373b4f4a09bacd761b0bab8148521fc8b"
+  },
+  "manifestSHA256": "908633c41ff3579585a08dbaf228c158735d7f61d77fb22cc0aeb822df880f87",
+  "iniBuildIDs": {
+    "application.ini": "20261006153147",
+    "platform.ini": "20261006153147"
+  },
+  "toolkitBuildID": "20261006153147",
+  "frontendArchives": {
+    "omni.ja": {
+      "entries": 2676,
+      "changed": [
+        "modules/AppConstants.sys.mjs"
+      ]
+    },
+    "browser/omni.ja": {
+      "entries": 5368,
+      "changed": []
+    }
+  },
+  "installed": false
+}

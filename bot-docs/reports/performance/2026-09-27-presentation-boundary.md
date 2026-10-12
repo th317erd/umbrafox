@@ -43,3 +43,27 @@ workaround or public timing API follows from this audit.
 
 Pi lifecycle and nested/direct/nested comparisons remain l8ros-owned. No
 performance or exact-pixel acceptance criterion changes.
+
+## Subsequent OS-owner evidence
+
+l8ros supplied `~/.cache/codex/umbra-perf-20260927/l8ros-mesa-presentation.md`.
+Its source audit of official Mesa 26.0.8 follows the ordinary DRI2 Wayland EGL
+caller into the shared loader helper: the caller binds presentation v1 but
+supplies no presented/discarded callbacks. Without tracing the helper returns
+before requesting feedback; tracing has no refresh-value scheduling consumer
+for this caller. Swap throttling instead uses frame or display-sync callbacks.
+This closes one reported source edge, not installed distro-binary provenance,
+GDK, Vulkan/Zink, buffer readiness, or callback-delay attribution.
+
+The OS owner's separate eighteen-minute mixed 1080p30 soak reports weighted
+drop ratios of 0.497% plain, 3.746% cached canvas, and 8.394% live canvas copies.
+All twelve 90-second windows completed and normal Home/audio restoration was
+independently checked. These are media counters, not physical presentation
+measurements; no new optimization or matched causal comparison was performed.
+Readiness failures remain excluded. The source report and data limitations are
+in `~/.cache/codex/umbra-perf-20260927/l8ros-overnight-pi.md`.
+
+This keeps copy/synchronization and presentation deadlines ahead of another
+blind compositor or refresh-rate change. First seek an existing optimized-path
+profile with bounded phase sidecars; a new diagnostic capture remains owned by
+l8ros and must stay separate from unprofiled performance results.

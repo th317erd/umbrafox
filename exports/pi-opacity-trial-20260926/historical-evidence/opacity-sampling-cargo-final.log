@@ -1,0 +1,18 @@
+warning: swgl@0.1.0: In file included from src/glsl.h:7,
+warning: swgl@0.1.0:                  from src/gl.cc:98:
+warning: swgl@0.1.0: src/vector_type.h: In instantiation of 'static T glsl::Unaligned<T>::load(const P*) [with P = glsl::VectorType<float, 16>; T = glsl::vec4]':
+warning: swgl@0.1.0: src/vector_type.h:539:28:   required from 'T glsl::unaligned_load(const P*) [with T = vec4; P = VectorType<float, 16>]'
+warning: swgl@0.1.0: src/vector_type.h:550:27:   required from 'D glsl::bit_cast(const S&) [with D = vec4; S = VectorType<float, 16>]'
+warning: swgl@0.1.0: src/blend.h:53:39:   required from here
+warning: swgl@0.1.0: src/vector_type.h:510:11: warning: 'void* memcpy(void*, const void*, size_t)' writing to an object of type 'struct glsl::vec4' with no trivial copy-assignment; use copy-assignment or copy-initialization instead [-Wclass-memaccess]
+warning: swgl@0.1.0:   510 |     memcpy(&v, p, sizeof(v));
+warning: swgl@0.1.0:       |     ~~~~~~^~~~~~~~~~~~~~~~~~
+warning: swgl@0.1.0: src/glsl.h:1934:8: note: 'struct glsl::vec4' declared here
+warning: swgl@0.1.0:  1934 | struct vec4 {
+warning: swgl@0.1.0:       |        ^~~~
+warning: swgl@0.1.0: src/vector_type.h: In static member function 'static glsl::VectorType<T, N> glsl::VectorType<T, N>::wrap(half_type, half_type) [with T = float; int N = 16]':
+warning: swgl@0.1.0: src/vector_type.h:288:17: note: the ABI for passing parameters with 32-byte alignment has changed in GCC 4.6
+warning: swgl@0.1.0:   288 |   SI VectorType wrap(half_type low, half_type high) {
+warning: swgl@0.1.0:       |                 ^~~~
+    Checking webrender v0.62.0 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/gfx/wr/webrender)
+    Finished `dev` profile [optimized + debuginfo] target(s) in 5.06s

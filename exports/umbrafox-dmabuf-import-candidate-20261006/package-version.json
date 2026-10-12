@@ -1,0 +1,49 @@
+{
+  "startedAt": "2026-10-06T03:35:09.239Z",
+  "finishedAt": "2026-10-06T03:35:09.305Z",
+  "operation": "version-only",
+  "binary": "/home/wyatt/Projects/umbrafox-workspace/umbrafox/exports/umbrafox-dmabuf-import-candidate-20261006/umbrafox/umbrafox",
+  "applicationData": {
+    "root": "/home/wyatt/.cache/codex/dmabuf-package-version-aea2b4e2-219b-4a25-9e04-5d1106bfb7a8",
+    "appData": "/home/wyatt/.cache/codex/dmabuf-package-version-aea2b4e2-219b-4a25-9e04-5d1106bfb7a8/app-data",
+    "localAppData": "/home/wyatt/.cache/codex/dmabuf-package-version-aea2b4e2-219b-4a25-9e04-5d1106bfb7a8/local-app-data",
+    "tempDir": "/home/wyatt/.cache/codex/dmabuf-package-version-aea2b4e2-219b-4a25-9e04-5d1106bfb7a8/temp",
+    "creation": {
+      "root": {
+        "dev": 66310,
+        "ino": 18090091,
+        "uid": 1000,
+        "mode": 448
+      },
+      "appData": {
+        "dev": 66310,
+        "ino": 18090092,
+        "uid": 1000,
+        "mode": 448
+      },
+      "localAppData": {
+        "dev": 66310,
+        "ino": 18090093,
+        "uid": 1000,
+        "mode": 448
+      },
+      "tempDir": {
+        "dev": 66310,
+        "ino": 18090094,
+        "uid": 1000,
+        "mode": 448
+      }
+    }
+  },
+  "profile": "/home/wyatt/.cache/codex/dmabuf-package-version-aea2b4e2-219b-4a25-9e04-5d1106bfb7a8/profile",
+  "scrubbed": [
+    "GTK_RC_FILES"
+  ],
+  "pid": 1157484,
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "stdout": "Umbrafox 158.0a1\n",
+  "stderr": "[1157486] Sandbox: CanCreateUserNamespace() unshare(CLONE_NEWPID): EPERM\n",
+  "pidAbsent": true
+}

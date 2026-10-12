@@ -1,0 +1,8 @@
+{
+  "path": "/home/wyatt/.cache/codex/mutation-mirror-version-20261003-k3Dfgs",
+  "pid": 1021354,
+  "status": 0,
+  "stdout": "Umbrafox 158.0a1\n",
+  "stderr": "[1021356] Sandbox: CanCreateUserNamespace() unshare(CLONE_NEWPID): EPERM\n",
+  "rootAbsent": true
+}

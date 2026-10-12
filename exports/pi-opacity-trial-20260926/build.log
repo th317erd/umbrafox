@@ -1,0 +1,275 @@
+ 0:00.35 W Warnings in third-party code are being suppressed from the terminal output. Use --show-all-warnings or --verbose to see them.
+ 0:00.35 W All warnings will still be dumped to /home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-aarch64-linux-gnu/.mozbuild/logs/build/warnings_*.json at the end of the build.
+ 0:00.43 Clobber not needed.
+ 0:00.58 W Adding make options from /home/wyatt/Projects/umbrafox-workspace/umbrafox/mozconfig.aarch64
+    MOZ_OBJDIR=/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-aarch64-linux-gnu
+    OBJDIR=/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-aarch64-linux-gnu
+    FOUND_MOZCONFIG=/home/wyatt/Projects/umbrafox-workspace/umbrafox/mozconfig.aarch64
+    export FOUND_MOZCONFIG
+ 0:00.58 /usr/bin/gmake -f client.mk -j2 -s
+ 0:03.94 ./buildid.h.stub
+ 0:03.94 ./source-repo.h.stub
+ 0:04.07 ./webrender_ffi_generated.h.stub
+ 0:04.07 ./PrefsGenerated.h.stub
+ 0:04.08 ./StaticPrefListAll.h.stub
+ 0:04.90 ./application.ini.stub
+ 0:05.02 ./application.ini.h.stub
+ 0:06.13 toolkit/library/rust/libgkrust.a
+ 0:06.35 browser/app
+ 0:07.70 accessible/atk
+ 0:11.18    Compiling static_prefs v0.1.0 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/modules/libpref/init/static_prefs)
+ 0:11.51    Compiling webrender_build v0.0.2 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/gfx/wr/webrender_build)
+ 0:12.18    Compiling swgl v0.1.0 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/gfx/wr/swgl)
+ 0:57.91    Compiling webrender v0.62.0 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/gfx/wr/webrender)
+ 0:59.71    Compiling style v0.0.1 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/servo/components/style)
+ 1:12.39    Compiling happy_eyeballs_glue v0.1.0 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/netwerk/protocol/http/happy_eyeballs_glue)
+ 1:13.35    Compiling lockstore_ffi v0.1.0 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/security/lockstore/lockstore_ffi)
+ 1:13.99    Compiling neqo_glue v0.1.0 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/netwerk/socket/neqo_glue)
+ 1:15.48    Compiling qwac-trust-anchors v0.1.0 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/security/manager/ssl/qwac_trust_anchors)
+ 1:16.20    Compiling pdf-trust-anchors v0.1.0 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/security/manager/ssl/pdf_trust_anchors)
+ 1:16.56    Compiling wgpu_bindings v0.1.0 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/gfx/wgpu_bindings)
+ 1:20.50    Compiling mls_gk v0.1.0 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/security/mls/mls_gk)
+ 1:21.34    Compiling cert_storage v0.0.1 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/security/manager/ssl/cert_storage)
+ 1:22.85    Compiling jxl_decoder v0.1.0 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/image/rust/jxl)
+ 1:23.49    Compiling authrs_bridge v0.1.0 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/dom/webauthn/authrs_bridge)
+ 1:27.31    Compiling fog_control v0.1.0 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/components/glean)
+ 1:28.15    Compiling sitecategories v0.1.0 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/components/sitecategories)
+ 1:28.85 accessible/base
+ 1:51.64    Compiling geckoservo v0.0.1 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/servo/ports/geckolib)
+ 2:01.48 accessible/generic
+ 2:11.66 accessible/html
+ 2:21.58 accessible/ipc
+ 2:22.45 accessible/pdf
+ 2:35.20 accessible/xpcom
+ 2:40.23 accessible/xul
+ 2:47.66 browser/components/about
+ 2:53.64 caps
+ 2:58.17 chrome
+ 3:08.53 devtools/shared/heapsnapshot
+ 3:10.70 docshell/base
+ 3:34.24 docshell/shistory
+ 3:48.65 dom/animation
+ 4:02.00 dom/bindings
+ 4:05.42 dom/broadcastchannel
+ 4:19.48 dom/cache
+ 5:15.62 dom/canvas
+ 9:13.16 dom/clients/manager
+ 9:39.16 dom/cookiestore
+ 9:44.92 dom/documentpip
+ 9:55.31 dom/events
+ 9:56.93 dom/fetch
+10:29.30 dom/file/ipc
+10:52.53 dom/file
+11:04.37 dom/file/uri
+11:16.52 dom/filesystem
+11:20.87 dom/fs/api
+11:29.85 dom/fs/child
+11:44.48 dom/fs/parent/datamodel
+12:02.64 dom/fs/parent
+12:06.49    Compiling webrender_bindings v0.1.0 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/gfx/webrender_bindings)
+12:10.50    Compiling gkrust-shared v0.1.0 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/library/rust/shared)
+12:11.18    Compiling gkrust v0.1.0 (/home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/library/rust)
+12:17.41 dom/gamepad
+12:23.56     Finished `release` profile [optimized] target(s) in 12m 17s
+12:24.54 dom/geolocation
+12:47.81 dom/html
+12:52.84 dom/indexedDB
+14:24.85 dom/ipc/jsactor
+14:25.56 dom/ipc
+16:21.26 dom/jsurl
+16:28.26 dom/localstorage
+16:32.72 dom/locks
+16:48.09 dom/media/eme
+16:56.29 dom/media/gmp
+17:23.60 dom/media/imagecapture
+17:30.07 dom/media/ipc
+18:06.91 dom/media/mediacapabilities
+18:41.04 dom/media/mediacontrol
+19:22.04 dom/media/mediaelement
+19:35.77 dom/media/mp4
+19:45.82 dom/media/platforms/agnostic/eme
+19:46.87 dom/media/platforms/ffmpeg/ffmpeg57
+19:56.13 dom/media/platforms/ffmpeg/ffmpeg58
+19:57.02 dom/media/platforms/ffmpeg/ffmpeg59
+20:08.70 dom/media/platforms/ffmpeg/ffmpeg60
+20:09.57 dom/media/platforms/ffmpeg/ffmpeg61
+20:22.45 dom/media/platforms/ffmpeg/ffmpeg62
+20:23.23 dom/media/platforms/ffmpeg/ffmpeg63
+20:36.43 dom/media/platforms/ffmpeg/ffvpx
+20:36.99 dom/media/platforms/ffmpeg/libav53
+20:46.76 dom/media/platforms/ffmpeg/libav54
+20:50.35 dom/media/platforms/ffmpeg/libav55
+20:56.45 dom/media/platforms
+20:59.94 dom/media/systemservices
+21:21.27 dom/media/test/rdd_process_xpcom
+21:26.94 dom/media/webaudio
+21:34.55 dom/media/webcodecs
+21:55.90 dom/media/webm
+21:56.15 dom/media/webrtc/jsapi
+22:04.65 dom/media/webrtc/libwebrtcglue
+22:31.22 W In file included from /home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-aarch64-linux-gnu/dom/media/webrtc/libwebrtcglue/Unified_cpp_libwebrtcglue0.cpp:83:
+22:31.22 W 1 warning generated.
+22:33.53 W In file included from /home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-aarch64-linux-gnu/dom/media/webrtc/jsapi/Unified_cpp_media_webrtc_jsapi0.cpp:92:
+22:33.53 W In file included from /home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-aarch64-linux-gnu/dom/media/webrtc/jsapi/Unified_cpp_media_webrtc_jsapi0.cpp:110:
+22:33.53 W 2 warnings generated.
+22:33.60 dom/media/webrtc
+22:57.58 W In file included from /home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-aarch64-linux-gnu/dom/media/webrtc/Unified_cpp_dom_media_webrtc0.cpp:47:
+22:57.58 W In file included from /home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-aarch64-linux-gnu/dom/media/webrtc/Unified_cpp_dom_media_webrtc0.cpp:47:
+22:57.58 W 2 warnings generated.
+22:58.00 dom/media/webrtc/transport/ipc
+23:01.90 W In file included from /home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-aarch64-linux-gnu/dom/media/webrtc/jsapi/Unified_cpp_media_webrtc_jsapi1.cpp:29:
+23:01.90 W In file included from /home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-aarch64-linux-gnu/dom/media/webrtc/jsapi/Unified_cpp_media_webrtc_jsapi1.cpp:29:
+23:01.90 W 2 warnings generated.
+23:01.99 dom/media/webspeech/recognition
+23:12.21 dom/media/webspeech/synth
+23:24.21 dom/messagechannel
+23:25.52 dom/midi
+23:37.79 dom/mls
+23:49.05 dom/network
+24:04.75 dom/notification
+24:04.83 dom/onnx
+24:18.28 dom/payments/ipc
+24:21.22 dom/payments
+24:28.10 dom/performance
+24:33.70 dom/permission
+24:42.55 dom/power
+24:47.17 dom/promise
+24:53.97 dom/quota
+24:59.52 dom/reporting
+25:11.79 dom/script
+25:44.84 dom/security
+25:59.60 dom/serializers
+26:03.26 dom/serviceworkers
+26:08.82 dom/simpledb
+26:45.74 dom/smil
+26:54.92 dom/storage
+27:10.29 dom/svg
+27:58.02 dom/view-transitions
+27:59.66 dom/vr
+28:12.07 dom/webauthn
+28:20.43 dom/webbrowserpersist
+28:31.31 dom/webgpu
+28:47.75 dom/webtransport/api
+29:00.91 dom/webtransport/parent
+29:03.29 dom/workers/remoteworkers
+29:12.73 dom/workers/sharedworkers
+29:31.73 dom/workers
+29:38.88 dom/xul
+29:53.17 editor/composer
+30:01.19 editor/libeditor
+30:40.17 extensions/permissions
+30:53.77 extensions/spellcheck/ipc
+30:54.90 extensions/spellcheck/src
+31:07.03 gfx/2d
+31:27.15 gfx/config
+31:28.66 gfx/gl
+31:43.79 gfx/ipc
+32:12.59 gfx/layers
+34:30.77 gfx/src
+34:36.72 gfx/vr
+35:07.32 gfx/webrender_bindings
+35:25.99 gfx/ycbcr
+35:28.95 hal
+35:30.74 image/build
+35:39.81 image/decoders/icon/gtk
+35:50.59 image/decoders
+35:50.96 image/encoders/png
+35:55.98 image/remote
+36:05.18 image
+36:21.85 intl/hyphenation/glue
+36:32.61 intl/l10n
+36:40.54 intl/strres
+36:45.54 ipc/glue
+37:39.69 ipc/glue/test/utility_process_xpcom
+37:43.93 ipc/testshell
+37:46.21 js/xpconnect/loader
+37:54.09 js/xpconnect/src
+38:01.13 layout/base
+38:40.72 layout/build
+38:55.95 layout/forms
+39:03.78 layout/generic
+39:56.26 layout/inspector
+40:08.92 layout/ipc
+40:09.79 layout/mathml
+40:22.26 layout/painting
+40:23.20 layout/printing
+40:39.87 layout/svg
+41:02.12 layout/tables
+41:07.22 layout
+41:17.55 layout/xul
+41:18.46 layout/xul/tree
+41:30.71 modules/libpref
+41:33.79 netwerk/cache2
+41:48.87 netwerk/cookie
+41:52.71 netwerk/ipc
+42:28.57 netwerk/protocol/data
+42:31.26 netwerk/protocol/file
+42:39.71 netwerk/protocol/http
+43:23.78 netwerk/protocol/res
+43:30.43 netwerk/protocol/websocket
+43:46.74 netwerk/url-classifier
+43:46.87 security/certverifier
+43:54.63 security/sandbox/linux/glue
+44:06.09 toolkit/components/antitracking
+44:06.10 toolkit/components/backgroundhangmonitor
+44:18.66 toolkit/components/browser
+44:23.75 toolkit/components/contentanalysis
+44:29.54 toolkit/components/extensions
+44:46.88 toolkit/components/extensions/webrequest
+44:48.77 toolkit/components/formautofill
+44:56.85 toolkit/components/gecko-trace
+45:04.37 toolkit/components/geolocation
+45:11.97 toolkit/components/ml/backends/llama
+45:15.47 toolkit/components/ml/ipc
+45:24.92 toolkit/components/places
+45:26.98 toolkit/components/resistfingerprinting
+45:48.24 toolkit/components/sessionstore
+45:51.05 toolkit/components/typeaheadfind
+45:59.52 toolkit/components/url-classifier
+46:07.52 toolkit/components/windowwatcher
+46:20.79 toolkit/library/buildid.cpp.stub
+46:21.06 toolkit/xre
+46:33.03 tools/performance
+46:34.69 uriloader/base
+46:45.55 uriloader/exthandler
+46:56.58 widget/gtk
+47:51.86 widget/headless
+47:56.96 widget
+49:02.43 xpcom/base
+49:18.86 xpcom/components
+49:25.77 xpcom/reflect/xptinfo
+49:37.53 xpcom/threads
+49:48.17 xpfe/appshell
+49:52.09 dom/base
+53:01.48 dom/media
+53:14.94 gfx/thebes
+55:08.44 layout/style
+55:35.74 netwerk/base
+56:08.27 netwerk/dns
+56:28.22 security/manager/ssl
+56:53.03 toolkit/components/glean
+56:57.92 toolkit/components/telemetry
+57:15.06 toolkit/library/buildid.cpp.stub
+57:15.19 toolkit/library
+57:15.33 xpcom/build
+57:20.92 browser/app/umbrafox
+57:27.43 toolkit/library/build/libxul.so
+57:36.00 ./newtab-sources.stamp.stub
+57:38.17 ./dependentlibs.list.stub
+57:39.12 ./built_in_addons.json.stub
+57:39.21 ./buildid.h.stub
+57:39.21 ./source-repo.h.stub
+57:39.40 ./application.ini.stub
+57:39.53 ./application.ini.h.stub
+57:49.07 W 6 compiler warnings present.
+57:49.21 W Overall system resources - Wall time: 3469s; CPU: 24%; Read bytes: 8680544256; Write bytes: 19378229248; Read time: 58359; Write time: 306525227
+57:49.21 W Swap in/out (MB): 22.1328125/2129.515625
+57:49.21 W (suppressed 1 warnings in dom/media/webrtc)
+57:49.21 W (suppressed 4 warnings in dom/media/webrtc/jsapi)
+57:49.21 W (suppressed 1 warnings in dom/media/webrtc/libwebrtcglue)
+57:49.21 /usr/bin/notify-send '--app-name=Mozilla Build System' 'Mozilla Build System' 'Build complete'
+57:49.28 To view a profile of the build, run |mach resource-usage|.
+57:49.28 We know it took a while, but your build finally finished successfully!
+57:49.28 To take your build for a test drive, run: |mach run|
+57:49.28 For more information on what to do now, see https://firefox-source-docs.mozilla.org/setup/contributing_code.html
+Streaming resource usage profile to: /home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-aarch64-linux-gnu/.mozbuild/logs/build/profile_log_20260926_103746.json

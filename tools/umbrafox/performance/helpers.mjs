@@ -8,8 +8,9 @@ import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { createServer } from "node:http";
-import { isAbsolute } from "node:path";
+import { isAbsolute, join, resolve as resolvePath } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
+import { getLifecyclePlan } from "./lifecycle.mjs";
 
 export function parseArgs(args) {
   const options = {
@@ -24,6 +25,8 @@ export function parseArgs(args) {
     "profile",
     "bus",
     "userland-case",
+    "lifecycle-case",
+    "lifecycle-plan",
     ...Object.keys(options),
   ]);
   const seen = new Set();
@@ -49,8 +52,8 @@ export function parseArgs(args) {
   if (!["on", "off"].includes(options.profile)) {
     throw new Error("--profile must be on or off");
   }
-  if (!["basic", "userland-cache"].includes(options.suite)) {
-    throw new Error("--suite must be basic or userland-cache");
+  if (!["basic", "userland-cache", "lifecycle"].includes(options.suite)) {
+    throw new Error("--suite must be basic, userland-cache or lifecycle");
   }
   if (options.suite === "userland-cache") {
     if (
@@ -66,7 +69,7 @@ export function parseArgs(args) {
       throw new Error("userland-cache requires --profile off");
     }
   } else if (Object.hasOwn(options, "userland-case")) {
-    throw new Error("--userland-case is forbidden for the basic suite");
+    throw new Error("--userland-case is forbidden outside userland-cache");
   }
   for (const [key, minimum, maximum] of [
     ["trials", 3, 30],
@@ -79,7 +82,43 @@ export function parseArgs(args) {
     }
     options[key] = value;
   }
+  validateLifecycleArgs(options, seen);
   return options;
+}
+
+function validateLifecycleArgs(options, seen) {
+  if (options.suite !== "lifecycle") {
+    if (seen.has("lifecycle-case") || seen.has("lifecycle-plan")) {
+      throw new Error("Lifecycle options require --suite lifecycle");
+    }
+    return;
+  }
+  options["lifecycle-plan"] ??= "smoke";
+  const plan = getLifecyclePlan(options["lifecycle-plan"]);
+  if (!plan.cases.includes(options["lifecycle-case"])) {
+    throw new Error("Invalid or missing --lifecycle-case");
+  }
+  if (options.profile !== "off" || seen.has("trials") || seen.has("warmup")) {
+    throw new Error(
+      "Lifecycle requires --profile off and no trial/warmup overrides"
+    );
+  }
+  if (plan.name === "soak-30m") {
+    if (seen.has("timeout-ms")) {
+      throw new Error(
+        "Lifecycle soak has a fixed timeout; overrides forbidden"
+      );
+    }
+    options["timeout-ms"] = plan.budget.totalMs;
+  }
+  if (
+    options["timeout-ms"] < plan.budget.minMs ||
+    options["timeout-ms"] > plan.budget.maxMs
+  ) {
+    throw new Error(
+      "Lifecycle total timeout must be 45000 through 120000 ms including cleanup"
+    );
+  }
 }
 
 export function summarize(samples) {
@@ -173,9 +212,41 @@ export function validateResult(result, config) {
   return result;
 }
 
-export function browserEnvironment(input, profile, suite = "basic") {
-  if (suite === "userland-cache" && profile !== "off") {
-    throw new Error("userland-cache requires --profile off");
+export function applicationDataPaths(root) {
+  if (
+    typeof root !== "string" ||
+    !isAbsolute(root) ||
+    root.includes("\0") ||
+    resolvePath(root) !== root
+  ) {
+    throw new Error("Application-data root must be absolute and canonical");
+  }
+  return {
+    root,
+    appData: join(root, "app-data"),
+    localAppData: join(root, "local-app-data"),
+    tempDir: join(root, "temp"),
+  };
+}
+
+export function browserEnvironment(
+  input,
+  profile,
+  suite = "basic",
+  applicationData
+) {
+  if (["userland-cache", "lifecycle"].includes(suite) && profile !== "off") {
+    throw new Error(`${suite} requires --profile off`);
+  }
+  const paths = applicationDataPaths(applicationData?.root);
+  if (
+    applicationData.appData !== paths.appData ||
+    applicationData.localAppData !== paths.localAppData ||
+    applicationData.tempDir !== paths.tempDir
+  ) {
+    throw new Error(
+      "Application-data paths must be the fixed separate output children"
+    );
   }
   const env = {};
   for (const key of [
@@ -208,12 +279,17 @@ export function browserEnvironment(input, profile, suite = "basic") {
   );
   const scrubbed = Object.keys(input)
     .filter(key =>
-      /^(MESA_|GALLIUM_|GALLIVM_|LP_|ION|LIBGL_|EGL_|DRI_|MOZ_|GDK_|GTK_|LD_|__GL_|VK_)/.test(
+      /^(MESA_|GALLIUM_|GALLIVM_|LP_|ION|LIBGL_|EGL_|DRI_|MOZ_|GDK_|GTK_|LD_|__GL_|VK_|TMPDIR$|TMP$|TEMP$)/.test(
         key
       )
     )
     .sort();
   Object.assign(env, {
+    MOZ_APP_DATA: paths.appData,
+    MOZ_LOCAL_APP_DATA: paths.localAppData,
+    TMPDIR: paths.tempDir,
+    TMP: paths.tempDir,
+    TEMP: paths.tempDir,
     MOZ_HEADLESS: "1",
     MOZ_HEADLESS_WIDTH: "1024",
     MOZ_HEADLESS_HEIGHT: "768",
@@ -235,7 +311,10 @@ export function browserEnvironment(input, profile, suite = "basic") {
 }
 
 export function validateLogEvidence(log, suite) {
-  if (suite === "userland-cache" && log?.droppedBytes !== 0) {
+  if (
+    ["userland-cache", "lifecycle"].includes(suite) &&
+    log?.droppedBytes !== 0
+  ) {
     throw new Error("Diagnostic browser log evidence is missing or truncated");
   }
 }
@@ -320,14 +399,26 @@ export async function spawnOwned(binary, args, options = {}) {
   return owned;
 }
 
-async function groupMembers(identity) {
+async function groupMembers(identity, signal) {
   const members = [];
-  for (const entryName of await readdir("/proc")) {
+  const entries = signal
+    ? await withTimeout(
+        readdir("/proc"),
+        5000,
+        "Cleanup process enumeration",
+        signal
+      )
+    : await readdir("/proc");
+  for (const entryName of entries) {
+    signal?.throwIfAborted();
     if (!/^\d+$/.test(entryName)) {
       continue;
     }
     try {
-      const item = await readIdentity(Number(entryName));
+      const reading = readIdentity(Number(entryName));
+      const item = signal
+        ? await withTimeout(reading, 5000, "Cleanup identity read", signal)
+        : await reading;
       if (
         item.group === identity.group &&
         item.session === identity.session &&
@@ -344,7 +435,7 @@ async function groupMembers(identity) {
   return members;
 }
 
-export async function stopOwned(owned, timeoutMs = 5000) {
+export async function stopOwned(owned, timeoutMs = 5000, signal) {
   const failed = (reason, members = []) => {
     owned.child.unref();
     owned.child.stdout?.destroy();
@@ -357,7 +448,15 @@ export async function stopOwned(owned, timeoutMs = 5000) {
     };
   };
   if (!owned.child.pid) {
-    return { status: "clean", outcome: await owned.completion };
+    const outcome = signal
+      ? await withTimeout(
+          owned.completion,
+          timeoutMs,
+          "Cleanup spawn completion",
+          signal
+        )
+      : await owned.completion;
+    return { status: "clean", outcome };
   }
   if (!owned.identity || owned.identityError) {
     return failed("Child identity was not proven");
@@ -373,7 +472,11 @@ export async function stopOwned(owned, timeoutMs = 5000) {
   }
   let current;
   try {
-    current = await readIdentity(identity.pid);
+    signal?.throwIfAborted();
+    const reading = readIdentity(identity.pid);
+    current = signal
+      ? await withTimeout(reading, timeoutMs, "Cleanup root identity", signal)
+      : await reading;
   } catch (error) {
     if (error.code !== "ENOENT") {
       throw error;
@@ -390,6 +493,7 @@ export async function stopOwned(owned, timeoutMs = 5000) {
       return failed("Child identity changed; no signal sent");
     }
     try {
+      signal?.throwIfAborted();
       process.kill(-owned.child.pid, "SIGTERM");
     } catch (error) {
       if (error.code !== "ESRCH") {
@@ -400,11 +504,11 @@ export async function stopOwned(owned, timeoutMs = 5000) {
   const deadline = Date.now() + timeoutMs;
   let members;
   do {
-    members = await groupMembers(identity);
+    members = await groupMembers(identity, signal);
     if (!members.length && owned.outcome) {
       return { status: "clean", outcome: owned.outcome };
     }
-    await delay(25);
+    await delay(25, undefined, { signal });
   } while (Date.now() < deadline);
   return failed(
     "Own process group did not exit; no SIGKILL escalation",
@@ -505,7 +609,14 @@ export async function connectControl(
     throw error;
   }
   return {
-    async request(method, params = {}) {
+    async request(method, params = {}, replyTimeoutMs = 15000) {
+      if (
+        !Number.isInteger(replyTimeoutMs) ||
+        replyTimeoutMs < 1 ||
+        replyTimeoutMs > 60000
+      ) {
+        throw new Error("Invalid control reply timeout");
+      }
       if (failed || socket.readyState !== 1) {
         throw new Error("UmbraLink connection failed");
       }
@@ -517,7 +628,7 @@ export async function connectControl(
             pending.set(id, { resolve, reject });
             socket.send(JSON.stringify({ id, method, params }));
           }),
-          15000,
+          replyTimeoutMs,
           method,
           signal
         );
@@ -532,7 +643,12 @@ export async function connectControl(
   };
 }
 
-export function createBoundedLogger(write, scrub, limit = 8 * 1024 * 1024) {
+export function createBoundedLogger(
+  write,
+  scrub,
+  limit = 8 * 1024 * 1024,
+  onDrop
+) {
   let queue = Promise.resolve();
   let failure;
   let writtenBytes = 0;
@@ -543,6 +659,7 @@ export function createBoundedLogger(write, scrub, limit = 8 * 1024 * 1024) {
     const bytes = Buffer.byteLength(text);
     if (writtenBytes + bytes > limit) {
       droppedBytes += bytes;
+      onDrop?.();
       return;
     }
     writtenBytes += bytes;
@@ -561,6 +678,7 @@ export function createBoundedLogger(write, scrub, limit = 8 * 1024 * 1024) {
         buffers.set(source, buffered.slice(newline + 1));
       } else if (buffered.length > 65536) {
         droppedBytes += Buffer.byteLength(buffered);
+        onDrop?.();
         buffers.set(source, "");
       } else {
         buffers.set(source, buffered);

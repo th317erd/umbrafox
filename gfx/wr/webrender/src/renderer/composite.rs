@@ -182,13 +182,13 @@ impl Renderer {
 
                     ( textures, instance )
                 },
-                ResolvedExternalSurfaceColorData::Rgb{ ref plane, .. } => {
+                ResolvedExternalSurfaceColorData::Rgb{ ref plane, modulation, .. } => {
                     let textures = BatchTextures::composite_rgb(plane.texture);
                     let uv_rect = self.texture_resolver.get_uv_rect(&textures.input.colors[0], plane.uv_rect);
                     let instance = CompositeInstance::new_rgb(
                         surface_rect.to_f32(),
                         surface_rect.to_f32(),
-                        PremultipliedColorF::WHITE,
+                        modulation,
                         uv_rect,
                         plane.texture.uses_normalized_uvs(),
                         (false, false),
@@ -241,6 +241,8 @@ impl Renderer {
         external_surfaces: &[ResolvedExternalSurface],
         projection: &default::Transform3D<f32>,
         stats: &mut RendererStats,
+        #[cfg(feature = "umbra-perf-probes")]
+        sampling_blend: BlendMode,
     ) {
         let mut current_shader_params = (
             CompositeSurfaceFormat::Rgba,
@@ -351,18 +353,33 @@ impl Renderer {
                                 ),
                             )
                         },
-                        ResolvedExternalSurfaceColorData::Rgb { ref plane, .. } => {
+                        ResolvedExternalSurfaceColorData::Rgb { ref plane, modulation, .. } => {
                             let uv_rect = self.texture_resolver.get_uv_rect(&plane.texture, plane.uv_rect);
                             let instance = CompositeInstance::new_rgb(
                                 tile_rect,
                                 clip_rect,
-                                PremultipliedColorF::WHITE,
+                                modulation,
                                 uv_rect,
                                 plane.texture.uses_normalized_uvs(),
                                 flip,
                                 clip,
                             );
-                            let features = instance.get_rgb_features();
+                            let mut features = instance.get_rgb_features();
+                            if modulation != PremultipliedColorF::WHITE
+                                && surface.image_buffer_kind == ImageBufferKind::Texture2D
+                                && matches!(self.compositor_config, CompositorConfig::Draw { .. })
+                                && !self.device.get_capabilities().renderer_name.starts_with("Software")
+                                && clip.is_none()
+                                && tile.clip_index.is_none()
+                                && features.contains(CompositeFeatures::NO_CLIP_MASK)
+                                && !tile_rect.is_empty()
+                                && !clip_rect.is_empty()
+                                && [tile_rect.min.x, tile_rect.min.y, tile_rect.max.x, tile_rect.max.y,
+                                    clip_rect.min.x, clip_rect.min.y, clip_rect.max.x, clip_rect.max.y]
+                                    .iter().all(|value| value.is_finite() && value.fract() == 0.0)
+                            {
+                                features |= CompositeFeatures::EXPERIMENTAL_NO_RECT_AA;
+                            }
                             (
                                 instance,
                                 BatchTextures::composite_rgb(plane.texture),
@@ -406,6 +423,11 @@ impl Renderer {
                     &current_textures,
                     stats,
                 );
+                #[cfg(feature = "umbra-perf-probes")]
+                if self.sampling_active() && current_shader_params.0 == CompositeSurfaceFormat::Rgba {
+                    self.sampling_composite_draw(&instances, &current_textures.input,
+                        current_shader_params.2, projection, sampling_blend, current_shader_params.3);
+                }
 
                 instances.clear();
             }
@@ -413,6 +435,11 @@ impl Renderer {
             current_textures = textures;
 
             // Add instance to current batch
+            #[cfg(feature = "umbra-perf-probes")]
+            if self.sampling_active() && shader_params.0 == CompositeSurfaceFormat::Rgba {
+                self.sampling_composite_input(&instance, &textures.input, shader_params.2,
+                    item.key.tile_index, tile);
+            }
             instances.push(instance);
         }
 
@@ -438,6 +465,11 @@ impl Renderer {
                 &current_textures,
                 stats,
             );
+            #[cfg(feature = "umbra-perf-probes")]
+            if self.sampling_active() && current_shader_params.0 == CompositeSurfaceFormat::Rgba {
+                self.sampling_composite_draw(&instances, &current_textures.input,
+                    current_shader_params.2, projection, sampling_blend, current_shader_params.3);
+            }
         }
     }
 
@@ -465,6 +497,10 @@ impl Renderer {
         }
 
         let clear_color = clear_color.to_array();
+        #[cfg(feature = "umbra-perf-probes")]
+        if self.sampling_active() {
+            self.sampling_composite_pass(draw_target, clear_color, partial_present_mode.is_some());
+        }
 
         self.device.begin_render_pass(&RenderPassDescriptor {
             target: draw_target,
@@ -486,6 +522,10 @@ impl Renderer {
             // the empty scissor rect set) after calling eglSetDamageRegion with an
             // empty damage region. So avoid clearing in that case. See bug 1709548.
             if !dirty_rect.is_empty() && layer.occlusion.test(&dirty_rect) {
+                #[cfg(feature = "umbra-perf-probes")]
+                if self.sampling_active() {
+                    self.sampling_composite_clear(draw_target.to_framebuffer_rect(dirty_rect.to_i32()));
+                }
                 // We have a single dirty rect, so clear only that
                 self.device.clear_rect(
                     draw_target.to_framebuffer_rect(dirty_rect.to_i32()),
@@ -506,6 +546,8 @@ impl Renderer {
                 &composite_state.external_surfaces,
                 projection,
                 &mut results.stats,
+                #[cfg(feature = "umbra-perf-probes")]
+                BlendMode::None,
             );
             self.gpu_profiler.finish_sampler(opaque_sampler);
         }
@@ -521,6 +563,8 @@ impl Renderer {
                 &composite_state.external_surfaces,
                 projection,
                 &mut results.stats,
+                #[cfg(feature = "umbra-perf-probes")]
+                BlendMode::PremultipliedAlpha,
             );
             self.gpu_profiler.finish_sampler(transparent_sampler);
         }

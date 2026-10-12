@@ -47,9 +47,13 @@ SharedSurface_DMABUF::~SharedSurface_DMABUF() {
   mSurface->ReleaseTextures();
 }
 
-void SharedSurface_DMABUF::ProducerReleaseImpl() { mSurface->FenceSet(); }
+void SharedSurface_DMABUF::ProducerReleaseImpl() {
+  mSurface->FenceSet(&mProducerFence);
+}
 
-void SharedSurface_DMABUF::WaitForBufferOwnership() { mSurface->FenceWait(); }
+void SharedSurface_DMABUF::WaitForBufferOwnership() {
+  mSurface->FenceWait(nullptr, &mProducerFence);
+}
 
 Maybe<layers::SurfaceDescriptor> SharedSurface_DMABUF::ToSurfaceDescriptor() {
   layers::SurfaceDescriptor desc;

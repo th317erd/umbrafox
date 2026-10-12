@@ -30,8 +30,15 @@ class TestGPUVideoSurfaceManager final : public IGPUVideoSurfaceManager {
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TestGPUVideoSurfaceManager, override)
 
+  bool CanReadback() override { return false; }
+
   already_AddRefed<SourceSurface> Readback(
       const SurfaceDescriptorGPUVideo&) override {
+    return nullptr;
+  }
+
+  already_AddRefed<SourceSurface> Readback(const SurfaceDescriptorGPUVideo&,
+                                           const IntSize&) override {
     return nullptr;
   }
 

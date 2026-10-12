@@ -1,0 +1,30 @@
+{
+  "buildID": "20261006175655",
+  "files": 46,
+  "archiveEntries": 57,
+  "uncompressedBytes": 475127101,
+  "archive": {
+    "name": "umbrafox-descriptor-availability-20261006175655-linux-x86_64.tar.xz",
+    "bytes": 107771688,
+    "sha256": "50c50495738d183ab0fe449b665a17ad530fea855a7baa51f4399de4108f9a39"
+  },
+  "manifestSHA256": "a7d80698828618f3d0c3e9f760e6fe8b63a72f3f93ba8dabcb132581c8784e87",
+  "iniBuildIDs": {
+    "application.ini": "20261006175655",
+    "platform.ini": "20261006175655"
+  },
+  "toolkitBuildID": "20261006175655",
+  "frontendArchives": {
+    "omni.ja": {
+      "entries": 2676,
+      "changed": [
+        "modules/AppConstants.sys.mjs"
+      ]
+    },
+    "browser/omni.ja": {
+      "entries": 5368,
+      "changed": []
+    }
+  },
+  "installed": false
+}

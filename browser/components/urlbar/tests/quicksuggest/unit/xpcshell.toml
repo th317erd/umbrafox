@@ -68,6 +68,11 @@ requesttimeoutfactor = 2  # Slow on Mac in verify mode
 
 ["test_quicksuggest_migrate_v7.js"]
 
+["test_quicksuggest_regionDefaults.js"]
+prefs = [
+  'browser.urlbar.quicksuggest.regionDefaults.enabled=false',
+]
+
 ["test_quicksuggest_relevanceRanking.js"]
 
 ["test_quicksuggest_remoteSettingsFilter.js"]

@@ -10,6 +10,8 @@
 // NOTE: Setting prefs to enable unittests to run at all
 // should occur in unittest-required/user.js, not here!
 /* globals user_pref */
+// Preserve regional Suggest behavior for tests that exercise the feature.
+user_pref("browser.urlbar.quicksuggest.regionDefaults.enabled", true);
 // Enable w3c touch events for testing
 user_pref("dom.w3c_touch_events.enabled", 1);
 // Enable CSS initial-letter for testing

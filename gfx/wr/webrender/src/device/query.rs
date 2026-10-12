@@ -281,6 +281,21 @@ impl GpuProfiler {
         GpuMarker::new(&self.queries, label)
     }
 
+    pub fn start_pass_marker(&mut self, pass_index: usize) -> GpuMarker {
+        use std::io::Write;
+
+        if !self.queries.supports_markers() {
+            return GpuMarker { queries: None };
+        }
+
+        // A decimal usize needs no more digits than its bit width.
+        let mut label = std::io::Cursor::new([0u8; 5 + usize::BITS as usize]);
+        write!(label, "pass {}", pass_index).unwrap();
+        let message = std::str::from_utf8(&label.get_ref()[..label.position() as usize]).unwrap();
+        self.queries.push_marker_group(message);
+        GpuMarker { queries: Some(Rc::clone(&self.queries)) }
+    }
+
     pub fn place_marker(&mut self, label: &str) {
         GpuMarker::fire(&self.queries, label)
     }
@@ -322,3 +337,7 @@ impl Drop for GpuMarker {
 pub struct GpuTimeQuery(#[allow(dead_code)] GpuMarker);
 #[must_use]
 pub struct GpuSampleQuery;
+
+#[cfg(test)]
+#[path = "../../tests/unit/gpu_marker.rs"]
+mod tests;

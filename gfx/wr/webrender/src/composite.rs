@@ -24,6 +24,11 @@ use crate::space::SpaceMapper;
 use std::{ops, os::raw::c_void, hash};
 use std::num::NonZeroUsize;
 
+#[cfg(feature = "replay")]
+fn white_modulation() -> api::PremultipliedColorF {
+    api::PremultipliedColorF::WHITE
+}
+
 /*
  Types and definitions related to compositing picture cache tiles
  and/or OS compositor integration.
@@ -130,6 +135,7 @@ bitflags! {
         const NO_COLOR_MODULATION = 1 << 1;
         // Can skip applying clip mask.
         const NO_CLIP_MASK = 1 << 2;
+        const EXPERIMENTAL_NO_RECT_AA = 1 << 3;
     }
 }
 
@@ -202,6 +208,7 @@ pub enum ExternalSurfaceDependency {
     },
     Rgb {
         image_dependency: ImageDependency,
+        modulation: api::PremultipliedColorF,
     },
 }
 
@@ -298,6 +305,8 @@ pub enum ResolvedExternalSurfaceColorData {
     Rgb {
         image_dependency: ImageDependency,
         plane: ExternalPlaneDescriptor,
+        #[cfg_attr(feature = "replay", serde(default = "white_modulation"))]
+        modulation: api::PremultipliedColorF,
     },
 }
 
@@ -536,6 +545,8 @@ pub struct CompositeSurfaceDescriptor {
     // thing that has changed is the generation of an compositor surface
     // image dependency.
     pub image_dependencies: [ImageDependency; 3],
+    #[cfg_attr(feature = "replay", serde(default = "white_modulation"))]
+    pub modulation: api::PremultipliedColorF,
     pub image_rendering: ImageRendering,
     // List of the surface information for each tile added to this virtual surface
     pub tile_descriptors: Vec<CompositeTileDescriptor>,
@@ -977,6 +988,10 @@ impl CompositeState {
                 clip_rect,
                 transform: self.get_compositor_transform(external_surface.transform_index),
                 image_dependencies: image_dependencies,
+                modulation: match external_surface.dependency {
+                    ExternalSurfaceDependency::Rgb { modulation, .. } => modulation,
+                    _ => api::PremultipliedColorF::WHITE,
+                },
                 image_rendering: external_surface.image_rendering,
                 tile_descriptors: Vec::new(),
                 rounded_clip_rect,
@@ -1022,6 +1037,7 @@ impl CompositeState {
                     clip_rect: backdrop_surface.device_rect,
                     transform: slice_transform,
                     image_dependencies: [ImageDependency::INVALID; 3],
+                    modulation: api::PremultipliedColorF::WHITE,
                     image_rendering,
                     tile_descriptors: Vec::new(),
                     rounded_clip_rect,
@@ -1090,6 +1106,7 @@ impl CompositeState {
                             clip_rect: surface_clip_rect,
                             transform: slice_transform,
                             image_dependencies: [ImageDependency::INVALID; 3],
+                            modulation: api::PremultipliedColorF::WHITE,
                             image_rendering,
                             tile_descriptors: sub_slice.opaque_tile_descriptors.clone(),
                             rounded_clip_rect,
@@ -1106,6 +1123,7 @@ impl CompositeState {
                             clip_rect: surface_clip_rect,
                             transform: slice_transform,
                             image_dependencies: [ImageDependency::INVALID; 3],
+                            modulation: api::PremultipliedColorF::WHITE,
                             image_rendering,
                             tile_descriptors: sub_slice.alpha_tile_descriptors.clone(),
                             rounded_clip_rect,
@@ -1248,13 +1266,14 @@ impl CompositeState {
                     external_image_id: external_surface.external_image_id,
                 });
             },
-            ExternalSurfaceDependency::Rgb { .. } => {
+            ExternalSurfaceDependency::Rgb { modulation, .. } => {
                 let image_buffer_kind = planes[0].texture.image_buffer_kind();
 
                 self.external_surfaces.push(ResolvedExternalSurface {
                     color_data: ResolvedExternalSurfaceColorData::Rgb {
                         image_dependency: image_dependencies[0],
                         plane: planes[0],
+                        modulation,
                     },
                     image_buffer_kind,
                     update_params,

@@ -1205,6 +1205,18 @@ def webrender_debugger(value):
 set_config("MOZ_WEBRENDER_DEBUGGER", webrender_debugger)
 set_define("MOZ_WEBRENDER_DEBUGGER", webrender_debugger)
 
+option("--enable-umbra-perf-probes", help="Build internal Umbrafox performance probes")
+
+
+@depends("--enable-umbra-perf-probes")
+def umbra_perf_probes(value):
+    if value:
+        return True
+
+
+set_config("MOZ_UMBRA_PERF_PROBES", umbra_perf_probes)
+set_define("MOZ_UMBRA_PERF_PROBES", umbra_perf_probes)
+
 # Additional system headers defined at the application level
 # ==============================================================
 

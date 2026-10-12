@@ -1,0 +1,31 @@
+{
+  "buildID": "20261007133500",
+  "files": 46,
+  "archiveEntries": 57,
+  "uncompressedBytes": 475111027,
+  "archive": {
+    "name": "umbrafox-producer-fence-20261007133500-linux-x86_64.tar.xz",
+    "bytes": 107769468,
+    "sha256": "03c4de79c731fefa1b26a6c3f034b5db7996cbe78cde0e50feda60bfb77ba18f"
+  },
+  "manifestSHA256": "03dc06365cd39d215a69c25b32b7c06bd19f39073ce5fe0702170f33048f4463",
+  "iniBuildIDs": {
+    "application.ini": "20261007133500",
+    "platform.ini": "20261007133500"
+  },
+  "toolkitBuildID": "20261007133500",
+  "frontendArchives": {
+    "omni.ja": {
+      "entries": 2676,
+      "changed": [
+        "modules/AppConstants.sys.mjs",
+        "modules/services-settings/Attachments.sys.mjs"
+      ]
+    },
+    "browser/omni.ja": {
+      "entries": 5368,
+      "changed": []
+    }
+  },
+  "installed": false
+}

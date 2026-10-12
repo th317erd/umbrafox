@@ -1,0 +1,12 @@
+ALWAYS_PREF(
+  "gfx.webrender.debug.surface-promotion-logging",
+   gfx_webrender_debug_surface_promotion_logging,
+   gfx_webrender_debug_surface_promotion_logging,
+  RelaxedAtomicBool, false
+)
+ALWAYS_PREF(
+  "gfx.webrender.single-image-opacity.enabled",
+   gfx_webrender_single_image_opacity_enabled,
+   gfx_webrender_single_image_opacity_enabled,
+  RelaxedAtomicBool, false
+)

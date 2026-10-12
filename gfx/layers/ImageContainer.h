@@ -148,6 +148,10 @@ class Image {
   virtual nsresult BuildSurfaceDescriptorBuffer(
       SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
       const std::function<MemoryOrShmem(uint32_t)>& aAllocate);
+  virtual nsresult BuildSurfaceDescriptorBufferForSize(
+      SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
+      const gfx::IntSize& aSize,
+      const std::function<MemoryOrShmem(uint32_t)>& aAllocate);
 
   /**
    * Get a SurfaceDescriptorGPUVideo if possible, with the source matching aDest

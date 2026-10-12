@@ -1,0 +1,815 @@
+diff --git a/dom/canvas/CanvasRenderingContext2D.cpp b/dom/canvas/CanvasRenderingContext2D.cpp
+index 801d6b14b63c..3a8b96c4fa31 100644
+--- a/dom/canvas/CanvasRenderingContext2D.cpp
++++ b/dom/canvas/CanvasRenderingContext2D.cpp
+@@ -9,6 +9,7 @@
+ 
+ #include "CanvasImageCache.h"
+ #include "CanvasUtils.h"
++#include "GPUVideoImage.h"
+ #include "GeckoBindings.h"
+ #include "ImageEncoder.h"
+ #include "ImageRegion.h"
+@@ -5915,6 +5916,48 @@ static Matrix ComputeRotationMatrix(gfxFloat aRotatedWidth,
+       .PostTranslate(shiftLeftTopToOrigin);
+ }
+ 
++static layers::GPUVideoImage* GetDMABufGPUVideoImage(layers::Image* aImage) {
++  layers::GPUVideoImage* gpuVideo =
++      aImage ? aImage->AsGPUVideoImage() : nullptr;
++  if (!gpuVideo || gpuVideo->GetRemoteDecoderVideoType() !=
++                       layers::RemoteDecoderVideoType::DMABuf) {
++    return nullptr;
++  }
++  return gpuVideo;
++}
++
++static already_AddRefed<SourceSurface>
++MaybeGetScaledSourceSurfaceForRemoteVideo(layers::Image* aImage,
++                                          const gfx::Rect& aSourceRect,
++                                          const gfx::Rect& aDestRect,
++                                          const gfx::IntSize& aImageSize,
++                                          const Matrix& aTransform,
++                                          SamplingFilter aSamplingFilter,
++                                          VideoRotation aRotationDeg) {
++  layers::GPUVideoImage* gpuVideo = GetDMABufGPUVideoImage(aImage);
++  if (!gpuVideo || aRotationDeg != VideoRotation::kDegree_0 ||
++      !aTransform.IsIdentity() || aSamplingFilter != SamplingFilter::LINEAR ||
++      aSourceRect.x != 0.0 || aSourceRect.y != 0.0 ||
++      aSourceRect.width != aImageSize.width ||
++      aSourceRect.height != aImageSize.height) {
++    return nullptr;
++  }
++
++  const IntSize readbackSize = IntSize::Ceil(aDestRect.width, aDestRect.height);
++  if (readbackSize.IsEmpty() || readbackSize.width != aDestRect.width ||
++      readbackSize.height != aDestRect.height ||
++      (readbackSize.width >= aImageSize.width &&
++       readbackSize.height >= aImageSize.height)) {
++    return nullptr;
++  }
++
++  RefPtr<SourceSurface> surface = gpuVideo->GetAsSourceSurface(readbackSize);
++  if (!surface || surface->GetSize() != readbackSize) {
++    return nullptr;
++  }
++  return surface.forget();
++}
++
+ // -
+ 
+ bool ValidSurfaceDescriptorForRemoteCanvas2d(
+@@ -6087,6 +6130,7 @@ void CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
+   DirectDrawInfo drawInfo;
+   Maybe<layers::SurfaceDescriptor> surfaceDescriptor;
+   SurfaceFromElementResult res;
++  bool deferRemoteVideoReadback = false;
+ 
+   if (!srcSurf) {
+     // The canvas spec says that drawImage should draw the first frame
+@@ -6104,19 +6148,30 @@ void CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
+       res = CanvasRenderingContext2D::CachedSurfaceFromElement(element);
+       if (!res.mSourceSurface) {
+         HTMLVideoElement* video = HTMLVideoElement::FromNodeOrNull(element);
+-        if (video && mBufferProvider->IsAccelerated() &&
+-            mTarget->IsRecording() &&
+-            !(NeedToApplyFilter() || NeedToDrawShadow())) {
++        const bool canUseRemoteVideoReadback =
++            video && !(NeedToApplyFilter() || NeedToDrawShadow());
++        if (canUseRemoteVideoReadback) {
++          const bool canUseRemoteCanvasFastPath =
++              mBufferProvider->IsAccelerated() && mTarget->IsRecording();
+           res = nsLayoutUtils::SurfaceFromElement(
+               video, sfeFlags, mTarget, /* aOptimizeSourceSurface */ false);
+-          surfaceDescriptor = MaybeGetSurfaceDescriptorForRemoteCanvas(res);
++          if (canUseRemoteCanvasFastPath) {
++            surfaceDescriptor = MaybeGetSurfaceDescriptorForRemoteCanvas(res);
++          }
+           if (surfaceDescriptor.isNothing() && res.mLayersImage) {
+-            if ((res.mSourceSurface = res.mLayersImage->GetAsSourceSurface())) {
++            if (GetDMABufGPUVideoImage(res.mLayersImage)) {
++              deferRemoteVideoReadback = true;
++            } else if (canUseRemoteCanvasFastPath &&
++                       (res.mSourceSurface =
++                            res.mLayersImage->GetAsSourceSurface())) {
+               RefPtr<SourceSurface> opt =
+                   mTarget->OptimizeSourceSurface(res.mSourceSurface);
+               if (opt) {
+                 res.mSourceSurface = opt;
+               }
++            } else if (!canUseRemoteCanvasFastPath) {
++              res =
++                  nsLayoutUtils::SurfaceFromElement(element, sfeFlags, mTarget);
+             }
+           }
+         } else {
+@@ -6125,12 +6180,12 @@ void CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
+       }
+     }
+ 
+-    if (surfaceDescriptor.isNothing()) {
++    if (surfaceDescriptor.isNothing() && !deferRemoteVideoReadback) {
+       srcSurf = res.GetSourceSurface();
+     }
+ 
+     if (!srcSurf && surfaceDescriptor.isNothing() &&
+-        !res.mDrawInfo.mImgContainer) {
++        !res.mDrawInfo.mImgContainer && !deferRemoteVideoReadback) {
+       // https://html.spec.whatwg.org/#check-the-usability-of-the-image-argument:
+       //
+       // Only throw if the request is broken and the element is an
+@@ -6256,8 +6311,36 @@ void CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
+     return;
+   }
+ 
++  gfx::Rect sourceRect(aSx, aSy, aSw, aSh);
++  gfx::Rect destRect(aDx, aDy, aDw, aDh);
++
++  VideoRotation rotationDeg = VideoRotation::kDegree_0;
++  if (HTMLVideoElement* video = HTMLVideoElement::FromNodeOrNull(element)) {
++    rotationDeg = video->RotationDegrees();
++  }
++
++  if (deferRemoteVideoReadback) {
++    srcSurf = MaybeGetScaledSourceSurfaceForRemoteVideo(
++        res.mLayersImage, sourceRect, destRect, imgSize,
++        mTarget->GetTransform(), samplingFilter, rotationDeg);
++    if (srcSurf) {
++      RefPtr<SourceSurface> opt = mTarget->OptimizeSourceSurface(srcSurf);
++      if (opt) {
++        srcSurf = opt;
++      }
++      const IntSize readbackSize = srcSurf->GetSize();
++      sourceRect = gfx::Rect(0, 0, readbackSize.width, readbackSize.height);
++    } else {
++      srcSurf = res.GetSourceSurface();
++    }
++  }
++
++  if (!srcSurf && surfaceDescriptor.isNothing() &&
++      !res.mDrawInfo.mImgContainer) {
++    return;
++  }
++
+   if (srcSurf || surfaceDescriptor.isSome()) {
+-    gfx::Rect sourceRect(aSx, aSy, aSw, aSh);
+     if (srcSurf && ((element && element == mCanvasElement) ||
+                     (offscreenCanvas && offscreenCanvas == mOffscreenCanvas))) {
+       // srcSurf is a snapshot of mTarget. If we draw to mTarget now, we'll
+@@ -6285,13 +6368,6 @@ void CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
+       return;
+     }
+ 
+-    VideoRotation rotationDeg = VideoRotation::kDegree_0;
+-    if (HTMLVideoElement* video = HTMLVideoElement::FromNodeOrNull(element)) {
+-      rotationDeg = video->RotationDegrees();
+-    }
+-
+-    gfx::Rect destRect(aDx, aDy, aDw, aDh);
+-
+     Matrix currentTransform = tempTarget->GetTransform();
+     if (rotationDeg != VideoRotation::kDegree_0) {
+       tempTarget->ConcatTransform(
+@@ -6328,8 +6404,7 @@ void CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
+     }
+ 
+   } else {
+-    DrawDirectlyToCanvas(drawInfo, &bounds, gfx::Rect(aDx, aDy, aDw, aDh),
+-                         gfx::Rect(aSx, aSy, aSw, aSh), imgSize);
++    DrawDirectlyToCanvas(drawInfo, &bounds, destRect, sourceRect, imgSize);
+   }
+ 
+   RedrawUser(gfxRect(aDx, aDy, aDw, aDh));
+diff --git a/dom/media/ipc/PRemoteMediaManager.ipdl b/dom/media/ipc/PRemoteMediaManager.ipdl
+index e92cf9a15886..bfd6585fbe0f 100644
+--- a/dom/media/ipc/PRemoteMediaManager.ipdl
++++ b/dom/media/ipc/PRemoteMediaManager.ipdl
+@@ -18,6 +18,7 @@ include PMediaDecoderParams;
+ include "mozilla/dom/MediaIPCUtils.h";
+ include "mozilla/layers/LayersMessageUtils.h";
+ 
++using mozilla::gfx::IntSize from "mozilla/gfx/Point.h";
+ using mozilla::VideoInfo from "MediaInfo.h";
+ using mozilla::AudioInfo from "MediaInfo.h";
+ using struct mozilla::layers::TextureFactoryIdentifier from "mozilla/layers/CompositorTypes.h";
+@@ -69,7 +70,7 @@ parent:
+   async PRemoteEncoder(EncoderConfig config);
+   async PRemoteCDM(nsString keySystem);
+ 
+-  sync Readback(SurfaceDescriptorGPUVideo sd) returns (SurfaceDescriptor aResult);
++  sync Readback(SurfaceDescriptorGPUVideo sd, IntSize? readbackSize) returns (SurfaceDescriptor aResult);
+ 
+   async DeallocateSurfaceDescriptorGPUVideo(SurfaceDescriptorGPUVideo sd);
+ 
+diff --git a/dom/media/ipc/RemoteMediaManagerChild.cpp b/dom/media/ipc/RemoteMediaManagerChild.cpp
+index 58d4d451ea17..671c680bc74f 100644
+--- a/dom/media/ipc/RemoteMediaManagerChild.cpp
++++ b/dom/media/ipc/RemoteMediaManagerChild.cpp
+@@ -1088,6 +1088,11 @@ void DeleteSurfaceDescriptorUserData(void* aClosure) {
+ 
+ already_AddRefed<SourceSurface> RemoteMediaManagerChild::Readback(
+     const SurfaceDescriptorGPUVideo& aSD) {
++  return Readback(aSD, IntSize());
++}
++
++already_AddRefed<SourceSurface> RemoteMediaManagerChild::Readback(
++    const SurfaceDescriptorGPUVideo& aSD, const IntSize& aReadbackSize) {
+   // We can't use NS_DispatchAndSpinEventLoopUntilComplete here since that will
+   // spin the event loop while it waits. This function can be called from JS and
+   // we don't want that to happen.
+@@ -1097,16 +1102,20 @@ already_AddRefed<SourceSurface> RemoteMediaManagerChild::Readback(
+   }
+ 
+   SurfaceDescriptor sd;
++  Maybe<IntSize> readbackSize =
++      aReadbackSize.IsEmpty() ? Nothing() : Some(aReadbackSize);
+   RefPtr<Runnable> task =
+       NS_NewRunnableFunction("RemoteMediaManagerChild::Readback", [&]() {
+         if (CanSend()) {
+-          SendReadback(aSD, &sd);
++          SendReadback(aSD, readbackSize, &sd);
+         }
+       });
+   SyncRunnable::DispatchToThread(managerThread, task);
+ 
+   if (sd.type() != SurfaceDescriptor::TSurfaceDescriptorBuffer) {
+-    LOGE("Unexpected SurfaceDescriptor type in Readback");
++    if (readbackSize.isNothing()) {
++      LOGE("Unexpected SurfaceDescriptor type in Readback");
++    }
+     return nullptr;
+   }
+   auto& sdb = sd.get_SurfaceDescriptorBuffer();
+diff --git a/dom/media/ipc/RemoteMediaManagerChild.h b/dom/media/ipc/RemoteMediaManagerChild.h
+index f66833066fac..78b1a0756bdf 100644
+--- a/dom/media/ipc/RemoteMediaManagerChild.h
++++ b/dom/media/ipc/RemoteMediaManagerChild.h
+@@ -107,6 +107,9 @@ class RemoteMediaManagerChild final
+   // internally and will be ignored if the IPDL actor has been destroyed.
+   already_AddRefed<gfx::SourceSurface> Readback(
+       const SurfaceDescriptorGPUVideo& aSD) override;
++  already_AddRefed<gfx::SourceSurface> Readback(
++      const SurfaceDescriptorGPUVideo& aSD,
++      const gfx::IntSize& aReadbackSize) override;
+   already_AddRefed<layers::Image> TransferToImage(
+       const SurfaceDescriptorGPUVideo& aSD, const gfx::IntSize& aSize,
+       const gfx::ColorDepth& aColorDepth, gfx::YUVColorSpace aYUVColorSpace,
+diff --git a/dom/media/ipc/RemoteMediaManagerParent.cpp b/dom/media/ipc/RemoteMediaManagerParent.cpp
+index 94a1f1b7e04e..206d908d2897 100644
+--- a/dom/media/ipc/RemoteMediaManagerParent.cpp
++++ b/dom/media/ipc/RemoteMediaManagerParent.cpp
+@@ -295,8 +295,17 @@ void RemoteMediaManagerParent::Open(
+   }
+ }
+ 
++static void FreeSurfaceDescriptorBuffer(RemoteMediaManagerParent* aManager,
++                                        SurfaceDescriptorBuffer& aSdb) {
++  if (aSdb.data().type() == MemoryOrShmem::TShmem) {
++    aManager->DeallocShmem(aSdb.data().get_Shmem());
++  }
++  aSdb = SurfaceDescriptorBuffer();
++}
++
+ mozilla::ipc::IPCResult RemoteMediaManagerParent::RecvReadback(
+-    const SurfaceDescriptorGPUVideo& aSD, SurfaceDescriptor* aResult) {
++    const SurfaceDescriptorGPUVideo& aSD,
++    const Maybe<gfx::IntSize>& aReadbackSize, SurfaceDescriptor* aResult) {
+   const SurfaceDescriptorRemoteDecoder& sd = aSD;
+   RefPtr<Image> image = mImageMap[sd.handle()];
+   if (!image) {
+@@ -306,23 +315,34 @@ mozilla::ipc::IPCResult RemoteMediaManagerParent::RecvReadback(
+ 
+   // Read directly into the shmem to avoid extra copies, if possible.
+   SurfaceDescriptorBuffer sdb;
+-  nsresult rv = image->BuildSurfaceDescriptorBuffer(
+-      sdb, Image::BuildSdbFlags::RgbOnly, [&](uint32_t aBufferSize) {
+-        Shmem buffer;
+-        if (!AllocShmem(aBufferSize, &buffer)) {
+-          return MemoryOrShmem();
+-        }
+-        return MemoryOrShmem(std::move(buffer));
+-      });
++  auto allocate = [&](uint32_t aBufferSize) {
++    Shmem buffer;
++    if (!AllocShmem(aBufferSize, &buffer)) {
++      return MemoryOrShmem();
++    }
++    return MemoryOrShmem(std::move(buffer));
++  };
++
++  nsresult rv = NS_ERROR_NOT_IMPLEMENTED;
++  if (aReadbackSize.isSome()) {
++    rv = image->BuildSurfaceDescriptorBufferForSize(
++        sdb, Image::BuildSdbFlags::RgbOnly, aReadbackSize.ref(), allocate);
++    if (NS_FAILED(rv)) {
++      FreeSurfaceDescriptorBuffer(this, sdb);
++      *aResult = null_t();
++      return IPC_OK();
++    }
++  } else {
++    rv = image->BuildSurfaceDescriptorBuffer(sdb, Image::BuildSdbFlags::RgbOnly,
++                                             allocate);
++  }
+ 
+   if (NS_SUCCEEDED(rv)) {
+     *aResult = std::move(sdb);
+     return IPC_OK();
+   }
+ 
+-  if (sdb.data().type() == MemoryOrShmem::TShmem) {
+-    DeallocShmem(sdb.data().get_Shmem());
+-  }
++  FreeSurfaceDescriptorBuffer(this, sdb);
+   *aResult = null_t();
+   return IPC_OK();
+ }
+diff --git a/dom/media/ipc/RemoteMediaManagerParent.h b/dom/media/ipc/RemoteMediaManagerParent.h
+index 687b59bfedfa..b54ed42f7944 100644
+--- a/dom/media/ipc/RemoteMediaManagerParent.h
++++ b/dom/media/ipc/RemoteMediaManagerParent.h
+@@ -40,6 +40,12 @@ class RemoteMediaManagerParent final : public PRemoteMediaManagerParent,
+     MOZ_ASSERT_UNREACHABLE("Not usable from the parent");
+     return nullptr;
+   }
++  already_AddRefed<gfx::SourceSurface> Readback(
++      const SurfaceDescriptorGPUVideo& aSD,
++      const gfx::IntSize& aReadbackSize) override {
++    MOZ_ASSERT_UNREACHABLE("Not usable from the parent");
++    return nullptr;
++  }
+   already_AddRefed<layers::Image> TransferToImage(
+       const SurfaceDescriptorGPUVideo& aSD, const gfx::IntSize& aSize,
+       const gfx::ColorDepth& aColorDepth, gfx::YUVColorSpace aYUVColorSpace,
+@@ -84,6 +90,7 @@ class RemoteMediaManagerParent final : public PRemoteMediaManagerParent,
+       const nsAString& aKeySystem);
+ 
+   mozilla::ipc::IPCResult RecvReadback(const SurfaceDescriptorGPUVideo& aSD,
++                                       const Maybe<gfx::IntSize>& aReadbackSize,
+                                        SurfaceDescriptor* aResult);
+   mozilla::ipc::IPCResult RecvDeallocateSurfaceDescriptorGPUVideo(
+       const SurfaceDescriptorGPUVideo& aSD);
+diff --git a/gfx/gl/GLBlitHelper.cpp b/gfx/gl/GLBlitHelper.cpp
+index 10c4069c4d5b..5f1726ce564b 100644
+--- a/gfx/gl/GLBlitHelper.cpp
++++ b/gfx/gl/GLBlitHelper.cpp
+@@ -1643,7 +1643,8 @@ void GLBlitHelper::BlitTextureToTexture(GLuint srcTex, GLuint destTex,
+ #ifdef MOZ_WIDGET_GTK
+ bool GLBlitHelper::Blit(DMABufSurface* surface, const gfx::IntRect& destRect,
+                         OriginPos destOrigin, const gfx::IntSize& fbSize,
+-                        Maybe<gfxAlphaType> convertAlpha) const {
++                        Maybe<gfxAlphaType> convertAlpha,
++                        bool aScaleSourceToDest) const {
+   const auto& srcOrigin = OriginPos::BottomLeft;
+ 
+   DrawBlitProg::BaseArgs baseArgs;
+@@ -1738,7 +1739,9 @@ bool GLBlitHelper::Blit(DMABufSurface* surface, const gfx::IntRect& destRect,
+   baseArgs.texMatrix0 = SubRectMat3(
+       0, 0, float(surface->GetWidth(0)) / float(surface->GetWidthAligned(0)),
+       float(surface->GetHeight(0)) / float(surface->GetHeightAligned(0)));
+-  baseArgs.texSize = gfx::IntSize(surface->GetWidth(), surface->GetHeight());
++  if (!aScaleSourceToDest) {
++    baseArgs.texSize = gfx::IntSize(surface->GetWidth(), surface->GetHeight());
++  }
+   yuvArgs.texMatrix1 = SubRectMat3(
+       0, 0, float(surface->GetWidth(1)) / float(surface->GetWidthAligned(1)),
+       float(surface->GetHeight(1)) / float(surface->GetHeightAligned(1)));
+diff --git a/gfx/gl/GLBlitHelper.h b/gfx/gl/GLBlitHelper.h
+index 55ff8ccd7afc..15e25b6fd678 100644
+--- a/gfx/gl/GLBlitHelper.h
++++ b/gfx/gl/GLBlitHelper.h
+@@ -276,7 +276,8 @@ class GLBlitHelper final {
+ #ifdef MOZ_WIDGET_GTK
+   bool Blit(DMABufSurface* surface, const gfx::IntRect& destRect,
+             OriginPos destOrigin, const gfx::IntSize& fbSize = gfx::IntSize(),
+-            Maybe<gfxAlphaType> convertAlpha = {}) const;
++            Maybe<gfxAlphaType> convertAlpha = {},
++            bool aScaleSourceToDest = false) const;
+   bool BlitYCbCrImageToDMABuf(const layers::PlanarYCbCrData& yuvData,
+                               DMABufSurface* surface);
+ #endif
+diff --git a/gfx/layers/DMABUFSurfaceImage.cpp b/gfx/layers/DMABUFSurfaceImage.cpp
+index 3675921b5f11..a5271822b260 100644
+--- a/gfx/layers/DMABUFSurfaceImage.cpp
++++ b/gfx/layers/DMABUFSurfaceImage.cpp
+@@ -63,6 +63,14 @@ nsresult DMABUFSurfaceImage::BuildSurfaceDescriptorBuffer(
+   return Image::BuildSurfaceDescriptorBuffer(aSdBuffer, aFlags, aAllocate);
+ }
+ 
++nsresult DMABUFSurfaceImage::BuildSurfaceDescriptorBufferForSize(
++    SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
++    const gfx::IntSize& aSize,
++    const std::function<MemoryOrShmem(uint32_t)>& aAllocate) {
++  return mSurface->BuildSurfaceDescriptorBufferForSize(aSdBuffer, aFlags, aSize,
++                                                       aAllocate);
++}
++
+ TextureClient* DMABUFSurfaceImage::GetTextureClient(
+     KnowsCompositor* aKnowsCompositor) {
+   if (!mTextureClient) {
+diff --git a/gfx/layers/DMABUFSurfaceImage.h b/gfx/layers/DMABUFSurfaceImage.h
+index b08055f81f33..e38fd15427b6 100644
+--- a/gfx/layers/DMABUFSurfaceImage.h
++++ b/gfx/layers/DMABUFSurfaceImage.h
+@@ -25,6 +25,10 @@ class DMABUFSurfaceImage : public Image {
+   nsresult BuildSurfaceDescriptorBuffer(
+       SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
+       const std::function<MemoryOrShmem(uint32_t)>& aAllocate) override;
++  nsresult BuildSurfaceDescriptorBufferForSize(
++      SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
++      const gfx::IntSize& aSize,
++      const std::function<MemoryOrShmem(uint32_t)>& aAllocate) override;
+   TextureClient* GetTextureClient(KnowsCompositor* aKnowsCompositor) override;
+ 
+  private:
+diff --git a/gfx/layers/GPUVideoImage.h b/gfx/layers/GPUVideoImage.h
+index b95bc245f7e8..f8074247faec 100644
+--- a/gfx/layers/GPUVideoImage.h
++++ b/gfx/layers/GPUVideoImage.h
+@@ -26,6 +26,9 @@ class IGPUVideoSurfaceManager {
+ 
+   virtual already_AddRefed<gfx::SourceSurface> Readback(
+       const SurfaceDescriptorGPUVideo& aSD) = 0;
++  virtual already_AddRefed<gfx::SourceSurface> Readback(
++      const SurfaceDescriptorGPUVideo& aSD,
++      const gfx::IntSize& aReadbackSize) = 0;
+   virtual already_AddRefed<Image> TransferToImage(
+       const SurfaceDescriptorGPUVideo& aSD, const gfx::IntSize& aSize,
+       const gfx::ColorDepth& aColorDepth, gfx::YUVColorSpace aYUVColorSpace,
+@@ -103,6 +106,18 @@ class GPUVideoImage final : public Image {
+     return mManager->Readback(mSD);
+   }
+ 
++  already_AddRefed<gfx::SourceSurface> GetAsSourceSurface(
++      const gfx::IntSize& aReadbackSize) {
++    if (!mManager) {
++      return nullptr;
++    }
++    return mManager->Readback(mSD, aReadbackSize);
++  }
++
++  RemoteDecoderVideoType GetRemoteDecoderVideoType() const {
++    return mSD.get_SurfaceDescriptorRemoteDecoder().videoType();
++  }
++
+   TextureClient* GetTextureClient(KnowsCompositor* aKnowsCompositor) override {
+     MOZ_ASSERT(aKnowsCompositor == ImageBridgeChild::GetSingleton(),
+                "Must only use GPUVideo on ImageBridge");
+diff --git a/gfx/layers/ImageContainer.cpp b/gfx/layers/ImageContainer.cpp
+index fbc616bbbea7..491aaa68db64 100644
+--- a/gfx/layers/ImageContainer.cpp
++++ b/gfx/layers/ImageContainer.cpp
+@@ -276,6 +276,13 @@ nsresult Image::BuildSurfaceDescriptorBuffer(
+   return NS_OK;
+ }
+ 
++nsresult Image::BuildSurfaceDescriptorBufferForSize(
++    SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
++    const gfx::IntSize& aSize,
++    const std::function<MemoryOrShmem(uint32_t)>& aAllocate) {
++  return NS_ERROR_NOT_IMPLEMENTED;
++}
++
+ nsresult Image::BuildSurfaceDescriptorGPUVideoOrBuffer(
+     SurfaceDescriptor& aSd, BuildSdbFlags aFlags,
+     const Maybe<VideoBridgeSource>& aDest,
+diff --git a/gfx/layers/ImageContainer.h b/gfx/layers/ImageContainer.h
+index 731ff0e8d7ea..acfed71107b2 100644
+--- a/gfx/layers/ImageContainer.h
++++ b/gfx/layers/ImageContainer.h
+@@ -148,6 +148,10 @@ class Image {
+   virtual nsresult BuildSurfaceDescriptorBuffer(
+       SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
+       const std::function<MemoryOrShmem(uint32_t)>& aAllocate);
++  virtual nsresult BuildSurfaceDescriptorBufferForSize(
++      SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
++      const gfx::IntSize& aSize,
++      const std::function<MemoryOrShmem(uint32_t)>& aAllocate);
+ 
+   /**
+    * Get a SurfaceDescriptorGPUVideo if possible, with the source matching aDest
+diff --git a/gfx/wr/webrender/src/renderer/mod.rs b/gfx/wr/webrender/src/renderer/mod.rs
+index e740dfa328b9..2f8eacfe4158 100644
+--- a/gfx/wr/webrender/src/renderer/mod.rs
++++ b/gfx/wr/webrender/src/renderer/mod.rs
+@@ -1843,6 +1843,17 @@ impl Renderer {
+             let duration = Duration::new(0,0);
+             let message = (self.profile.get_or(profiler::DRAW_CALLS, 0.0) as usize).to_string();
+             add_text_marker("NumDrawCalls", &message, duration);
++            if self.debug_flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING) {
++                let message = format!(
++                    "renderer_frame={} overlays={} underlays={} blits={} picture_tiles={}",
++                    self.frame_counter,
++                    self.profile.get_or(profiler::COMPOSITOR_SURFACE_OVERLAYS, 0.0) as usize,
++                    self.profile.get_or(profiler::COMPOSITOR_SURFACE_UNDERLAYS, 0.0) as usize,
++                    self.profile.get_or(profiler::COMPOSITOR_SURFACE_BLITS, 0.0) as usize,
++                    self.profile.get_or(profiler::RENDERED_PICTURE_TILES, 0.0) as usize,
++                );
++                add_text_marker("WR promotion counters", &message, duration);
++            }
+         }
+ 
+         let report = self.texture_resolver.report_memory();
+@@ -3018,6 +3029,25 @@ impl Renderer {
+         }
+ 
+         self.profile.inc(profiler::RENDERED_PICTURE_TILES);
++        let profiled_target = if self.debug_flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING)
++            && thread_is_being_profiled()
++        {
++            let ordinal = self.profile.get_or(profiler::RENDERED_PICTURE_TILES, 0.0) as usize;
++            if ordinal <= 64 {
++                Some((std::time::Instant::now(), stats.total_draw_calls, ordinal))
++            } else {
++                if ordinal == 65 {
++                    add_text_marker(
++                        "WR picture target truncated",
++                        &format!("renderer_frame={} limit=64", self.frame_counter),
++                        Duration::ZERO,
++                    );
++                }
++                None
++            }
++        } else {
++            None
++        };
+         let _gm = self.gpu_profiler.start_marker("picture cache target");
+         let framebuffer_kind = FramebufferKind::Other;
+ 
+@@ -3142,6 +3172,24 @@ impl Renderer {
+         }
+ 
+         self.device.end_render_pass(StoreOp::Discard);
++        if let Some((start, draw_calls, ordinal)) = profiled_target {
++            let duration = start.elapsed();
++            let scissored = self.device.get_capabilities().supports_render_target_partial_update
++                && (target.dirty_rect != target.valid_rect
++                    || self.device.get_capabilities().prefers_clear_scissor);
++            let kind = match target.kind {
++                PictureCacheTargetKind::Draw { .. } => "Draw",
++                PictureCacheTargetKind::Blit { .. } => "Blit",
++            };
++            let message = format!(
++                "renderer_frame={} ordinal={} kind={} dimensions={:?} offset={:?} dirty={:?} valid={:?} scissored={} color_clear={} depth_clear=true clear_with_quads={} draw_calls={}",
++                self.frame_counter, ordinal, kind, draw_target.dimensions(), draw_target.offset(),
++                target.dirty_rect, target.valid_rect, scissored, target.clear_color.is_some(),
++                scissored && self.clear_caches_with_quads,
++                stats.total_draw_calls - draw_calls,
++            );
++            add_text_marker("WR picture target", &message, duration);
++        }
+     }
+ 
+     /// Draw an alpha batch container into a given draw target. This is used
+diff --git a/gfx/wr/webrender/src/tile_cache/mod.rs b/gfx/wr/webrender/src/tile_cache/mod.rs
+index 7b7106c4716e..3278d10788d6 100644
+--- a/gfx/wr/webrender/src/tile_cache/mod.rs
++++ b/gfx/wr/webrender/src/tile_cache/mod.rs
+@@ -50,6 +50,7 @@ use peek_poke::{PeekPoke, ensure_red_zone};
+ use std::fmt::{Display, Error, Formatter};
+ use std::{marker, mem};
+ use std::sync::atomic::{AtomicUsize, Ordering};
++use std::time::Duration;
+ 
+ pub use self::slice_builder::{
+     TileCacheBuilder, TileCacheConfig,
+@@ -746,6 +747,8 @@ pub struct DeferredDirtyTest {
+ pub struct TileCacheInstance {
+     // The current debug flags for the system.
+     pub debug_flags: DebugFlags,
++    profiled_rgb_candidates: usize,
++    profiled_rgb_update: usize,
+     /// Index of the tile cache / slice for this frame builder. It's determined
+     /// by the setup_picture_caching method during flattening, which splits the
+     /// picture tree into multiple slices. It's used as a simple input to the tile
+@@ -875,6 +878,8 @@ impl TileCacheInstance {
+ 
+         TileCacheInstance {
+             debug_flags: params.debug_flags,
++            profiled_rgb_candidates: 0,
++            profiled_rgb_update: 0,
+             slice: params.slice,
+             slice_flags: params.slice_flags,
+             spatial_node_index: params.spatial_node_index,
+@@ -1066,6 +1071,7 @@ impl TileCacheInstance {
+         frame_context: &FrameVisibilityContext,
+         frame_state: &mut FrameVisibilityState,
+     ) {
++        self.profiled_rgb_candidates = 0;
+         let surface = &frame_state.surfaces[surface_index.0];
+         let pic_rect = surface.unclipped_local_rect;
+ 
+@@ -2450,6 +2456,40 @@ impl TileCacheInstance {
+                     }
+                 }
+ 
++                if self.debug_flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING)
++                    && profiler::thread_is_being_profiled()
++                {
++                    // Include unpreferred images so absent candidacy is distinguishable from rejection.
++                    if self.profiled_rgb_candidates < 64 {
++                        if self.profiled_rgb_candidates == 0 {
++                            static NEXT_PROFILED_RGB_UPDATE: AtomicUsize = AtomicUsize::new(1);
++                            self.profiled_rgb_update = NEXT_PROFILED_RGB_UPDATE.fetch_add(1, Ordering::Relaxed);
++                        }
++                        let message = format!(
++                            "update={} candidate={} frame={} slice={} surface={} primitive_surface={} key={:?} generation={:?} preferred={} root={} alpha={:?} color_alpha={} mask={} atomic={} sub_slice={}/{} yuv_remaining={} rect={:?} result={:?}",
++                            self.profiled_rgb_update, self.profiled_rgb_candidates + 1,
++                            self.frame_id.as_u64(), self.slice, self.surface_index.0,
++                            prim_surface_index.0, image_data.key,
++                            resource_cache.get_image_generation(image_data.key),
++                            image_key.common.flags.contains(PrimitiveFlags::PREFER_COMPOSITOR_SURFACE),
++                            is_root_tile_cache, image_data.alpha_type, image_data.color.a,
++                            prim_clip_chain.needs_mask,
++                            self.slice_flags.contains(SliceFlags::IS_ATOMIC),
++                            sub_slice_index, self.sub_slices.len(), self.yuv_images_remaining,
++                            pic_coverage_rect, promotion_result,
++                        );
++                        profiler::add_text_marker("WR RGB promotion", &message, Duration::ZERO);
++                        self.profiled_rgb_candidates += 1;
++                    } else if self.profiled_rgb_candidates == 64 {
++                        profiler::add_text_marker(
++                            "WR RGB promotion truncated",
++                            &format!("update={} frame={} slice={} limit=64", self.profiled_rgb_update, self.frame_id.as_u64(), self.slice),
++                            Duration::ZERO,
++                        );
++                        self.profiled_rgb_candidates += 1;
++                    }
++                }
++
+                     if let Ok(kind) = promotion_result {
+                     scratch.frame.draw_mut(draw_index).compositor_surface_kind = kind;
+ 
+diff --git a/umbrafox-conversion-guide/README.md b/umbrafox-conversion-guide/README.md
+index 4f6a0e719b37..e3dc3b7a690d 100644
+--- a/umbrafox-conversion-guide/README.md
++++ b/umbrafox-conversion-guide/README.md
+@@ -45,6 +45,7 @@ When new Firefox source arrives:
+    - `recipes/13-panel-keyup-escape.md`
+    - `recipes/14-browser-chrome-control-ui.md`
+    - `recipes/15-umbralink-diagnostics.md`
++   - `recipes/16-linux-dmabuf-video-canvas-readback.md`
+ 7. Use `reference/changed-files.md` as the file-level checklist.
+ 8. Use `reference/known-gotchas.md` before deciding a rebase is done.
+ 9. Use `reference/web-identity-leak-log.md` to preserve every web-visible
+diff --git a/umbrafox-conversion-guide/reference/changed-files.md b/umbrafox-conversion-guide/reference/changed-files.md
+index 21912abb4e7b..08a59953f99c 100644
+--- a/umbrafox-conversion-guide/reference/changed-files.md
++++ b/umbrafox-conversion-guide/reference/changed-files.md
+@@ -238,6 +238,27 @@ This inventory was generated from the current working tree when the guide was wr
+ - `toolkit/components/umbrafox/tests/browser/browser_control_service.js`
+ - `toolkit/components/umbrafox/tests/browser/browser_control_input.js`
+ - `toolkit/components/umbrafox/tests/browser/browser.toml`
++
++## Linux DMABUF video-to-canvas readback
++
++- `dom/canvas/CanvasRenderingContext2D.cpp`
++- `dom/media/ipc/PRemoteMediaManager.ipdl`
++- `dom/media/ipc/RemoteMediaManagerChild.cpp`
++- `dom/media/ipc/RemoteMediaManagerChild.h`
++- `dom/media/ipc/RemoteMediaManagerParent.cpp`
++- `dom/media/ipc/RemoteMediaManagerParent.h`
++- `gfx/gl/GLBlitHelper.cpp`
++- `gfx/gl/GLBlitHelper.h`
++- `gfx/layers/DMABUFSurfaceImage.cpp`
++- `gfx/layers/DMABUFSurfaceImage.h`
++- `gfx/layers/GPUVideoImage.h`
++- `gfx/layers/ImageContainer.cpp`
++- `gfx/layers/ImageContainer.h`
++- `widget/gtk/DMABufSurface.cpp`
++- `widget/gtk/DMABufSurface.h`
++
++## UmbraLink diagnostics and browser toggle
++
+ - `browser/components/BrowserGlue.sys.mjs`
+ - `browser/app/profile/firefox.js`
+ - `toolkit/modules/ActorManagerParent.sys.mjs`
+diff --git a/widget/gtk/DMABufSurface.cpp b/widget/gtk/DMABufSurface.cpp
+index 190eebc96fd7..3f86061c9620 100644
+--- a/widget/gtk/DMABufSurface.cpp
++++ b/widget/gtk/DMABufSurface.cpp
+@@ -706,17 +706,15 @@ bool DMABufSurface::CloseFileDescriptors() {
+ nsresult DMABufSurface::ReadIntoBuffer(mozilla::gl::GLContext* aGLContext,
+                                        uint8_t* aData, int32_t aStride,
+                                        const gfx::IntSize& aSize,
+-                                       gfx::SurfaceFormat aFormat) {
++                                       gfx::SurfaceFormat aFormat,
++                                       bool aScaleSourceToDest) {
+   LOGDMABUF("DMABufSurface::ReadIntoBuffer UID %d", mUID);
+ 
+   // We're empty, nothing to copy
+-  if (!GetTextureCount()) {
++  if (!GetTextureCount() || aSize.IsEmpty()) {
+     return NS_ERROR_FAILURE;
+   }
+ 
+-  MOZ_ASSERT(aSize.width == GetWidth());
+-  MOZ_ASSERT(aSize.height == GetHeight());
+-
+   for (int i = 0; i < GetTextureCount(); i++) {
+     if (!GetTexture(i) && !CreateTexture(aGLContext, i)) {
+       LOGDMABUF("ReadIntoBuffer: Failed to create DMABuf textures.");
+@@ -741,7 +739,8 @@ nsresult DMABufSurface::ReadIntoBuffer(mozilla::gl::GLContext* aGLContext,
+   {
+     const ScopedBindFramebuffer bindFB(aGLContext, autoFBForTex.FB());
+     if (!aGLContext->BlitHelper()->Blit(
+-            this, gfx::IntRect(gfx::IntPoint(0, 0), aSize), destOrigin)) {
++            this, gfx::IntRect(gfx::IntPoint(0, 0), aSize), destOrigin,
++            gfx::IntSize(), {}, aScaleSourceToDest)) {
+       LOGDMABUF("ReadIntoBuffer: Blit failed.");
+       return NS_ERROR_FAILURE;
+     }
+@@ -1486,6 +1485,13 @@ nsresult DMABufSurface::BuildSurfaceDescriptorBuffer(
+   return NS_ERROR_NOT_IMPLEMENTED;
+ }
+ 
++nsresult DMABufSurface::BuildSurfaceDescriptorBufferForSize(
++    SurfaceDescriptorBuffer& aSdBuffer, Image::BuildSdbFlags aFlags,
++    const gfx::IntSize& aSize,
++    const std::function<MemoryOrShmem(uint32_t)>& aAllocate) {
++  return NS_ERROR_NOT_IMPLEMENTED;
++}
++
+ #if 0
+ // Copy from source surface by GL
+ #  include "GLBlitHelper.h"
+@@ -2394,6 +2400,41 @@ nsresult DMABufSurfaceYUV::BuildSurfaceDescriptorBuffer(
+   }
+ }
+ 
++nsresult DMABufSurfaceYUV::BuildSurfaceDescriptorBufferForSize(
++    SurfaceDescriptorBuffer& aSdBuffer, Image::BuildSdbFlags aFlags,
++    const gfx::IntSize& aSize,
++    const std::function<MemoryOrShmem(uint32_t)>& aAllocate) {
++  LOGDMABUF("DMABufSurfaceYUV::BuildSurfaceDescriptorBufferForSize UID %d",
++            mUID);
++
++  if (aSize.IsEmpty()) {
++    return NS_ERROR_INVALID_ARG;
++  }
++
++  const auto format = gfx::SurfaceFormat::B8G8R8A8;
++
++  uint8_t* buffer = nullptr;
++  int32_t stride = 0;
++  nsresult rv = Image::AllocateSurfaceDescriptorBufferRgb(
++      aSize, format, buffer, aSdBuffer, stride, aAllocate);
++  if (NS_WARN_IF(NS_FAILED(rv))) {
++    LOGDMABUF("BuildSurfaceDescriptorBufferForSize allocate descriptor failed");
++    return rv;
++  }
++
++  if (mGL) {
++    return ReadIntoBuffer(mGL, buffer, stride, aSize, format, true);
++  }
++
++  StaticMutexAutoLock lock(sSnapshotContextMutex);
++  RefPtr<GLContext> context = ClaimSnapshotGLContext();
++  auto releaseTextures = mozilla::MakeScopeExit([&] {
++    ReleaseTextures();
++    ReturnSnapshotGLContext(context);
++  });
++  return ReadIntoBuffer(context, buffer, stride, aSize, format, true);
++}
++
+ #if 0
+ // Debugging / testing only
+ void DMABufSurfaceYUV::ClearPlane(int aPlane, int aValue) {
+diff --git a/widget/gtk/DMABufSurface.h b/widget/gtk/DMABufSurface.h
+index 23d550834ead..343ae6a8b01a 100644
+--- a/widget/gtk/DMABufSurface.h
++++ b/widget/gtk/DMABufSurface.h
+@@ -106,6 +106,11 @@ class DMABufSurface : public BufferSurface {
+       mozilla::layers::SurfaceDescriptorBuffer& aSdBuffer,
+       mozilla::layers::Image::BuildSdbFlags aFlags,
+       const std::function<mozilla::layers::MemoryOrShmem(uint32_t)>& aAllocate);
++  virtual nsresult BuildSurfaceDescriptorBufferForSize(
++      mozilla::layers::SurfaceDescriptorBuffer& aSdBuffer,
++      mozilla::layers::Image::BuildSdbFlags aFlags,
++      const mozilla::gfx::IntSize& aSize,
++      const std::function<mozilla::layers::MemoryOrShmem(uint32_t)>& aAllocate);
+ 
+   void FenceSet();
+   void FenceWait(mozilla::gl::GLContext* aGLContext = nullptr);
+@@ -214,7 +219,8 @@ class DMABufSurface : public BufferSurface {
+ 
+   nsresult ReadIntoBuffer(mozilla::gl::GLContext* aGLContext, uint8_t* aData,
+                           int32_t aStride, const mozilla::gfx::IntSize& aSize,
+-                          mozilla::gfx::SurfaceFormat aFormat);
++                          mozilla::gfx::SurfaceFormat aFormat,
++                          bool aScaleSourceToDest = false);
+ 
+   virtual ~DMABufSurface();
+ 
+@@ -366,6 +372,12 @@ class DMABufSurfaceYUV final : public DMABufSurface {
+       mozilla::layers::Image::BuildSdbFlags aFlags,
+       const std::function<mozilla::layers::MemoryOrShmem(uint32_t)>& aAllocate)
+       override;
++  nsresult BuildSurfaceDescriptorBufferForSize(
++      mozilla::layers::SurfaceDescriptorBuffer& aSdBuffer,
++      mozilla::layers::Image::BuildSdbFlags aFlags,
++      const mozilla::gfx::IntSize& aSize,
++      const std::function<mozilla::layers::MemoryOrShmem(uint32_t)>& aAllocate)
++      override;
+ 
+   int GetWidth(int aPlane = 0) override { return mWidth[aPlane]; }
+   int GetHeight(int aPlane = 0) override { return mHeight[aPlane]; }

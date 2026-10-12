@@ -1,0 +1,125 @@
+{
+  "authorization": "event196",
+  "originalSTOPUnchanged": true,
+  "originalManifestUnchanged": true,
+  "continuationManifestUnchanged": true,
+  "reusedControl": "off-off",
+  "controls": {
+    "on-off": {
+      "feature": "on",
+      "logging": "off",
+      "verdict": "PASS",
+      "sameModeAE": 0,
+      "repeatAE": 0,
+      "geometry": {
+        "bounds": {
+          "minX": 4,
+          "minY": 4,
+          "maxX": 1283,
+          "maxY": 975
+        },
+        "DPR": 1,
+        "viewport": [
+          1280,
+          972
+        ],
+        "framebuffer": [
+          1920,
+          1080
+        ],
+        "readbackHash": "6e5e9bdd"
+      },
+      "shaderSelections": 87,
+      "operandRecords": 0,
+      "sentinelAbsentBeforeAndAfter": true,
+      "identityEntriesVerifiedBeforeAndAfter": 8243,
+      "ownedParentPID": 910386,
+      "ownedParentAbsent": true
+    },
+    "off-on": {
+      "feature": "off",
+      "logging": "on",
+      "verdict": "PASS",
+      "sameModeAE": 0,
+      "repeatAE": 0,
+      "geometry": {
+        "bounds": {
+          "minX": 4,
+          "minY": 4,
+          "maxX": 1283,
+          "maxY": 975
+        },
+        "DPR": 1,
+        "viewport": [
+          1280,
+          972
+        ],
+        "framebuffer": [
+          1920,
+          1080
+        ],
+        "readbackHash": "6e5e9bdd"
+      },
+      "shaderSelections": 0,
+      "operandRecords": 59,
+      "promotion": {
+        "candidates": 87,
+        "promoted": 0
+      },
+      "trace": {
+        "submission": "DocumentId { namespace_id: IdNamespace(2), id: 0 }:10:GpuFrameId(11)",
+        "quads": 10,
+        "draws": 10,
+        "composites": 5
+      },
+      "sentinelAbsentBeforeAndAfter": true,
+      "identityEntriesVerifiedBeforeAndAfter": 8243,
+      "ownedParentPID": 912422,
+      "ownedParentAbsent": true
+    },
+    "on-on": {
+      "feature": "on",
+      "logging": "on",
+      "verdict": "PASS",
+      "sameModeAE": 0,
+      "repeatAE": 0,
+      "geometry": {
+        "bounds": {
+          "minX": 4,
+          "minY": 4,
+          "maxX": 1283,
+          "maxY": 975
+        },
+        "DPR": 1,
+        "viewport": [
+          1280,
+          972
+        ],
+        "framebuffer": [
+          1920,
+          1080
+        ],
+        "readbackHash": "6e5e9bdd"
+      },
+      "shaderSelections": 87,
+      "operandRecords": 47,
+      "promotion": {
+        "candidates": 87,
+        "promoted": 87
+      },
+      "trace": {
+        "submission": "DocumentId { namespace_id: IdNamespace(2), id: 0 }:8:GpuFrameId(9)",
+        "quads": 8,
+        "draws": 8,
+        "composites": 5
+      },
+      "sentinelAbsentBeforeAndAfter": true,
+      "identityEntriesVerifiedBeforeAndAfter": 8243,
+      "ownedParentPID": 914908,
+      "ownedParentAbsent": true
+    }
+  },
+  "remainingIssue": "Normal feature OFF/ON FAIL20 remains unresolved; same-mode validation is not a repair claim",
+  "noFurtherBuildsPackagesInstallationsOrPiActions": true,
+  "time": "2026-09-26T02:06:14.762Z"
+}

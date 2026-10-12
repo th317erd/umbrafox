@@ -1,0 +1,28 @@
+ 0:00.29 W Warnings in third-party code are being suppressed from the terminal output. Use --show-all-warnings or --verbose to see them.
+ 0:00.29 W All warnings will still be dumped to /home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/.mozbuild/logs/build/warnings_*.json at the end of the build.
+ 0:00.36 Clobber not needed.
+ 0:00.44 W Adding make options from /home/wyatt/Projects/umbrafox-workspace/umbrafox/mozconfig
+    MOZ_OBJDIR=/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu
+    OBJDIR=/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu
+    FOUND_MOZCONFIG=/home/wyatt/Projects/umbrafox-workspace/umbrafox/mozconfig
+    export FOUND_MOZCONFIG
+ 0:00.44 /usr/bin/gmake -f client.mk -j2 -s
+ 0:03.11 ./buildid.h.stub
+ 0:03.12 ./source-repo.h.stub
+ 0:03.26 ./application.ini.stub
+ 0:03.48 ./application.ini.h.stub
+ 0:04.05 browser/app
+ 0:11.86 toolkit/library/buildid.cpp.stub
+ 0:13.39 browser/app/umbrafox
+ 0:14.44 ./newtab-sources.stamp.stub
+ 0:16.32 ./built_in_addons.json.stub
+ 0:16.49 ./buildid.h.stub
+ 0:16.49 ./source-repo.h.stub
+ 0:25.80 W 0 compiler warnings present.
+ 0:25.83 W Overall system resources - Wall time: 25s; CPU: 19%; Read bytes: 602518528; Write bytes: 458219520; Read time: 7834; Write time: 13411
+ 0:25.83 W Swap in/out (MB): 1.02734375/0.0
+ 0:25.83 To view a profile of the build, run |mach resource-usage|.
+ 0:25.83 Your build was successful!
+ 0:25.83 To take your build for a test drive, run: |mach run|
+ 0:25.83 For more information on what to do now, see https://firefox-source-docs.mozilla.org/setup/contributing_code.html
+Streaming resource usage profile to: /home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/.mozbuild/logs/build/profile_log_20261001_105200.json

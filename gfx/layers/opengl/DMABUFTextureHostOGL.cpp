@@ -34,6 +34,15 @@ gfx::SurfaceFormat DMABUFTextureHostOGL::GetFormat() const {
   return mSurface->GetFormat();
 }
 
+already_AddRefed<gfx::DataSourceSurface> DMABUFTextureHostOGL::GetAsSurface(
+    gfx::DataSourceSurface* aSurface) {
+  if (!mSurface) {
+    return nullptr;
+  }
+  // DMABufSurface reads back through a blit, so it cannot reuse aSurface.
+  return mSurface->GetAsSourceSurface();
+}
+
 gfx::YUVColorSpace DMABUFTextureHostOGL::GetYUVColorSpace() const {
   if (!mSurface) {
     return gfx::YUVColorSpace::Identity;
@@ -252,6 +261,10 @@ void DMABUFTextureHostOGL::PushDisplayItems(
 
 SurfaceDescriptor DMABUFTextureHostOGL::GetSurfaceDescriptor() {
   return mDescriptor;
+}
+
+const SurfaceDescriptor* DMABUFTextureHostOGL::BorrowSurfaceDescriptor() const {
+  return &mDescriptor;
 }
 
 }  // namespace mozilla::layers

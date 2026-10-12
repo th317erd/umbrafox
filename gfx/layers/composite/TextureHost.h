@@ -722,6 +722,11 @@ class TextureHost : public AtomicRefCountedWithFinalize<TextureHost> {
     return SurfaceDescriptor();
   }
 
+  // The optional immutable descriptor remains valid while this host is alive.
+  virtual const SurfaceDescriptor* BorrowSurfaceDescriptor() const {
+    return nullptr;
+  }
+
   // Our WebRender backend may impose restrictions on whether textures are
   // prepared as native textures or not, or it may have no restriction at
   // all. This enumerates those possibilities.

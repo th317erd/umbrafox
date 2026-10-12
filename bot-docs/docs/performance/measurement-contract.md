@@ -15,6 +15,26 @@ narrow environment relevant to the experiment. In particular record the presence
 or absence of `LP_PERF`, `LP_DEBUG`, `GALLIVM_PERF`, `GALLIVM_DEBUG`, profiler and
 shader-cache overrides; old captures lacking this record remain uncertain.
 
+A fresh profile does not isolate application-level storage. The first extended
+lifecycle capture exposed crash-ping maintenance using `UAppData/Crash Reports`
+outside its profile. Browser execution is held pending the reviewed containment
+correction and native resolved-path verification. Future runs must force existing
+`MOZ_APP_DATA` and `MOZ_LOCAL_APP_DATA` overrides to separate, newly created,
+owner-private directories under the run root, retaining creation identities,
+pre-spawn checks and effective environment in provenance. Do not read, clear or
+change consent in shared crash queues. Source support or environment values
+alone are not runtime path evidence. Relocation is not a general filesystem or
+network sandbox; old captures must not be retroactively certified.
+
+A private profile is not proof of a controlled document workload. First-run
+welcome/privacy pages can add external content and processes. Record test-only
+startup preferences separately from product defaults, require positive fixture
+readiness, and inspect actual tab and process-window inventories at the declared
+observation points. Empty early snapshots do not establish isolation. Unexpected
+documents invalidate an isolation claim even if fixture checksums pass. Coverage
+between snapshots and background requests outside document windows remains
+unknown; do not advertise a network sandbox or continuous absence of other work.
+
 Use real child-process `spawn` with explicit process ownership, immediately
 handled completion/error, deadlines and a cleanup proof. Never infer process
 group ownership from `execFile` options or send a signal to an inherited utility

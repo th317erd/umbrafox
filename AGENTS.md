@@ -1,3 +1,9 @@
+# Codex Instructions
+
+## !!!MANDATORY FIRST ACTION!!!
+
+Before responding or acting, read `~/.bot-common/startup.md` if absent from current context. Repeat after session start, compaction or context reset; follow its bootstrap and continuation instructions.
+
 # Global instructions
 Limit the amount of comments you put in the code to a strict minimum. You should almost never add comments, except sometimes on non-trivial code, function definitions if the arguments aren't self-explanatory, and class definitions and their members.
 

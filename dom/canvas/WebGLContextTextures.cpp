@@ -170,7 +170,7 @@ void WebGLContext::TexStorage(GLenum texTarget, uint32_t levels,
   tex->TexStorage(texTarget, levels, internalFormat, size);
 }
 
-void WebGLContext::TexImage(uint32_t level, GLenum respecFormat, uvec3 offset,
+bool WebGLContext::TexImage(uint32_t level, GLenum respecFormat, uvec3 offset,
                             const webgl::PackingInfo& pi,
                             const webgl::TexUnpackBlobDesc& src) const {
   const WebGLContext::FuncScope funcScope(
@@ -183,7 +183,7 @@ void WebGLContext::TexImage(uint32_t level, GLenum respecFormat, uvec3 offset,
                   "Tex upload from %s but PIXEL_UNPACK_BUFFER %s bound.",
                   isUploadFromPbo ? "PBO" : "non-PBO",
                   isPboBound ? "was" : "was not");
-    return;
+    return false;
   }
 
   if (respecFormat) {
@@ -191,8 +191,8 @@ void WebGLContext::TexImage(uint32_t level, GLenum respecFormat, uvec3 offset,
   }
   const auto texTarget = ImageToTexTarget(src.imageTarget);
   const auto tex = GetActiveTex(texTarget);
-  if (!tex) return;
-  tex->TexImage(level, respecFormat, offset, pi, src);
+  if (!tex) return false;
+  return tex->TexImage(level, respecFormat, offset, pi, src);
 }
 
 void WebGLContext::CompressedTexImage(bool sub, GLenum imageTarget,

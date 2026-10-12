@@ -1,0 +1,28 @@
+{
+  "buildID": "20261006175655",
+  "files": 46,
+  "archiveEntries": 57,
+  "uncompressedBytes": 475105525,
+  "archive": {
+    "name": "umbrafox-render-pass-marker-20261006175655-linux-x86_64.tar.xz",
+    "bytes": 107779660,
+    "sha256": "aca57ea31e4e23fdda8772d4f8c568cd8292eccdb2c4efe4e00ba5d79abcd810"
+  },
+  "manifestSHA256": "4c8085f0f675c5b183976807df38bb99474bbd8be2e58651b52e4be9176eee8e",
+  "iniBuildIDs": {
+    "application.ini": "20261006175655",
+    "platform.ini": "20261006175655"
+  },
+  "toolkitBuildID": "20261006175655",
+  "frontendArchives": {
+    "omni.ja": {
+      "entries": 2676,
+      "changed": []
+    },
+    "browser/omni.ja": {
+      "entries": 5368,
+      "changed": []
+    }
+  },
+  "installed": false
+}

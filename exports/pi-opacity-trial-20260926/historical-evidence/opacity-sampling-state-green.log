@@ -1,0 +1,19 @@
+
+running 14 tests
+test sampling::tests::absent_source_searches_until_exact_limit ... ok
+test sampling::tests::ambiguity_limit_and_selection_spend_without_rearm ... ok
+test sampling::tests::composite_join_requires_final_attributes_binding_and_variant ... ok
+test sampling::tests::count_budget_includes_exact_limit_and_rejects_overflow ... ok
+test sampling::tests::disabled_never_inspects_or_spends ... ok
+test sampling::tests::joins_require_same_words_and_binding_and_actual_emission ... ok
+test sampling::tests::malformed_addresses_do_not_panic ... ok
+test sampling::tests::marker_budget_is_checked_before_append ... ok
+test sampling::tests::marker_limit_preserves_space_for_one_incomplete_record ... ok
+test sampling::tests::quad_layout_and_segment_sentinel ... ok
+test sampling::tests::snapshot_traversal_stops_at_limit_and_after_failure ... ok
+test sampling::tests::source_chain_requires_actual_target_and_connected_inputs ... ok
+test sampling::tests::successful_join_still_requires_composition ... ok
+test sampling::tests::task_target_mismatch_cannot_complete ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,117 @@
+[
+  {
+    "path": "browser/components/urlbar/tests/quicksuggest/unit/test_quicksuggest_regionDefaults.js",
+    "bytes": 4185,
+    "sha256": "eb3b29e364674563dda473d9f1695cf0e319af59920bf81eaa7400a262f84ccc"
+  },
+  {
+    "path": "dom/base/test/gtest/TestUmbrafoxMutationGate.cpp",
+    "bytes": 6508,
+    "sha256": "35e88192e07cccf63563ff45ed51960b6aa88a0dc9fad0ab8ee3142a05e877e0"
+  },
+  {
+    "path": "dom/canvas/gtest/TestCanvasSurfaceImport.cpp",
+    "bytes": 2170,
+    "sha256": "5e7a1ea927750f881a22d27cc4a456a68ad8b3838539d1a1bdf42bb871cb0555"
+  },
+  {
+    "path": "dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp",
+    "bytes": 12012,
+    "sha256": "b93d84338578570e3240a1678db7f8fd441dfdafa216d0004256ab0eac650840"
+  },
+  {
+    "path": "dom/canvas/gtest/TestDMABufProducerFence.cpp",
+    "bytes": 14725,
+    "sha256": "b53d1da11ce85612c408fb47e44fac856df6325d64a6918dad8433920b6fa762"
+  },
+  {
+    "path": "dom/canvas/gtest/TestDMABufReadback.cpp",
+    "bytes": 21584,
+    "sha256": "975823a9f07ec03f50a4be3ce4b9bc9e823bc44eb97e5471b964cfcfa96702f6"
+  },
+  {
+    "path": "gfx/tests/gtest/TestGPUVideoImage.cpp",
+    "bytes": 29676,
+    "sha256": "44fa4d47776580c9cd4a75c04dd2f588544605023a0b3b9034a5abd60038a3f9"
+  },
+  {
+    "path": "gfx/tests/gtest/TestGPUVideoReadbackIPC.cpp",
+    "bytes": 6680,
+    "sha256": "f8fcd8f3259635b36e1b1fcf5fb179f5d6f9863e4c69edb2de8ad4ec5230041d"
+  },
+  {
+    "path": "gfx/wr/webrender/src/renderer/sampling.rs",
+    "bytes": 18551,
+    "sha256": "cedbc1f297d187c4107887a691ad67d0d6adbbbfdf7ab82a76ec4ed10f9e07c2"
+  },
+  {
+    "path": "gfx/wr/webrender/tests/unit/gpu_marker.rs",
+    "bytes": 3257,
+    "sha256": "370d0546f079d9931e247150a1015c310ada96047dfbc93ec5ae8be1d9f562b9"
+  },
+  {
+    "path": "toolkit/actors/UmbrafoxControlExecutionChild.sys.mjs",
+    "bytes": 1561,
+    "sha256": "451c0e855b841bf265eeb140b543a82589ff83e51ffe14adcbf706f9b0349de0"
+  },
+  {
+    "path": "toolkit/actors/UmbrafoxControlExecutionParent.sys.mjs",
+    "bytes": 268,
+    "sha256": "01320fc92bb701c0f79b6d92909ff819f1ba1271f7a1146b75976584a1569e49"
+  },
+  {
+    "path": "toolkit/components/umbrafox/UmbrafoxControlBrowser.sys.mjs",
+    "bytes": 7109,
+    "sha256": "d76ac7443679d79d8261e267cab80f4350de8e2667718353856747c9177408c9"
+  },
+  {
+    "path": "toolkit/components/umbrafox/UmbrafoxControlScript.sys.mjs",
+    "bytes": 6383,
+    "sha256": "7f6c3b468f688f84c940d8921ceec31daecc4062763f134a49a5344b704d1289"
+  },
+  {
+    "path": "toolkit/components/umbrafox/docs/control.md",
+    "bytes": 7690,
+    "sha256": "063a1bb0e40ed85951a2cb1c8957f11f00b15d3e985ef30ca9a8c35470d57cc3"
+  },
+  {
+    "path": "toolkit/components/umbrafox/tests/browser/browser_control_browser.js",
+    "bytes": 8397,
+    "sha256": "3759e2d8fd0c2df08bbf57a17b85cc35252ff4f8068d4dc0d089f8d5e52ff46c"
+  },
+  {
+    "path": "toolkit/components/umbrafox/tests/browser/browser_userland_mutation_gate.js",
+    "bytes": 3508,
+    "sha256": "e5ccdd7d123c946226a560807d90a32f241176ec122473d40c4fd89828f5e12e"
+  },
+  {
+    "path": "tools/umbrafox/tests/readback/test/dmabuf-admission.cpp",
+    "bytes": 7672,
+    "sha256": "8ea2d1589435c590687d96e8351702ca4f540cf5cf8b4c2b66460ab15f3f4f2c"
+  },
+  {
+    "path": "tools/umbrafox/tests/readback/test/dmabuf-import-spec.mjs",
+    "bytes": 5566,
+    "sha256": "4b7d1041594689710c78e7a19e5944d0701203611132fa82ad6ffb6c02ac5d85"
+  },
+  {
+    "path": "tools/umbrafox/tests/readback/test/import-reuse-spec.mjs",
+    "bytes": 5941,
+    "sha256": "a4e85e784f4166ce08c990f6ee112d2224af1be4f4c915af423d0e65dd67e8df"
+  },
+  {
+    "path": "tools/umbrafox/tests/readback/test/import-reuse.cpp",
+    "bytes": 25794,
+    "sha256": "37e08625e3124e3b4869cc32aaab3e8d95750234efb77fbdbe99c99a5268498c"
+  },
+  {
+    "path": "tools/umbrafox/tests/readback/test/producer-fence-spec.mjs",
+    "bytes": 3095,
+    "sha256": "4b1d4d2505ba5a53dcf44eeb88cb9bef4ade3bffd9e31096af4f83055dfc2bd1"
+  },
+  {
+    "path": "tools/umbrafox/tests/readback/test/producer-fence.cpp",
+    "bytes": 28963,
+    "sha256": "0c6eb45d3cac6d54e9f4065b0d74e203ca754268af0493eed441af10819b1912"
+  }
+]

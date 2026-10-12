@@ -33,6 +33,10 @@ Follow-up evidence:
 - [Userland compiled-script cache controls](../../reports/performance/2026-09-27-userland-cache.md)
 - [Browser presentation boundaries](../../reports/performance/2026-09-27-presentation-boundary.md)
 - [Owner-shared Pi research triage](../../reports/performance/2026-09-27-pi-research-triage.md)
+- [Retained native probe exclusion](../../reports/performance/2026-09-27-probe-exclusion.md)
+- [Isolated lifecycle controls](../../reports/performance/2026-09-27-lifecycle.md)
+- [Request fast-path authority](../../reports/performance/2026-09-27-request-authority.md)
+- [Historical Pi renderer spans](../../reports/performance/2026-09-27-pi-renderer-spans.md)
 
 ## Status vocabulary
 

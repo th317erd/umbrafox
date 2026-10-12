@@ -1223,6 +1223,7 @@ pub struct CompositorShaders {
     // A faster set of rgba composite shaders that do not support UV clamping
     // or color modulation.
     rgba_fast_path: Vec<Option<ShaderHandle>>,
+    rgba_no_rect_aa: ShaderHandle,
     // The same set of composite shaders but with WR_FEATURE_YUV added.
     yuv_clip: Vec<Option<ShaderHandle>>,
     yuv_fast: Vec<Option<ShaderHandle>>,
@@ -1320,9 +1321,17 @@ impl CompositorShaders {
             fast_path_features.clear();
         }
 
+        let rgba_no_rect_aa = loader.create_shader(
+            ShaderKind::Composite,
+            "composite",
+            &["NO_RECT_AA", "TEXTURE_2D"],
+            &shader_list,
+        )?;
+
         Ok(CompositorShaders {
             rgba,
             rgba_fast_path,
+            rgba_no_rect_aa,
             yuv_clip,
             yuv_fast,
         })
@@ -1336,7 +1345,19 @@ impl CompositorShaders {
     ) -> ShaderHandle {
         match format {
             CompositeSurfaceFormat::Rgba => {
-                if features.contains(CompositeFeatures::NO_UV_CLAMP)
+                if features.contains(CompositeFeatures::EXPERIMENTAL_NO_RECT_AA) {
+                    assert_eq!(buffer_kind, ImageBufferKind::Texture2D);
+                    assert!(features.contains(CompositeFeatures::NO_CLIP_MASK));
+                    #[cfg(feature = "umbra-perf-probes")]
+                    if profiler::umbra_markers_enabled() {
+                        profiler::add_text_marker(
+                            "WR RGB no-rect-AA",
+                            "composite:NO_RECT_AA,TEXTURE_2D",
+                            std::time::Duration::ZERO,
+                        );
+                    }
+                    self.rgba_no_rect_aa
+                } else if features.contains(CompositeFeatures::NO_UV_CLAMP)
                     && features.contains(CompositeFeatures::NO_COLOR_MODULATION)
                     && features.contains(CompositeFeatures::NO_CLIP_MASK)
                 {

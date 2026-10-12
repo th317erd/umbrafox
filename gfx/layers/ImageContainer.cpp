@@ -276,6 +276,13 @@ nsresult Image::BuildSurfaceDescriptorBuffer(
   return NS_OK;
 }
 
+nsresult Image::BuildSurfaceDescriptorBufferForSize(
+    SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
+    const gfx::IntSize& aSize,
+    const std::function<MemoryOrShmem(uint32_t)>& aAllocate) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 nsresult Image::BuildSurfaceDescriptorGPUVideoOrBuffer(
     SurfaceDescriptor& aSd, BuildSdbFlags aFlags,
     const Maybe<VideoBridgeSource>& aDest,

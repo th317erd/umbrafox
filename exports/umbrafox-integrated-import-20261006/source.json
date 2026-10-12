@@ -1,0 +1,153 @@
+{
+  "at": "2026-10-06T10:00:08.894Z",
+  "head": "892431809a4caadb5c73b2c03ad9bdb124c3e21e",
+  "buildID": "20261006095500",
+  "files": {
+    "dom/canvas/DrawTargetWebgl.cpp": {
+      "bytes": 272133,
+      "sha256": "1f68bd793b3e17e4d6284f70adfb6fac0be96c666d55dbbae78a8e8957661569"
+    },
+    "dom/canvas/DrawTargetWebgl.h": {
+      "bytes": 37117,
+      "sha256": "278a3af6955196d29ce3091872e6dfe6390ee6d01c4e391b4daafa30842a6974"
+    },
+    "dom/canvas/WebGLContext.h": {
+      "bytes": 51428,
+      "sha256": "cba802fe776f169b60b382b90cae755e3d892099076d8468eb301a8359c1e150"
+    },
+    "dom/canvas/WebGLContextTextures.cpp": {
+      "bytes": 7382,
+      "sha256": "3346317a322d61780c6355d45ca4168b8c378494ff3d278a60c52a148ea4e1ad"
+    },
+    "dom/canvas/WebGLTexture.h": {
+      "bytes": 11229,
+      "sha256": "54879b35215b5498436951f8f44b9eec65576a983e23d6e095ed3cb7d02c1054"
+    },
+    "dom/canvas/WebGLTextureUpload.cpp": {
+      "bytes": 64688,
+      "sha256": "67d776d7562a5ba52bf3569e1444ebd75477d957e797ba5f496fdf08030efd6a"
+    },
+    "dom/canvas/TexUnpackBlob.cpp": {
+      "bytes": 46119,
+      "sha256": "81d9b70fe2eeea6febeb96e6609b0869f3afea851db887660e6f15d3c312158d"
+    },
+    "dom/canvas/TexUnpackBlob.h": {
+      "bytes": 4993,
+      "sha256": "4b38c701c9bfb65194b03df2c56a21311c136f98145205ebf3368e4284299926"
+    },
+    "dom/canvas/WebGLTypes.h": {
+      "bytes": 36111,
+      "sha256": "9c910d53405348ffb2b6e5f3f48083c82fd68046b9f4c45f0ca1380384872b0d"
+    },
+    "dom/canvas/WebGLIpdl.h": {
+      "bytes": 10063,
+      "sha256": "e5818dcef88a191397ed7af5e2be813a04aaa835214ef04dd736912bd310fd0c"
+    },
+    "dom/canvas/HostWebGLContext.h": {
+      "bytes": 27166,
+      "sha256": "5587779696c4a6b5a4bbbf3227da76e84894cef689830ac96ec0473433fcc1e6"
+    },
+    "gfx/layers/ipc/CanvasTranslator.cpp": {
+      "bytes": 65832,
+      "sha256": "b1e75fa5e1f30cecc17f0756b619c4eab4248d45d32ba9eff523b30431c55c4b"
+    },
+    "dom/canvas/gtest/TestWebGLTextureUploadInit.cpp": {
+      "bytes": 16046,
+      "sha256": "c3ce919a74e6310ad143ee4fc1af1145d4e0ede6ac4f4fe61478394246475dd0"
+    },
+    "dom/canvas/gtest/moz.build": {
+      "bytes": 560,
+      "sha256": "b80699d367a94a489ff7875c2a95ecb6fe3a33819923a58b4965a4a2c904d4e3"
+    },
+    "dom/canvas/gtest/TestCanvasSurfaceImport.cpp": {
+      "bytes": 2170,
+      "sha256": "5e7a1ea927750f881a22d27cc4a456a68ad8b3838539d1a1bdf42bb871cb0555"
+    },
+    "dom/canvas/CanvasRenderingContext2D.cpp": {
+      "bytes": 262736,
+      "sha256": "50bd508090a87b2dd0d315b98b3894c6a94f1c2e9a6a10f0a9c6418c500981a9"
+    },
+    "gfx/gl/GLBlitHelper.cpp": {
+      "bytes": 80905,
+      "sha256": "0356620041d3d1529c8cd1c5b6e5890f96ce9e712dcc781766b2ca75cf0269f8"
+    },
+    "gfx/gl/GLBlitHelper.h": {
+      "bytes": 12115,
+      "sha256": "8881b36bbfc401be0b61c53df4c0e3c1018427d13eb2e916c0c47f97ef1751b1"
+    },
+    "gfx/layers/ipc/CanvasTranslator.h": {
+      "bytes": 21232,
+      "sha256": "417636991d485d555e4f2e10f69c63d33e775180d0bd980afd61eeedefc67cf0"
+    },
+    "gfx/layers/opengl/DMABUFTextureHostOGL.cpp": {
+      "bytes": 10171,
+      "sha256": "30db449b35d9213d4c841e253aea57483f17becffe550b68b1f9c1aa754f6bef"
+    },
+    "gfx/layers/opengl/DMABUFTextureHostOGL.h": {
+      "bytes": 2262,
+      "sha256": "7a1af3890c71835e572552e68d041e01e3692569103b91019ae4c3c9d14deb37"
+    },
+    "layout/base/nsLayoutUtils.cpp": {
+      "bytes": 386902,
+      "sha256": "acb0aa3f072717037222b60056c626e276eefed529774ddf944a09bef812b2be"
+    },
+    "layout/base/nsLayoutUtils.h": {
+      "bytes": 151433,
+      "sha256": "cbef271ce9db370ffacd3b52767a962f36180cfd594d1ac351af080d5678758e"
+    },
+    "modules/libpref/init/StaticPrefList.yaml": {
+      "bytes": 637806,
+      "sha256": "461ee437d08615633c7f9ad1e1790389509a1fd84c27571cafa5349fb9127b39"
+    },
+    "browser/components/urlbar/tests/quicksuggest/unit/test_quicksuggest_regionDefaults.js": {
+      "bytes": 4185,
+      "sha256": "eb3b29e364674563dda473d9f1695cf0e319af59920bf81eaa7400a262f84ccc"
+    },
+    "dom/base/test/gtest/TestUmbrafoxMutationGate.cpp": {
+      "bytes": 6508,
+      "sha256": "35e88192e07cccf63563ff45ed51960b6aa88a0dc9fad0ab8ee3142a05e877e0"
+    },
+    "gfx/tests/gtest/TestGPUVideoImage.cpp": {
+      "bytes": 9621,
+      "sha256": "0adf42629d562b629a9596e04afdea789aa2b00f726ce501132209a5f8a28544"
+    },
+    "gfx/wr/webrender/src/renderer/sampling.rs": {
+      "bytes": 18551,
+      "sha256": "cedbc1f297d187c4107887a691ad67d0d6adbbbfdf7ab82a76ec4ed10f9e07c2"
+    },
+    "toolkit/actors/UmbrafoxControlExecutionChild.sys.mjs": {
+      "bytes": 1561,
+      "sha256": "451c0e855b841bf265eeb140b543a82589ff83e51ffe14adcbf706f9b0349de0"
+    },
+    "toolkit/actors/UmbrafoxControlExecutionParent.sys.mjs": {
+      "bytes": 268,
+      "sha256": "01320fc92bb701c0f79b6d92909ff819f1ba1271f7a1146b75976584a1569e49"
+    },
+    "toolkit/components/umbrafox/UmbrafoxControlBrowser.sys.mjs": {
+      "bytes": 7109,
+      "sha256": "d76ac7443679d79d8261e267cab80f4350de8e2667718353856747c9177408c9"
+    },
+    "toolkit/components/umbrafox/UmbrafoxControlScript.sys.mjs": {
+      "bytes": 6383,
+      "sha256": "7f6c3b468f688f84c940d8921ceec31daecc4062763f134a49a5344b704d1289"
+    },
+    "toolkit/components/umbrafox/docs/control.md": {
+      "bytes": 7690,
+      "sha256": "063a1bb0e40ed85951a2cb1c8957f11f00b15d3e985ef30ca9a8c35470d57cc3"
+    },
+    "toolkit/components/umbrafox/tests/browser/browser_control_browser.js": {
+      "bytes": 8397,
+      "sha256": "3759e2d8fd0c2df08bbf57a17b85cc35252ff4f8068d4dc0d089f8d5e52ff46c"
+    },
+    "toolkit/components/umbrafox/tests/browser/browser_userland_mutation_gate.js": {
+      "bytes": 3508,
+      "sha256": "e5ccdd7d123c946226a560807d90a32f241176ec122473d40c4fd89828f5e12e"
+    }
+  },
+  "changedFromR2": [
+    "dom/canvas/CanvasRenderingContext2D.cpp"
+  ],
+  "stagedPatchSHA256": "3b78253cf775a4a1e8c69a4b82cc3958b366056129a391f4ae362bdfe8e4e0c4",
+  "workingPatchSHA256": "76485d2d9584924e60b7d4e931169b46dc061d684d440027060469fc06a7ed02",
+  "trackedPatchSHA256": "afc5db2c48a805e683d40e13b979bdd6688a2992417c7bebd4ed287c727510dd"
+}

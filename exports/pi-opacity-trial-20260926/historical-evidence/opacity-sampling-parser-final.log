@@ -1,0 +1,45 @@
+✔ complete trace permits null clear bits (2.75032ms)
+✔ complete trace permits array clear bits (0.39158ms)
+✔ direct promoted source can be complete without a quad (0.2896ms)
+✔ reject absent begin (0.95039ms)
+✔ reject absent end (0.32521ms)
+✔ reject incomplete (0.26277ms)
+✔ reject mixed tuple (0.23363ms)
+✔ reject duplicate begin (0.32854ms)
+✔ reject duplicate ID (0.32796ms)
+✔ reject missing quad draw (0.39998ms)
+✔ reject missing composite input (0.26254ms)
+✔ reject missing composite emission (0.2524ms)
+✔ reject wrong final variant (0.3362ms)
+✔ reject changed final operand (0.826161ms)
+✔ reject wrong binding (0.27574ms)
+✔ reject missing composite pass (0.33372ms)
+✔ reject missing composite uniform (0.3064ms)
+✔ reject missing target (3.37674ms)
+✔ reject missing clear (0.272721ms)
+✔ reject wrong destination (0.26729ms)
+✔ reject source not presented (0.29353ms)
+✔ reject fabricated textureSize (0.27725ms)
+✔ reject fabricated allocation (0.23564ms)
+✔ reject missing unknown (0.24054ms)
+✔ reject submission as completion (0.59459ms)
+✔ reject invalid clear shape (0.28006ms)
+✔ reject invalid scissor shape (0.31544ms)
+✔ reject task outside snapshot (0.28568ms)
+✔ reject wrong terminal counts (0.34437ms)
+✔ reject missing allocation format (0.30963ms)
+✔ reject missing allocation filter (0.314271ms)
+✔ reject missing allocation kind (0.31447ms)
+✔ reject missing target format (0.3157ms)
+✔ reject missing target filter (0.27794ms)
+✔ reject missing target swizzle (0.29232ms)
+✔ reject invalid JSON and byte/record overflow (1.16453ms)
+✔ producer clear bits serialize as an array or null (4.378841ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 87.005969

@@ -712,7 +712,7 @@ fn prepare_prim_for_render(
 
             return;
         }
-        PrimitiveKind::Image { data_handle, .. } => {
+        PrimitiveKind::Image { data_handle, opacity } => {
             tracy_rs::profile_scope!("Image");
 
             let prim_data = &data_stores.image[*data_handle];
@@ -746,6 +746,7 @@ fn prepare_prim_for_render(
                 &prim_rect,
                 common_data,
                 image_data,
+                *opacity,
                 &prim_info.clip_chain.local_coverage_rect,
                 quad_clips,
                 quad_transform,

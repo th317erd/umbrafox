@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 #include <functional>
+#include <memory>
 
 #include "GLTypes.h"
 #include "ImageContainer.h"
@@ -38,6 +39,8 @@ class SurfaceDescriptorDMABuf;
 }  // namespace layers
 namespace gl {
 class GLContext;
+class EglDisplay;
+class DMABufProducerFence;
 }
 namespace webgpu {
 namespace ffi {
@@ -106,9 +109,34 @@ class DMABufSurface : public BufferSurface {
       mozilla::layers::SurfaceDescriptorBuffer& aSdBuffer,
       mozilla::layers::Image::BuildSdbFlags aFlags,
       const std::function<mozilla::layers::MemoryOrShmem(uint32_t)>& aAllocate);
+  virtual nsresult BuildSurfaceDescriptorBufferForSize(
+      mozilla::layers::SurfaceDescriptorBuffer& aSdBuffer,
+      mozilla::layers::Image::BuildSdbFlags aFlags,
+      const mozilla::gfx::IntSize& aSize,
+      const std::function<mozilla::layers::MemoryOrShmem(uint32_t)>& aAllocate);
 
-  void FenceSet();
-  void FenceWait(mozilla::gl::GLContext* aGLContext = nullptr);
+  class ProducerFence final {
+   public:
+    ProducerFence();
+    ~ProducerFence();
+    ProducerFence(const ProducerFence&) = delete;
+    ProducerFence& operator=(const ProducerFence&) = delete;
+    ProducerFence(ProducerFence&&) = delete;
+    ProducerFence& operator=(ProducerFence&&) = delete;
+
+   private:
+    friend class DMABufSurface;
+    friend class mozilla::gl::DMABufProducerFence;
+    void Reset();
+
+    std::shared_ptr<mozilla::gl::EglDisplay> mEgl;
+    EGLSyncKHR mSync = nullptr;
+    RefPtr<mozilla::gfx::FileHandleWrapper> mSyncFd;
+  };
+
+  void FenceSet(ProducerFence* aProducerFence = nullptr);
+  void FenceWait(mozilla::gl::GLContext* aGLContext = nullptr,
+                 ProducerFence* aProducerFence = nullptr);
   static void FenceWaitFd(RefPtr<mozilla::gl::GLContext> aGL,
                           RefPtr<mozilla::gfx::FileHandleWrapper> aSyncFd);
 
@@ -214,7 +242,8 @@ class DMABufSurface : public BufferSurface {
 
   nsresult ReadIntoBuffer(mozilla::gl::GLContext* aGLContext, uint8_t* aData,
                           int32_t aStride, const mozilla::gfx::IntSize& aSize,
-                          mozilla::gfx::SurfaceFormat aFormat);
+                          mozilla::gfx::SurfaceFormat aFormat,
+                          bool aScaleSourceToDest = false);
 
   virtual ~DMABufSurface();
 
@@ -364,6 +393,12 @@ class DMABufSurfaceYUV final : public DMABufSurface {
   nsresult BuildSurfaceDescriptorBuffer(
       mozilla::layers::SurfaceDescriptorBuffer& aSdBuffer,
       mozilla::layers::Image::BuildSdbFlags aFlags,
+      const std::function<mozilla::layers::MemoryOrShmem(uint32_t)>& aAllocate)
+      override;
+  nsresult BuildSurfaceDescriptorBufferForSize(
+      mozilla::layers::SurfaceDescriptorBuffer& aSdBuffer,
+      mozilla::layers::Image::BuildSdbFlags aFlags,
+      const mozilla::gfx::IntSize& aSize,
       const std::function<mozilla::layers::MemoryOrShmem(uint32_t)>& aAllocate)
       override;
 

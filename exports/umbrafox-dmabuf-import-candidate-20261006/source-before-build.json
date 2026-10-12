@@ -1,0 +1,59 @@
+{
+  "base": "892431809a4caadb5c73b2c03ad9bdb124c3e21e",
+  "indexSHA256": "3b78253cf775a4a1e8c69a4b82cc3958b366056129a391f4ae362bdfe8e4e0c4",
+  "patchSHA256": "53b01bb35bed53d52f1988cf293e3050a43816867c866acf093e0489d70de0d3",
+  "files": {
+    "dom/canvas/CanvasRenderingContext2D.cpp": {
+      "bytes": 262736,
+      "sha256": "50bd508090a87b2dd0d315b98b3894c6a94f1c2e9a6a10f0a9c6418c500981a9"
+    },
+    "dom/canvas/DrawTargetWebgl.cpp": {
+      "bytes": 271773,
+      "sha256": "4b4200580b472a17fd4c5818170b0545c15a47c8b7a483303ef21e9b7c911e95"
+    },
+    "dom/canvas/TexUnpackBlob.cpp": {
+      "bytes": 46059,
+      "sha256": "67195aa2df2a99ccf47e2db610dfac96a815ce264b120fd63bd12c9315d2f714"
+    },
+    "dom/canvas/WebGLTypes.h": {
+      "bytes": 35974,
+      "sha256": "282e0bb7680e8821eb79cfbce26452ca6650c88aa7eb09f537b655f79bd2e561"
+    },
+    "gfx/gl/GLBlitHelper.cpp": {
+      "bytes": 80905,
+      "sha256": "0356620041d3d1529c8cd1c5b6e5890f96ce9e712dcc781766b2ca75cf0269f8"
+    },
+    "gfx/gl/GLBlitHelper.h": {
+      "bytes": 12115,
+      "sha256": "8881b36bbfc401be0b61c53df4c0e3c1018427d13eb2e916c0c47f97ef1751b1"
+    },
+    "gfx/layers/ipc/CanvasTranslator.cpp": {
+      "bytes": 65826,
+      "sha256": "2269bc7e93cf0b2d06f4f96bf8dd70cb6fd0d475fab809de7ffcca9619918a60"
+    },
+    "gfx/layers/ipc/CanvasTranslator.h": {
+      "bytes": 21232,
+      "sha256": "417636991d485d555e4f2e10f69c63d33e775180d0bd980afd61eeedefc67cf0"
+    },
+    "gfx/layers/opengl/DMABUFTextureHostOGL.cpp": {
+      "bytes": 10171,
+      "sha256": "30db449b35d9213d4c841e253aea57483f17becffe550b68b1f9c1aa754f6bef"
+    },
+    "gfx/layers/opengl/DMABUFTextureHostOGL.h": {
+      "bytes": 2262,
+      "sha256": "7a1af3890c71835e572552e68d041e01e3692569103b91019ae4c3c9d14deb37"
+    },
+    "layout/base/nsLayoutUtils.cpp": {
+      "bytes": 386902,
+      "sha256": "acb0aa3f072717037222b60056c626e276eefed529774ddf944a09bef812b2be"
+    },
+    "layout/base/nsLayoutUtils.h": {
+      "bytes": 151433,
+      "sha256": "cbef271ce9db370ffacd3b52767a962f36180cfd594d1ac351af080d5678758e"
+    },
+    "modules/libpref/init/StaticPrefList.yaml": {
+      "bytes": 637806,
+      "sha256": "461ee437d08615633c7f9ad1e1790389509a1fd84c27571cafa5349fb9127b39"
+    }
+  }
+}

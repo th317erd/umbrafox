@@ -1,0 +1,25 @@
+{
+  "reference": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/baseline-off/capture/frame.png",
+  "actual": "/home/wyatt/.cache/codex/l8ros/opacity-prototype-20260925/sampling-operands-validation/dispatch-lifecycle-v2/baseline-on/capture/frame.png",
+  "AE": 20,
+  "changedChannels": 20,
+  "parity": false,
+  "rows": [
+    {
+      "y": 339,
+      "pixels": 20,
+      "channels": 20,
+      "signedChannelCounts": [
+        {
+          "-1": 1
+        },
+        {
+          "1": 12,
+          "-1": 7
+        },
+        {},
+        {}
+      ]
+    }
+  ]
+}

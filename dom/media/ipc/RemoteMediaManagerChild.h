@@ -105,8 +105,12 @@ class RemoteMediaManagerChild final
 
   // Can be called from any thread, dispatches the request to the IPDL thread
   // internally and will be ignored if the IPDL actor has been destroyed.
+  bool CanReadback() override;
   already_AddRefed<gfx::SourceSurface> Readback(
       const SurfaceDescriptorGPUVideo& aSD) override;
+  already_AddRefed<gfx::SourceSurface> Readback(
+      const SurfaceDescriptorGPUVideo& aSD,
+      const gfx::IntSize& aReadbackSize) override;
   already_AddRefed<layers::Image> TransferToImage(
       const SurfaceDescriptorGPUVideo& aSD, const gfx::IntSize& aSize,
       const gfx::ColorDepth& aColorDepth, gfx::YUVColorSpace aYUVColorSpace,

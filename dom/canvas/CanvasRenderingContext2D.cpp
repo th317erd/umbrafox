@@ -9,6 +9,7 @@
 
 #include "CanvasImageCache.h"
 #include "CanvasUtils.h"
+#include "GPUVideoImage.h"
 #include "GeckoBindings.h"
 #include "ImageEncoder.h"
 #include "ImageRegion.h"
@@ -5946,6 +5947,14 @@ bool ValidSurfaceDescriptorForRemoteCanvas2d(
       break;
     }
 #endif
+#ifdef MOZ_WIDGET_GTK
+    case layers::RemoteDecoderVideoType::DMABuf: {
+      if (!StaticPrefs::gfx_canvas_remote_use_draw_image_fast_path_dmabuf()) {
+        return false;
+      }
+      break;
+    }
+#endif
     default:
       return false;
   }
@@ -5957,7 +5966,8 @@ bool ValidSurfaceDescriptorForRemoteCanvas2d(
 
 static Maybe<layers::SurfaceDescriptor>
 MaybeGetSurfaceDescriptorForRemoteCanvas(
-    const SurfaceFromElementResult& aResult) {
+    const SurfaceFromElementResult& aResult,
+    Maybe<layers::RemoteDecoderVideoType> aOnlyVideoType) {
   if (!StaticPrefs::gfx_canvas_remote_use_draw_image_fast_path()) {
     return Nothing();
   }
@@ -5966,13 +5976,35 @@ MaybeGetSurfaceDescriptorForRemoteCanvas(
     return Nothing();
   }
 
-  if (const auto sd = aResult.mLayersImage->GetDesc()) {
-    Maybe<layers::SurfaceDescriptor> result;
-    if (ValidSurfaceDescriptorForRemoteCanvas2d(*sd, &result)) {
-      return result;
+  const Maybe<layers::SurfaceDescriptor> sd = aResult.mLayersImage->GetDesc();
+  if (!sd) {
+    return Nothing();
+  }
+
+  Maybe<layers::SurfaceDescriptor> result;
+  if (!ValidSurfaceDescriptorForRemoteCanvas2d(*sd, &result)) {
+    return Nothing();
+  }
+
+  // The validation above guarantees these are the active union members.
+  if (aOnlyVideoType && sd->get_SurfaceDescriptorGPUVideo()
+                                .get_SurfaceDescriptorRemoteDecoder()
+                                .videoType() != *aOnlyVideoType) {
+    return Nothing();
+  }
+
+#ifdef MOZ_WIDGET_GTK
+  if (sd->get_SurfaceDescriptorGPUVideo()
+          .get_SurfaceDescriptorRemoteDecoder()
+          .videoType() == layers::RemoteDecoderVideoType::DMABuf) {
+    auto* image = aResult.mLayersImage->AsGPUVideoImage();
+    if (!image || !image->CanReadback()) {
+      return Nothing();
     }
   }
-  return Nothing();
+#endif
+
+  return result;
 }
 
 // drawImage(in HTMLImageElement image, in float dx, in float dy);
@@ -6099,7 +6131,28 @@ void CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
       res = nsLayoutUtils::SurfaceFromOffscreenCanvas(offscreenCanvas, sfeFlags,
                                                       mTarget);
     } else if (videoFrame) {
-      res = nsLayoutUtils::SurfaceFromVideoFrame(videoFrame, sfeFlags, mTarget);
+#ifdef MOZ_WIDGET_GTK
+      if (mBufferProvider->IsAccelerated() && mTarget->IsRecording() &&
+          !(NeedToApplyFilter() || NeedToDrawShadow())) {
+        res = nsLayoutUtils::SurfaceFromVideoFrame(
+            videoFrame, sfeFlags, mTarget, /* aOptimizeSourceSurface */ false);
+        surfaceDescriptor = MaybeGetSurfaceDescriptorForRemoteCanvas(
+            res, Some(layers::RemoteDecoderVideoType::DMABuf));
+        if (surfaceDescriptor.isNothing() && res.mLayersImage) {
+          if ((res.mSourceSurface = res.mLayersImage->GetAsSourceSurface())) {
+            RefPtr<SourceSurface> opt =
+                mTarget->OptimizeSourceSurface(res.mSourceSurface);
+            if (opt) {
+              res.mSourceSurface = opt;
+            }
+          }
+        }
+      } else
+#endif
+      {
+        res =
+            nsLayoutUtils::SurfaceFromVideoFrame(videoFrame, sfeFlags, mTarget);
+      }
     } else {
       res = CanvasRenderingContext2D::CachedSurfaceFromElement(element);
       if (!res.mSourceSurface) {
@@ -6109,7 +6162,8 @@ void CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
             !(NeedToApplyFilter() || NeedToDrawShadow())) {
           res = nsLayoutUtils::SurfaceFromElement(
               video, sfeFlags, mTarget, /* aOptimizeSourceSurface */ false);
-          surfaceDescriptor = MaybeGetSurfaceDescriptorForRemoteCanvas(res);
+          surfaceDescriptor =
+              MaybeGetSurfaceDescriptorForRemoteCanvas(res, Nothing());
           if (surfaceDescriptor.isNothing() && res.mLayersImage) {
             if ((res.mSourceSurface = res.mLayersImage->GetAsSourceSurface())) {
               RefPtr<SourceSurface> opt =

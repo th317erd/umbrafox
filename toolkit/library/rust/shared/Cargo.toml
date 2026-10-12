@@ -184,6 +184,7 @@ for_xul = [
     "rusqlite/in_gecko"
 ]
 webrender_debugger = ["webrender_bindings/debugger"]
+umbra_perf_probes = ["webrender_bindings/umbra-perf-probes"]
 shell_windows = ["dep:shell_windows"]
 backgroundtaskregistrar = ["dep:backgroundtaskregistrar"]
 enable_tests = ["shell_windows?/enable_tests"]

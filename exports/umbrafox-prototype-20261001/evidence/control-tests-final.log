@@ -1,0 +1,20 @@
+✔ script contract validates realm, body, arguments, timeout and document (1.304075ms)
+✔ results preserve undefined and reject lossy or unbounded values (1.980423ms)
+✔ wait completion, rejection, timeout and cancellation remove listeners (5.806858ms)
+✔ navigation checks parameters before effects and tears down its listener (1.920602ms)
+✔ navigation timeout, disconnect, tab close and failed start remove listeners (7.714021ms)
+✔ execution requires the requested document and rejects replacement (1.111346ms)
+✔ pending scripts are exclusive and canceled on disconnect or timeout (5.620729ms)
+✔ tab operations are explicit and preserve the last tab (1.017026ms)
+✔ evaluation uses a disposable scope, page principal and explicit browser privilege (14.537705ms)
+✔ actor errors and transport rejection remain failures and cancel the operation (1.174336ms)
+✔ content actor rejects privileged realm and stale documents, and aborts on destruction (2.906019ms)
+✔ execution and navigation are registered on the authenticated service path (1.070046ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 101.284298

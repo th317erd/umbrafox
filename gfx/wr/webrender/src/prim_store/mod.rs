@@ -238,6 +238,7 @@ pub enum PrimitiveKind {
     Image {
         /// Handle to the common interned data for this primitive.
         data_handle: ImageDataHandle,
+        opacity: f32,
     },
     LinearGradient {
         /// Handle to the common interned data for this primitive.
@@ -911,4 +912,3 @@ fn test_struct_sizes() {
     assert_eq!(mem::size_of::<PrimitiveInstance>(), 20, "PrimitiveInstance size changed");
     assert_eq!(mem::size_of::<PrimitiveKind>(), 16, "PrimitiveKind size changed");
 }
-

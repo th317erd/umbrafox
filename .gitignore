@@ -419,6 +419,11 @@ toolkit/crashreporter/minidump-analyzer/target/
 # Ignore mozperftest artifacts folder
 /artifacts/
 
+# Keep Umbrafox export evidence, but not packaged or extracted browser builds.
+/exports/*/umbrafox/
+/exports/umbrafox*.tar.xz
+/exports/*/umbrafox*.tar.xz
+
 # Ignore personal preferences files
 CLAUDE.local.md
 **/.claude/settings.local.json

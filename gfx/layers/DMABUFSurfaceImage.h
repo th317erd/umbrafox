@@ -25,6 +25,10 @@ class DMABUFSurfaceImage : public Image {
   nsresult BuildSurfaceDescriptorBuffer(
       SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
       const std::function<MemoryOrShmem(uint32_t)>& aAllocate) override;
+  nsresult BuildSurfaceDescriptorBufferForSize(
+      SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
+      const gfx::IntSize& aSize,
+      const std::function<MemoryOrShmem(uint32_t)>& aAllocate) override;
   TextureClient* GetTextureClient(KnowsCompositor* aKnowsCompositor) override;
 
  private:

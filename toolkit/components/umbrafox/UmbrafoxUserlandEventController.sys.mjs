@@ -23,10 +23,39 @@ const nativeNavigationControllers = new Map();
 const nativeScriptControllers = new Map();
 const nativeRequestControllers = new Map();
 const nativeMutationControllers = new Map();
+const requestCapabilityPreparations = new WeakMap();
+let nativeControllerFinalizer;
 let nativeNavigationObserverRegistered = false;
 let nativeScriptObserverRegistered = false;
 let nativeRequestObserverRegistered = false;
 let nativeMutationObserverRegistered = false;
+
+function finalizeNativeController({ controllers, key, reference }) {
+  if (controllers.get(key) === reference) {
+    controllers.delete(key);
+  }
+}
+
+function registerNativeController(controllers, key, controller) {
+  const previous = controllers.get(key);
+  if (previous?.deref() === controller) {
+    return;
+  }
+
+  nativeControllerFinalizer ??= new FinalizationRegistry(
+    finalizeNativeController
+  );
+  const reference = new WeakRef(controller);
+  nativeControllerFinalizer.register(
+    controller,
+    { controllers, key, reference },
+    reference
+  );
+  if (previous) {
+    nativeControllerFinalizer.unregister(previous);
+  }
+  controllers.set(key, reference);
+}
 
 const nativeNavigationObserver = {
   observe(subject, topic) {
@@ -176,6 +205,19 @@ const nativeRequestObserver = {
       return;
     }
 
+    try {
+      if (
+        Cu.waiveXrays(actor).canSkipRequest?.(
+          browsingContextId,
+          channel.loadInfo?.innerWindowID ?? 0
+        ) === true
+      ) {
+        return;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+
     dispatchParentRequestEvent(channel, actor, browsingContextId);
   },
 };
@@ -203,8 +245,8 @@ function ensureNativeRequestObserver() {
   if (Services.appinfo.processType != Services.appinfo.PROCESS_TYPE_DEFAULT) {
     return;
   }
-  nativeRequestObserverRegistered = true;
   Services.obs.addObserver(nativeRequestObserver, HTTP_ON_MODIFY_REQUEST_TOPIC);
+  nativeRequestObserverRegistered = true;
 }
 
 function ensureNativeMutationObserver() {
@@ -331,6 +373,66 @@ function getBrowsingContextId(window) {
   return window?.docShell?.browsingContext?.id ?? window?.browsingContext?.id;
 }
 
+function getWindowGlobal(window) {
+  return window ? Cu.unwaiveXrays(window).windowGlobalChild : null;
+}
+
+function getInnerWindowId(window) {
+  const id = getWindowGlobal(window)?.innerWindowId;
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
+export function prepareUmbrafoxUserlandRequestCapability(window) {
+  const global = getWindowGlobal(window);
+  if (!global) {
+    return null;
+  }
+  const previous = requestCapabilityPreparations.get(global);
+  if (previous) {
+    return previous.promise;
+  }
+  const identity = {
+    browsingContextId: global.browsingContext?.id,
+    innerWindowId: global.innerWindowId,
+  };
+  if (
+    !Number.isSafeInteger(identity.browsingContextId) ||
+    identity.browsingContextId <= 0 ||
+    !Number.isSafeInteger(identity.innerWindowId) ||
+    identity.innerWindowId <= 0
+  ) {
+    return Promise.reject(
+      new Error("Invalid userland request capability identity")
+    );
+  }
+  const preparation = { ready: false, promise: null };
+  preparation.promise = Promise.resolve()
+    .then(() =>
+      global
+        .getActor("UmbrafoxUserland")
+        .sendQuery("GrantUserlandRequestCapability", identity)
+    )
+    .then(receipt => {
+      if (
+        receipt?.browsingContextId !== identity.browsingContextId ||
+        receipt?.innerWindowId !== identity.innerWindowId
+      ) {
+        throw new Error("Invalid userland request capability identity");
+      }
+      preparation.ready = true;
+      return Object.freeze(identity);
+    });
+  requestCapabilityPreparations.set(global, preparation);
+  preparation.promise.catch(() => requestCapabilityPreparations.delete(global));
+  return preparation.promise;
+}
+
+function getRequestControllerKey(browsingContextId, innerWindowId) {
+  return innerWindowId
+    ? `${browsingContextId}:${innerWindowId}`
+    : browsingContextId;
+}
+
 function getChannelBrowsingContextId(channel) {
   const loadInfo = channel.loadInfo;
   return (
@@ -381,7 +483,6 @@ function getRequestEventFields(channel, browsingContextId) {
     method,
     originalMethod: method,
     headers,
-    originalHeaders: Object.freeze(Object.fromEntries(headers)),
     browsingContextId,
     targetBrowsingContextId: loadInfo?.targetBrowsingContextID ?? 0,
     frameBrowsingContextId: loadInfo?.frameBrowsingContextID ?? 0,
@@ -627,10 +728,19 @@ function serializeRequestDecision(event) {
 export function dispatchUmbrafoxUserlandRequest(window, fields = {}) {
   const browsingContextId =
     fields.browsingContextId || getBrowsingContextId(window);
-  const controller =
-    nativeRequestControllers.get(browsingContextId)?.deref() ?? null;
+  const innerWindowId = getInnerWindowId(window);
+  if (
+    innerWindowId &&
+    fields.innerWindowId !== undefined &&
+    fields.innerWindowId !== 0 &&
+    fields.innerWindowId !== innerWindowId
+  ) {
+    return null;
+  }
+  const key = getRequestControllerKey(browsingContextId, innerWindowId);
+  const controller = nativeRequestControllers.get(key)?.deref() ?? null;
   if (!controller) {
-    nativeRequestControllers.delete(browsingContextId);
+    nativeRequestControllers.delete(key);
     return null;
   }
   if (!controller.hasHandlers(REQUEST_EVENT_TYPE)) {
@@ -849,9 +959,30 @@ class UserlandMutationEvent extends UserlandCancellableEvent {
  * Per-document controller for userland dialog and navigation event hooks.
  */
 export class UmbrafoxUserlandEventController {
-  constructor(window, { browsingContextId = null } = {}) {
+  constructor(
+    window,
+    { browsingContextId = null, requestCapability = null } = {}
+  ) {
+    const global = getWindowGlobal(window);
+    if (global && !requestCapabilityPreparations.get(global)?.ready) {
+      throw new Error("Userland request capability is not prepared");
+    }
     this.window = window;
-    this.browsingContextId = browsingContextId ?? getBrowsingContextId(window);
+    this.browsingContextId =
+      browsingContextId ??
+      global?.browsingContext.id ??
+      getBrowsingContextId(window);
+    this.innerWindowId = getInnerWindowId(window);
+    if (global && this.browsingContextId !== global.browsingContext.id) {
+      throw new Error("Invalid userland request capability identity");
+    }
+    if (
+      requestCapability !== null &&
+      (requestCapability.browsingContextId !== this.browsingContextId ||
+        requestCapability.innerWindowId !== this.innerWindowId)
+    ) {
+      throw new Error("Invalid userland request capability identity");
+    }
     this.handlers = new Map();
     this.installedHooks = new Set();
     this.originals = Object.create(null);
@@ -1010,7 +1141,11 @@ export class UmbrafoxUserlandEventController {
     }
 
     ensureNativeNavigationObserver();
-    nativeNavigationControllers.set(browsingContextId, new WeakRef(this));
+    registerNativeController(
+      nativeNavigationControllers,
+      browsingContextId,
+      this
+    );
   }
 
   dispatchNavigation(fields) {
@@ -1029,7 +1164,7 @@ export class UmbrafoxUserlandEventController {
     }
 
     ensureNativeScriptObserver();
-    nativeScriptControllers.set(browsingContextId, new WeakRef(this));
+    registerNativeController(nativeScriptControllers, browsingContextId, this);
   }
 
   dispatchScript(fields) {
@@ -1050,7 +1185,11 @@ export class UmbrafoxUserlandEventController {
     }
 
     ensureNativeRequestObserver();
-    nativeRequestControllers.set(browsingContextId, new WeakRef(this));
+    registerNativeController(
+      nativeRequestControllers,
+      getRequestControllerKey(browsingContextId, this.innerWindowId),
+      this
+    );
   }
 
   dispatchRequest(fields) {
@@ -1070,7 +1209,11 @@ export class UmbrafoxUserlandEventController {
     }
 
     ensureNativeMutationObserver();
-    nativeMutationControllers.set(browsingContextId, new WeakRef(this));
+    registerNativeController(
+      nativeMutationControllers,
+      browsingContextId,
+      this
+    );
   }
 
   dispatchMutation(fields) {

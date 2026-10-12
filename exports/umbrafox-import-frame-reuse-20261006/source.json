@@ -1,0 +1,279 @@
+{
+  "at": "2026-10-07T00:34:12.326Z",
+  "head": "892431809a4caadb5c73b2c03ad9bdb124c3e21e",
+  "buildID": "20261006175655",
+  "files": {
+    "dom/canvas/DrawTargetWebgl.cpp": {
+      "bytes": 274760,
+      "sha256": "5af4b248e08871d1939b8ac03e9bd6e6927842235e6ef03d98ce776682cdf74e"
+    },
+    "dom/canvas/DrawTargetWebgl.h": {
+      "bytes": 37585,
+      "sha256": "696aa3fb28326e8236c0baf98a697be698981c34e5fffb2e00820ad980ebd780"
+    },
+    "dom/canvas/WebGLContext.h": {
+      "bytes": 51428,
+      "sha256": "cba802fe776f169b60b382b90cae755e3d892099076d8468eb301a8359c1e150"
+    },
+    "dom/canvas/WebGLContextTextures.cpp": {
+      "bytes": 7382,
+      "sha256": "3346317a322d61780c6355d45ca4168b8c378494ff3d278a60c52a148ea4e1ad"
+    },
+    "dom/canvas/WebGLTexture.h": {
+      "bytes": 11229,
+      "sha256": "54879b35215b5498436951f8f44b9eec65576a983e23d6e095ed3cb7d02c1054"
+    },
+    "dom/canvas/WebGLTextureUpload.cpp": {
+      "bytes": 64688,
+      "sha256": "67d776d7562a5ba52bf3569e1444ebd75477d957e797ba5f496fdf08030efd6a"
+    },
+    "dom/canvas/TexUnpackBlob.cpp": {
+      "bytes": 46119,
+      "sha256": "81d9b70fe2eeea6febeb96e6609b0869f3afea851db887660e6f15d3c312158d"
+    },
+    "dom/canvas/TexUnpackBlob.h": {
+      "bytes": 4993,
+      "sha256": "4b38c701c9bfb65194b03df2c56a21311c136f98145205ebf3368e4284299926"
+    },
+    "dom/canvas/WebGLTypes.h": {
+      "bytes": 36111,
+      "sha256": "9c910d53405348ffb2b6e5f3f48083c82fd68046b9f4c45f0ca1380384872b0d"
+    },
+    "dom/canvas/WebGLIpdl.h": {
+      "bytes": 10063,
+      "sha256": "e5818dcef88a191397ed7af5e2be813a04aaa835214ef04dd736912bd310fd0c"
+    },
+    "dom/canvas/HostWebGLContext.h": {
+      "bytes": 27166,
+      "sha256": "5587779696c4a6b5a4bbbf3227da76e84894cef689830ac96ec0473433fcc1e6"
+    },
+    "gfx/layers/ipc/CanvasTranslator.cpp": {
+      "bytes": 67396,
+      "sha256": "4b7de872ed03bdf55e5833f08a985e8b3637dcd41079b9f966f313ec08a1c528"
+    },
+    "dom/canvas/gtest/TestWebGLTextureUploadInit.cpp": {
+      "bytes": 16046,
+      "sha256": "c3ce919a74e6310ad143ee4fc1af1145d4e0ede6ac4f4fe61478394246475dd0"
+    },
+    "dom/canvas/gtest/moz.build": {
+      "bytes": 660,
+      "sha256": "affd5e5c8383940a04f314a2cbd5d3b926bbaefd988bd0ea2b5a27d67f033620"
+    },
+    "dom/canvas/gtest/TestCanvasSurfaceImport.cpp": {
+      "bytes": 2170,
+      "sha256": "5e7a1ea927750f881a22d27cc4a456a68ad8b3838539d1a1bdf42bb871cb0555"
+    },
+    "dom/canvas/CanvasRenderingContext2D.cpp": {
+      "bytes": 260076,
+      "sha256": "4d12926845f745d2785902f1efb32463b7c41253791e3752e6488f9d5e30e8b4"
+    },
+    "gfx/gl/GLBlitHelper.cpp": {
+      "bytes": 80905,
+      "sha256": "0356620041d3d1529c8cd1c5b6e5890f96ce9e712dcc781766b2ca75cf0269f8"
+    },
+    "gfx/gl/GLBlitHelper.h": {
+      "bytes": 12115,
+      "sha256": "8881b36bbfc401be0b61c53df4c0e3c1018427d13eb2e916c0c47f97ef1751b1"
+    },
+    "gfx/layers/ipc/CanvasTranslator.h": {
+      "bytes": 21306,
+      "sha256": "3d744d35eab934035b7834f81b8fd6a0f6db7826bab88d4ded05115040339505"
+    },
+    "gfx/layers/opengl/DMABUFTextureHostOGL.cpp": {
+      "bytes": 10171,
+      "sha256": "30db449b35d9213d4c841e253aea57483f17becffe550b68b1f9c1aa754f6bef"
+    },
+    "gfx/layers/opengl/DMABUFTextureHostOGL.h": {
+      "bytes": 2262,
+      "sha256": "7a1af3890c71835e572552e68d041e01e3692569103b91019ae4c3c9d14deb37"
+    },
+    "layout/base/nsLayoutUtils.cpp": {
+      "bytes": 386902,
+      "sha256": "acb0aa3f072717037222b60056c626e276eefed529774ddf944a09bef812b2be"
+    },
+    "layout/base/nsLayoutUtils.h": {
+      "bytes": 151433,
+      "sha256": "cbef271ce9db370ffacd3b52767a962f36180cfd594d1ac351af080d5678758e"
+    },
+    "modules/libpref/init/StaticPrefList.yaml": {
+      "bytes": 637806,
+      "sha256": "461ee437d08615633c7f9ad1e1790389509a1fd84c27571cafa5349fb9127b39"
+    },
+    "browser/components/urlbar/tests/quicksuggest/unit/test_quicksuggest_regionDefaults.js": {
+      "bytes": 4185,
+      "sha256": "eb3b29e364674563dda473d9f1695cf0e319af59920bf81eaa7400a262f84ccc"
+    },
+    "dom/base/test/gtest/TestUmbrafoxMutationGate.cpp": {
+      "bytes": 6508,
+      "sha256": "35e88192e07cccf63563ff45ed51960b6aa88a0dc9fad0ab8ee3142a05e877e0"
+    },
+    "gfx/tests/gtest/TestGPUVideoImage.cpp": {
+      "bytes": 29676,
+      "sha256": "44fa4d47776580c9cd4a75c04dd2f588544605023a0b3b9034a5abd60038a3f9"
+    },
+    "gfx/wr/webrender/src/renderer/sampling.rs": {
+      "bytes": 18551,
+      "sha256": "cedbc1f297d187c4107887a691ad67d0d6adbbbfdf7ab82a76ec4ed10f9e07c2"
+    },
+    "toolkit/actors/UmbrafoxControlExecutionChild.sys.mjs": {
+      "bytes": 1561,
+      "sha256": "451c0e855b841bf265eeb140b543a82589ff83e51ffe14adcbf706f9b0349de0"
+    },
+    "toolkit/actors/UmbrafoxControlExecutionParent.sys.mjs": {
+      "bytes": 268,
+      "sha256": "01320fc92bb701c0f79b6d92909ff819f1ba1271f7a1146b75976584a1569e49"
+    },
+    "toolkit/components/umbrafox/UmbrafoxControlBrowser.sys.mjs": {
+      "bytes": 7109,
+      "sha256": "d76ac7443679d79d8261e267cab80f4350de8e2667718353856747c9177408c9"
+    },
+    "toolkit/components/umbrafox/UmbrafoxControlScript.sys.mjs": {
+      "bytes": 6383,
+      "sha256": "7f6c3b468f688f84c940d8921ceec31daecc4062763f134a49a5344b704d1289"
+    },
+    "toolkit/components/umbrafox/docs/control.md": {
+      "bytes": 7690,
+      "sha256": "063a1bb0e40ed85951a2cb1c8957f11f00b15d3e985ef30ca9a8c35470d57cc3"
+    },
+    "toolkit/components/umbrafox/tests/browser/browser_control_browser.js": {
+      "bytes": 8397,
+      "sha256": "3759e2d8fd0c2df08bbf57a17b85cc35252ff4f8068d4dc0d089f8d5e52ff46c"
+    },
+    "toolkit/components/umbrafox/tests/browser/browser_userland_mutation_gate.js": {
+      "bytes": 3508,
+      "sha256": "e5ccdd7d123c946226a560807d90a32f241176ec122473d40c4fd89828f5e12e"
+    },
+    "dom/canvas/gtest/TestDMABufReadback.cpp": {
+      "bytes": 21584,
+      "sha256": "975823a9f07ec03f50a4be3ce4b9bc9e823bc44eb97e5471b964cfcfa96702f6"
+    },
+    "widget/gtk/DMABufSurface.cpp": {
+      "bytes": 96936,
+      "sha256": "84a1855a7ce04f774db2b90b2123397eb3311619429d21d7c36b9d62c576d8b3"
+    },
+    "widget/gtk/DMABufSurface.h": {
+      "bytes": 17353,
+      "sha256": "43ee244b17e9bcccf274d3312fcab3fbdc822ac89b98e06221a227a258c7d3f8"
+    },
+    "widget/gtk/BufferSurface.h": {
+      "bytes": 5520,
+      "sha256": "2e4e5e49a74de776bf918ba411b70cd1fb93e6345ab1341437ddb9597693e62e"
+    },
+    "gfx/gl/GLContext.h": {
+      "bytes": 125222,
+      "sha256": "3aa6a4f90cb06e4a0302a90728bd290cfc7ddddb3d3480fdee0a27b7662f56fd"
+    },
+    "gfx/gl/ScopedGLHelpers.h": {
+      "bytes": 6379,
+      "sha256": "915e0811b4ef41256347c633996378050f25ce6ecda13a805f222a5335510df5"
+    },
+    "gfx/gl/ScopedGLHelpers.cpp": {
+      "bytes": 16422,
+      "sha256": "5ff77453dd37af8fa026a0f3167c75185abbdada02a3e4fcfbade121a27486bf"
+    },
+    "gfx/gl/GLReadTexImageHelper.h": {
+      "bytes": 2806,
+      "sha256": "e569c402e0293049ce9280b90a6ca3c05f5a508b558c4137aae5d183caa99293"
+    },
+    "gfx/gl/GLReadTexImageHelper.cpp": {
+      "bytes": 18655,
+      "sha256": "36da5cbb3e741343951c3db12e97ec906c6d0239dbdad5043bd96cfb3c3cc015"
+    },
+    "dom/media/ipc/RemoteMediaManagerChild.cpp": {
+      "bytes": 53096,
+      "sha256": "fb3dc08d1faf5dfe5cac7029b7a1d750b2fc1f00f8b3f5bfd51718dad3f617d7"
+    },
+    "dom/media/ipc/RemoteMediaManagerChild.h": {
+      "bytes": 7614,
+      "sha256": "d639aa9497496a0134308d3ac3ba9a6f8fbf98f5b30148add2176263f39da0f0"
+    },
+    "dom/media/ipc/RemoteMediaManagerParent.cpp": {
+      "bytes": 13152,
+      "sha256": "3952889d0398145e3ec4a77bae2af50d1745fd22f67195a5a46e80fb0b584477"
+    },
+    "dom/media/ipc/RemoteMediaManagerParent.h": {
+      "bytes": 4571,
+      "sha256": "7edaf672daca1e0ca8f309af4d0f2e3b98929df1b8557d72af8e8a610468f0b0"
+    },
+    "dom/media/ipc/PRemoteMediaManager.ipdl": {
+      "bytes": 2309,
+      "sha256": "76e0ec176101298184e77bb0dcf9b89fd2bad6f1c7de905fa8581bbeda177917"
+    },
+    "gfx/layers/GPUVideoImage.h": {
+      "bytes": 8254,
+      "sha256": "bacec280395373b0cf78d2402bb1f6c5e0650bc7ad7f16360a7f6d5da58c9cb9"
+    },
+    "gfx/layers/ImageContainer.cpp": {
+      "bytes": 44673,
+      "sha256": "3a2c1e8e1a1b63b10c979d1186c88b75d39bb356b8ed0d9809d5e2950caeb566"
+    },
+    "gfx/layers/ImageContainer.h": {
+      "bytes": 36947,
+      "sha256": "c883d6231c4c7e6739281ba55f35468e1867ee1335e9ebc178f8e1c43a79de24"
+    },
+    "gfx/layers/DMABUFSurfaceImage.cpp": {
+      "bytes": 3082,
+      "sha256": "9e82754a6bb14c53851d8330222288d4d052a5a52a075ee99674416a7269dda3"
+    },
+    "gfx/layers/DMABUFSurfaceImage.h": {
+      "bytes": 1305,
+      "sha256": "9f865a047fd0675b0962405cacd3763f095af295d4f89ef0175391f768066ca5"
+    },
+    "gfx/tests/gtest/moz.build": {
+      "bytes": 2283,
+      "sha256": "fd5c8475889c825c611bd08f545a6299f31038c9550e54846a76bc97ad658683"
+    },
+    "gfx/tests/gtest/TestGPUVideoReadbackIPC.cpp": {
+      "bytes": 6680,
+      "sha256": "f8fcd8f3259635b36e1b1fcf5fb179f5d6f9863e4c69edb2de8ad4ec5230041d"
+    },
+    "ipc/ipdl/test/gtest/IPDLUnitTest.cpp": {
+      "bytes": 10000,
+      "sha256": "6ef09e25c4141141b1d599a6c58681b47e5de967be2521bf77f68ec2c289250c"
+    },
+    "dom/media/gtest/TestRemoteImageHolder.cpp": {
+      "bytes": 13740,
+      "sha256": "67024ef8f7a50440a85fdcb31d3a61cf9972a83d763328aa6a0e4a918b35fab2"
+    },
+    "tools/umbrafox/tests/readback/test/dmabuf-import-spec.mjs": {
+      "bytes": 5566,
+      "sha256": "4b7d1041594689710c78e7a19e5944d0701203611132fa82ad6ffb6c02ac5d85"
+    },
+    "tools/umbrafox/tests/readback/test/dmabuf-admission.cpp": {
+      "bytes": 7672,
+      "sha256": "8ea2d1589435c590687d96e8351702ca4f540cf5cf8b4c2b66460ab15f3f4f2c"
+    },
+    "gfx/wr/webrender/src/device/query.rs": {
+      "bytes": 9633,
+      "sha256": "f957ebc3de7eb74d01ccd030080ac6ed442563e18676e52932da43f2ea9c7653"
+    },
+    "gfx/wr/webrender/src/renderer/mod.rs": {
+      "bytes": 229469,
+      "sha256": "248089c3bb6e97cb386155558c0a05d878afcd5b46d6d83469dea50cb8a6813d"
+    },
+    "gfx/wr/webrender/tests/unit/gpu_marker.rs": {
+      "bytes": 3257,
+      "sha256": "370d0546f079d9931e247150a1015c310ada96047dfbc93ec5ae8be1d9f562b9"
+    },
+    "tools/umbrafox/tests/readback/test/import-reuse.cpp": {
+      "bytes": 21720,
+      "sha256": "e5858a99f0bf78a3759de5232dcda84891835dd1c56293919e84c7c91249d9e5"
+    },
+    "tools/umbrafox/tests/readback/test/import-reuse-spec.mjs": {
+      "bytes": 5941,
+      "sha256": "a4e85e784f4166ce08c990f6ee112d2224af1be4f4c915af423d0e65dd67e8df"
+    }
+  },
+  "stagedPatchSHA256": "3b78253cf775a4a1e8c69a4b82cc3958b366056129a391f4ae362bdfe8e4e0c4",
+  "workingPatchSHA256": "cc8ed10b04fc9907875c2c716cc04abcac25544835621f431be98d5a941c6d79",
+  "trackedPatchSHA256": "c6a69781e0f7ae2030e8970b675ca67ce8e7eb94e8d482d1b8626c792e9b5706",
+  "mozconfigSHA256": "9e4d8c5c53fa6bda389c810d7f9f15eb4f00be6c28cb243c447bc6f33f3a75a9",
+  "changedFromRenderPassBaseline": [
+    "dom/canvas/DrawTargetWebgl.h",
+    "dom/canvas/DrawTargetWebgl.cpp",
+    "gfx/layers/ipc/CanvasTranslator.h",
+    "gfx/layers/ipc/CanvasTranslator.cpp"
+  ],
+  "implementationPatchSHA256": "45999cf62be52b7dadecb539766739e215c7af71a8ad2a8f590031ff94823ae4",
+  "baselineManifest": "4c8085f0f675c5b183976807df38bb99474bbd8be2e58651b52e4be9176eee8e"
+}

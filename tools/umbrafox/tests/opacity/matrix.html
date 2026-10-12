@@ -1,0 +1,76 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Opacity oracle loading</title>
+<style>
+  html, body { margin: 0; width: 100%; height: 100%; background: #35718d; }
+  canvas { position: fixed; left: 16px; top: 24px; width: 640px; height: 360px; opacity: .25; }
+  .odd canvas { width: 643px; height: 367px; }
+  .resized canvas { width: 701px; height: 401px; }
+  .fractional canvas, .mixed canvas:last-child { left: 16.25px; top: 24.25px; width: 640.5px; height: 360.5px; }
+  .rounded canvas { border-radius: 23px; }
+  .nearest canvas { image-rendering: pixelated; }
+  .opacity-half canvas { opacity: .5; }
+  .opacity-three-quarters canvas { opacity: .75; }
+  .filter canvas { filter: blur(2px); }
+  .blend canvas { mix-blend-mode: multiply; }
+  .multiple #group { opacity: .25; }
+  .multiple canvas { opacity: 1; }
+  .animated canvas { animation: constant-opacity 10s linear infinite; }
+  @keyframes constant-opacity { from, to { opacity: .25; } }
+</style>
+<div id="group"><canvas width="320" height="180"></canvas></div>
+<script>
+  'use strict';
+  const scenario = new URL(location.href).searchParams.get('case');
+  document.documentElement.className = scenario;
+  const group = document.querySelector('#group');
+  const first = document.querySelector('canvas');
+  if (scenario === 'odd') {
+    first.width = 321;
+    first.height = 181;
+  }
+  const counts = { fallback: 6, mixed: 2, multiple: 2 };
+  const count = counts[scenario] ?? 1;
+  while (group.children.length < count) group.append(first.cloneNode());
+  let canvases = [...group.children];
+  const patterns = canvases.map((canvas, ordinal) => {
+    const pixels = canvas.getContext('2d').createImageData(canvas.width, canvas.height);
+    for (let y = 0; y < canvas.height; y++) {
+      for (let x = 0; x < canvas.width; x++) {
+        const index = (y * canvas.width + x) * 4;
+        pixels.data[index] = (x * 7 + y * 3 + ordinal * 19) % 256;
+        pixels.data[index + 1] = (x * 3 + y * 13 + ordinal * 23) % 256;
+        pixels.data[index + 2] = (x * 11 + y * 5 + ordinal * 29) % 256;
+        pixels.data[index + 3] = x < canvas.width / 2 ? 255 : (x + y) % 256;
+        if (scenario === 'alpha-edges' &&
+            (x < 3 || y < 3 || x >= canvas.width - 3 || y >= canvas.height - 3)) {
+          pixels.data[index + 3] = (x + y) % 2 ? 0 : 255;
+        }
+      }
+    }
+    return pixels;
+  });
+  let frames = 0;
+  function draw() {
+    if (frames === 45 && scenario === 'resize') document.documentElement.classList.add('resized');
+    if (frames === 45 && scenario === 'replace') {
+      const replacement = canvases[0].cloneNode();
+      canvases[0].replaceWith(replacement);
+      canvases = [replacement];
+    }
+    for (let index = 0; index < canvases.length; index++) {
+      canvases[index].getContext('2d').putImageData(patterns[index], 0, 0);
+    }
+    if (++frames < 90) {
+      requestAnimationFrame(draw);
+      return;
+    }
+    let hash = 2166136261;
+    for (const canvas of canvases) {
+      const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+      for (const byte of pixels) hash = Math.imul(hash ^ byte, 16777619) >>> 0;
+    }
+    document.title = `Opacity oracle ready ${hash.toString(16)}`;
+  }
+  draw();
+</script>

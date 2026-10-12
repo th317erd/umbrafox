@@ -524,7 +524,23 @@ already_AddRefed<DMABufSurface> DMABufSurface::CreateDMABufSurface(
   return surf.forget();
 }
 
-void DMABufSurface::FenceSet() {
+DMABufSurface::ProducerFence::ProducerFence() = default;
+
+DMABufSurface::ProducerFence::~ProducerFence() { Reset(); }
+
+void DMABufSurface::ProducerFence::Reset() {
+  if (mSync) {
+    mEgl->fDestroySync(mSync);
+    mSync = nullptr;
+  }
+  mSyncFd = nullptr;
+  mEgl.reset();
+}
+
+void DMABufSurface::FenceSet(ProducerFence* aProducerFence) {
+  if (aProducerFence) {
+    aProducerFence->Reset();
+  }
   MutexAutoLock lock(mSurfaceLock);
 
   if (!mGL) {
@@ -533,7 +549,7 @@ void DMABufSurface::FenceSet() {
     return;
   }
 
-  mGL->MakeCurrent();
+  const bool current = mGL->MakeCurrent();
 
   const auto& gle = gl::GLContextEGL::Cast(mGL);
   const auto& egl = gle->mEgl;
@@ -546,7 +562,14 @@ void DMABufSurface::FenceSet() {
             egl->fCreateSyncKHR(LOCAL_EGL_SYNC_NATIVE_FENCE_ANDROID, nullptr)) {
       auto rawFd = egl->fDupNativeFenceFDANDROID(sync);
       mSyncFd = new gfx::FileHandleWrapper(UniqueFileHandle(rawFd));
-      egl->fDestroySync(sync);
+      if (aProducerFence && current && !mGL->IsContextLost() &&
+          !mGL->IsDestroyed() && rawFd >= 0) {
+        aProducerFence->mEgl = egl;
+        aProducerFence->mSync = sync;
+        aProducerFence->mSyncFd = mSyncFd;
+      } else {
+        egl->fDestroySync(sync);
+      }
       mGL->fFlush();
       return;
     }
@@ -589,9 +612,15 @@ void DMABufSurface::FenceWaitFd(RefPtr<gl::GLContext> aGL,
   egl->fDestroySync(sync);
 }
 
-void DMABufSurface::FenceWait(mozilla::gl::GLContext* aGLContext) {
+void DMABufSurface::FenceWait(mozilla::gl::GLContext* aGLContext,
+                              ProducerFence* aProducerFence) {
   RefPtr<gl::GLContext> gl;
   RefPtr<gfx::FileHandleWrapper> syncFd;
+  auto resetFence = MakeScopeExit([&] {
+    if (aProducerFence) {
+      aProducerFence->Reset();
+    }
+  });
   {
     MutexAutoLock lock(mSurfaceLock);
     if (!mSyncFd) {
@@ -611,6 +640,16 @@ void DMABufSurface::FenceWait(mozilla::gl::GLContext* aGLContext) {
   }
 
   LOGDMABUF("DMABufSurface::FenceWait() UID %d", mUID);
+  if (aProducerFence && aProducerFence->mSync &&
+      aProducerFence->mSyncFd == syncFd && !gl->IsContextLost() &&
+      !gl->IsDestroyed() &&
+      aProducerFence->mEgl == gl::GLContextEGL::Cast(gl)->mEgl) {
+    if (aProducerFence->mEgl->fClientWaitSync(aProducerFence->mSync, 0,
+                                              LOCAL_EGL_FOREVER) ==
+        LOCAL_EGL_CONDITION_SATISFIED) {
+      return;
+    }
+  }
   FenceWaitFd(std::move(gl), std::move(syncFd));
 }
 
@@ -706,16 +745,14 @@ bool DMABufSurface::CloseFileDescriptors() {
 nsresult DMABufSurface::ReadIntoBuffer(mozilla::gl::GLContext* aGLContext,
                                        uint8_t* aData, int32_t aStride,
                                        const gfx::IntSize& aSize,
-                                       gfx::SurfaceFormat aFormat) {
+                                       gfx::SurfaceFormat aFormat,
+                                       bool aScaleSourceToDest) {
   LOGDMABUF("DMABufSurface::ReadIntoBuffer UID %d", mUID);
 
   // We're empty, nothing to copy
-  if (!GetTextureCount()) {
+  if (!GetTextureCount() || aSize.IsEmpty()) {
     return NS_ERROR_FAILURE;
   }
-
-  MOZ_ASSERT(aSize.width == GetWidth());
-  MOZ_ASSERT(aSize.height == GetHeight());
 
   for (int i = 0; i < GetTextureCount(); i++) {
     if (!GetTexture(i) && !CreateTexture(aGLContext, i)) {
@@ -724,11 +761,18 @@ nsresult DMABufSurface::ReadIntoBuffer(mozilla::gl::GLContext* aGLContext,
     }
   }
 
+  const gfx::IntSize sourceSize(GetWidth(), GetHeight());
+  const bool resample = aScaleSourceToDest && aSize != sourceSize;
+  const gfx::IntSize renderSize = resample ? sourceSize : aSize;
+  if (renderSize.IsEmpty()) {
+    return NS_ERROR_FAILURE;
+  }
+
   ScopedTexture scopedTex(aGLContext);
   ScopedBindTexture boundTex(aGLContext, scopedTex.Texture());
 
-  aGLContext->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_RGBA, aSize.width,
-                          aSize.height, 0, LOCAL_GL_RGBA,
+  aGLContext->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_RGBA,
+                          renderSize.width, renderSize.height, 0, LOCAL_GL_RGBA,
                           LOCAL_GL_UNSIGNED_BYTE, nullptr);
 
   ScopedFramebufferForTexture autoFBForTex(aGLContext, scopedTex.Texture());
@@ -741,10 +785,35 @@ nsresult DMABufSurface::ReadIntoBuffer(mozilla::gl::GLContext* aGLContext,
   {
     const ScopedBindFramebuffer bindFB(aGLContext, autoFBForTex.FB());
     if (!aGLContext->BlitHelper()->Blit(
-            this, gfx::IntRect(gfx::IntPoint(0, 0), aSize), destOrigin)) {
+            this, gfx::IntRect(gfx::IntPoint(0, 0), renderSize), destOrigin,
+            gfx::IntSize(), {}, resample ? false : aScaleSourceToDest)) {
       LOGDMABUF("ReadIntoBuffer: Blit failed.");
       return NS_ERROR_FAILURE;
     }
+  }
+
+  if (resample) {
+    // Match full-size readback: convert and quantize RGB before linear scaling.
+    aGLContext->TexParams_SetClampNoMips(LOCAL_GL_TEXTURE_2D);
+    aGLContext->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MIN_FILTER,
+                               LOCAL_GL_LINEAR);
+    aGLContext->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MAG_FILTER,
+                               LOCAL_GL_LINEAR);
+
+    ScopedTexture scaledTex(aGLContext);
+    ScopedBindTexture scaledBinding(aGLContext, scaledTex.Texture());
+    aGLContext->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_RGBA, aSize.width,
+                            aSize.height, 0, LOCAL_GL_RGBA,
+                            LOCAL_GL_UNSIGNED_BYTE, nullptr);
+    ScopedFramebufferForTexture scaledFB(aGLContext, scaledTex.Texture());
+    if (!scaledFB.IsComplete()) {
+      return NS_ERROR_FAILURE;
+    }
+    const ScopedBindFramebuffer bind(aGLContext, scaledFB.FB());
+    aGLContext->BlitHelper()->DrawBlitTextureToFramebuffer(scopedTex.Texture(),
+                                                           renderSize, aSize);
+    ReadPixelsIntoBuffer(aGLContext, aData, aStride, aSize, aFormat);
+    return NS_OK;
   }
 
   ScopedBindFramebuffer bind(aGLContext, autoFBForTex.FB());
@@ -1482,6 +1551,13 @@ void DMABufSurface::Unmap(int aPlane) {
 
 nsresult DMABufSurface::BuildSurfaceDescriptorBuffer(
     SurfaceDescriptorBuffer& aSdBuffer, Image::BuildSdbFlags aFlags,
+    const std::function<MemoryOrShmem(uint32_t)>& aAllocate) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+nsresult DMABufSurface::BuildSurfaceDescriptorBufferForSize(
+    SurfaceDescriptorBuffer& aSdBuffer, Image::BuildSdbFlags aFlags,
+    const gfx::IntSize& aSize,
     const std::function<MemoryOrShmem(uint32_t)>& aAllocate) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -2392,6 +2468,41 @@ nsresult DMABufSurfaceYUV::BuildSurfaceDescriptorBuffer(
     });
     return ReadIntoBuffer(context, buffer, stride, size, format);
   }
+}
+
+nsresult DMABufSurfaceYUV::BuildSurfaceDescriptorBufferForSize(
+    SurfaceDescriptorBuffer& aSdBuffer, Image::BuildSdbFlags aFlags,
+    const gfx::IntSize& aSize,
+    const std::function<MemoryOrShmem(uint32_t)>& aAllocate) {
+  LOGDMABUF("DMABufSurfaceYUV::BuildSurfaceDescriptorBufferForSize UID %d",
+            mUID);
+
+  if (aSize.IsEmpty()) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  const auto format = gfx::SurfaceFormat::B8G8R8A8;
+
+  uint8_t* buffer = nullptr;
+  int32_t stride = 0;
+  nsresult rv = Image::AllocateSurfaceDescriptorBufferRgb(
+      aSize, format, buffer, aSdBuffer, stride, aAllocate);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    LOGDMABUF("BuildSurfaceDescriptorBufferForSize allocate descriptor failed");
+    return rv;
+  }
+
+  if (mGL) {
+    return ReadIntoBuffer(mGL, buffer, stride, aSize, format, true);
+  }
+
+  StaticMutexAutoLock lock(sSnapshotContextMutex);
+  RefPtr<GLContext> context = ClaimSnapshotGLContext();
+  auto releaseTextures = mozilla::MakeScopeExit([&] {
+    ReleaseTextures();
+    ReturnSnapshotGLContext(context);
+  });
+  return ReadIntoBuffer(context, buffer, stride, aSize, format, true);
 }
 
 #if 0

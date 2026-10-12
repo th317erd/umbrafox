@@ -1,0 +1,437 @@
+--- dom/canvas/CanvasRenderingContext2D.cpp.before
++++ dom/canvas/CanvasRenderingContext2D.cpp.after
+@@ -5989,6 +5989,14 @@
+       break;
+     }
+ #endif
++#ifdef MOZ_WIDGET_GTK
++    case layers::RemoteDecoderVideoType::DMABuf: {
++      if (!StaticPrefs::gfx_canvas_remote_use_draw_image_fast_path_dmabuf()) {
++        return false;
++      }
++      break;
++    }
++#endif
+     default:
+       return false;
+   }
+@@ -6000,7 +6008,8 @@
+ 
+ static Maybe<layers::SurfaceDescriptor>
+ MaybeGetSurfaceDescriptorForRemoteCanvas(
+-    const SurfaceFromElementResult& aResult) {
++    const SurfaceFromElementResult& aResult,
++    Maybe<layers::RemoteDecoderVideoType> aOnlyVideoType) {
+   if (!StaticPrefs::gfx_canvas_remote_use_draw_image_fast_path()) {
+     return Nothing();
+   }
+@@ -6009,13 +6018,24 @@
+     return Nothing();
+   }
+ 
+-  if (const auto sd = aResult.mLayersImage->GetDesc()) {
+-    Maybe<layers::SurfaceDescriptor> result;
+-    if (ValidSurfaceDescriptorForRemoteCanvas2d(*sd, &result)) {
+-      return result;
+-    }
++  const Maybe<layers::SurfaceDescriptor> sd = aResult.mLayersImage->GetDesc();
++  if (!sd) {
++    return Nothing();
++  }
++
++  Maybe<layers::SurfaceDescriptor> result;
++  if (!ValidSurfaceDescriptorForRemoteCanvas2d(*sd, &result)) {
++    return Nothing();
++  }
++
++  // The validation above guarantees these are the active union members.
++  if (aOnlyVideoType && sd->get_SurfaceDescriptorGPUVideo()
++                                .get_SurfaceDescriptorRemoteDecoder()
++                                .videoType() != *aOnlyVideoType) {
++    return Nothing();
+   }
+-  return Nothing();
++
++  return result;
+ }
+ 
+ // drawImage(in HTMLImageElement image, in float dx, in float dy);
+@@ -6143,7 +6163,28 @@
+       res = nsLayoutUtils::SurfaceFromOffscreenCanvas(offscreenCanvas, sfeFlags,
+                                                       mTarget);
+     } else if (videoFrame) {
+-      res = nsLayoutUtils::SurfaceFromVideoFrame(videoFrame, sfeFlags, mTarget);
++#ifdef MOZ_WIDGET_GTK
++      if (mBufferProvider->IsAccelerated() && mTarget->IsRecording() &&
++          !(NeedToApplyFilter() || NeedToDrawShadow())) {
++        res = nsLayoutUtils::SurfaceFromVideoFrame(
++            videoFrame, sfeFlags, mTarget, /* aOptimizeSourceSurface */ false);
++        surfaceDescriptor = MaybeGetSurfaceDescriptorForRemoteCanvas(
++            res, Some(layers::RemoteDecoderVideoType::DMABuf));
++        if (surfaceDescriptor.isNothing() && res.mLayersImage) {
++          if ((res.mSourceSurface = res.mLayersImage->GetAsSourceSurface())) {
++            RefPtr<SourceSurface> opt =
++                mTarget->OptimizeSourceSurface(res.mSourceSurface);
++            if (opt) {
++              res.mSourceSurface = opt;
++            }
++          }
++        }
++      } else
++#endif
++      {
++        res =
++            nsLayoutUtils::SurfaceFromVideoFrame(videoFrame, sfeFlags, mTarget);
++      }
+     } else {
+       res = CanvasRenderingContext2D::CachedSurfaceFromElement(element);
+       if (!res.mSourceSurface) {
+@@ -6156,7 +6197,8 @@
+           res = nsLayoutUtils::SurfaceFromElement(
+               video, sfeFlags, mTarget, /* aOptimizeSourceSurface */ false);
+           if (canUseRemoteCanvasFastPath) {
+-            surfaceDescriptor = MaybeGetSurfaceDescriptorForRemoteCanvas(res);
++            surfaceDescriptor =
++                MaybeGetSurfaceDescriptorForRemoteCanvas(res, Nothing());
+           }
+           if (surfaceDescriptor.isNothing() && res.mLayersImage) {
+             if (GetDMABufGPUVideoImage(res.mLayersImage)) {
+--- dom/canvas/DrawTargetWebgl.cpp.before
++++ dom/canvas/DrawTargetWebgl.cpp.after
+@@ -6734,6 +6734,7 @@
+   if (!handle) {
+     return nullptr;
+   }
++
+   BackingTexture* backing = handle->GetBackingTexture();
+   RefPtr<WebGLTexture> tex = backing->GetWebGLTexture();
+   if (mLastTexture != tex) {
+@@ -6754,6 +6755,7 @@
+   webgl::TexUnpackBlobDesc texDesc = {
+       LOCAL_GL_TEXTURE_2D, {uint32_t(aSize.width), uint32_t(aSize.height), 1}};
+   texDesc.sd = Some(aDesc);
++  texDesc.destFormat = aFormat;
+   texDesc.structuredSrcSize = uvec2::FromSize(aSize);
+   GLenum intFormat =
+       aFormat == SurfaceFormat::A8 ? LOCAL_GL_R8 : LOCAL_GL_RGBA8;
+--- dom/canvas/TexUnpackBlob.cpp.before
++++ dom/canvas/TexUnpackBlob.cpp.after
+@@ -1007,7 +1007,7 @@
+     }
+     if (!gl->BlitHelper()->BlitSdToFramebuffer(
+             sd, {xOffset, yOffset, size.x, size.y}, dstOrigin, fbSize,
+-            convertAlpha)) {
++            convertAlpha, mDesc.destFormat)) {
+       gfxCriticalNote << "BlitSdToFramebuffer failed for type "
+                       << int(sd.type());
+       if (allowFallback) {
+--- dom/canvas/WebGLTypes.h.before
++++ dom/canvas/WebGLTypes.h.after
+@@ -1164,6 +1164,7 @@
+ 
+   webgl::PixelUnpackStateWebgl unpacking;
+   bool applyUnpackTransforms = true;
++  gfx::SurfaceFormat destFormat = gfx::SurfaceFormat::UNKNOWN;
+ 
+   // -
+ 
+--- gfx/gl/GLBlitHelper.cpp.before
++++ gfx/gl/GLBlitHelper.cpp.after
+@@ -205,6 +205,15 @@
+     return (uColorMatrix * vec4(src, 1)).rgb;
+   }
+ )";
++#ifdef MOZ_WIDGET_GTK
++const char* const kFragConvert_ColorMatrixBGR = R"(
++  uniform mediump MAT4X3 uColorMatrix;
++
++  vec3 metaConvert(vec3 src) {
++    return (uColorMatrix * vec4(src, 1)).bgr;
++  }
++)";
++#endif
+ const char* const kFragConvert_ColorLut3d = R"(
+   uniform PRECISION sampler3D uColorLut;
+ 
+@@ -917,7 +926,8 @@
+                                        const gfx::IntRect& destRect,
+                                        const OriginPos destOrigin,
+                                        const gfx::IntSize& fbSize,
+-                                       Maybe<gfxAlphaType> convertAlpha) {
++                                       Maybe<gfxAlphaType> convertAlpha,
++                                       gfx::SurfaceFormat aDestFormat) {
+   const auto sdType = asd.type();
+   switch (sdType) {
+     case layers::SurfaceDescriptor::TSurfaceDescriptorBuffer: {
+@@ -1017,7 +1027,8 @@
+       if (!surface) {
+         return false;
+       }
+-      return Blit(surface, destRect, destOrigin, fbSize, convertAlpha);
++      return Blit(surface, destRect, destOrigin, fbSize, convertAlpha, false,
++                  aDestFormat);
+     }
+ #endif
+     default:
+@@ -1644,7 +1655,8 @@
+ bool GLBlitHelper::Blit(DMABufSurface* surface, const gfx::IntRect& destRect,
+                         OriginPos destOrigin, const gfx::IntSize& fbSize,
+                         Maybe<gfxAlphaType> convertAlpha,
+-                        bool aScaleSourceToDest) const {
++                        bool aScaleSourceToDest,
++                        gfx::SurfaceFormat aDestFormat) const {
+   const auto& srcOrigin = OriginPos::BottomLeft;
+ 
+   DrawBlitProg::BaseArgs baseArgs;
+@@ -1707,9 +1719,16 @@
+ 
+   const char* fragSample = nullptr;
+   auto fragConvert = kFragConvert_None;
++  const bool dstIsBGRA = aDestFormat == gfx::SurfaceFormat::B8G8R8A8 ||
++                         aDestFormat == gfx::SurfaceFormat::B8G8R8X8;
++  // EGL named-channel imports and YUV conversion expose RGB in .rgb.
++  const bool swapRB = dstIsBGRA;
+   switch (pixelFormat) {
+     case DMABufSurface::SURFACE_RGBA:
+       fragSample = kFragSample_OnePlane;
++      if (swapRB) {
++        fragConvert = kFragConvert_BGR;
++      }
+       break;
+     case DMABufSurface::SURFACE_YUV:
+       if (surface->GetTextureCount() == 2) {
+@@ -1722,7 +1741,8 @@
+         return false;
+       }
+       pYuvArgs = &yuvArgs;
+-      fragConvert = kFragConvert_ColorMatrix;
++      fragConvert =
++          swapRB ? kFragConvert_ColorMatrixBGR : kFragConvert_ColorMatrix;
+       break;
+     default:
+       return false;
+--- gfx/gl/GLBlitHelper.h.before
++++ gfx/gl/GLBlitHelper.h.after
+@@ -277,7 +277,8 @@
+   bool Blit(DMABufSurface* surface, const gfx::IntRect& destRect,
+             OriginPos destOrigin, const gfx::IntSize& fbSize = gfx::IntSize(),
+             Maybe<gfxAlphaType> convertAlpha = {},
+-            bool aScaleSourceToDest = false) const;
++            bool aScaleSourceToDest = false,
++            gfx::SurfaceFormat aDestFormat = gfx::SurfaceFormat::UNKNOWN) const;
+   bool BlitYCbCrImageToDMABuf(const layers::PlanarYCbCrData& yuvData,
+                               DMABufSurface* surface);
+ #endif
+@@ -311,10 +312,11 @@
+       GLenum srcTarget = LOCAL_GL_TEXTURE_2D, bool srcIsBGRA = false,
+       bool yFlip = false, Maybe<gfxAlphaType> convertAlpha = {}) const;
+ 
+-  bool BlitSdToFramebuffer(const layers::SurfaceDescriptor&,
+-                           const gfx::IntRect& destRect, OriginPos destOrigin,
+-                           const gfx::IntSize& fbSize = gfx::IntSize(),
+-                           Maybe<gfxAlphaType> convertAlpha = {});
++  bool BlitSdToFramebuffer(
++      const layers::SurfaceDescriptor&, const gfx::IntRect& destRect,
++      OriginPos destOrigin, const gfx::IntSize& fbSize = gfx::IntSize(),
++      Maybe<gfxAlphaType> convertAlpha = {},
++      gfx::SurfaceFormat aDestFormat = gfx::SurfaceFormat::UNKNOWN);
+ 
+  private:
+ #ifdef XP_MACOSX
+@@ -357,6 +359,9 @@
+ extern const char* const kFragConvert_None;
+ extern const char* const kFragConvert_BGR;
+ extern const char* const kFragConvert_ColorMatrix;
++#ifdef MOZ_WIDGET_GTK
++extern const char* const kFragConvert_ColorMatrixBGR;
++#endif
+ extern const char* const kFragConvert_ColorLut3d;
+ extern const char* const kFragConvert_ColorLut2d;
+ 
+--- gfx/layers/ipc/CanvasTranslator.cpp.before
++++ gfx/layers/ipc/CanvasTranslator.cpp.after
+@@ -1551,7 +1551,8 @@
+ 
+   if (sdrd.videoType() == RemoteDecoderVideoType::Buffer ||
+       sdrd.videoType() == RemoteDecoderVideoType::MacIOSurface ||
+-      sdrd.videoType() == RemoteDecoderVideoType::D3D10) {
++      sdrd.videoType() == RemoteDecoderVideoType::D3D10 ||
++      sdrd.videoType() == RemoteDecoderVideoType::DMABuf) {
+     return true;
+   }
+ 
+@@ -1634,6 +1635,50 @@
+   return do_AddRef(usedWrapper);
+ }
+ 
++#ifdef MOZ_WIDGET_GTK
++already_AddRefed<gfx::SourceSurface>
++CanvasTranslator::GetZeroCopySurfaceFromDMABuf(TextureHost* aTextureHost) {
++  if (!aTextureHost) {
++    return nullptr;
++  }
++  // The wrapping texture hosts forward GetTextureHostType(), so it does not
++  // identify the concrete host. Use the descriptor type instead, and only go
++  // through TextureHost virtuals below.
++  const SurfaceDescriptor hostSd = aTextureHost->GetSurfaceDescriptor();
++  if (hostSd.type() != SurfaceDescriptor::TSurfaceDescriptorDMABuf) {
++    return nullptr;
++  }
++  const gfx::IntSize size = aTextureHost->GetSize();
++  if (size.IsEmpty()) {
++    return nullptr;
++  }
++  // The blit emits BGRA-ordered bytes for BGRA destinations (see
++  // GLBlitHelper), matching the rest of the canvas pipeline, so tag the
++  // surface BGRA whatever the source layout was.
++  gfx::SurfaceFormat format;
++  switch (aTextureHost->GetFormat()) {
++    case gfx::SurfaceFormat::B8G8R8A8:
++    case gfx::SurfaceFormat::R8G8B8A8:
++      format = gfx::SurfaceFormat::B8G8R8A8;
++      break;
++    case gfx::SurfaceFormat::B8G8R8X8:
++    case gfx::SurfaceFormat::R8G8B8X8:
++    case gfx::SurfaceFormat::NV12:
++    case gfx::SurfaceFormat::YUV420:
++    case gfx::SurfaceFormat::P010:
++    case gfx::SurfaceFormat::P016:
++      format = gfx::SurfaceFormat::B8G8R8X8;
++      break;
++    default:
++      return nullptr;
++  }
++  if (!EnsureSharedContextWebgl() || !mSharedContext) {
++    return nullptr;
++  }
++  return mSharedContext->ImportSurfaceDescriptor(hostSd, size, format);
++}
++#endif
++
+ already_AddRefed<gfx::SourceSurface>
+ CanvasTranslator::LookupSourceSurfaceFromSurfaceDescriptor(
+     const SurfaceDescriptor& aDesc) {
+@@ -1701,6 +1746,20 @@
+     return surf.forget();
+   }
+ 
++#ifdef MOZ_WIDGET_GTK
++  if (sdrd.videoType() == RemoteDecoderVideoType::DMABuf) {
++    if (RefPtr<gfx::SourceSurface> surf =
++            GetZeroCopySurfaceFromDMABuf(texture)) {
++      return surf.forget();
++    }
++    // The zero-copy import can fail for an unsupported layout or a lost shared
++    // context, in which case read the frame back rather than dropping the draw.
++    RefPtr<gfx::DataSourceSurface> surf =
++        MaybeRecycleDataSurfaceForSurfaceDescriptor(texture, sdrd);
++    return surf.forget();
++  }
++#endif
++
+   MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+   return nullptr;
+ }
+--- gfx/layers/ipc/CanvasTranslator.h.before
++++ gfx/layers/ipc/CanvasTranslator.h.after
+@@ -474,6 +474,14 @@
+       TextureHost* aTextureHost,
+       const SurfaceDescriptorRemoteDecoder& aSurfaceDescriptor);
+ 
++#ifdef MOZ_WIDGET_GTK
++  // Imports a DMABuf video frame into the canvas GL context and converts it
++  // on the GPU, returning a directly samplable surface (no CPU download).
++  // Falls back to nullptr when GL import is unavailable.
++  already_AddRefed<gfx::SourceSurface> GetZeroCopySurfaceFromDMABuf(
++      TextureHost* aTextureHost);
++#endif
++
+   bool UsePendingCanvasTranslatorEvents();
+   void PostCanvasTranslatorEvents(const MutexAutoLock& aProofOfLock);
+   void HandleCanvasTranslatorEvents();
+--- gfx/layers/opengl/DMABUFTextureHostOGL.cpp.before
++++ gfx/layers/opengl/DMABUFTextureHostOGL.cpp.after
+@@ -34,6 +34,15 @@
+   return mSurface->GetFormat();
+ }
+ 
++already_AddRefed<gfx::DataSourceSurface> DMABUFTextureHostOGL::GetAsSurface(
++    gfx::DataSourceSurface* aSurface) {
++  if (!mSurface) {
++    return nullptr;
++  }
++  // DMABufSurface reads back through a blit, so it cannot reuse aSurface.
++  return mSurface->GetAsSourceSurface();
++}
++
+ gfx::YUVColorSpace DMABUFTextureHostOGL::GetYUVColorSpace() const {
+   if (!mSurface) {
+     return gfx::YUVColorSpace::Identity;
+--- gfx/layers/opengl/DMABUFTextureHostOGL.h.before
++++ gfx/layers/opengl/DMABUFTextureHostOGL.h.after
+@@ -26,11 +26,8 @@
+   bool IsValid() override { return !!mSurface; }
+ 
+   gfx::SurfaceFormat GetFormat() const override;
+-
+   already_AddRefed<gfx::DataSourceSurface> GetAsSurface(
+-      gfx::DataSourceSurface* aSurface) override {
+-    return nullptr;  // XXX - implement this (for MOZ_DUMP_PAINTING)
+-  }
++      gfx::DataSourceSurface* aSurface) override;
+ 
+   gl::GLContext* gl() const;
+ 
+--- layout/base/nsLayoutUtils.cpp.before
++++ layout/base/nsLayoutUtils.cpp.after
+@@ -7109,7 +7109,7 @@
+ 
+ SurfaceFromElementResult nsLayoutUtils::SurfaceFromVideoFrame(
+     VideoFrame* aVideoFrame, uint32_t aSurfaceFlags,
+-    RefPtr<DrawTarget>& aTarget) {
++    RefPtr<DrawTarget>& aTarget, bool aOptimizeSourceSurface) {
+   SurfaceFromElementResult result;
+ 
+   RefPtr<layers::Image> layersImage = aVideoFrame->GetImage();
+@@ -7199,10 +7199,10 @@
+     result.mPrincipal = global->PrincipalOrNull();
+   }
+ 
+-  if (aTarget) {
++  if (aTarget && aOptimizeSourceSurface) {
+     // They gave us a DrawTarget to optimize for, so even though we may have a
+-    // layers::Image, we should unconditionally try to grab a SourceSurface and
+-    // try to optimize it.
++    // layers::Image, we should try to grab a SourceSurface and try to optimize
++    // it if requested.
+     if (result.mLayersImage) {
+       MOZ_ASSERT(!result.mSourceSurface);
+       result.mSourceSurface = result.mLayersImage->GetAsSourceSurface();
+--- layout/base/nsLayoutUtils.h.before
++++ layout/base/nsLayoutUtils.h.after
+@@ -2403,7 +2403,7 @@
+   // This function can be called on any thread.
+   static mozilla::SurfaceFromElementResult SurfaceFromVideoFrame(
+       mozilla::dom::VideoFrame* aVideoFrame, uint32_t aSurfaceFlags,
+-      RefPtr<DrawTarget>& aTarget);
++      RefPtr<DrawTarget>& aTarget, bool aOptimizeSourceSurface = true);
+   static mozilla::SurfaceFromElementResult SurfaceFromVideoFrame(
+       mozilla::dom::VideoFrame* aVideoFrame, uint32_t aSurfaceFlags = 0) {
+     RefPtr<DrawTarget> target = nullptr;
+--- modules/libpref/init/StaticPrefList.yaml.before
++++ modules/libpref/init/StaticPrefList.yaml.after
+@@ -7552,6 +7552,14 @@
+   mirror: always
+ #endif
+ 
++#ifdef MOZ_WIDGET_GTK
++# Whether to use zero-copy GPU import for DMABuf video frames in remote canvas drawImage.
++- name: gfx.canvas.remote.use-draw-image-fast-path-dmabuf
++  type: RelaxedAtomicBool
++  value: false
++  mirror: always
++#endif
++
+ - name: gfx.canvas.remote.recycle-used-data-surface
+   type: RelaxedAtomicBool
+   value: true

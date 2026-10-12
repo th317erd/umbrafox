@@ -42,6 +42,7 @@ class SharedSurface;
 
 namespace layers {
 class RemoteTextureOwnerClient;
+class TextureHost;
 }  // namespace layers
 
 namespace gfx {
@@ -81,6 +82,7 @@ class SharedContextWebgl : public mozilla::RefCounted<SharedContextWebgl>,
   friend class TextureHandle;
   friend class SharedTextureHandle;
   friend class StandaloneTexture;
+  friend class CanvasVideoSurfaceCache;
 
  public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(SharedContextWebgl)
@@ -105,7 +107,13 @@ class SharedContextWebgl : public mozilla::RefCounted<SharedContextWebgl>,
 
   already_AddRefed<SourceSurface> ImportSurfaceDescriptor(
       const layers::SurfaceDescriptor& aDesc, const gfx::IntSize& aSize,
-      SurfaceFormat aFormat);
+      SurfaceFormat aFormat, bool aAllowFallback = false);
+
+  already_AddRefed<SourceSurface> ImportVideoSurfaceDescriptor(
+      const layers::SurfaceDescriptor& aDesc, const IntSize& aSize,
+      SurfaceFormat aFormat, layers::TextureHost* aTextureHost,
+      layers::SurfaceDescriptorRemoteDecoderId aFrameID);
+  void ClearVideoSurfaceCache();
 
  private:
   SharedContextWebgl();
@@ -119,6 +127,10 @@ class SharedContextWebgl : public mozilla::RefCounted<SharedContextWebgl>,
   Rect mClipAARect;
 
   RefPtr<WebGLContext> mWebgl;
+
+  RefPtr<layers::TextureHost> mVideoSurfaceHost;
+  layers::SurfaceDescriptorRemoteDecoderId mVideoSurfaceFrameID;
+  WeakPtr<TextureHandle> mVideoSurfaceHandle;
 
   // Avoid spurious state changes by caching last used state.
   RefPtr<WebGLProgram> mLastProgram;

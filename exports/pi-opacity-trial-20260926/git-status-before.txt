@@ -1,0 +1,45 @@
+ M AGENTS.md
+ M dom/canvas/CanvasRenderingContext2D.cpp
+ M dom/media/ipc/PRemoteMediaManager.ipdl
+ M dom/media/ipc/RemoteMediaManagerChild.cpp
+ M dom/media/ipc/RemoteMediaManagerChild.h
+ M dom/media/ipc/RemoteMediaManagerParent.cpp
+ M dom/media/ipc/RemoteMediaManagerParent.h
+ M gfx/gl/GLBlitHelper.cpp
+ M gfx/gl/GLBlitHelper.h
+ M gfx/layers/DMABUFSurfaceImage.cpp
+ M gfx/layers/DMABUFSurfaceImage.h
+ M gfx/layers/GPUVideoImage.h
+ M gfx/layers/ImageContainer.cpp
+ M gfx/layers/ImageContainer.h
+ M gfx/webrender_bindings/src/bindings.rs
+ M gfx/wr/webrender/res/composite.glsl
+ M gfx/wr/webrender/src/composite.rs
+ M gfx/wr/webrender/src/frame_builder.rs
+ M gfx/wr/webrender/src/gpu_types.rs
+ M gfx/wr/webrender/src/prepare.rs
+ M gfx/wr/webrender/src/prim_store/image.rs
+ M gfx/wr/webrender/src/prim_store/mod.rs
+ M gfx/wr/webrender/src/renderer/composite.rs
+ M gfx/wr/webrender/src/renderer/gpu_buffer.rs
+ M gfx/wr/webrender/src/renderer/init.rs
+ M gfx/wr/webrender/src/renderer/mod.rs
+ M gfx/wr/webrender/src/renderer/shade.rs
+ M gfx/wr/webrender/src/scene.rs
+ M gfx/wr/webrender/src/scene_building.rs
+ M gfx/wr/webrender/src/scene_debug.rs
+ M gfx/wr/webrender/src/shutdown_test.rs
+ M gfx/wr/webrender/src/tile_cache/mod.rs
+ M gfx/wr/webrender/src/transform.rs
+ M gfx/wr/webrender_build/src/shader_features.rs
+ M modules/libpref/init/StaticPrefList.yaml
+ M umbrafox-conversion-guide/README.md
+ M umbrafox-conversion-guide/reference/changed-files.md
+ M widget/gtk/DMABufSurface.cpp
+ M widget/gtk/DMABufSurface.h
+?? .codex/DETAILS.md
+?? bot-docs/
+?? exports/
+?? gfx/wr/webrender/src/renderer/sampling.rs
+?? tools/umbrafox/tests/
+?? umbrafox-conversion-guide/recipes/16-linux-dmabuf-video-canvas-readback.md

@@ -48,6 +48,7 @@ default = [ "env_logger" ]
 headless = [ "osmesa-sys", "osmesa-src" ]
 software = [ "swgl" ]
 debugger = [ "webrender/debugger" ]
+umbra-perf-probes = [ "webrender/umbra-perf-probes" ]
 
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = "0.11.5"

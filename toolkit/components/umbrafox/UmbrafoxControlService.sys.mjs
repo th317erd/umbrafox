@@ -8,6 +8,8 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   HttpServer: "chrome://remote/content/server/httpd.sys.mjs",
+  UmbrafoxControlBrowser:
+    "resource://gre/modules/UmbrafoxControlBrowser.sys.mjs",
   UmbrafoxControlDiagnostics:
     "resource://gre/modules/UmbrafoxControlDiagnostics.sys.mjs",
   UmbrafoxControlInput: "resource://gre/modules/UmbrafoxControlInput.sys.mjs",
@@ -437,13 +439,17 @@ class UmbrafoxControlConnection extends WebSocketConnection {
   }
 
   #service;
+  #operations = new AbortController();
 
   async onPacket(packet) {
     await super.onPacket(packet);
 
     const id = packet?.id ?? null;
     try {
-      const result = await this.#service.execute(packet);
+      const result = await this.#service.execute(
+        packet,
+        this.#operations.signal
+      );
       this.send({ id, result });
     } catch (error) {
       this.send({
@@ -457,6 +463,7 @@ class UmbrafoxControlConnection extends WebSocketConnection {
   }
 
   onConnectionClose() {
+    this.#operations.abort();
     super.onConnectionClose();
     this.#service.removeConnection(this);
   }
@@ -582,12 +589,20 @@ class UmbrafoxControlServiceImpl {
     this.#connections.delete(connection);
   }
 
-  async execute(packet) {
+  async execute(packet, signal) {
     if (!packet || typeof packet !== "object") {
       throw this.#error("invalid argument", "Expected a command object");
     }
 
     switch (packet.method) {
+      case "umbrafox.browsingContext.create":
+        return lazy.UmbrafoxControlBrowser.create(packet.params, signal);
+      case "umbrafox.browsingContext.close":
+        return lazy.UmbrafoxControlBrowser.close(packet.params, signal);
+      case "umbrafox.browsingContext.navigate":
+        return lazy.UmbrafoxControlBrowser.navigate(packet.params, signal);
+      case "umbrafox.script.execute":
+        return lazy.UmbrafoxControlBrowser.execute(packet.params, signal);
       case "umbrafox.input.click":
         return lazy.UmbrafoxControlInput.click(packet.params);
       case "umbrafox.input.keyDown":

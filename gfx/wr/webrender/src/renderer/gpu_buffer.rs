@@ -700,6 +700,11 @@ pub struct GpuBuffer<T> {
 }
 
 impl GpuBuffer<GpuBufferBlockF> {
+    #[cfg(feature = "umbra-perf-probes")]
+    pub(crate) fn sampling_block(&self, index: usize) -> Option<[f32; 4]> {
+        self.data.get(index).map(|block| block.data)
+    }
+
     /// Apply the uv rect copies deferred during `finalize`. Must be called after the
     /// renderer has resolved external images into the gpu buffer.
     pub fn apply_deferred_uv_copies(&mut self) {
@@ -723,6 +728,13 @@ impl GpuBuffer<GpuBufferBlockF> {
             ];
             self.data[copy.dst as usize] = sub.into();
         }
+    }
+}
+
+#[cfg(feature = "umbra-perf-probes")]
+impl GpuBuffer<GpuBufferBlockI> {
+    pub(crate) fn sampling_block(&self, index: usize) -> Option<[i32; 4]> {
+        self.data.get(index).map(|block| block.data)
     }
 }
 

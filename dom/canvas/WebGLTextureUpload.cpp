@@ -966,13 +966,13 @@ void WebGLTexture::TexStorage(TexTarget target, uint32_t levels,
 // Tex(Sub)Image
 
 // TexSubImage iff `!respectFormat`
-void WebGLTexture::TexImage(uint32_t level, GLenum respecFormat,
+bool WebGLTexture::TexImage(uint32_t level, GLenum respecFormat,
                             const uvec3& offset, const webgl::PackingInfo& pi,
                             const webgl::TexUnpackBlobDesc& src) {
   const auto blob = webgl::TexUnpackBlob::Create(src);
   if (!blob) {
     MOZ_ASSERT(false);
-    return;
+    return false;
   }
 
   const auto imageTarget = blob->mDesc.imageTarget;
@@ -1000,13 +1000,13 @@ void WebGLTexture::TexImage(uint32_t level, GLenum respecFormat,
   const webgl::FormatUsageInfo* dstUsage;
   if (respecFormat) {
     if (!ValidateTexImageSpecification(imageTarget, level, size, &imageInfo))
-      return;
+      return false;
     MOZ_ASSERT(imageInfo);
 
     if (!fua->IsInternalFormatEnumValid(respecFormat)) {
       mContext->ErrorInvalidValue("Invalid internalformat: 0x%04x",
                                   respecFormat);
-      return;
+      return false;
     }
 
     dstUsage = fua->GetSizedTexUsage(respecFormat);
@@ -1017,27 +1017,28 @@ void WebGLTexture::TexImage(uint32_t level, GLenum respecFormat,
          *   internalformat that is not listed as a valid combination
          *   in tables 3.2 or 3.3 generates the error INVALID_OPERATION."
          */
-        if (!fnValidateUnpackEnums()) return;
+        if (!fnValidateUnpackEnums()) return false;
         mContext->ErrorInvalidOperation(
             "Unsized internalFormat must match"
             " unpack format.");
-        return;
+        return false;
       }
 
       dstUsage = fua->GetUnsizedTexUsage(pi);
     }
 
     if (!dstUsage) {
-      if (!fnValidateUnpackEnums()) return;
+      if (!fnValidateUnpackEnums()) return false;
       mContext->ErrorInvalidOperation(
           "Invalid internalformat/format/type:"
           " 0x%04x/0x%04x/0x%04x",
           respecFormat, pi.format, pi.type);
-      return;
+      return false;
     }
 
     const auto& dstFormat = dstUsage->format;
-    if (!ValidateFormatAndSize(mContext, imageTarget, dstFormat, size)) return;
+    if (!ValidateFormatAndSize(mContext, imageTarget, dstFormat, size))
+      return false;
 
     if (!mContext->IsWebGL2() && dstFormat->d) {
       if (imageTarget != LOCAL_GL_TEXTURE_2D || blob->HasData() || level != 0) {
@@ -1046,13 +1047,13 @@ void WebGLTexture::TexImage(uint32_t level, GLenum respecFormat,
             " be called with target=TEXTURE_2D,"
             " data=null, and level=0.",
             dstFormat->name);
-        return;
+        return false;
       }
     }
   } else {
     if (!ValidateTexImageSelection(imageTarget, level, offset, size,
                                    &imageInfo)) {
-      return;
+      return false;
     }
     MOZ_ASSERT(imageInfo);
     dstUsage = imageInfo->mFormat;
@@ -1063,7 +1064,7 @@ void WebGLTexture::TexImage(uint32_t level, GLenum respecFormat,
           "Function may not be called on a texture of"
           " format %s.",
           dstFormat->name);
-      return;
+      return false;
     }
   }
 
@@ -1072,15 +1073,15 @@ void WebGLTexture::TexImage(uint32_t level, GLenum respecFormat,
 
   const webgl::DriverUnpackInfo* driverUnpackInfo;
   if (!dstUsage->IsUnpackValid(pi, &driverUnpackInfo)) {
-    if (!fnValidateUnpackEnums()) return;
+    if (!fnValidateUnpackEnums()) return false;
     mContext->ErrorInvalidOperation(
         "Mismatched internalFormat and format/type:"
         " 0x%04x and 0x%04x/0x%04x",
         respecFormat, pi.format, pi.type);
-    return;
+    return false;
   }
 
-  if (!blob->Validate(mContext, pi)) return;
+  if (!blob->Validate(mContext, pi)) return false;
 
   ////////////////////////////////////
   // Do the thing!
@@ -1103,13 +1104,13 @@ void WebGLTexture::TexImage(uint32_t level, GLenum respecFormat,
   } else {
     if (!blob->HasData()) {
       mContext->ErrorInvalidValue("`source` cannot be null.");
-      return;
+      return false;
     }
 
     uploadInitTracker.emplace(offset, size, imageInfo);
     if (!uploadInitTracker->EnsureImageDataZeroedBeforePartialUpload(
             this, imageTarget, level)) {
-      return;
+      return false;
     }
   }
 
@@ -1126,13 +1127,13 @@ void WebGLTexture::TexImage(uint32_t level, GLenum respecFormat,
   GLenum glError = 0;
   if (!blob->TexOrSubImage(isSubImage, isRespec, this, level, driverUnpackInfo,
                            offset.x, offset.y, offset.z, pi, &glError)) {
-    return;
+    return false;
   }
 
   if (glError == LOCAL_GL_OUT_OF_MEMORY) {
     mContext->ErrorOutOfMemory("Driver ran out of memory during upload.");
     Truncate();
-    return;
+    return false;
   }
 
   if (glError) {
@@ -1144,7 +1145,7 @@ void WebGLTexture::TexImage(uint32_t level, GLenum respecFormat,
     mContext->ErrorInvalidOperation("%s", dui.get());
     gfxCriticalError() << mContext->FuncName() << ": " << dui.get();
     Truncate();
-    return;
+    return false;
   }
 
   uploadInitTracker.apply(
@@ -1158,6 +1159,7 @@ void WebGLTexture::TexImage(uint32_t level, GLenum respecFormat,
     *imageInfo = *newImageInfo;
     InvalidateCaches();
   }
+  return true;
 }
 
 ////////////////////////////////////////

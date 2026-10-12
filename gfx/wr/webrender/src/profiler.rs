@@ -1435,6 +1435,11 @@ pub trait ProfilerHooks : Send + Sync {
 
     /// Returns true if the current thread is being profiled.
     fn thread_is_being_profiled(&self) -> bool;
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn umbra_markers_enabled(&self) -> bool {
+        false
+    }
 }
 
 /// The current global profiler callbacks, if set by embedder.
@@ -1500,6 +1505,13 @@ pub fn add_event_marker(label: &str) {
 pub fn thread_is_being_profiled() -> bool {
     unsafe {
         PROFILER_HOOKS.map_or(false, |h| h.thread_is_being_profiled())
+    }
+}
+
+#[cfg(feature = "umbra-perf-probes")]
+pub fn umbra_markers_enabled() -> bool {
+    unsafe {
+        PROFILER_HOOKS.map_or(false, |h| h.umbra_markers_enabled())
     }
 }
 

@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-06T05:30:34.068Z",
+  "packageExit": 0,
+  "buildID": "20261006052600",
+  "files": 46,
+  "manifestSHA256": "350dd9dbacb579380ed57d84f9fb3d35e5b8b0514b07725baddc51d10bd22814",
+  "archive": {
+    "name": "umbrafox-fullsize-reference-20261006052600-linux-x86_64.tar.xz",
+    "bytes": 107784404,
+    "sha256": "327a2999eb6bd8d17b539ada9460e37a3e34f18bb1af5ffe23fc27781d3ada2e"
+  },
+  "iniBuildIDs": {
+    "application.ini": "20261006052600",
+    "platform.ini": "20261006052600"
+  },
+  "elfBuildIDs": {
+    "umbrafox": "273dc229355d5992767a61c70fdd3d35",
+    "libxul.so": "ed2e00326f5205b8e65eacbfdd69f55f"
+  },
+  "installed": false
+}

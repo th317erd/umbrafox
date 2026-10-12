@@ -117,6 +117,8 @@ mod composite;
 mod debug;
 mod external_image;
 mod gpu_buffer;
+#[cfg(feature = "umbra-perf-probes")]
+mod sampling;
 mod shade;
 mod vertex;
 mod upload;
@@ -733,6 +735,10 @@ pub struct Renderer {
     debug_flags: DebugFlags,
     profile: TransactionProfile,
     frame_counter: u64,
+    #[cfg(feature = "umbra-perf-probes")]
+    sampling_search: sampling::Search,
+    #[cfg(feature = "umbra-perf-probes")]
+    sampling_trace: Option<sampling::Trace>,
     resource_upload_time: f64,
     profiler: Profiler,
     command_log: Option<RenderCommandLog>,
@@ -1723,12 +1729,21 @@ impl Renderer {
         // rects into the quad segment blocks that reference them.
         frame.gpu_buffer_f.apply_deferred_uv_copies();
 
+        #[cfg(feature = "umbra-perf-probes")]
+        if self.debug_flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING)
+            && profiler::umbra_markers_enabled() && frame.present && !frame.has_been_rendered
+        {
+            self.begin_sampling_trace(frame, &format_args!("{:?}", doc_id), cpu_frame_id);
+        }
+
         self.draw_frame(
             frame,
             device_size,
             buffer_age,
             &mut results,
         );
+        #[cfg(feature = "umbra-perf-probes")]
+        self.finish_sampling_trace();
 
         // TODO(nical): do this automatically by selecting counters in the wr profiler
         // Profile marker for the number of invalidated picture cache
@@ -1843,6 +1858,20 @@ impl Renderer {
             let duration = Duration::new(0,0);
             let message = (self.profile.get_or(profiler::DRAW_CALLS, 0.0) as usize).to_string();
             add_text_marker("NumDrawCalls", &message, duration);
+            #[cfg(feature = "umbra-perf-probes")]
+            if self.debug_flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING)
+                && profiler::umbra_markers_enabled()
+            {
+                let message = format!(
+                    "renderer_frame={} overlays={} underlays={} blits={} picture_tiles={}",
+                    self.frame_counter,
+                    self.profile.get_or(profiler::COMPOSITOR_SURFACE_OVERLAYS, 0.0) as usize,
+                    self.profile.get_or(profiler::COMPOSITOR_SURFACE_UNDERLAYS, 0.0) as usize,
+                    self.profile.get_or(profiler::COMPOSITOR_SURFACE_BLITS, 0.0) as usize,
+                    self.profile.get_or(profiler::RENDERED_PICTURE_TILES, 0.0) as usize,
+                );
+                add_text_marker("WR promotion counters", &message, duration);
+            }
         }
 
         let report = self.texture_resolver.report_memory();
@@ -2526,6 +2555,10 @@ impl Renderer {
                         &texture_bindings,
                         stats,
                     );
+                    #[cfg(feature = "umbra-perf-probes")]
+                    if self.sampling_active() {
+                        self.sampling_quad_draw(pattern, prim_instances, texture_set, projection, BlendMode::None, None);
+                    }
                 }
             }
 
@@ -2561,6 +2594,11 @@ impl Renderer {
                             &texture_bindings,
                             stats,
                         );
+                        #[cfg(feature = "umbra-perf-probes")]
+                        if self.sampling_active() {
+                            self.sampling_quad_draw(*pattern, prim_instances, texture_set, projection,
+                                BlendMode::PremultipliedAlpha, Some(draw_target.to_framebuffer_rect(*scissor_rect)));
+                        }
                     }
                 }
 
@@ -3018,6 +3056,26 @@ impl Renderer {
         }
 
         self.profile.inc(profiler::RENDERED_PICTURE_TILES);
+        #[cfg(feature = "umbra-perf-probes")]
+        let profiled_target = if self.debug_flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING)
+            && profiler::umbra_markers_enabled()
+        {
+            let ordinal = self.profile.get_or(profiler::RENDERED_PICTURE_TILES, 0.0) as usize;
+            if ordinal <= 64 {
+                Some((std::time::Instant::now(), stats.total_draw_calls, ordinal))
+            } else {
+                if ordinal == 65 {
+                    add_text_marker(
+                        "WR picture target truncated",
+                        &format!("renderer_frame={} limit=64", self.frame_counter),
+                        Duration::ZERO,
+                    );
+                }
+                None
+            }
+        } else {
+            None
+        };
         let _gm = self.gpu_profiler.start_marker("picture cache target");
         let framebuffer_kind = FramebufferKind::Other;
 
@@ -3038,6 +3096,19 @@ impl Renderer {
             // of the whole target is the pass's load op; one restricted to the
             // dirty rect is issued once the pass has begun.
             let full_clear = scissor_rect.is_none();
+            #[cfg(feature = "umbra-perf-probes")]
+            if self.sampling_active() {
+                if let ResolvedSurfaceTexture::TextureCache { texture } = target.surface {
+                    self.sampling_target(texture, target.clear_color, Some(target.dirty_rect), draw_target);
+                    if self.sampling_active() {
+                        self.sampling_clear(
+                            if clear_color.is_some() && full_clear { "Clear" } else { "DontCare" },
+                            scissor_rect.map(|rect| draw_target.build_scissor_rect(Some(rect))),
+                            false, scissor_rect.is_some() && self.clear_caches_with_quads,
+                        );
+                    }
+                }
+            }
             self.device.begin_render_pass(&RenderPassDescriptor {
                 target: draw_target,
                 render_area: Some(target.dirty_rect),
@@ -3142,6 +3213,28 @@ impl Renderer {
         }
 
         self.device.end_render_pass(StoreOp::Discard);
+        #[cfg(feature = "umbra-perf-probes")]
+        if let Some((start, draw_calls, ordinal)) = profiled_target.filter(|_| {
+            self.debug_flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING)
+                && profiler::umbra_markers_enabled()
+        }) {
+            let duration = start.elapsed();
+            let scissored = self.device.get_capabilities().supports_render_target_partial_update
+                && (target.dirty_rect != target.valid_rect
+                    || self.device.get_capabilities().prefers_clear_scissor);
+            let kind = match target.kind {
+                PictureCacheTargetKind::Draw { .. } => "Draw",
+                PictureCacheTargetKind::Blit { .. } => "Blit",
+            };
+            let message = format!(
+                "renderer_frame={} ordinal={} kind={} dimensions={:?} offset={:?} dirty={:?} valid={:?} scissored={} color_clear={} depth_clear=true clear_with_quads={} draw_calls={}",
+                self.frame_counter, ordinal, kind, draw_target.dimensions(), draw_target.offset(),
+                target.dirty_rect, target.valid_rect, scissored, target.clear_color.is_some(),
+                scissored && self.clear_caches_with_quads,
+                stats.total_draw_calls - draw_calls,
+            );
+            add_text_marker("WR picture target", &message, duration);
+        }
     }
 
     /// Draw an alpha batch container into a given draw target. This is used
@@ -3196,6 +3289,13 @@ impl Renderer {
                         &batch.key.textures,
                         stats
                     );
+                    #[cfg(feature = "umbra-perf-probes")]
+                    if self.sampling_active() {
+                        if let BatchKind::Quad(pattern) = batch.key.kind {
+                            self.sampling_quad_draw(pattern, &batch.instances, &batch.key.textures.input,
+                                projection, BlendMode::None, scissor_rect);
+                        }
+                    }
                 }
 
             self.device.set_depth_write(false);
@@ -3264,6 +3364,13 @@ impl Renderer {
                     &batch.key.textures,
                     stats
                 );
+                #[cfg(feature = "umbra-perf-probes")]
+                if self.sampling_active() {
+                    if let BatchKind::Quad(pattern) = batch.key.kind {
+                        self.sampling_quad_draw(pattern, &batch.instances, &batch.key.textures.input,
+                            projection, batch.key.blend_mode, scissor_rect);
+                    }
+                }
             }
 
             self.set_blend_mode(BlendMode::None, framebuffer_kind);
@@ -3509,6 +3616,17 @@ impl Renderer {
         };
 
         let clear = self.plan_render_target_clear(target, draw_target);
+
+        #[cfg(feature = "umbra-perf-probes")]
+        if self.sampling_active() {
+            self.sampling_target(TextureSource::TextureCache(texture_id, Swizzle::default()),
+                target.clear_color, target.used_rect, draw_target);
+            if self.sampling_active() {
+                self.sampling_clear(match clear.color_load {
+                    LoadOp::Clear(_) => "Clear", LoadOp::Load => "Load", LoadOp::DontCare => "DontCare",
+                }, clear.rect.map(|(rect, _, _)| rect), clear.precise, clear.with_quads);
+            }
+        }
 
         {
             let _timer = self.gpu_profiler.start_timer(GPU_TAG_SETUP_TARGET);
@@ -3927,6 +4045,446 @@ impl Renderer {
         }
     }
 
+    #[cfg(feature = "umbra-perf-probes")]
+    fn sampling_active(&mut self) -> bool {
+        if self.sampling_trace.is_none() {
+            return false;
+        }
+        if !self.debug_flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING)
+            || !profiler::umbra_markers_enabled()
+        {
+            self.sampling_trace = None;
+            return false;
+        }
+        self.sampling_trace.as_ref().is_some_and(|trace| trace.failure.is_none())
+    }
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn sampling_inspect(&mut self) -> bool {
+        self.sampling_active() && self.sampling_trace.as_mut().unwrap().inspect()
+    }
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn sampling_marker(trace: &mut sampling::Trace, event: &str, args: std::fmt::Arguments<'_>) {
+        if let Some(text) = trace.record(event, args) {
+            add_text_marker("WR sampling operands", &text, Duration::ZERO);
+        }
+    }
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn sampling_task_source(task: &RenderTask) -> Option<TextureSource> {
+        use crate::render_task::{RenderTaskLocation, StaticRenderTaskSurface};
+        match &task.location {
+            RenderTaskLocation::Dynamic { texture_id, .. } =>
+                Some(TextureSource::TextureCache(*texture_id, Swizzle::default())),
+            RenderTaskLocation::Static { surface, .. } => match surface {
+                StaticRenderTaskSurface::ReadOnly { source } => Some(*source),
+                StaticRenderTaskSurface::TextureCache { texture, .. } =>
+                    Some(TextureSource::TextureCache(*texture, Swizzle::default())),
+                StaticRenderTaskSurface::PictureCache { surface: ResolvedSurfaceTexture::TextureCache { texture } } => Some(*texture),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn begin_sampling_trace(&mut self, frame: &Frame, document: &std::fmt::Arguments<'_>, submission: GpuFrameId) {
+        use crate::composite::ResolvedExternalSurfaceColorData;
+        let mut selected = None;
+        let resolver = &self.texture_resolver;
+        let is_rgb = |source| {
+            let format = match source {
+                TextureSource::TextureCache(id, _) => resolver.texture_cache_map.get(&id)
+                    .map(|entry| entry.texture.get_format()),
+                TextureSource::External(external) => frame.deferred_resolves.get(external.index.0 as usize)
+                    .map(|resolve| resolve.image_properties.descriptor.format),
+                _ => None,
+            };
+            matches!(format, Some(ImageFormat::RGBA8 | ImageFormat::BGRA8))
+        };
+        let selection = self.sampling_search.select(
+            self.debug_flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING),
+            profiler::umbra_markers_enabled(), || {
+            if frame.render_tasks.tasks.len() > 512 || frame.deferred_resolves.len() > 64
+                || frame.composite_state.external_surfaces.len() > 64 {
+                return sampling::SourceMatch::Limit;
+            }
+            let mut accept = |source, key| {
+                match selected {
+                    Some(previous) if previous != (source, key) => false,
+                    _ => { selected = Some((source, key)); true }
+                }
+            };
+            for task in &frame.render_tasks.tasks {
+                if let RenderTaskKind::Image(image) = &task.kind {
+                    if let Some(source) = Self::sampling_task_source(task) {
+                        if is_rgb(source) && task.get_target_rect().size() == DeviceIntSize::new(320, 180)
+                            && !accept(source, image.request.key) {
+                            return sampling::SourceMatch::Ambiguous;
+                        }
+                    }
+                }
+            }
+            for surface in &frame.composite_state.external_surfaces {
+                if let ResolvedExternalSurfaceColorData::Rgb { plane, image_dependency, .. } = &surface.color_data {
+                    let size = match plane.texture {
+                        TextureSource::External(external) => frame.deferred_resolves
+                            .get(external.index.0 as usize).map(|resolve| resolve.image_properties.descriptor.size),
+                        TextureSource::TextureCache(..) => Some((plane.uv_rect.uv1 - plane.uv_rect.uv0).abs().to_size().to_i32()),
+                        _ => None,
+                    };
+                    if is_rgb(plane.texture) && size == Some(DeviceIntSize::new(320, 180)) && !accept(plane.texture, image_dependency.key) {
+                        return sampling::SourceMatch::Ambiguous;
+                    }
+                }
+            }
+            if selected.is_some() { sampling::SourceMatch::Unique } else { sampling::SourceMatch::Absent }
+        });
+        match selection {
+            sampling::Selection::Idle => return,
+            sampling::Selection::Incomplete(reason) => {
+                add_text_marker("WR sampling operands", &format!(
+                    "{{\"schema\":1,\"submission\":\"{}:{}:{:?}\",\"event\":\"incomplete\",\"reason\":\"{}\"}}",
+                    document, self.frame_counter, submission, reason), Duration::ZERO);
+                return;
+            }
+            sampling::Selection::Begin => {}
+        }
+        let Some((source, key)) = selected else { return; };
+        let mut trace = sampling::Trace::new(format!("{}:{}:{:?}", document, self.frame_counter, submission));
+        Self::sampling_marker(&mut trace, "begin", format_args!(
+            "\"source\":\"{:?}\",\"key\":\"{:?}\",\"gpu_texture_size\":null,\"sampler_weights\":null,\"intermediate_texels\":null,\"submission_is_gpu_completion\":false",
+            source, key));
+        trace.reached_sources.push(format!("{:?}", source));
+        self.sampling_trace = Some(trace);
+        if !matches!(self.compositor_config, CompositorConfig::Draw { .. }) {
+            self.sampling_trace.as_mut().unwrap().fail("unsupported-native-compositor");
+            return;
+        }
+        self.sampling_texture_metadata(source, Some(frame));
+        if !self.sampling_active() { return; }
+        for (index, surface) in frame.composite_state.external_surfaces.iter().enumerate() {
+            if !self.sampling_active() { return; }
+            if let ResolvedExternalSurfaceColorData::Rgb { plane, image_dependency, modulation } = &surface.color_data {
+                let trace = self.sampling_trace.as_mut().unwrap();
+                Self::sampling_marker(trace, "external-surface", format_args!(
+                    "\"id\":{},\"source\":\"{:?}\",\"key\":\"{:?}\",\"generation\":\"{:?}\",\"producer_uv_bits\":{:?},\"modulation_bits\":{:?}",
+                    index, plane.texture, image_dependency.key, image_dependency.generation,
+                    plane.uv_rect.to_array().map(f32::to_bits),
+                    [modulation.r, modulation.g, modulation.b, modulation.a].map(f32::to_bits)));
+            }
+        }
+        if frame.render_tasks.tasks.len() > sampling::MAX_TASKS {
+            self.sampling_trace.as_mut().unwrap().fail("task-limit");
+            return;
+        }
+        for (index, task) in frame.render_tasks.tasks.iter().enumerate() {
+            if !self.sampling_active() { return; }
+            let Some(data) = frame.render_tasks.task_data.get(index) else {
+                self.sampling_trace.as_mut().unwrap().fail("missing-task-data");
+                return;
+            };
+            let trace = self.sampling_trace.as_mut().unwrap();
+            trace.budget.tasks += 1;
+            trace.task_sources.push(format!("{:?}", Self::sampling_task_source(task).unwrap_or(TextureSource::Invalid)));
+            let uv_bits = match task.uv_rect_kind {
+                crate::gpu_types::UvRectKind::Rect => None,
+                crate::gpu_types::UvRectKind::Quad { top_left, top_right, bottom_left, bottom_right } =>
+                    Some([top_left, top_right, bottom_left, bottom_right]
+                        .map(|vector| [vector.x, vector.y, vector.z, vector.w].map(f32::to_bits))),
+            };
+            Self::sampling_marker(trace, "task", format_args!(
+                "\"id\":{},\"kind\":\"{}\",\"source\":\"{:?}\",\"bits\":{:?},\"uv_quad_bits\":{}",
+                index, task.kind.as_str(), Self::sampling_task_source(task).unwrap_or(TextureSource::Invalid),
+                data.data.map(f32::to_bits), sampling::OptionalArray(uv_bits)));
+        }
+        for pass in &frame.passes {
+            if !self.sampling_inspect() { return; }
+            for target in pass.color.targets.iter().chain(pass.alpha.targets.iter()).chain(pass.texture_cache.values()) {
+                if !self.sampling_inspect() { return; }
+                if !target.blits.is_empty() || !target.resolve_ops.is_empty() {
+                    self.sampling_trace.as_mut().unwrap().fail("untraced-target-blit-or-resolve"); return;
+                }
+                for batches in &target.alpha_batch_containers {
+                    if !self.sampling_inspect() { return; }
+                    self.snapshot_sampling_batches(frame, batches);
+                }
+                for (pattern, groups) in target.prim_instances.iter().enumerate() {
+                    if !self.sampling_inspect() { return; }
+                    if Self::sampling_rgb_pattern(PatternKind::from_u32(pattern as u32)) {
+                        for (textures, instances) in groups {
+                            if !self.sampling_inspect() { return; }
+                            self.snapshot_sampling_quads(frame, instances, textures);
+                        }
+                    }
+                }
+                for ((_, pattern), groups) in &target.prim_instances_with_scissor {
+                    if !self.sampling_inspect() { return; }
+                    if Self::sampling_rgb_pattern(*pattern) {
+                        for (textures, instances) in groups {
+                            if !self.sampling_inspect() { return; }
+                            self.snapshot_sampling_quads(frame, instances, textures);
+                        }
+                    }
+                }
+            }
+            for target in &pass.picture_cache {
+                if !self.sampling_inspect() { return; }
+                if let PictureCacheTargetKind::Draw { alpha_batch_container } = &target.kind {
+                    self.snapshot_sampling_batches(frame, alpha_batch_container);
+                } else {
+                    self.sampling_trace.as_mut().unwrap().fail("untraced-picture-blit"); return;
+                }
+            }
+        }
+    }
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn sampling_rgb_pattern(pattern: PatternKind) -> bool {
+        matches!(pattern, PatternKind::ColorOrTexture | PatternKind::TextureExternal
+            | PatternKind::TextureExternalBT709 | PatternKind::TextureRect)
+    }
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn snapshot_sampling_batches(&mut self, frame: &Frame, batches: &AlphaBatchContainer) {
+        for batch in batches.opaque_batches.iter().chain(batches.alpha_batches.iter()) {
+            if !self.sampling_inspect() { return; }
+            if let BatchKind::Quad(pattern) = batch.key.kind {
+                if Self::sampling_rgb_pattern(pattern) {
+                    self.snapshot_sampling_quads(frame, &batch.instances, &batch.key.textures.input);
+                }
+            }
+        }
+    }
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn snapshot_sampling_quads(&mut self, frame: &Frame, instances: &[PrimitiveInstanceData], textures: &TextureSet) {
+        if !self.sampling_active() { return; }
+        for source in textures.colors { self.sampling_texture_metadata(source, Some(frame)); }
+        if !self.sampling_active() { return; }
+        let trace = self.sampling_trace.as_mut().unwrap();
+        if trace.failure.is_some() { return; }
+        if instances.len() > sampling::MAX_QUADS { trace.fail("quad-limit"); return; }
+        let binding = format!("{:?}", textures);
+        for instance in instances {
+            let words = instance.sampling_words();
+            let Some((id, fresh)) = trace.register_quad(words, &binding) else { return; };
+            if !fresh { continue; }
+            let Some(blocks) = sampling::decode_quad(words, frame.gpu_buffer_i.data.len(),
+                frame.gpu_buffer_f.data.len(), frame.render_tasks.task_data.len()) else {
+                trace.fail("invalid-quad-address"); return;
+            };
+            let count = if blocks.segment.is_some() { 7 } else { 5 };
+            if !sampling::Budget::take(&mut trace.budget.blocks, 1 + count + 8 + 2, sampling::MAX_BLOCKS)
+                || !sampling::Budget::take(&mut trace.budget.transforms, 1, sampling::MAX_TRANSFORMS) {
+                trace.fail("block-or-transform-limit"); return;
+            }
+            let Some(header) = frame.gpu_buffer_i.sampling_block(blocks.header) else {
+                trace.fail("missing-header"); return;
+            };
+            let index = crate::transform::GpuTransformId(header[0] as u32).sampling_index();
+            let Some(transform) = frame.transform_palette.get(index) else {
+                trace.fail("invalid-transform"); return;
+            };
+            let mut floats = [[0u32; 4]; 7];
+            for (index, address) in blocks.primitive.chain(blocks.segment.into_iter().flatten()).enumerate() {
+                let Some(data) = frame.gpu_buffer_f.sampling_block(address) else {
+                    trace.fail("missing-float-block"); return;
+                };
+                floats[index] = data.map(f32::to_bits);
+            }
+            Self::sampling_marker(trace, "quad-input", format_args!(
+                "\"id\":{},\"words\":{:?},\"binding\":\"{}\",\"sources\":[\"{:?}\",\"{:?}\",\"{:?}\"],\"header\":{:?},\"bits\":{:?},\"transform_id\":{},\"transform_bits\":{:?}",
+                id, words, binding, textures.colors[0], textures.colors[1], textures.colors[2],
+                header, &floats[..count], index, transform.sampling_bits()));
+        }
+    }
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn sampling_quad_draw(&mut self, pattern: PatternKind, instances: &[PrimitiveInstanceData],
+        textures: &TextureSet, projection: &default::Transform3D<f32>, blend: BlendMode,
+        scissor: Option<FramebufferIntRect>) {
+        if !self.sampling_active() || !Self::sampling_rgb_pattern(pattern) { return; }
+        let trace = self.sampling_trace.as_mut().unwrap();
+        if trace.failure.is_some() { return; }
+        let binding = format!("{:?}", textures);
+        for instance in instances {
+            let Some(id) = trace.emit_quad(instance.sampling_words(), &binding) else { return; };
+            trace.link_quad(&textures.colors.map(|source| format!("{:?}", source)), instance.sampling_words()[3] as usize);
+            let (pass, target, draw) = (trace.pass, trace.target, trace.draws);
+            Self::sampling_marker(trace, "quad-draw", format_args!(
+                "\"id\":{},\"pass\":{},\"target\":{},\"draw\":{},\"pattern\":\"{:?}\",\"blend\":\"{:?}\",\"framebuffer_scissor\":{},\"projection_bits\":{:?}",
+                id, pass, target, draw, pattern, blend,
+                sampling::OptionalArray(scissor.map(|rect| [rect.min.x, rect.min.y, rect.max.x, rect.max.y])),
+                projection.to_array().map(f32::to_bits)));
+        }
+    }
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn sampling_texture_metadata(&mut self, source: TextureSource, frame: Option<&Frame>) {
+        if !self.sampling_active() { return; }
+        let trace = self.sampling_trace.as_mut().unwrap();
+        if trace.failure.is_some() { return; }
+        let token = format!("{:?}", source);
+        if trace.textures.contains(&token) { return; }
+        if trace.textures.len() == sampling::MAX_TASKS { trace.fail("texture-limit"); return; }
+        trace.textures.push(token);
+        match source {
+            TextureSource::TextureCache(id, _) => {
+                let Some(cache) = self.texture_resolver.texture_cache_map.get(&id) else {
+                    trace.fail("missing-cached-texture"); return;
+                };
+                let texture = &cache.texture;
+                Self::sampling_marker(trace, "texture", format_args!(
+                    "\"source\":\"{:?}\",\"provenance\":\"cpu-allocation\",\"size\":[{},{}],\"format\":\"{:?}\",\"filter\":\"{:?}\",\"kind\":\"{:?}\"",
+                    source, texture.get_dimensions().width, texture.get_dimensions().height,
+                    texture.get_format(), texture.get_filter(), texture.get_target()));
+            }
+            TextureSource::External(external) => {
+                let Some(texture) = self.texture_resolver.external_images.get(&external.index) else {
+                    trace.fail("missing-external-resolution"); return;
+                };
+                Self::sampling_marker(trace, "texture", format_args!(
+                    "\"source\":\"{:?}\",\"provenance\":\"resolved-cpu-wrapper\",\"uv_bits\":{:?},\"normalized\":{},\"allocation_size\":null,\"format\":null,\"sampler_state\":null",
+                    source, texture.get_uv_rect().to_array().map(f32::to_bits), external.normalized_uvs));
+                if let Some(resolve) = frame.and_then(|frame| frame.deferred_resolves.get(external.index.0 as usize)) {
+                    let descriptor = &resolve.image_properties.descriptor;
+                    Self::sampling_marker(trace, "descriptor", format_args!(
+                        "\"source\":\"{:?}\",\"provenance\":\"producer-descriptor\",\"size\":[{},{}],\"format\":\"{:?}\",\"rendering\":\"{:?}\",\"composited\":{}",
+                        source, descriptor.size.width, descriptor.size.height, descriptor.format,
+                        resolve.rendering, resolve.is_composited));
+                }
+            }
+            TextureSource::Dummy => Self::sampling_marker(trace, "texture", format_args!(
+                "\"source\":\"Dummy\",\"provenance\":\"constant\",\"size\":[1,1]")),
+            TextureSource::Invalid => {}
+        }
+    }
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn sampling_composite_input(&mut self, instance: &crate::gpu_types::CompositeInstance,
+        textures: &TextureSet, features: crate::composite::CompositeFeatures,
+        tile_index: usize, tile: &crate::composite::CompositeTile) {
+        if !self.sampling_active() { return; }
+        let trace = self.sampling_trace.as_mut().unwrap();
+        let binding = format!("{:?}", textures);
+        let Some(id) = trace.register_composite(instance.sampling_bits(), &binding, features.bits() as u32) else { return; };
+        let (surface_kind, surface_index) = match tile.surface {
+            crate::composite::CompositeTileSurface::Color { .. } => ("color", None),
+            crate::composite::CompositeTileSurface::Texture { .. } => ("texture", None),
+            crate::composite::CompositeTileSurface::ExternalSurface { external_surface_index } =>
+                ("external", Some([external_surface_index.0])),
+        };
+        Self::sampling_marker(trace, "composite-input", format_args!(
+            "\"id\":{},\"tile_index\":{},\"tile_id\":\"{:?}\",\"surface_kind\":\"{}\",\"external_surface\":{},\"binding\":\"{}\",\"sources\":[\"{:?}\",\"{:?}\",\"{:?}\"],\"features\":{},\"bits\":{:?}",
+            id, tile_index, tile.tile_id, surface_kind, sampling::OptionalArray(surface_index), binding,
+            textures.colors[0], textures.colors[1], textures.colors[2], features.bits(), instance.sampling_bits()));
+    }
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn sampling_composite_draw(&mut self, instances: &[crate::gpu_types::CompositeInstance],
+        textures: &TextureSet, features: crate::composite::CompositeFeatures,
+        projection: &default::Transform3D<f32>, blend: BlendMode, texture_size: Option<DeviceSize>) {
+        if !self.sampling_active() { return; }
+        for source in textures.colors { self.sampling_texture_metadata(source, None); }
+        if !self.sampling_active() { return; }
+        let trace = self.sampling_trace.as_mut().unwrap();
+        if trace.failure.is_some() { return; }
+        if instances.len() > sampling::MAX_COMPOSITES {
+            trace.fail("composite-limit"); return;
+        }
+        let binding = format!("{:?}", textures);
+        trace.primary_emitted |= textures.colors.iter()
+            .any(|source| trace.reached_sources.contains(&format!("{:?}", source)));
+        for instance in instances {
+            let Some(id) = trace.emit_composite(instance.sampling_bits(), &binding, features.bits() as u32) else { return; };
+            let pass = trace.composition_passes;
+            if pass == 0 { trace.fail("missing-composite-pass"); return; }
+            Self::sampling_marker(trace, "composite-draw", format_args!(
+                "\"id\":{},\"composition_pass\":{},\"binding\":\"{}\",\"features\":{},\"bits\":{:?},\"blend\":\"{:?}\",\"texture_size_uniform_bits\":{},\"projection_bits\":{:?}",
+                id, pass, binding, features.bits(), instance.sampling_bits(), blend,
+                sampling::OptionalArray(texture_size.map(|size| [size.width.to_bits(), size.height.to_bits()])),
+                projection.to_array().map(f32::to_bits)));
+        }
+    }
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn sampling_composite_pass(&mut self, draw_target: DrawTarget, clear_color: [f32; 4], partial: bool) {
+        if !self.sampling_active() { return; }
+        let trace = self.sampling_trace.as_mut().unwrap();
+        if !sampling::Budget::take(&mut trace.budget.tasks, 1, sampling::MAX_TASKS) {
+            trace.fail("task-target-limit"); return;
+        }
+        trace.composition_passes += 1;
+        let pass = trace.composition_passes;
+        Self::sampling_marker(trace, "composite-pass", format_args!(
+            "\"id\":{},\"draw_size\":[{},{}],\"draw_offset\":[{},{}],\"clear_bits\":{:?},\"color_load\":\"{}\",\"format\":null,\"provenance\":\"cpu-draw-target\"",
+            pass, draw_target.dimensions().width, draw_target.dimensions().height,
+            draw_target.offset().x, draw_target.offset().y, clear_color.map(f32::to_bits), if partial { "Load" } else { "Clear" }));
+    }
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn sampling_composite_clear(&mut self, rect: FramebufferIntRect) {
+        if !self.sampling_active() { return; }
+        let trace = self.sampling_trace.as_mut().unwrap();
+        let pass = trace.composition_passes;
+        Self::sampling_marker(trace, "composite-clear", format_args!(
+            "\"composition_pass\":{},\"framebuffer_clear_rect\":{:?}", pass,
+            [rect.min.x, rect.min.y, rect.max.x, rect.max.y]));
+    }
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn sampling_target(&mut self, texture: TextureSource, clear: Option<ColorF>, render_area: Option<DeviceIntRect>, draw_target: DrawTarget) {
+        if !self.sampling_active() { return; }
+        let trace = self.sampling_trace.as_mut().unwrap();
+        if trace.failure.is_some() { return; }
+        if !sampling::Budget::take(&mut trace.budget.tasks, 1, sampling::MAX_TASKS) {
+            trace.fail("task-target-limit"); return;
+        }
+        trace.target += 1;
+        trace.target_source = Some(format!("{:?}", texture));
+        if matches!(texture, TextureSource::External(..)) {
+            trace.fail("external-render-target"); return;
+        }
+        let Some((allocation, swizzle)) = self.texture_resolver.resolve(&texture) else {
+            trace.fail("unknown-target-allocation"); return;
+        };
+        let (target, pass) = (trace.target, trace.pass);
+        Self::sampling_marker(trace, "target", format_args!(
+            "\"id\":{},\"pass\":{},\"source\":\"{:?}\",\"size\":[{},{}],\"format\":\"{:?}\",\"filter\":\"{:?}\",\"swizzle\":\"{:?}\",\"clear_bits\":{},\"render_area\":{},\"draw_size\":[{},{}],\"draw_offset\":[{},{}],\"provenance\":\"cpu-allocation\"",
+            target, pass, texture, allocation.get_dimensions().width, allocation.get_dimensions().height,
+            allocation.get_format(), allocation.get_filter(), swizzle,
+            sampling::OptionalArray(clear.map(|color| color.to_array().map(f32::to_bits))),
+            sampling::OptionalArray(render_area.map(|rect| [rect.min.x, rect.min.y, rect.max.x, rect.max.y])),
+            draw_target.dimensions().width, draw_target.dimensions().height,
+            draw_target.offset().x, draw_target.offset().y));
+    }
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn sampling_clear(&mut self, color_load: &str, rect: Option<FramebufferIntRect>, precise: bool, with_quads: bool) {
+        if !self.sampling_active() { return; }
+        let trace = self.sampling_trace.as_mut().unwrap();
+        let target = trace.target;
+        Self::sampling_marker(trace, "clear", format_args!(
+            "\"target\":{},\"color_load\":\"{}\",\"framebuffer_clear_rect\":{},\"precise\":{},\"with_quads\":{}",
+            target, color_load, sampling::OptionalArray(rect.map(|rect| [rect.min.x, rect.min.y, rect.max.x, rect.max.y])), precise, with_quads));
+        if precise { trace.fail("untraced-precise-clear-rects"); }
+    }
+
+    #[cfg(feature = "umbra-perf-probes")]
+    fn finish_sampling_trace(&mut self) {
+        if let Some(trace) = self.sampling_trace.take() {
+            if self.debug_flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING) && profiler::umbra_markers_enabled() {
+                let reason = trace.finish_reason();
+                add_text_marker("WR sampling operands", &format!(
+                    "{{\"schema\":1,\"submission\":\"{}\",\"event\":\"{}\",\"reason\":\"{}\",\"quad_inputs\":{},\"quad_draws\":{},\"composite_draws\":{},\"gpu_values\":\"unknown\"}}",
+                    trace.identity, if reason.is_some() { "incomplete" } else { "end" }, reason.unwrap_or(""),
+                    trace.quads.len(), trace.draws, trace.budget.composites), Duration::ZERO);
+            }
+        }
+    }
+
     fn draw_frame(
         &mut self,
         frame: &mut Frame,
@@ -4037,8 +4595,12 @@ impl Renderer {
         }
 
         for (_pass_index, pass) in frame.passes.iter_mut().enumerate() {
+            #[cfg(feature = "umbra-perf-probes")]
+            if self.sampling_active() {
+                self.sampling_trace.as_mut().unwrap().pass = _pass_index;
+            }
             #[cfg(not(target_os = "android"))]
-            let _gm = self.gpu_profiler.start_marker(&format!("pass {}", _pass_index));
+            let _gm = self.gpu_profiler.start_pass_marker(_pass_index);
 
             tracy_rs::profile_scope!("offscreen target");
 
@@ -4213,6 +4775,10 @@ impl Renderer {
         );
 
         self.debug_flags = flags;
+        #[cfg(feature = "umbra-perf-probes")]
+        if !flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING) {
+            self.sampling_trace = None;
+        }
     }
 
     pub fn set_profiler_ui(&mut self, ui_str: &str) {
@@ -4232,6 +4798,10 @@ impl Renderer {
 
     // De-initialize the Renderer safely, assuming the GL is still alive and active.
     pub fn deinit(mut self) {
+        #[cfg(feature = "umbra-perf-probes")]
+        {
+            self.sampling_trace = None;
+        }
         //Note: this is a fake frame, only needed because texture deletion is require to happen inside a frame
         self.device.begin_frame();
         // If we are using a native compositor, ensure that any remaining native

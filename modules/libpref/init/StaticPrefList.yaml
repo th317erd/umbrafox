@@ -7552,6 +7552,14 @@
   mirror: always
 #endif
 
+#ifdef MOZ_WIDGET_GTK
+# Whether to use zero-copy GPU import for DMABuf video frames in remote canvas drawImage.
+- name: gfx.canvas.remote.use-draw-image-fast-path-dmabuf
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+#endif
+
 - name: gfx.canvas.remote.recycle-used-data-surface
   type: RelaxedAtomicBool
   value: true
@@ -8457,6 +8465,12 @@
   value: true
   mirror: once
 #endif
+
+- name: gfx.webrender.single-image-opacity.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+  rust: true
 
 - name: gfx.webrender.debug.highlight-painted-layers
   type: RelaxedAtomicBool
@@ -20245,6 +20259,15 @@
 # content.
 - name: ui.mouse.right_click.move_caret.stop_if_in_focused_editable_node
   type: bool
+  value: false
+  mirror: always
+
+#---------------------------------------------------------------------------
+# Prefs starting with "umbrafox."
+#---------------------------------------------------------------------------
+
+- name: umbrafox.userlandScripts.active
+  type: RelaxedAtomicBool
   value: false
   mirror: always
 

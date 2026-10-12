@@ -21,6 +21,9 @@ class SharedSurface_DMABUF final : public SharedSurface {
   static UniquePtr<SharedSurface_DMABUF> Create(const SharedSurfaceDesc&);
 
  private:
+  friend class DMABufProducerFence;
+  DMABufSurface::ProducerFence mProducerFence;
+
   SharedSurface_DMABUF(const SharedSurfaceDesc&, UniquePtr<MozFramebuffer>,
                        RefPtr<DMABufSurface>);
 

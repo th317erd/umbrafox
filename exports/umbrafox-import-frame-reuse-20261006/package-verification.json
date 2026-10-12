@@ -1,0 +1,28 @@
+{
+  "buildID": "20261006175655",
+  "files": 46,
+  "archiveEntries": 57,
+  "uncompressedBytes": 475108405,
+  "archive": {
+    "name": "umbrafox-import-frame-reuse-20261006175655-linux-x86_64.tar.xz",
+    "bytes": 106942812,
+    "sha256": "0904beeebecf4aa7da5ebada1e9d83e977bd03ed09f5f928c061d97fb95b4ebb"
+  },
+  "manifestSHA256": "9ec305adc36c8c1e362ed6e74925c8c473efd999212d354c6f11431ca17b8678",
+  "iniBuildIDs": {
+    "application.ini": "20261006175655",
+    "platform.ini": "20261006175655"
+  },
+  "toolkitBuildID": "20261006175655",
+  "frontendArchives": {
+    "omni.ja": {
+      "entries": 2676,
+      "changed": []
+    },
+    "browser/omni.ja": {
+      "entries": 5368,
+      "changed": []
+    }
+  },
+  "installed": false
+}

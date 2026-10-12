@@ -1,0 +1,2169 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index a617532d69d8..1db6d907f40b 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -1,3 +1,9 @@
++# Codex Instructions
++
++## !!!MANDATORY FIRST ACTION!!!
++
++Before responding or acting, read `~/.bot-common/startup.md` if absent from current context. Repeat after session start, compaction or context reset; follow its bootstrap and continuation instructions.
++
+ # Global instructions
+ Limit the amount of comments you put in the code to a strict minimum. You should almost never add comments, except sometimes on non-trivial code, function definitions if the arguments aren't self-explanatory, and class definitions and their members.
+ 
+diff --git a/dom/canvas/CanvasRenderingContext2D.cpp b/dom/canvas/CanvasRenderingContext2D.cpp
+index 801d6b14b63c..3a8b96c4fa31 100644
+--- a/dom/canvas/CanvasRenderingContext2D.cpp
++++ b/dom/canvas/CanvasRenderingContext2D.cpp
+@@ -9,6 +9,7 @@
+ 
+ #include "CanvasImageCache.h"
+ #include "CanvasUtils.h"
++#include "GPUVideoImage.h"
+ #include "GeckoBindings.h"
+ #include "ImageEncoder.h"
+ #include "ImageRegion.h"
+@@ -5915,6 +5916,48 @@ static Matrix ComputeRotationMatrix(gfxFloat aRotatedWidth,
+       .PostTranslate(shiftLeftTopToOrigin);
+ }
+ 
++static layers::GPUVideoImage* GetDMABufGPUVideoImage(layers::Image* aImage) {
++  layers::GPUVideoImage* gpuVideo =
++      aImage ? aImage->AsGPUVideoImage() : nullptr;
++  if (!gpuVideo || gpuVideo->GetRemoteDecoderVideoType() !=
++                       layers::RemoteDecoderVideoType::DMABuf) {
++    return nullptr;
++  }
++  return gpuVideo;
++}
++
++static already_AddRefed<SourceSurface>
++MaybeGetScaledSourceSurfaceForRemoteVideo(layers::Image* aImage,
++                                          const gfx::Rect& aSourceRect,
++                                          const gfx::Rect& aDestRect,
++                                          const gfx::IntSize& aImageSize,
++                                          const Matrix& aTransform,
++                                          SamplingFilter aSamplingFilter,
++                                          VideoRotation aRotationDeg) {
++  layers::GPUVideoImage* gpuVideo = GetDMABufGPUVideoImage(aImage);
++  if (!gpuVideo || aRotationDeg != VideoRotation::kDegree_0 ||
++      !aTransform.IsIdentity() || aSamplingFilter != SamplingFilter::LINEAR ||
++      aSourceRect.x != 0.0 || aSourceRect.y != 0.0 ||
++      aSourceRect.width != aImageSize.width ||
++      aSourceRect.height != aImageSize.height) {
++    return nullptr;
++  }
++
++  const IntSize readbackSize = IntSize::Ceil(aDestRect.width, aDestRect.height);
++  if (readbackSize.IsEmpty() || readbackSize.width != aDestRect.width ||
++      readbackSize.height != aDestRect.height ||
++      (readbackSize.width >= aImageSize.width &&
++       readbackSize.height >= aImageSize.height)) {
++    return nullptr;
++  }
++
++  RefPtr<SourceSurface> surface = gpuVideo->GetAsSourceSurface(readbackSize);
++  if (!surface || surface->GetSize() != readbackSize) {
++    return nullptr;
++  }
++  return surface.forget();
++}
++
+ // -
+ 
+ bool ValidSurfaceDescriptorForRemoteCanvas2d(
+@@ -6087,6 +6130,7 @@ void CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
+   DirectDrawInfo drawInfo;
+   Maybe<layers::SurfaceDescriptor> surfaceDescriptor;
+   SurfaceFromElementResult res;
++  bool deferRemoteVideoReadback = false;
+ 
+   if (!srcSurf) {
+     // The canvas spec says that drawImage should draw the first frame
+@@ -6104,19 +6148,30 @@ void CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
+       res = CanvasRenderingContext2D::CachedSurfaceFromElement(element);
+       if (!res.mSourceSurface) {
+         HTMLVideoElement* video = HTMLVideoElement::FromNodeOrNull(element);
+-        if (video && mBufferProvider->IsAccelerated() &&
+-            mTarget->IsRecording() &&
+-            !(NeedToApplyFilter() || NeedToDrawShadow())) {
++        const bool canUseRemoteVideoReadback =
++            video && !(NeedToApplyFilter() || NeedToDrawShadow());
++        if (canUseRemoteVideoReadback) {
++          const bool canUseRemoteCanvasFastPath =
++              mBufferProvider->IsAccelerated() && mTarget->IsRecording();
+           res = nsLayoutUtils::SurfaceFromElement(
+               video, sfeFlags, mTarget, /* aOptimizeSourceSurface */ false);
+-          surfaceDescriptor = MaybeGetSurfaceDescriptorForRemoteCanvas(res);
++          if (canUseRemoteCanvasFastPath) {
++            surfaceDescriptor = MaybeGetSurfaceDescriptorForRemoteCanvas(res);
++          }
+           if (surfaceDescriptor.isNothing() && res.mLayersImage) {
+-            if ((res.mSourceSurface = res.mLayersImage->GetAsSourceSurface())) {
++            if (GetDMABufGPUVideoImage(res.mLayersImage)) {
++              deferRemoteVideoReadback = true;
++            } else if (canUseRemoteCanvasFastPath &&
++                       (res.mSourceSurface =
++                            res.mLayersImage->GetAsSourceSurface())) {
+               RefPtr<SourceSurface> opt =
+                   mTarget->OptimizeSourceSurface(res.mSourceSurface);
+               if (opt) {
+                 res.mSourceSurface = opt;
+               }
++            } else if (!canUseRemoteCanvasFastPath) {
++              res =
++                  nsLayoutUtils::SurfaceFromElement(element, sfeFlags, mTarget);
+             }
+           }
+         } else {
+@@ -6125,12 +6180,12 @@ void CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
+       }
+     }
+ 
+-    if (surfaceDescriptor.isNothing()) {
++    if (surfaceDescriptor.isNothing() && !deferRemoteVideoReadback) {
+       srcSurf = res.GetSourceSurface();
+     }
+ 
+     if (!srcSurf && surfaceDescriptor.isNothing() &&
+-        !res.mDrawInfo.mImgContainer) {
++        !res.mDrawInfo.mImgContainer && !deferRemoteVideoReadback) {
+       // https://html.spec.whatwg.org/#check-the-usability-of-the-image-argument:
+       //
+       // Only throw if the request is broken and the element is an
+@@ -6256,8 +6311,36 @@ void CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
+     return;
+   }
+ 
++  gfx::Rect sourceRect(aSx, aSy, aSw, aSh);
++  gfx::Rect destRect(aDx, aDy, aDw, aDh);
++
++  VideoRotation rotationDeg = VideoRotation::kDegree_0;
++  if (HTMLVideoElement* video = HTMLVideoElement::FromNodeOrNull(element)) {
++    rotationDeg = video->RotationDegrees();
++  }
++
++  if (deferRemoteVideoReadback) {
++    srcSurf = MaybeGetScaledSourceSurfaceForRemoteVideo(
++        res.mLayersImage, sourceRect, destRect, imgSize,
++        mTarget->GetTransform(), samplingFilter, rotationDeg);
++    if (srcSurf) {
++      RefPtr<SourceSurface> opt = mTarget->OptimizeSourceSurface(srcSurf);
++      if (opt) {
++        srcSurf = opt;
++      }
++      const IntSize readbackSize = srcSurf->GetSize();
++      sourceRect = gfx::Rect(0, 0, readbackSize.width, readbackSize.height);
++    } else {
++      srcSurf = res.GetSourceSurface();
++    }
++  }
++
++  if (!srcSurf && surfaceDescriptor.isNothing() &&
++      !res.mDrawInfo.mImgContainer) {
++    return;
++  }
++
+   if (srcSurf || surfaceDescriptor.isSome()) {
+-    gfx::Rect sourceRect(aSx, aSy, aSw, aSh);
+     if (srcSurf && ((element && element == mCanvasElement) ||
+                     (offscreenCanvas && offscreenCanvas == mOffscreenCanvas))) {
+       // srcSurf is a snapshot of mTarget. If we draw to mTarget now, we'll
+@@ -6285,13 +6368,6 @@ void CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
+       return;
+     }
+ 
+-    VideoRotation rotationDeg = VideoRotation::kDegree_0;
+-    if (HTMLVideoElement* video = HTMLVideoElement::FromNodeOrNull(element)) {
+-      rotationDeg = video->RotationDegrees();
+-    }
+-
+-    gfx::Rect destRect(aDx, aDy, aDw, aDh);
+-
+     Matrix currentTransform = tempTarget->GetTransform();
+     if (rotationDeg != VideoRotation::kDegree_0) {
+       tempTarget->ConcatTransform(
+@@ -6328,8 +6404,7 @@ void CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
+     }
+ 
+   } else {
+-    DrawDirectlyToCanvas(drawInfo, &bounds, gfx::Rect(aDx, aDy, aDw, aDh),
+-                         gfx::Rect(aSx, aSy, aSw, aSh), imgSize);
++    DrawDirectlyToCanvas(drawInfo, &bounds, destRect, sourceRect, imgSize);
+   }
+ 
+   RedrawUser(gfxRect(aDx, aDy, aDw, aDh));
+diff --git a/dom/media/ipc/PRemoteMediaManager.ipdl b/dom/media/ipc/PRemoteMediaManager.ipdl
+index e92cf9a15886..bfd6585fbe0f 100644
+--- a/dom/media/ipc/PRemoteMediaManager.ipdl
++++ b/dom/media/ipc/PRemoteMediaManager.ipdl
+@@ -18,6 +18,7 @@ include PMediaDecoderParams;
+ include "mozilla/dom/MediaIPCUtils.h";
+ include "mozilla/layers/LayersMessageUtils.h";
+ 
++using mozilla::gfx::IntSize from "mozilla/gfx/Point.h";
+ using mozilla::VideoInfo from "MediaInfo.h";
+ using mozilla::AudioInfo from "MediaInfo.h";
+ using struct mozilla::layers::TextureFactoryIdentifier from "mozilla/layers/CompositorTypes.h";
+@@ -69,7 +70,7 @@ parent:
+   async PRemoteEncoder(EncoderConfig config);
+   async PRemoteCDM(nsString keySystem);
+ 
+-  sync Readback(SurfaceDescriptorGPUVideo sd) returns (SurfaceDescriptor aResult);
++  sync Readback(SurfaceDescriptorGPUVideo sd, IntSize? readbackSize) returns (SurfaceDescriptor aResult);
+ 
+   async DeallocateSurfaceDescriptorGPUVideo(SurfaceDescriptorGPUVideo sd);
+ 
+diff --git a/dom/media/ipc/RemoteMediaManagerChild.cpp b/dom/media/ipc/RemoteMediaManagerChild.cpp
+index 58d4d451ea17..671c680bc74f 100644
+--- a/dom/media/ipc/RemoteMediaManagerChild.cpp
++++ b/dom/media/ipc/RemoteMediaManagerChild.cpp
+@@ -1088,6 +1088,11 @@ void DeleteSurfaceDescriptorUserData(void* aClosure) {
+ 
+ already_AddRefed<SourceSurface> RemoteMediaManagerChild::Readback(
+     const SurfaceDescriptorGPUVideo& aSD) {
++  return Readback(aSD, IntSize());
++}
++
++already_AddRefed<SourceSurface> RemoteMediaManagerChild::Readback(
++    const SurfaceDescriptorGPUVideo& aSD, const IntSize& aReadbackSize) {
+   // We can't use NS_DispatchAndSpinEventLoopUntilComplete here since that will
+   // spin the event loop while it waits. This function can be called from JS and
+   // we don't want that to happen.
+@@ -1097,16 +1102,20 @@ already_AddRefed<SourceSurface> RemoteMediaManagerChild::Readback(
+   }
+ 
+   SurfaceDescriptor sd;
++  Maybe<IntSize> readbackSize =
++      aReadbackSize.IsEmpty() ? Nothing() : Some(aReadbackSize);
+   RefPtr<Runnable> task =
+       NS_NewRunnableFunction("RemoteMediaManagerChild::Readback", [&]() {
+         if (CanSend()) {
+-          SendReadback(aSD, &sd);
++          SendReadback(aSD, readbackSize, &sd);
+         }
+       });
+   SyncRunnable::DispatchToThread(managerThread, task);
+ 
+   if (sd.type() != SurfaceDescriptor::TSurfaceDescriptorBuffer) {
+-    LOGE("Unexpected SurfaceDescriptor type in Readback");
++    if (readbackSize.isNothing()) {
++      LOGE("Unexpected SurfaceDescriptor type in Readback");
++    }
+     return nullptr;
+   }
+   auto& sdb = sd.get_SurfaceDescriptorBuffer();
+diff --git a/dom/media/ipc/RemoteMediaManagerChild.h b/dom/media/ipc/RemoteMediaManagerChild.h
+index f66833066fac..78b1a0756bdf 100644
+--- a/dom/media/ipc/RemoteMediaManagerChild.h
++++ b/dom/media/ipc/RemoteMediaManagerChild.h
+@@ -107,6 +107,9 @@ class RemoteMediaManagerChild final
+   // internally and will be ignored if the IPDL actor has been destroyed.
+   already_AddRefed<gfx::SourceSurface> Readback(
+       const SurfaceDescriptorGPUVideo& aSD) override;
++  already_AddRefed<gfx::SourceSurface> Readback(
++      const SurfaceDescriptorGPUVideo& aSD,
++      const gfx::IntSize& aReadbackSize) override;
+   already_AddRefed<layers::Image> TransferToImage(
+       const SurfaceDescriptorGPUVideo& aSD, const gfx::IntSize& aSize,
+       const gfx::ColorDepth& aColorDepth, gfx::YUVColorSpace aYUVColorSpace,
+diff --git a/dom/media/ipc/RemoteMediaManagerParent.cpp b/dom/media/ipc/RemoteMediaManagerParent.cpp
+index 94a1f1b7e04e..206d908d2897 100644
+--- a/dom/media/ipc/RemoteMediaManagerParent.cpp
++++ b/dom/media/ipc/RemoteMediaManagerParent.cpp
+@@ -295,8 +295,17 @@ void RemoteMediaManagerParent::Open(
+   }
+ }
+ 
++static void FreeSurfaceDescriptorBuffer(RemoteMediaManagerParent* aManager,
++                                        SurfaceDescriptorBuffer& aSdb) {
++  if (aSdb.data().type() == MemoryOrShmem::TShmem) {
++    aManager->DeallocShmem(aSdb.data().get_Shmem());
++  }
++  aSdb = SurfaceDescriptorBuffer();
++}
++
+ mozilla::ipc::IPCResult RemoteMediaManagerParent::RecvReadback(
+-    const SurfaceDescriptorGPUVideo& aSD, SurfaceDescriptor* aResult) {
++    const SurfaceDescriptorGPUVideo& aSD,
++    const Maybe<gfx::IntSize>& aReadbackSize, SurfaceDescriptor* aResult) {
+   const SurfaceDescriptorRemoteDecoder& sd = aSD;
+   RefPtr<Image> image = mImageMap[sd.handle()];
+   if (!image) {
+@@ -306,23 +315,34 @@ mozilla::ipc::IPCResult RemoteMediaManagerParent::RecvReadback(
+ 
+   // Read directly into the shmem to avoid extra copies, if possible.
+   SurfaceDescriptorBuffer sdb;
+-  nsresult rv = image->BuildSurfaceDescriptorBuffer(
+-      sdb, Image::BuildSdbFlags::RgbOnly, [&](uint32_t aBufferSize) {
+-        Shmem buffer;
+-        if (!AllocShmem(aBufferSize, &buffer)) {
+-          return MemoryOrShmem();
+-        }
+-        return MemoryOrShmem(std::move(buffer));
+-      });
++  auto allocate = [&](uint32_t aBufferSize) {
++    Shmem buffer;
++    if (!AllocShmem(aBufferSize, &buffer)) {
++      return MemoryOrShmem();
++    }
++    return MemoryOrShmem(std::move(buffer));
++  };
++
++  nsresult rv = NS_ERROR_NOT_IMPLEMENTED;
++  if (aReadbackSize.isSome()) {
++    rv = image->BuildSurfaceDescriptorBufferForSize(
++        sdb, Image::BuildSdbFlags::RgbOnly, aReadbackSize.ref(), allocate);
++    if (NS_FAILED(rv)) {
++      FreeSurfaceDescriptorBuffer(this, sdb);
++      *aResult = null_t();
++      return IPC_OK();
++    }
++  } else {
++    rv = image->BuildSurfaceDescriptorBuffer(sdb, Image::BuildSdbFlags::RgbOnly,
++                                             allocate);
++  }
+ 
+   if (NS_SUCCEEDED(rv)) {
+     *aResult = std::move(sdb);
+     return IPC_OK();
+   }
+ 
+-  if (sdb.data().type() == MemoryOrShmem::TShmem) {
+-    DeallocShmem(sdb.data().get_Shmem());
+-  }
++  FreeSurfaceDescriptorBuffer(this, sdb);
+   *aResult = null_t();
+   return IPC_OK();
+ }
+diff --git a/dom/media/ipc/RemoteMediaManagerParent.h b/dom/media/ipc/RemoteMediaManagerParent.h
+index 687b59bfedfa..b54ed42f7944 100644
+--- a/dom/media/ipc/RemoteMediaManagerParent.h
++++ b/dom/media/ipc/RemoteMediaManagerParent.h
+@@ -40,6 +40,12 @@ class RemoteMediaManagerParent final : public PRemoteMediaManagerParent,
+     MOZ_ASSERT_UNREACHABLE("Not usable from the parent");
+     return nullptr;
+   }
++  already_AddRefed<gfx::SourceSurface> Readback(
++      const SurfaceDescriptorGPUVideo& aSD,
++      const gfx::IntSize& aReadbackSize) override {
++    MOZ_ASSERT_UNREACHABLE("Not usable from the parent");
++    return nullptr;
++  }
+   already_AddRefed<layers::Image> TransferToImage(
+       const SurfaceDescriptorGPUVideo& aSD, const gfx::IntSize& aSize,
+       const gfx::ColorDepth& aColorDepth, gfx::YUVColorSpace aYUVColorSpace,
+@@ -84,6 +90,7 @@ class RemoteMediaManagerParent final : public PRemoteMediaManagerParent,
+       const nsAString& aKeySystem);
+ 
+   mozilla::ipc::IPCResult RecvReadback(const SurfaceDescriptorGPUVideo& aSD,
++                                       const Maybe<gfx::IntSize>& aReadbackSize,
+                                        SurfaceDescriptor* aResult);
+   mozilla::ipc::IPCResult RecvDeallocateSurfaceDescriptorGPUVideo(
+       const SurfaceDescriptorGPUVideo& aSD);
+diff --git a/gfx/gl/GLBlitHelper.cpp b/gfx/gl/GLBlitHelper.cpp
+index 10c4069c4d5b..5f1726ce564b 100644
+--- a/gfx/gl/GLBlitHelper.cpp
++++ b/gfx/gl/GLBlitHelper.cpp
+@@ -1643,7 +1643,8 @@ void GLBlitHelper::BlitTextureToTexture(GLuint srcTex, GLuint destTex,
+ #ifdef MOZ_WIDGET_GTK
+ bool GLBlitHelper::Blit(DMABufSurface* surface, const gfx::IntRect& destRect,
+                         OriginPos destOrigin, const gfx::IntSize& fbSize,
+-                        Maybe<gfxAlphaType> convertAlpha) const {
++                        Maybe<gfxAlphaType> convertAlpha,
++                        bool aScaleSourceToDest) const {
+   const auto& srcOrigin = OriginPos::BottomLeft;
+ 
+   DrawBlitProg::BaseArgs baseArgs;
+@@ -1738,7 +1739,9 @@ bool GLBlitHelper::Blit(DMABufSurface* surface, const gfx::IntRect& destRect,
+   baseArgs.texMatrix0 = SubRectMat3(
+       0, 0, float(surface->GetWidth(0)) / float(surface->GetWidthAligned(0)),
+       float(surface->GetHeight(0)) / float(surface->GetHeightAligned(0)));
+-  baseArgs.texSize = gfx::IntSize(surface->GetWidth(), surface->GetHeight());
++  if (!aScaleSourceToDest) {
++    baseArgs.texSize = gfx::IntSize(surface->GetWidth(), surface->GetHeight());
++  }
+   yuvArgs.texMatrix1 = SubRectMat3(
+       0, 0, float(surface->GetWidth(1)) / float(surface->GetWidthAligned(1)),
+       float(surface->GetHeight(1)) / float(surface->GetHeightAligned(1)));
+diff --git a/gfx/gl/GLBlitHelper.h b/gfx/gl/GLBlitHelper.h
+index 55ff8ccd7afc..15e25b6fd678 100644
+--- a/gfx/gl/GLBlitHelper.h
++++ b/gfx/gl/GLBlitHelper.h
+@@ -276,7 +276,8 @@ class GLBlitHelper final {
+ #ifdef MOZ_WIDGET_GTK
+   bool Blit(DMABufSurface* surface, const gfx::IntRect& destRect,
+             OriginPos destOrigin, const gfx::IntSize& fbSize = gfx::IntSize(),
+-            Maybe<gfxAlphaType> convertAlpha = {}) const;
++            Maybe<gfxAlphaType> convertAlpha = {},
++            bool aScaleSourceToDest = false) const;
+   bool BlitYCbCrImageToDMABuf(const layers::PlanarYCbCrData& yuvData,
+                               DMABufSurface* surface);
+ #endif
+diff --git a/gfx/layers/DMABUFSurfaceImage.cpp b/gfx/layers/DMABUFSurfaceImage.cpp
+index 3675921b5f11..a5271822b260 100644
+--- a/gfx/layers/DMABUFSurfaceImage.cpp
++++ b/gfx/layers/DMABUFSurfaceImage.cpp
+@@ -63,6 +63,14 @@ nsresult DMABUFSurfaceImage::BuildSurfaceDescriptorBuffer(
+   return Image::BuildSurfaceDescriptorBuffer(aSdBuffer, aFlags, aAllocate);
+ }
+ 
++nsresult DMABUFSurfaceImage::BuildSurfaceDescriptorBufferForSize(
++    SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
++    const gfx::IntSize& aSize,
++    const std::function<MemoryOrShmem(uint32_t)>& aAllocate) {
++  return mSurface->BuildSurfaceDescriptorBufferForSize(aSdBuffer, aFlags, aSize,
++                                                       aAllocate);
++}
++
+ TextureClient* DMABUFSurfaceImage::GetTextureClient(
+     KnowsCompositor* aKnowsCompositor) {
+   if (!mTextureClient) {
+diff --git a/gfx/layers/DMABUFSurfaceImage.h b/gfx/layers/DMABUFSurfaceImage.h
+index b08055f81f33..e38fd15427b6 100644
+--- a/gfx/layers/DMABUFSurfaceImage.h
++++ b/gfx/layers/DMABUFSurfaceImage.h
+@@ -25,6 +25,10 @@ class DMABUFSurfaceImage : public Image {
+   nsresult BuildSurfaceDescriptorBuffer(
+       SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
+       const std::function<MemoryOrShmem(uint32_t)>& aAllocate) override;
++  nsresult BuildSurfaceDescriptorBufferForSize(
++      SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
++      const gfx::IntSize& aSize,
++      const std::function<MemoryOrShmem(uint32_t)>& aAllocate) override;
+   TextureClient* GetTextureClient(KnowsCompositor* aKnowsCompositor) override;
+ 
+  private:
+diff --git a/gfx/layers/GPUVideoImage.h b/gfx/layers/GPUVideoImage.h
+index b95bc245f7e8..f8074247faec 100644
+--- a/gfx/layers/GPUVideoImage.h
++++ b/gfx/layers/GPUVideoImage.h
+@@ -26,6 +26,9 @@ class IGPUVideoSurfaceManager {
+ 
+   virtual already_AddRefed<gfx::SourceSurface> Readback(
+       const SurfaceDescriptorGPUVideo& aSD) = 0;
++  virtual already_AddRefed<gfx::SourceSurface> Readback(
++      const SurfaceDescriptorGPUVideo& aSD,
++      const gfx::IntSize& aReadbackSize) = 0;
+   virtual already_AddRefed<Image> TransferToImage(
+       const SurfaceDescriptorGPUVideo& aSD, const gfx::IntSize& aSize,
+       const gfx::ColorDepth& aColorDepth, gfx::YUVColorSpace aYUVColorSpace,
+@@ -103,6 +106,18 @@ class GPUVideoImage final : public Image {
+     return mManager->Readback(mSD);
+   }
+ 
++  already_AddRefed<gfx::SourceSurface> GetAsSourceSurface(
++      const gfx::IntSize& aReadbackSize) {
++    if (!mManager) {
++      return nullptr;
++    }
++    return mManager->Readback(mSD, aReadbackSize);
++  }
++
++  RemoteDecoderVideoType GetRemoteDecoderVideoType() const {
++    return mSD.get_SurfaceDescriptorRemoteDecoder().videoType();
++  }
++
+   TextureClient* GetTextureClient(KnowsCompositor* aKnowsCompositor) override {
+     MOZ_ASSERT(aKnowsCompositor == ImageBridgeChild::GetSingleton(),
+                "Must only use GPUVideo on ImageBridge");
+diff --git a/gfx/layers/ImageContainer.cpp b/gfx/layers/ImageContainer.cpp
+index fbc616bbbea7..491aaa68db64 100644
+--- a/gfx/layers/ImageContainer.cpp
++++ b/gfx/layers/ImageContainer.cpp
+@@ -276,6 +276,13 @@ nsresult Image::BuildSurfaceDescriptorBuffer(
+   return NS_OK;
+ }
+ 
++nsresult Image::BuildSurfaceDescriptorBufferForSize(
++    SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
++    const gfx::IntSize& aSize,
++    const std::function<MemoryOrShmem(uint32_t)>& aAllocate) {
++  return NS_ERROR_NOT_IMPLEMENTED;
++}
++
+ nsresult Image::BuildSurfaceDescriptorGPUVideoOrBuffer(
+     SurfaceDescriptor& aSd, BuildSdbFlags aFlags,
+     const Maybe<VideoBridgeSource>& aDest,
+diff --git a/gfx/layers/ImageContainer.h b/gfx/layers/ImageContainer.h
+index 731ff0e8d7ea..acfed71107b2 100644
+--- a/gfx/layers/ImageContainer.h
++++ b/gfx/layers/ImageContainer.h
+@@ -148,6 +148,10 @@ class Image {
+   virtual nsresult BuildSurfaceDescriptorBuffer(
+       SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
+       const std::function<MemoryOrShmem(uint32_t)>& aAllocate);
++  virtual nsresult BuildSurfaceDescriptorBufferForSize(
++      SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
++      const gfx::IntSize& aSize,
++      const std::function<MemoryOrShmem(uint32_t)>& aAllocate);
+ 
+   /**
+    * Get a SurfaceDescriptorGPUVideo if possible, with the source matching aDest
+diff --git a/gfx/webrender_bindings/src/bindings.rs b/gfx/webrender_bindings/src/bindings.rs
+index 340bc2abb103..22d7dfcc4ed3 100644
+--- a/gfx/webrender_bindings/src/bindings.rs
++++ b/gfx/webrender_bindings/src/bindings.rs
+@@ -1297,6 +1297,7 @@ fn placeholder_frame_builder_config() -> FrameBuilderConfig {
+         low_quality_pinch_zoom: false,
+         max_shared_surface_size: 4096,
+         enable_dithering: false,
++        enable_single_image_opacity: false,
+     }
+ }
+ 
+@@ -2346,6 +2347,7 @@ pub extern "C" fn wr_window_new(
+         max_shared_surface_size,
+         enable_dithering,
+         enable_shared_instance_buffer,
++        enable_single_image_opacity: static_prefs::pref!("gfx.webrender.single-image-opacity.enabled"),
+         ..Default::default()
+     };
+ 
+diff --git a/gfx/wr/webrender/res/composite.glsl b/gfx/wr/webrender/res/composite.glsl
+index f219dcdd6f56..b14ff7705f4c 100644
+--- a/gfx/wr/webrender/res/composite.glsl
++++ b/gfx/wr/webrender/res/composite.glsl
+@@ -225,6 +225,7 @@ void main(void) {
+ // TODO(gw): Do we need to support this on ESSL1?
+ #ifndef WR_FEATURE_TEXTURE_EXTERNAL_ESSL1
+ #ifndef WR_FEATURE_FAST_PATH
++#ifndef WR_FEATURE_NO_RECT_AA
+     // Apply compositor clip
+     float aa_range = compute_aa_range(vNormalizedDevicePos);
+ 
+@@ -240,6 +241,7 @@ void main(void) {
+     // Apply clip alpha
+     color *= clip_alpha;
+ #endif
++#endif
+ #endif
+ 
+     write_output(color);
+diff --git a/gfx/wr/webrender/src/composite.rs b/gfx/wr/webrender/src/composite.rs
+index 9d825ddee315..999aca914202 100644
+--- a/gfx/wr/webrender/src/composite.rs
++++ b/gfx/wr/webrender/src/composite.rs
+@@ -24,6 +24,11 @@ use crate::space::SpaceMapper;
+ use std::{ops, os::raw::c_void, hash};
+ use std::num::NonZeroUsize;
+ 
++#[cfg(feature = "replay")]
++fn white_modulation() -> api::PremultipliedColorF {
++    api::PremultipliedColorF::WHITE
++}
++
+ /*
+  Types and definitions related to compositing picture cache tiles
+  and/or OS compositor integration.
+@@ -130,6 +135,7 @@ bitflags! {
+         const NO_COLOR_MODULATION = 1 << 1;
+         // Can skip applying clip mask.
+         const NO_CLIP_MASK = 1 << 2;
++        const EXPERIMENTAL_NO_RECT_AA = 1 << 3;
+     }
+ }
+ 
+@@ -202,6 +208,7 @@ pub enum ExternalSurfaceDependency {
+     },
+     Rgb {
+         image_dependency: ImageDependency,
++        modulation: api::PremultipliedColorF,
+     },
+ }
+ 
+@@ -298,6 +305,8 @@ pub enum ResolvedExternalSurfaceColorData {
+     Rgb {
+         image_dependency: ImageDependency,
+         plane: ExternalPlaneDescriptor,
++        #[cfg_attr(feature = "replay", serde(default = "white_modulation"))]
++        modulation: api::PremultipliedColorF,
+     },
+ }
+ 
+@@ -536,6 +545,8 @@ pub struct CompositeSurfaceDescriptor {
+     // thing that has changed is the generation of an compositor surface
+     // image dependency.
+     pub image_dependencies: [ImageDependency; 3],
++    #[cfg_attr(feature = "replay", serde(default = "white_modulation"))]
++    pub modulation: api::PremultipliedColorF,
+     pub image_rendering: ImageRendering,
+     // List of the surface information for each tile added to this virtual surface
+     pub tile_descriptors: Vec<CompositeTileDescriptor>,
+@@ -977,6 +988,10 @@ impl CompositeState {
+                 clip_rect,
+                 transform: self.get_compositor_transform(external_surface.transform_index),
+                 image_dependencies: image_dependencies,
++                modulation: match external_surface.dependency {
++                    ExternalSurfaceDependency::Rgb { modulation, .. } => modulation,
++                    _ => api::PremultipliedColorF::WHITE,
++                },
+                 image_rendering: external_surface.image_rendering,
+                 tile_descriptors: Vec::new(),
+                 rounded_clip_rect,
+@@ -1022,6 +1037,7 @@ impl CompositeState {
+                     clip_rect: backdrop_surface.device_rect,
+                     transform: slice_transform,
+                     image_dependencies: [ImageDependency::INVALID; 3],
++                    modulation: api::PremultipliedColorF::WHITE,
+                     image_rendering,
+                     tile_descriptors: Vec::new(),
+                     rounded_clip_rect,
+@@ -1090,6 +1106,7 @@ impl CompositeState {
+                             clip_rect: surface_clip_rect,
+                             transform: slice_transform,
+                             image_dependencies: [ImageDependency::INVALID; 3],
++                            modulation: api::PremultipliedColorF::WHITE,
+                             image_rendering,
+                             tile_descriptors: sub_slice.opaque_tile_descriptors.clone(),
+                             rounded_clip_rect,
+@@ -1106,6 +1123,7 @@ impl CompositeState {
+                             clip_rect: surface_clip_rect,
+                             transform: slice_transform,
+                             image_dependencies: [ImageDependency::INVALID; 3],
++                            modulation: api::PremultipliedColorF::WHITE,
+                             image_rendering,
+                             tile_descriptors: sub_slice.alpha_tile_descriptors.clone(),
+                             rounded_clip_rect,
+@@ -1248,13 +1266,14 @@ impl CompositeState {
+                     external_image_id: external_surface.external_image_id,
+                 });
+             },
+-            ExternalSurfaceDependency::Rgb { .. } => {
++            ExternalSurfaceDependency::Rgb { modulation, .. } => {
+                 let image_buffer_kind = planes[0].texture.image_buffer_kind();
+ 
+                 self.external_surfaces.push(ResolvedExternalSurface {
+                     color_data: ResolvedExternalSurfaceColorData::Rgb {
+                         image_dependency: image_dependencies[0],
+                         plane: planes[0],
++                        modulation,
+                     },
+                     image_buffer_kind,
+                     update_params,
+diff --git a/gfx/wr/webrender/src/frame_builder.rs b/gfx/wr/webrender/src/frame_builder.rs
+index f9d22b99aa79..114f4e60521c 100644
+--- a/gfx/wr/webrender/src/frame_builder.rs
++++ b/gfx/wr/webrender/src/frame_builder.rs
+@@ -73,6 +73,8 @@ pub struct FrameBuilderConfig {
+     pub low_quality_pinch_zoom: bool,
+     pub max_shared_surface_size: i32,
+     pub enable_dithering: bool,
++    #[cfg_attr(feature = "replay", serde(default))]
++    pub enable_single_image_opacity: bool,
+ }
+ 
+ pub struct FrameScratchBuffer {
+diff --git a/gfx/wr/webrender/src/gpu_types.rs b/gfx/wr/webrender/src/gpu_types.rs
+index d67ee27a2769..0bbb0540ed11 100644
+--- a/gfx/wr/webrender/src/gpu_types.rs
++++ b/gfx/wr/webrender/src/gpu_types.rs
+@@ -229,6 +229,12 @@ pub struct PrimitiveInstanceData {
+     data: [i32; 4],
+ }
+ 
++impl PrimitiveInstanceData {
++    pub(crate) fn sampling_words(&self) -> [i32; 4] {
++        self.data
++    }
++}
++
+ // Keep these in sync with the corresponding #defines in shared.glsl
+ /// Specifies that an RGB CompositeInstance or ScalingInstance's UV coordinates are normalized.
+ const UV_TYPE_NORMALIZED: u32 = 0;
+@@ -267,6 +273,24 @@ pub struct CompositeInstance {
+ }
+ 
+ impl CompositeInstance {
++    pub(crate) fn sampling_bits(&self) -> [u32; 38] {
++        let uv0 = self.uv_rects[0].to_array();
++        let uv1 = self.uv_rects[1].to_array();
++        let uv2 = self.uv_rects[2].to_array();
++        [
++            self.rect.min.x, self.rect.min.y, self.rect.max.x, self.rect.max.y,
++            self.clip_rect.min.x, self.clip_rect.min.y, self.clip_rect.max.x, self.clip_rect.max.y,
++            self.color.r, self.color.g, self.color.b, self.color.a,
++            self._padding, self.color_space_or_uv_type, self.yuv_format, self.yuv_channel_bit_depth,
++            uv0[0], uv0[1], uv0[2], uv0[3], uv1[0], uv1[1], uv1[2], uv1[3],
++            uv2[0], uv2[1], uv2[2], uv2[3], self.flip.0, self.flip.1,
++            self.rounded_clip_rect.min.x, self.rounded_clip_rect.min.y,
++            self.rounded_clip_rect.max.x, self.rounded_clip_rect.max.y,
++            self.rounded_clip_radii[0], self.rounded_clip_radii[1],
++            self.rounded_clip_radii[2], self.rounded_clip_radii[3],
++        ].map(f32::to_bits)
++    }
++
+     pub fn new(
+         rect: DeviceRect,
+         clip_rect: DeviceRect,
+@@ -786,4 +810,3 @@ impl ImageSource {
+         }
+     }
+ }
+-
+diff --git a/gfx/wr/webrender/src/prepare.rs b/gfx/wr/webrender/src/prepare.rs
+index 813885c68aeb..dda83e5102c0 100644
+--- a/gfx/wr/webrender/src/prepare.rs
++++ b/gfx/wr/webrender/src/prepare.rs
+@@ -712,7 +712,7 @@ fn prepare_prim_for_render(
+ 
+             return;
+         }
+-        PrimitiveKind::Image { data_handle, .. } => {
++        PrimitiveKind::Image { data_handle, opacity } => {
+             tracy_rs::profile_scope!("Image");
+ 
+             let prim_data = &data_stores.image[*data_handle];
+@@ -746,6 +746,7 @@ fn prepare_prim_for_render(
+                 &prim_rect,
+                 common_data,
+                 image_data,
++                *opacity,
+                 &prim_info.clip_chain.local_coverage_rect,
+                 quad_clips,
+                 quad_transform,
+diff --git a/gfx/wr/webrender/src/prim_store/image.rs b/gfx/wr/webrender/src/prim_store/image.rs
+index 8be9115f7f44..88a705dd1232 100644
+--- a/gfx/wr/webrender/src/prim_store/image.rs
++++ b/gfx/wr/webrender/src/prim_store/image.rs
+@@ -171,6 +171,7 @@ pub fn prepare_image_quads(
+     prim_rect: &LayoutRect,
+     common_data: &PrimTemplateCommonData,
+     image_data: &ImageData,
++    opacity: f32,
+     coverage_rect: &LayoutRect,
+     clips: &QuadClipStack,
+     quad_transform: &mut QuadTransformState,
+@@ -187,8 +188,10 @@ pub fn prepare_image_quads(
+         return;
+     };
+ 
++    let color = ColorF { a: image_data.color.a * opacity, ..image_data.color };
+     let src_is_opaque = image_properties.descriptor.is_opaque()
+-        && image_data.color.a >= 0.9999;
++        && opacity >= 1.0
++        && color.a >= 0.9999;
+ 
+     let premultiplied = image_data.alpha_type == AlphaType::PremultipliedAlpha;
+ 
+@@ -343,7 +346,7 @@ pub fn prepare_image_quads(
+                 src_is_opaque,
+                 premultiplied,
+                 sampler_kind,
+-                color: image_data.color,
++                color,
+             };
+ 
+             let bounds = tight_clip_rect.intersection_unchecked(&prim_rect);
+@@ -456,7 +459,7 @@ pub fn prepare_image_quads(
+                         src_is_opaque,
+                         premultiplied,
+                         sampler_kind,
+-                        color: image_data.color,
++                        color,
+                     };
+ 
+                     quad::prepare_quad(
+@@ -531,6 +534,7 @@ impl InternablePrimitive for Image {
+     ) -> PrimitiveKind {
+         PrimitiveKind::Image {
+             data_handle,
++            opacity: 1.0,
+         }
+     }
+ }
+diff --git a/gfx/wr/webrender/src/prim_store/mod.rs b/gfx/wr/webrender/src/prim_store/mod.rs
+index 271ce89ed3f5..b049eee12745 100644
+--- a/gfx/wr/webrender/src/prim_store/mod.rs
++++ b/gfx/wr/webrender/src/prim_store/mod.rs
+@@ -238,6 +238,7 @@ pub enum PrimitiveKind {
+     Image {
+         /// Handle to the common interned data for this primitive.
+         data_handle: ImageDataHandle,
++        opacity: f32,
+     },
+     LinearGradient {
+         /// Handle to the common interned data for this primitive.
+@@ -911,4 +912,3 @@ fn test_struct_sizes() {
+     assert_eq!(mem::size_of::<PrimitiveInstance>(), 20, "PrimitiveInstance size changed");
+     assert_eq!(mem::size_of::<PrimitiveKind>(), 16, "PrimitiveKind size changed");
+ }
+-
+diff --git a/gfx/wr/webrender/src/renderer/composite.rs b/gfx/wr/webrender/src/renderer/composite.rs
+index 6d08e43a4d0a..c8a4aab0382e 100644
+--- a/gfx/wr/webrender/src/renderer/composite.rs
++++ b/gfx/wr/webrender/src/renderer/composite.rs
+@@ -182,13 +182,13 @@ impl Renderer {
+ 
+                     ( textures, instance )
+                 },
+-                ResolvedExternalSurfaceColorData::Rgb{ ref plane, .. } => {
++                ResolvedExternalSurfaceColorData::Rgb{ ref plane, modulation, .. } => {
+                     let textures = BatchTextures::composite_rgb(plane.texture);
+                     let uv_rect = self.texture_resolver.get_uv_rect(&textures.input.colors[0], plane.uv_rect);
+                     let instance = CompositeInstance::new_rgb(
+                         surface_rect.to_f32(),
+                         surface_rect.to_f32(),
+-                        PremultipliedColorF::WHITE,
++                        modulation,
+                         uv_rect,
+                         plane.texture.uses_normalized_uvs(),
+                         (false, false),
+@@ -241,6 +241,7 @@ impl Renderer {
+         external_surfaces: &[ResolvedExternalSurface],
+         projection: &default::Transform3D<f32>,
+         stats: &mut RendererStats,
++        sampling_blend: BlendMode,
+     ) {
+         let mut current_shader_params = (
+             CompositeSurfaceFormat::Rgba,
+@@ -351,18 +352,33 @@ impl Renderer {
+                                 ),
+                             )
+                         },
+-                        ResolvedExternalSurfaceColorData::Rgb { ref plane, .. } => {
++                        ResolvedExternalSurfaceColorData::Rgb { ref plane, modulation, .. } => {
+                             let uv_rect = self.texture_resolver.get_uv_rect(&plane.texture, plane.uv_rect);
+                             let instance = CompositeInstance::new_rgb(
+                                 tile_rect,
+                                 clip_rect,
+-                                PremultipliedColorF::WHITE,
++                                modulation,
+                                 uv_rect,
+                                 plane.texture.uses_normalized_uvs(),
+                                 flip,
+                                 clip,
+                             );
+-                            let features = instance.get_rgb_features();
++                            let mut features = instance.get_rgb_features();
++                            if modulation != PremultipliedColorF::WHITE
++                                && surface.image_buffer_kind == ImageBufferKind::Texture2D
++                                && matches!(self.compositor_config, CompositorConfig::Draw { .. })
++                                && !self.device.get_capabilities().renderer_name.starts_with("Software")
++                                && clip.is_none()
++                                && tile.clip_index.is_none()
++                                && features.contains(CompositeFeatures::NO_CLIP_MASK)
++                                && !tile_rect.is_empty()
++                                && !clip_rect.is_empty()
++                                && [tile_rect.min.x, tile_rect.min.y, tile_rect.max.x, tile_rect.max.y,
++                                    clip_rect.min.x, clip_rect.min.y, clip_rect.max.x, clip_rect.max.y]
++                                    .iter().all(|value| value.is_finite() && value.fract() == 0.0)
++                            {
++                                features |= CompositeFeatures::EXPERIMENTAL_NO_RECT_AA;
++                            }
+                             (
+                                 instance,
+                                 BatchTextures::composite_rgb(plane.texture),
+@@ -406,6 +422,10 @@ impl Renderer {
+                     &current_textures,
+                     stats,
+                 );
++                if current_shader_params.0 == CompositeSurfaceFormat::Rgba {
++                    self.sampling_composite_draw(&instances, &current_textures.input,
++                        current_shader_params.2, projection, sampling_blend, current_shader_params.3);
++                }
+ 
+                 instances.clear();
+             }
+@@ -413,6 +433,10 @@ impl Renderer {
+             current_textures = textures;
+ 
+             // Add instance to current batch
++            if shader_params.0 == CompositeSurfaceFormat::Rgba {
++                self.sampling_composite_input(&instance, &textures.input, shader_params.2,
++                    item.key.tile_index, tile);
++            }
+             instances.push(instance);
+         }
+ 
+@@ -438,6 +462,10 @@ impl Renderer {
+                 &current_textures,
+                 stats,
+             );
++            if current_shader_params.0 == CompositeSurfaceFormat::Rgba {
++                self.sampling_composite_draw(&instances, &current_textures.input,
++                    current_shader_params.2, projection, sampling_blend, current_shader_params.3);
++            }
+         }
+     }
+ 
+@@ -465,6 +493,7 @@ impl Renderer {
+         }
+ 
+         let clear_color = clear_color.to_array();
++        self.sampling_composite_pass(draw_target, clear_color, partial_present_mode.is_some());
+ 
+         self.device.begin_render_pass(&RenderPassDescriptor {
+             target: draw_target,
+@@ -486,6 +515,7 @@ impl Renderer {
+             // the empty scissor rect set) after calling eglSetDamageRegion with an
+             // empty damage region. So avoid clearing in that case. See bug 1709548.
+             if !dirty_rect.is_empty() && layer.occlusion.test(&dirty_rect) {
++                self.sampling_composite_clear(draw_target.to_framebuffer_rect(dirty_rect.to_i32()));
+                 // We have a single dirty rect, so clear only that
+                 self.device.clear_rect(
+                     draw_target.to_framebuffer_rect(dirty_rect.to_i32()),
+@@ -506,6 +536,7 @@ impl Renderer {
+                 &composite_state.external_surfaces,
+                 projection,
+                 &mut results.stats,
++                BlendMode::None,
+             );
+             self.gpu_profiler.finish_sampler(opaque_sampler);
+         }
+@@ -521,6 +552,7 @@ impl Renderer {
+                 &composite_state.external_surfaces,
+                 projection,
+                 &mut results.stats,
++                BlendMode::PremultipliedAlpha,
+             );
+             self.gpu_profiler.finish_sampler(transparent_sampler);
+         }
+diff --git a/gfx/wr/webrender/src/renderer/gpu_buffer.rs b/gfx/wr/webrender/src/renderer/gpu_buffer.rs
+index d916f0516ca1..6e56a1cf5280 100644
+--- a/gfx/wr/webrender/src/renderer/gpu_buffer.rs
++++ b/gfx/wr/webrender/src/renderer/gpu_buffer.rs
+@@ -700,6 +700,10 @@ pub struct GpuBuffer<T> {
+ }
+ 
+ impl GpuBuffer<GpuBufferBlockF> {
++    pub(crate) fn sampling_block(&self, index: usize) -> Option<[f32; 4]> {
++        self.data.get(index).map(|block| block.data)
++    }
++
+     /// Apply the uv rect copies deferred during `finalize`. Must be called after the
+     /// renderer has resolved external images into the gpu buffer.
+     pub fn apply_deferred_uv_copies(&mut self) {
+@@ -726,6 +730,12 @@ impl GpuBuffer<GpuBufferBlockF> {
+     }
+ }
+ 
++impl GpuBuffer<GpuBufferBlockI> {
++    pub(crate) fn sampling_block(&self, index: usize) -> Option<[i32; 4]> {
++        self.data.get(index).map(|block| block.data)
++    }
++}
++
+ impl<T> GpuBuffer<T> {
+     pub fn is_empty(&self) -> bool {
+         self.data.is_empty()
+diff --git a/gfx/wr/webrender/src/renderer/init.rs b/gfx/wr/webrender/src/renderer/init.rs
+index 367a2a13cb4b..65a169ebeab7 100644
+--- a/gfx/wr/webrender/src/renderer/init.rs
++++ b/gfx/wr/webrender/src/renderer/init.rs
+@@ -214,6 +214,7 @@ pub struct WebRenderOptions {
+     /// If true, stream instance data into large buffers shared by multiple
+     /// draws, rather than allocating a new instance buffer for each draw.
+     pub enable_shared_instance_buffer: bool,
++    pub enable_single_image_opacity: bool,
+     /// If true, we'll reject contexts backed by a software rasterizer, except
+     /// Software WebRender.
+     pub reject_software_rasterizer: bool,
+@@ -299,6 +300,7 @@ impl Default for WebRenderOptions {
+             // process by the vertex shaders.
+             enable_instancing: true,
+             enable_shared_instance_buffer: false,
++            enable_single_image_opacity: false,
+             reject_software_rasterizer: false,
+             low_quality_pinch_zoom: false,
+             max_shared_surface_size: 2048,
+@@ -592,6 +594,7 @@ pub fn create_webrender_instance(
+         low_quality_pinch_zoom: options.low_quality_pinch_zoom,
+         max_shared_surface_size: options.max_shared_surface_size,
+         enable_dithering: options.enable_dithering,
++        enable_single_image_opacity: options.enable_single_image_opacity,
+     };
+     info!("WR {:?}", config);
+ 
+@@ -766,6 +769,8 @@ pub fn create_webrender_instance(
+         debug_flags: DebugFlags::empty(),
+         profile: TransactionProfile::new(),
+         frame_counter: 0,
++        sampling_search: super::sampling::Search::default(),
++        sampling_trace: None,
+         resource_upload_time: 0.0,
+         profiler: Profiler::new(),
+         max_recorded_profiles: options.max_recorded_profiles,
+diff --git a/gfx/wr/webrender/src/renderer/mod.rs b/gfx/wr/webrender/src/renderer/mod.rs
+index e740dfa328b9..b93b6b64f5dd 100644
+--- a/gfx/wr/webrender/src/renderer/mod.rs
++++ b/gfx/wr/webrender/src/renderer/mod.rs
+@@ -117,6 +117,7 @@ mod composite;
+ mod debug;
+ mod external_image;
+ mod gpu_buffer;
++mod sampling;
+ mod shade;
+ mod vertex;
+ mod upload;
+@@ -733,6 +734,8 @@ pub struct Renderer {
+     debug_flags: DebugFlags,
+     profile: TransactionProfile,
+     frame_counter: u64,
++    sampling_search: sampling::Search,
++    sampling_trace: Option<sampling::Trace>,
+     resource_upload_time: f64,
+     profiler: Profiler,
+     command_log: Option<RenderCommandLog>,
+@@ -1723,12 +1726,19 @@ impl Renderer {
+         // rects into the quad segment blocks that reference them.
+         frame.gpu_buffer_f.apply_deferred_uv_copies();
+ 
++        if self.debug_flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING)
++            && thread_is_being_profiled() && frame.present && !frame.has_been_rendered
++        {
++            self.begin_sampling_trace(frame, &format_args!("{:?}", doc_id), cpu_frame_id);
++        }
++
+         self.draw_frame(
+             frame,
+             device_size,
+             buffer_age,
+             &mut results,
+         );
++        self.finish_sampling_trace();
+ 
+         // TODO(nical): do this automatically by selecting counters in the wr profiler
+         // Profile marker for the number of invalidated picture cache
+@@ -1843,6 +1853,17 @@ impl Renderer {
+             let duration = Duration::new(0,0);
+             let message = (self.profile.get_or(profiler::DRAW_CALLS, 0.0) as usize).to_string();
+             add_text_marker("NumDrawCalls", &message, duration);
++            if self.debug_flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING) {
++                let message = format!(
++                    "renderer_frame={} overlays={} underlays={} blits={} picture_tiles={}",
++                    self.frame_counter,
++                    self.profile.get_or(profiler::COMPOSITOR_SURFACE_OVERLAYS, 0.0) as usize,
++                    self.profile.get_or(profiler::COMPOSITOR_SURFACE_UNDERLAYS, 0.0) as usize,
++                    self.profile.get_or(profiler::COMPOSITOR_SURFACE_BLITS, 0.0) as usize,
++                    self.profile.get_or(profiler::RENDERED_PICTURE_TILES, 0.0) as usize,
++                );
++                add_text_marker("WR promotion counters", &message, duration);
++            }
+         }
+ 
+         let report = self.texture_resolver.report_memory();
+@@ -2526,6 +2547,7 @@ impl Renderer {
+                         &texture_bindings,
+                         stats,
+                     );
++                    self.sampling_quad_draw(pattern, prim_instances, texture_set, projection, BlendMode::None, None);
+                 }
+             }
+ 
+@@ -2561,6 +2583,8 @@ impl Renderer {
+                             &texture_bindings,
+                             stats,
+                         );
++                        self.sampling_quad_draw(*pattern, prim_instances, texture_set, projection,
++                            BlendMode::PremultipliedAlpha, Some(draw_target.to_framebuffer_rect(*scissor_rect)));
+                     }
+                 }
+ 
+@@ -3018,6 +3042,25 @@ impl Renderer {
+         }
+ 
+         self.profile.inc(profiler::RENDERED_PICTURE_TILES);
++        let profiled_target = if self.debug_flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING)
++            && thread_is_being_profiled()
++        {
++            let ordinal = self.profile.get_or(profiler::RENDERED_PICTURE_TILES, 0.0) as usize;
++            if ordinal <= 64 {
++                Some((std::time::Instant::now(), stats.total_draw_calls, ordinal))
++            } else {
++                if ordinal == 65 {
++                    add_text_marker(
++                        "WR picture target truncated",
++                        &format!("renderer_frame={} limit=64", self.frame_counter),
++                        Duration::ZERO,
++                    );
++                }
++                None
++            }
++        } else {
++            None
++        };
+         let _gm = self.gpu_profiler.start_marker("picture cache target");
+         let framebuffer_kind = FramebufferKind::Other;
+ 
+@@ -3038,6 +3081,14 @@ impl Renderer {
+             // of the whole target is the pass's load op; one restricted to the
+             // dirty rect is issued once the pass has begun.
+             let full_clear = scissor_rect.is_none();
++            if let ResolvedSurfaceTexture::TextureCache { texture } = target.surface {
++                self.sampling_target(texture, target.clear_color, Some(target.dirty_rect), draw_target);
++                self.sampling_clear(
++                    if clear_color.is_some() && full_clear { "Clear" } else { "DontCare" },
++                    scissor_rect.map(|rect| draw_target.build_scissor_rect(Some(rect))),
++                    false, scissor_rect.is_some() && self.clear_caches_with_quads,
++                );
++            }
+             self.device.begin_render_pass(&RenderPassDescriptor {
+                 target: draw_target,
+                 render_area: Some(target.dirty_rect),
+@@ -3142,6 +3193,24 @@ impl Renderer {
+         }
+ 
+         self.device.end_render_pass(StoreOp::Discard);
++        if let Some((start, draw_calls, ordinal)) = profiled_target {
++            let duration = start.elapsed();
++            let scissored = self.device.get_capabilities().supports_render_target_partial_update
++                && (target.dirty_rect != target.valid_rect
++                    || self.device.get_capabilities().prefers_clear_scissor);
++            let kind = match target.kind {
++                PictureCacheTargetKind::Draw { .. } => "Draw",
++                PictureCacheTargetKind::Blit { .. } => "Blit",
++            };
++            let message = format!(
++                "renderer_frame={} ordinal={} kind={} dimensions={:?} offset={:?} dirty={:?} valid={:?} scissored={} color_clear={} depth_clear=true clear_with_quads={} draw_calls={}",
++                self.frame_counter, ordinal, kind, draw_target.dimensions(), draw_target.offset(),
++                target.dirty_rect, target.valid_rect, scissored, target.clear_color.is_some(),
++                scissored && self.clear_caches_with_quads,
++                stats.total_draw_calls - draw_calls,
++            );
++            add_text_marker("WR picture target", &message, duration);
++        }
+     }
+ 
+     /// Draw an alpha batch container into a given draw target. This is used
+@@ -3196,6 +3265,10 @@ impl Renderer {
+                         &batch.key.textures,
+                         stats
+                     );
++                    if let BatchKind::Quad(pattern) = batch.key.kind {
++                        self.sampling_quad_draw(pattern, &batch.instances, &batch.key.textures.input,
++                            projection, BlendMode::None, scissor_rect);
++                    }
+                 }
+ 
+             self.device.set_depth_write(false);
+@@ -3264,6 +3337,10 @@ impl Renderer {
+                     &batch.key.textures,
+                     stats
+                 );
++                if let BatchKind::Quad(pattern) = batch.key.kind {
++                    self.sampling_quad_draw(pattern, &batch.instances, &batch.key.textures.input,
++                        projection, batch.key.blend_mode, scissor_rect);
++                }
+             }
+ 
+             self.set_blend_mode(BlendMode::None, framebuffer_kind);
+@@ -3510,6 +3587,12 @@ impl Renderer {
+ 
+         let clear = self.plan_render_target_clear(target, draw_target);
+ 
++        self.sampling_target(TextureSource::TextureCache(texture_id, Swizzle::default()),
++            target.clear_color, target.used_rect, draw_target);
++        self.sampling_clear(match clear.color_load {
++            LoadOp::Clear(_) => "Clear", LoadOp::Load => "Load", LoadOp::DontCare => "DontCare",
++        }, clear.rect.map(|(rect, _, _)| rect), clear.precise, clear.with_quads);
++
+         {
+             let _timer = self.gpu_profiler.start_timer(GPU_TAG_SETUP_TARGET);
+ 
+@@ -3927,6 +4010,419 @@ impl Renderer {
+         }
+     }
+ 
++    fn sampling_active(&self) -> bool {
++        self.sampling_trace.as_ref().is_some_and(|trace| trace.failure.is_none())
++            && self.debug_flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING)
++            && thread_is_being_profiled()
++    }
++
++    fn sampling_inspect(&mut self) -> bool {
++        self.sampling_active() && self.sampling_trace.as_mut().unwrap().inspect()
++    }
++
++    fn sampling_marker(trace: &mut sampling::Trace, event: &str, args: std::fmt::Arguments<'_>) {
++        if let Some(text) = trace.record(event, args) {
++            add_text_marker("WR sampling operands", &text, Duration::ZERO);
++        }
++    }
++
++    fn sampling_task_source(task: &RenderTask) -> Option<TextureSource> {
++        use crate::render_task::{RenderTaskLocation, StaticRenderTaskSurface};
++        match &task.location {
++            RenderTaskLocation::Dynamic { texture_id, .. } =>
++                Some(TextureSource::TextureCache(*texture_id, Swizzle::default())),
++            RenderTaskLocation::Static { surface, .. } => match surface {
++                StaticRenderTaskSurface::ReadOnly { source } => Some(*source),
++                StaticRenderTaskSurface::TextureCache { texture, .. } =>
++                    Some(TextureSource::TextureCache(*texture, Swizzle::default())),
++                StaticRenderTaskSurface::PictureCache { surface: ResolvedSurfaceTexture::TextureCache { texture } } => Some(*texture),
++                _ => None,
++            },
++            _ => None,
++        }
++    }
++
++    fn begin_sampling_trace(&mut self, frame: &Frame, document: &std::fmt::Arguments<'_>, submission: GpuFrameId) {
++        use crate::composite::ResolvedExternalSurfaceColorData;
++        let mut selected = None;
++        let resolver = &self.texture_resolver;
++        let is_rgb = |source| {
++            let format = match source {
++                TextureSource::TextureCache(id, _) => resolver.texture_cache_map.get(&id)
++                    .map(|entry| entry.texture.get_format()),
++                TextureSource::External(external) => frame.deferred_resolves.get(external.index.0 as usize)
++                    .map(|resolve| resolve.image_properties.descriptor.format),
++                _ => None,
++            };
++            matches!(format, Some(ImageFormat::RGBA8 | ImageFormat::BGRA8))
++        };
++        let selection = self.sampling_search.select(
++            self.debug_flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING),
++            thread_is_being_profiled(), || {
++            if frame.render_tasks.tasks.len() > 512 || frame.deferred_resolves.len() > 64
++                || frame.composite_state.external_surfaces.len() > 64 {
++                return sampling::SourceMatch::Limit;
++            }
++            let mut accept = |source, key| {
++                match selected {
++                    Some(previous) if previous != (source, key) => false,
++                    _ => { selected = Some((source, key)); true }
++                }
++            };
++            for task in &frame.render_tasks.tasks {
++                if let RenderTaskKind::Image(image) = &task.kind {
++                    if let Some(source) = Self::sampling_task_source(task) {
++                        if is_rgb(source) && task.get_target_rect().size() == DeviceIntSize::new(320, 180)
++                            && !accept(source, image.request.key) {
++                            return sampling::SourceMatch::Ambiguous;
++                        }
++                    }
++                }
++            }
++            for surface in &frame.composite_state.external_surfaces {
++                if let ResolvedExternalSurfaceColorData::Rgb { plane, image_dependency, .. } = &surface.color_data {
++                    let size = match plane.texture {
++                        TextureSource::External(external) => frame.deferred_resolves
++                            .get(external.index.0 as usize).map(|resolve| resolve.image_properties.descriptor.size),
++                        TextureSource::TextureCache(..) => Some((plane.uv_rect.uv1 - plane.uv_rect.uv0).abs().to_size().to_i32()),
++                        _ => None,
++                    };
++                    if is_rgb(plane.texture) && size == Some(DeviceIntSize::new(320, 180)) && !accept(plane.texture, image_dependency.key) {
++                        return sampling::SourceMatch::Ambiguous;
++                    }
++                }
++            }
++            if selected.is_some() { sampling::SourceMatch::Unique } else { sampling::SourceMatch::Absent }
++        });
++        match selection {
++            sampling::Selection::Idle => return,
++            sampling::Selection::Incomplete(reason) => {
++                add_text_marker("WR sampling operands", &format!(
++                    "{{\"schema\":1,\"submission\":\"{}:{}:{:?}\",\"event\":\"incomplete\",\"reason\":\"{}\"}}",
++                    document, self.frame_counter, submission, reason), Duration::ZERO);
++                return;
++            }
++            sampling::Selection::Begin => {}
++        }
++        let Some((source, key)) = selected else { return; };
++        let mut trace = sampling::Trace::new(format!("{}:{}:{:?}", document, self.frame_counter, submission));
++        Self::sampling_marker(&mut trace, "begin", format_args!(
++            "\"source\":\"{:?}\",\"key\":\"{:?}\",\"gpu_texture_size\":null,\"sampler_weights\":null,\"intermediate_texels\":null,\"submission_is_gpu_completion\":false",
++            source, key));
++        trace.reached_sources.push(format!("{:?}", source));
++        self.sampling_trace = Some(trace);
++        if !matches!(self.compositor_config, CompositorConfig::Draw { .. }) {
++            self.sampling_trace.as_mut().unwrap().fail("unsupported-native-compositor");
++            return;
++        }
++        self.sampling_texture_metadata(source, Some(frame));
++        for (index, surface) in frame.composite_state.external_surfaces.iter().enumerate() {
++            if !self.sampling_active() { return; }
++            if let ResolvedExternalSurfaceColorData::Rgb { plane, image_dependency, modulation } = &surface.color_data {
++                let trace = self.sampling_trace.as_mut().unwrap();
++                Self::sampling_marker(trace, "external-surface", format_args!(
++                    "\"id\":{},\"source\":\"{:?}\",\"key\":\"{:?}\",\"generation\":\"{:?}\",\"producer_uv_bits\":{:?},\"modulation_bits\":{:?}",
++                    index, plane.texture, image_dependency.key, image_dependency.generation,
++                    plane.uv_rect.to_array().map(f32::to_bits),
++                    [modulation.r, modulation.g, modulation.b, modulation.a].map(f32::to_bits)));
++            }
++        }
++        if frame.render_tasks.tasks.len() > sampling::MAX_TASKS {
++            self.sampling_trace.as_mut().unwrap().fail("task-limit");
++            return;
++        }
++        for (index, task) in frame.render_tasks.tasks.iter().enumerate() {
++            if !self.sampling_active() { return; }
++            let Some(data) = frame.render_tasks.task_data.get(index) else {
++                self.sampling_trace.as_mut().unwrap().fail("missing-task-data");
++                return;
++            };
++            let trace = self.sampling_trace.as_mut().unwrap();
++            trace.budget.tasks += 1;
++            trace.task_sources.push(format!("{:?}", Self::sampling_task_source(task).unwrap_or(TextureSource::Invalid)));
++            let uv_bits = match task.uv_rect_kind {
++                crate::gpu_types::UvRectKind::Rect => None,
++                crate::gpu_types::UvRectKind::Quad { top_left, top_right, bottom_left, bottom_right } =>
++                    Some([top_left, top_right, bottom_left, bottom_right]
++                        .map(|vector| [vector.x, vector.y, vector.z, vector.w].map(f32::to_bits))),
++            };
++            Self::sampling_marker(trace, "task", format_args!(
++                "\"id\":{},\"kind\":\"{}\",\"source\":\"{:?}\",\"bits\":{:?},\"uv_quad_bits\":{}",
++                index, task.kind.as_str(), Self::sampling_task_source(task).unwrap_or(TextureSource::Invalid),
++                data.data.map(f32::to_bits), sampling::OptionalArray(uv_bits)));
++        }
++        for pass in &frame.passes {
++            if !self.sampling_inspect() { return; }
++            for target in pass.color.targets.iter().chain(pass.alpha.targets.iter()).chain(pass.texture_cache.values()) {
++                if !self.sampling_inspect() { return; }
++                if !target.blits.is_empty() || !target.resolve_ops.is_empty() {
++                    self.sampling_trace.as_mut().unwrap().fail("untraced-target-blit-or-resolve"); return;
++                }
++                for batches in &target.alpha_batch_containers {
++                    if !self.sampling_inspect() { return; }
++                    self.snapshot_sampling_batches(frame, batches);
++                }
++                for (pattern, groups) in target.prim_instances.iter().enumerate() {
++                    if !self.sampling_inspect() { return; }
++                    if Self::sampling_rgb_pattern(PatternKind::from_u32(pattern as u32)) {
++                        for (textures, instances) in groups {
++                            if !self.sampling_inspect() { return; }
++                            self.snapshot_sampling_quads(frame, instances, textures);
++                        }
++                    }
++                }
++                for ((_, pattern), groups) in &target.prim_instances_with_scissor {
++                    if !self.sampling_inspect() { return; }
++                    if Self::sampling_rgb_pattern(*pattern) {
++                        for (textures, instances) in groups {
++                            if !self.sampling_inspect() { return; }
++                            self.snapshot_sampling_quads(frame, instances, textures);
++                        }
++                    }
++                }
++            }
++            for target in &pass.picture_cache {
++                if !self.sampling_inspect() { return; }
++                if let PictureCacheTargetKind::Draw { alpha_batch_container } = &target.kind {
++                    self.snapshot_sampling_batches(frame, alpha_batch_container);
++                } else {
++                    self.sampling_trace.as_mut().unwrap().fail("untraced-picture-blit"); return;
++                }
++            }
++        }
++    }
++
++    fn sampling_rgb_pattern(pattern: PatternKind) -> bool {
++        matches!(pattern, PatternKind::ColorOrTexture | PatternKind::TextureExternal
++            | PatternKind::TextureExternalBT709 | PatternKind::TextureRect)
++    }
++
++    fn snapshot_sampling_batches(&mut self, frame: &Frame, batches: &AlphaBatchContainer) {
++        for batch in batches.opaque_batches.iter().chain(batches.alpha_batches.iter()) {
++            if !self.sampling_inspect() { return; }
++            if let BatchKind::Quad(pattern) = batch.key.kind {
++                if Self::sampling_rgb_pattern(pattern) {
++                    self.snapshot_sampling_quads(frame, &batch.instances, &batch.key.textures.input);
++                }
++            }
++        }
++    }
++
++    fn snapshot_sampling_quads(&mut self, frame: &Frame, instances: &[PrimitiveInstanceData], textures: &TextureSet) {
++        if !self.sampling_active() { return; }
++        for source in textures.colors { self.sampling_texture_metadata(source, Some(frame)); }
++        let trace = self.sampling_trace.as_mut().unwrap();
++        if trace.failure.is_some() { return; }
++        if instances.len() > sampling::MAX_QUADS { trace.fail("quad-limit"); return; }
++        let binding = format!("{:?}", textures);
++        for instance in instances {
++            let words = instance.sampling_words();
++            let Some((id, fresh)) = trace.register_quad(words, &binding) else { return; };
++            if !fresh { continue; }
++            let Some(blocks) = sampling::decode_quad(words, frame.gpu_buffer_i.data.len(),
++                frame.gpu_buffer_f.data.len(), frame.render_tasks.task_data.len()) else {
++                trace.fail("invalid-quad-address"); return;
++            };
++            let count = if blocks.segment.is_some() { 7 } else { 5 };
++            if !sampling::Budget::take(&mut trace.budget.blocks, 1 + count + 8 + 2, sampling::MAX_BLOCKS)
++                || !sampling::Budget::take(&mut trace.budget.transforms, 1, sampling::MAX_TRANSFORMS) {
++                trace.fail("block-or-transform-limit"); return;
++            }
++            let Some(header) = frame.gpu_buffer_i.sampling_block(blocks.header) else {
++                trace.fail("missing-header"); return;
++            };
++            let index = crate::transform::GpuTransformId(header[0] as u32).sampling_index();
++            let Some(transform) = frame.transform_palette.get(index) else {
++                trace.fail("invalid-transform"); return;
++            };
++            let mut floats = [[0u32; 4]; 7];
++            for (index, address) in blocks.primitive.chain(blocks.segment.into_iter().flatten()).enumerate() {
++                let Some(data) = frame.gpu_buffer_f.sampling_block(address) else {
++                    trace.fail("missing-float-block"); return;
++                };
++                floats[index] = data.map(f32::to_bits);
++            }
++            Self::sampling_marker(trace, "quad-input", format_args!(
++                "\"id\":{},\"words\":{:?},\"binding\":\"{}\",\"sources\":[\"{:?}\",\"{:?}\",\"{:?}\"],\"header\":{:?},\"bits\":{:?},\"transform_id\":{},\"transform_bits\":{:?}",
++                id, words, binding, textures.colors[0], textures.colors[1], textures.colors[2],
++                header, &floats[..count], index, transform.sampling_bits()));
++        }
++    }
++
++    fn sampling_quad_draw(&mut self, pattern: PatternKind, instances: &[PrimitiveInstanceData],
++        textures: &TextureSet, projection: &default::Transform3D<f32>, blend: BlendMode,
++        scissor: Option<FramebufferIntRect>) {
++        if !self.sampling_active() || !Self::sampling_rgb_pattern(pattern) { return; }
++        let trace = self.sampling_trace.as_mut().unwrap();
++        if trace.failure.is_some() { return; }
++        let binding = format!("{:?}", textures);
++        for instance in instances {
++            let Some(id) = trace.emit_quad(instance.sampling_words(), &binding) else { return; };
++            trace.link_quad(&textures.colors.map(|source| format!("{:?}", source)), instance.sampling_words()[3] as usize);
++            let (pass, target, draw) = (trace.pass, trace.target, trace.draws);
++            Self::sampling_marker(trace, "quad-draw", format_args!(
++                "\"id\":{},\"pass\":{},\"target\":{},\"draw\":{},\"pattern\":\"{:?}\",\"blend\":\"{:?}\",\"framebuffer_scissor\":{},\"projection_bits\":{:?}",
++                id, pass, target, draw, pattern, blend,
++                sampling::OptionalArray(scissor.map(|rect| [rect.min.x, rect.min.y, rect.max.x, rect.max.y])),
++                projection.to_array().map(f32::to_bits)));
++        }
++    }
++
++    fn sampling_texture_metadata(&mut self, source: TextureSource, frame: Option<&Frame>) {
++        if !self.sampling_active() { return; }
++        let trace = self.sampling_trace.as_mut().unwrap();
++        if trace.failure.is_some() { return; }
++        let token = format!("{:?}", source);
++        if trace.textures.contains(&token) { return; }
++        if trace.textures.len() == sampling::MAX_TASKS { trace.fail("texture-limit"); return; }
++        trace.textures.push(token);
++        match source {
++            TextureSource::TextureCache(id, _) => {
++                let Some(cache) = self.texture_resolver.texture_cache_map.get(&id) else {
++                    trace.fail("missing-cached-texture"); return;
++                };
++                let texture = &cache.texture;
++                Self::sampling_marker(trace, "texture", format_args!(
++                    "\"source\":\"{:?}\",\"provenance\":\"cpu-allocation\",\"size\":[{},{}],\"format\":\"{:?}\",\"filter\":\"{:?}\",\"kind\":\"{:?}\"",
++                    source, texture.get_dimensions().width, texture.get_dimensions().height,
++                    texture.get_format(), texture.get_filter(), texture.get_target()));
++            }
++            TextureSource::External(external) => {
++                let Some(texture) = self.texture_resolver.external_images.get(&external.index) else {
++                    trace.fail("missing-external-resolution"); return;
++                };
++                Self::sampling_marker(trace, "texture", format_args!(
++                    "\"source\":\"{:?}\",\"provenance\":\"resolved-cpu-wrapper\",\"uv_bits\":{:?},\"normalized\":{},\"allocation_size\":null,\"format\":null,\"sampler_state\":null",
++                    source, texture.get_uv_rect().to_array().map(f32::to_bits), external.normalized_uvs));
++                if let Some(resolve) = frame.and_then(|frame| frame.deferred_resolves.get(external.index.0 as usize)) {
++                    let descriptor = &resolve.image_properties.descriptor;
++                    Self::sampling_marker(trace, "descriptor", format_args!(
++                        "\"source\":\"{:?}\",\"provenance\":\"producer-descriptor\",\"size\":[{},{}],\"format\":\"{:?}\",\"rendering\":\"{:?}\",\"composited\":{}",
++                        source, descriptor.size.width, descriptor.size.height, descriptor.format,
++                        resolve.rendering, resolve.is_composited));
++                }
++            }
++            TextureSource::Dummy => Self::sampling_marker(trace, "texture", format_args!(
++                "\"source\":\"Dummy\",\"provenance\":\"constant\",\"size\":[1,1]")),
++            TextureSource::Invalid => {}
++        }
++    }
++
++    fn sampling_composite_input(&mut self, instance: &crate::gpu_types::CompositeInstance,
++        textures: &TextureSet, features: crate::composite::CompositeFeatures,
++        tile_index: usize, tile: &crate::composite::CompositeTile) {
++        if !self.sampling_active() { return; }
++        let trace = self.sampling_trace.as_mut().unwrap();
++        let binding = format!("{:?}", textures);
++        let Some(id) = trace.register_composite(instance.sampling_bits(), &binding, features.bits() as u32) else { return; };
++        let (surface_kind, surface_index) = match tile.surface {
++            crate::composite::CompositeTileSurface::Color { .. } => ("color", None),
++            crate::composite::CompositeTileSurface::Texture { .. } => ("texture", None),
++            crate::composite::CompositeTileSurface::ExternalSurface { external_surface_index } =>
++                ("external", Some([external_surface_index.0])),
++        };
++        Self::sampling_marker(trace, "composite-input", format_args!(
++            "\"id\":{},\"tile_index\":{},\"tile_id\":\"{:?}\",\"surface_kind\":\"{}\",\"external_surface\":{},\"binding\":\"{}\",\"sources\":[\"{:?}\",\"{:?}\",\"{:?}\"],\"features\":{},\"bits\":{:?}",
++            id, tile_index, tile.tile_id, surface_kind, sampling::OptionalArray(surface_index), binding,
++            textures.colors[0], textures.colors[1], textures.colors[2], features.bits(), instance.sampling_bits()));
++    }
++
++    fn sampling_composite_draw(&mut self, instances: &[crate::gpu_types::CompositeInstance],
++        textures: &TextureSet, features: crate::composite::CompositeFeatures,
++        projection: &default::Transform3D<f32>, blend: BlendMode, texture_size: Option<DeviceSize>) {
++        if !self.sampling_active() { return; }
++        for source in textures.colors { self.sampling_texture_metadata(source, None); }
++        let trace = self.sampling_trace.as_mut().unwrap();
++        if trace.failure.is_some() { return; }
++        if instances.len() > sampling::MAX_COMPOSITES {
++            trace.fail("composite-limit"); return;
++        }
++        let binding = format!("{:?}", textures);
++        trace.primary_emitted |= textures.colors.iter()
++            .any(|source| trace.reached_sources.contains(&format!("{:?}", source)));
++        for instance in instances {
++            let Some(id) = trace.emit_composite(instance.sampling_bits(), &binding, features.bits() as u32) else { return; };
++            let pass = trace.composition_passes;
++            if pass == 0 { trace.fail("missing-composite-pass"); return; }
++            Self::sampling_marker(trace, "composite-draw", format_args!(
++                "\"id\":{},\"composition_pass\":{},\"binding\":\"{}\",\"features\":{},\"bits\":{:?},\"blend\":\"{:?}\",\"texture_size_uniform_bits\":{},\"projection_bits\":{:?}",
++                id, pass, binding, features.bits(), instance.sampling_bits(), blend,
++                sampling::OptionalArray(texture_size.map(|size| [size.width.to_bits(), size.height.to_bits()])),
++                projection.to_array().map(f32::to_bits)));
++        }
++    }
++
++    fn sampling_composite_pass(&mut self, draw_target: DrawTarget, clear_color: [f32; 4], partial: bool) {
++        if !self.sampling_active() { return; }
++        let trace = self.sampling_trace.as_mut().unwrap();
++        if !sampling::Budget::take(&mut trace.budget.tasks, 1, sampling::MAX_TASKS) {
++            trace.fail("task-target-limit"); return;
++        }
++        trace.composition_passes += 1;
++        let pass = trace.composition_passes;
++        Self::sampling_marker(trace, "composite-pass", format_args!(
++            "\"id\":{},\"draw_size\":[{},{}],\"draw_offset\":[{},{}],\"clear_bits\":{:?},\"color_load\":\"{}\",\"format\":null,\"provenance\":\"cpu-draw-target\"",
++            pass, draw_target.dimensions().width, draw_target.dimensions().height,
++            draw_target.offset().x, draw_target.offset().y, clear_color.map(f32::to_bits), if partial { "Load" } else { "Clear" }));
++    }
++
++    fn sampling_composite_clear(&mut self, rect: FramebufferIntRect) {
++        if !self.sampling_active() { return; }
++        let trace = self.sampling_trace.as_mut().unwrap();
++        let pass = trace.composition_passes;
++        Self::sampling_marker(trace, "composite-clear", format_args!(
++            "\"composition_pass\":{},\"framebuffer_clear_rect\":{:?}", pass,
++            [rect.min.x, rect.min.y, rect.max.x, rect.max.y]));
++    }
++
++    fn sampling_target(&mut self, texture: TextureSource, clear: Option<ColorF>, render_area: Option<DeviceIntRect>, draw_target: DrawTarget) {
++        if !self.sampling_active() { return; }
++        let trace = self.sampling_trace.as_mut().unwrap();
++        if trace.failure.is_some() { return; }
++        if !sampling::Budget::take(&mut trace.budget.tasks, 1, sampling::MAX_TASKS) {
++            trace.fail("task-target-limit"); return;
++        }
++        trace.target += 1;
++        trace.target_source = Some(format!("{:?}", texture));
++        if matches!(texture, TextureSource::External(..)) {
++            trace.fail("external-render-target"); return;
++        }
++        let Some((allocation, swizzle)) = self.texture_resolver.resolve(&texture) else {
++            trace.fail("unknown-target-allocation"); return;
++        };
++        let (target, pass) = (trace.target, trace.pass);
++        Self::sampling_marker(trace, "target", format_args!(
++            "\"id\":{},\"pass\":{},\"source\":\"{:?}\",\"size\":[{},{}],\"format\":\"{:?}\",\"filter\":\"{:?}\",\"swizzle\":\"{:?}\",\"clear_bits\":{},\"render_area\":{},\"draw_size\":[{},{}],\"draw_offset\":[{},{}],\"provenance\":\"cpu-allocation\"",
++            target, pass, texture, allocation.get_dimensions().width, allocation.get_dimensions().height,
++            allocation.get_format(), allocation.get_filter(), swizzle,
++            sampling::OptionalArray(clear.map(|color| color.to_array().map(f32::to_bits))),
++            sampling::OptionalArray(render_area.map(|rect| [rect.min.x, rect.min.y, rect.max.x, rect.max.y])),
++            draw_target.dimensions().width, draw_target.dimensions().height,
++            draw_target.offset().x, draw_target.offset().y));
++    }
++
++    fn sampling_clear(&mut self, color_load: &str, rect: Option<FramebufferIntRect>, precise: bool, with_quads: bool) {
++        if !self.sampling_active() { return; }
++        let trace = self.sampling_trace.as_mut().unwrap();
++        let target = trace.target;
++        Self::sampling_marker(trace, "clear", format_args!(
++            "\"target\":{},\"color_load\":\"{}\",\"framebuffer_clear_rect\":{},\"precise\":{},\"with_quads\":{}",
++            target, color_load, sampling::OptionalArray(rect.map(|rect| [rect.min.x, rect.min.y, rect.max.x, rect.max.y])), precise, with_quads));
++        if precise { trace.fail("untraced-precise-clear-rects"); }
++    }
++
++    fn finish_sampling_trace(&mut self) {
++        if let Some(trace) = self.sampling_trace.take() {
++            if self.debug_flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING) && thread_is_being_profiled() {
++                let reason = trace.finish_reason();
++                add_text_marker("WR sampling operands", &format!(
++                    "{{\"schema\":1,\"submission\":\"{}\",\"event\":\"{}\",\"reason\":\"{}\",\"quad_inputs\":{},\"quad_draws\":{},\"composite_draws\":{},\"gpu_values\":\"unknown\"}}",
++                    trace.identity, if reason.is_some() { "incomplete" } else { "end" }, reason.unwrap_or(""),
++                    trace.quads.len(), trace.draws, trace.budget.composites), Duration::ZERO);
++            }
++        }
++    }
++
+     fn draw_frame(
+         &mut self,
+         frame: &mut Frame,
+@@ -4037,6 +4533,9 @@ impl Renderer {
+         }
+ 
+         for (_pass_index, pass) in frame.passes.iter_mut().enumerate() {
++            if let Some(trace) = &mut self.sampling_trace {
++                trace.pass = _pass_index;
++            }
+             #[cfg(not(target_os = "android"))]
+             let _gm = self.gpu_profiler.start_marker(&format!("pass {}", _pass_index));
+ 
+diff --git a/gfx/wr/webrender/src/renderer/shade.rs b/gfx/wr/webrender/src/renderer/shade.rs
+index c08518037377..b7c83c60a4a4 100644
+--- a/gfx/wr/webrender/src/renderer/shade.rs
++++ b/gfx/wr/webrender/src/renderer/shade.rs
+@@ -1223,6 +1223,7 @@ pub struct CompositorShaders {
+     // A faster set of rgba composite shaders that do not support UV clamping
+     // or color modulation.
+     rgba_fast_path: Vec<Option<ShaderHandle>>,
++    rgba_no_rect_aa: ShaderHandle,
+     // The same set of composite shaders but with WR_FEATURE_YUV added.
+     yuv_clip: Vec<Option<ShaderHandle>>,
+     yuv_fast: Vec<Option<ShaderHandle>>,
+@@ -1320,9 +1321,17 @@ impl CompositorShaders {
+             fast_path_features.clear();
+         }
+ 
++        let rgba_no_rect_aa = loader.create_shader(
++            ShaderKind::Composite,
++            "composite",
++            &["NO_RECT_AA", "TEXTURE_2D"],
++            &shader_list,
++        )?;
++
+         Ok(CompositorShaders {
+             rgba,
+             rgba_fast_path,
++            rgba_no_rect_aa,
+             yuv_clip,
+             yuv_fast,
+         })
+@@ -1336,7 +1345,18 @@ impl CompositorShaders {
+     ) -> ShaderHandle {
+         match format {
+             CompositeSurfaceFormat::Rgba => {
+-                if features.contains(CompositeFeatures::NO_UV_CLAMP)
++                if features.contains(CompositeFeatures::EXPERIMENTAL_NO_RECT_AA) {
++                    assert_eq!(buffer_kind, ImageBufferKind::Texture2D);
++                    assert!(features.contains(CompositeFeatures::NO_CLIP_MASK));
++                    if profiler::thread_is_being_profiled() {
++                        profiler::add_text_marker(
++                            "WR RGB no-rect-AA",
++                            "composite:NO_RECT_AA,TEXTURE_2D",
++                            std::time::Duration::ZERO,
++                        );
++                    }
++                    self.rgba_no_rect_aa
++                } else if features.contains(CompositeFeatures::NO_UV_CLAMP)
+                     && features.contains(CompositeFeatures::NO_COLOR_MODULATION)
+                     && features.contains(CompositeFeatures::NO_CLIP_MASK)
+                 {
+diff --git a/gfx/wr/webrender/src/scene.rs b/gfx/wr/webrender/src/scene.rs
+index 4602152a8384..a5470b90e6aa 100644
+--- a/gfx/wr/webrender/src/scene.rs
++++ b/gfx/wr/webrender/src/scene.rs
+@@ -360,6 +360,7 @@ impl BuiltScene {
+                 low_quality_pinch_zoom: false,
+                 max_shared_surface_size: 2048,
+                 enable_dithering: false,
++                enable_single_image_opacity: false,
+             },
+         }
+     }
+diff --git a/gfx/wr/webrender/src/scene_building.rs b/gfx/wr/webrender/src/scene_building.rs
+index 3b04ccf733c4..5791526ef76f 100644
+--- a/gfx/wr/webrender/src/scene_building.rs
++++ b/gfx/wr/webrender/src/scene_building.rs
+@@ -487,6 +487,7 @@ pub struct SceneBuilder<'a> {
+     /// array so that multiple different systems (e.g. tile-cache, visibility, property
+     /// animation bindings) can store index buffers to prim instances.
+     prim_instances: Vec<PrimitiveInstance>,
++    opacity_images: FastHashMap<usize, (LayoutPrimitiveInfo, Image)>,
+ 
+ 
+     /// A list of surfaces (backing textures) that are relevant for this scene.
+@@ -558,6 +559,7 @@ impl<'a> SceneBuilder<'a> {
+             snapshot_pictures: Vec::new(),
+             next_plane_splitter_index: 0,
+             prim_instances: mem::take(&mut recycler.prim_instances),
++            opacity_images: FastHashMap::default(),
+             surfaces: mem::take(&mut recycler.surfaces),
+             clip_tree_builder: recycler.clip_tree_builder.take().unwrap_or_else(|| ClipTreeBuilder::new()),
+             extra_stacking_context_stack: Vec::new(),
+@@ -2165,6 +2167,62 @@ impl<'a> SceneBuilder<'a> {
+         sc_info
+     }
+ 
++    fn fold_single_image_opacity(&mut self, sc: &FlattenedStackingContext) -> bool {
++        if !self.config.enable_single_image_opacity
++            || !matches!(self.config.compositor_kind, crate::composite::CompositorKind::Draw { .. })
++            || !self.sc_stack.is_empty()
++            || !matches!(sc.context_3d, Picture3DContext::Out)
++            || !sc.blit_reason.is_empty()
++            || !sc.flags.is_empty()
++            || sc.composite_ops.mix_blend_mode.is_some()
++            || sc.composite_ops.snapshot.is_some()
++            || !sc.composite_ops.filter_datas.is_empty()
++            || !sc.prim_list.child_pictures.is_empty()
++            || sc.prim_list.clusters.len() != 1
++        {
++            return false;
++        }
++        let amount = match sc.composite_ops.filters.as_slice() {
++            [Filter::Opacity(PropertyBinding::Value(value), amount)]
++                if value.is_finite() && amount.is_finite() => amount.clamp(0.0, 1.0),
++            _ => return false,
++        };
++        let cluster = &sc.prim_list.clusters[0];
++        let range = cluster.prim_range();
++        if range.len() != 1
++            || !self.spatial_tree.is_root_coord_system(cluster.spatial_node_index)
++            || !self.spatial_tree.is_root_coord_system(sc.spatial_node_index)
++        {
++            return false;
++        }
++        let index = range.start;
++        let Some((info, image)) = self.opacity_images.get(&index) else { return false; };
++        if !info.flags.contains(PrimitiveFlags::PREFER_COMPOSITOR_SURFACE)
++            || image.alpha_type != AlphaType::PremultipliedAlpha
++            || ColorF::from(image.color) != ColorF::WHITE
++            || image.sub_rect.is_some()
++            || LayoutSize::from(image.tile_spacing) != LayoutSize::zero()
++        {
++            return false;
++        }
++        let instance = &self.prim_instances[index];
++        if self.clip_tree_builder.clip_node_has_complex_clips(instance.clip_node_id, &self.interners.clip)
++            || self.clip_tree_builder.clip_node_has_complex_clips(sc.clip_node_id, &self.interners.clip)
++        {
++            return false;
++        }
++        let PrimitiveKind::Image { data_handle, opacity: 1.0 } = instance.kind else { return false; };
++        let info = *info;
++        let instance = PrimitiveInstance::new(
++            PrimitiveKind::Image { data_handle, opacity: amount },
++            instance.clip_node_id,
++        );
++        self.add_primitive_to_draw_list(
++            instance, info.rect, info.clip_rect, cluster.spatial_node_index, info.flags,
++        );
++        true
++    }
++
+     fn pop_stacking_context(
+         &mut self,
+         info: StackingContextInfo,
+@@ -2192,6 +2250,10 @@ impl<'a> SceneBuilder<'a> {
+ 
+         let stacking_context = self.sc_stack.pop().unwrap();
+ 
++        if !info.needs_extra_stacking_context && self.fold_single_image_opacity(&stacking_context) {
++            return;
++        }
++
+         let mut source = match stacking_context.context_3d {
+             // TODO(gw): For now, as soon as this picture is in
+             //           a 3D context, we draw it to an intermediate
+@@ -2985,11 +3047,7 @@ impl<'a> SceneBuilder<'a> {
+             })
+         };
+ 
+-        self.add_primitive(
+-            spatial_node_index,
+-            clip_node_id,
+-            &info,
+-            Image {
++        let image = Image {
+                 key: image_key,
+                 tile_spacing: tile_spacing.into(),
+                 stretch_size,
+@@ -2997,8 +3055,14 @@ impl<'a> SceneBuilder<'a> {
+                 image_rendering,
+                 alpha_type,
+                 sub_rect,
+-            },
+-        );
++            };
++        if self.config.enable_single_image_opacity
++            && matches!(self.config.compositor_kind, crate::composite::CompositorKind::Draw { .. })
++            && info.flags.contains(PrimitiveFlags::PREFER_COMPOSITOR_SURFACE)
++        {
++            self.opacity_images.insert(self.prim_instances.len(), (info, image.clone()));
++        }
++        self.add_primitive(spatial_node_index, clip_node_id, &info, image);
+     }
+ 
+     pub fn add_yuv_image(
+diff --git a/gfx/wr/webrender/src/scene_debug.rs b/gfx/wr/webrender/src/scene_debug.rs
+index 0ee47115a268..8ed59881d022 100644
+--- a/gfx/wr/webrender/src/scene_debug.rs
++++ b/gfx/wr/webrender/src/scene_debug.rs
+@@ -255,7 +255,7 @@ impl<'a> TreeWalker<'a> {
+                 color = Some(data.resolve(self.scene_properties));
+                 ("Rectangle", String::new(), None, Vec::new())
+             }
+-            PrimitiveKind::Image { data_handle } => {
++            PrimitiveKind::Image { data_handle, .. } => {
+                 let data = &data_stores.image[data_handle];
+                 ("Image", format!("{:?}", data.kind.key), None, Vec::new())
+             }
+diff --git a/gfx/wr/webrender/src/shutdown_test.rs b/gfx/wr/webrender/src/shutdown_test.rs
+index f78d8e6c6718..46856165a5b9 100644
+--- a/gfx/wr/webrender/src/shutdown_test.rs
++++ b/gfx/wr/webrender/src/shutdown_test.rs
+@@ -85,6 +85,7 @@ fn test_frame_config() -> FrameBuilderConfig {
+         low_quality_pinch_zoom: false,
+         max_shared_surface_size: 2048,
+         enable_dithering: false,
++        enable_single_image_opacity: false,
+     }
+ }
+ 
+diff --git a/gfx/wr/webrender/src/tile_cache/mod.rs b/gfx/wr/webrender/src/tile_cache/mod.rs
+index 7b7106c4716e..04a3daa0609c 100644
+--- a/gfx/wr/webrender/src/tile_cache/mod.rs
++++ b/gfx/wr/webrender/src/tile_cache/mod.rs
+@@ -50,6 +50,7 @@ use peek_poke::{PeekPoke, ensure_red_zone};
+ use std::fmt::{Display, Error, Formatter};
+ use std::{marker, mem};
+ use std::sync::atomic::{AtomicUsize, Ordering};
++use std::time::Duration;
+ 
+ pub use self::slice_builder::{
+     TileCacheBuilder, TileCacheConfig,
+@@ -746,6 +747,8 @@ pub struct DeferredDirtyTest {
+ pub struct TileCacheInstance {
+     // The current debug flags for the system.
+     pub debug_flags: DebugFlags,
++    profiled_rgb_candidates: usize,
++    profiled_rgb_update: usize,
+     /// Index of the tile cache / slice for this frame builder. It's determined
+     /// by the setup_picture_caching method during flattening, which splits the
+     /// picture tree into multiple slices. It's used as a simple input to the tile
+@@ -875,6 +878,8 @@ impl TileCacheInstance {
+ 
+         TileCacheInstance {
+             debug_flags: params.debug_flags,
++            profiled_rgb_candidates: 0,
++            profiled_rgb_update: 0,
+             slice: params.slice,
+             slice_flags: params.slice_flags,
+             spatial_node_index: params.spatial_node_index,
+@@ -1066,6 +1071,7 @@ impl TileCacheInstance {
+         frame_context: &FrameVisibilityContext,
+         frame_state: &mut FrameVisibilityState,
+     ) {
++        self.profiled_rgb_candidates = 0;
+         let surface = &frame_state.surfaces[surface_index.0];
+         let pic_rect = surface.unclipped_local_rect;
+ 
+@@ -1768,6 +1774,7 @@ impl TileCacheInstance {
+         data_stores: &DataStores,
+         clip_store: &ClipStore,
+         image_dependency: ImageDependency,
++        modulation: api::PremultipliedColorF,
+         api_key: ImageKey,
+         resource_cache: &mut ResourceCache,
+         composite_state: &mut CompositeState,
+@@ -1807,6 +1814,7 @@ impl TileCacheInstance {
+             clip_store,
+             ExternalSurfaceDependency::Rgb {
+                 image_dependency,
++                modulation,
+             },
+             &api_keys,
+             resource_cache,
+@@ -2365,9 +2373,12 @@ impl TileCacheInstance {
+                     prim_info.color_binding = Some(color_u.into());
+                 }
+             }
+-            PrimitiveKind::Image { data_handle, .. } => {
++            PrimitiveKind::Image { data_handle, opacity } => {
+                 let image_key = &data_stores.image[data_handle];
+                 let image_data = &image_key.kind;
++                if opacity != 1.0 {
++                    prim_info.opacity_bindings.push(PropertyBinding::Value(opacity).into());
++                }
+ 
+                 // For now, assume that for compositor surface purposes, any RGBA image may be
+                 // translucent. See the comment in `add_prim` in this source file for more
+@@ -2384,7 +2395,7 @@ impl TileCacheInstance {
+                     if image_properties.descriptor.is_opaque() &&
+                        image_properties.tiling.is_none() &&
+                        image_data.tile_spacing == LayoutSize::zero() &&
+-                       image_data.color.a >= 1.0 {
++                       image_data.color.a * opacity >= 1.0 {
+                         backdrop_candidate = Some(BackdropInfo {
+                             opaque_rect: pic_coverage_rect,
+                             spanning_opaque_color: None,
+@@ -2393,7 +2404,7 @@ impl TileCacheInstance {
+                         });
+                     }
+ 
+-                    is_opaque = image_properties.descriptor.is_opaque();
++                    is_opaque = image_properties.descriptor.is_opaque() && opacity >= 1.0;
+                 }
+ 
+                 let mut promotion_result: Result<CompositorSurfaceKind, SurfacePromotionFailure> = Ok(CompositorSurfaceKind::Blit);
+@@ -2439,6 +2450,7 @@ impl TileCacheInstance {
+                                 key: image_data.key,
+                                 generation: resource_cache.get_image_generation(image_data.key),
+                             },
++                            ColorF::new(1.0, 1.0, 1.0, opacity).premultiplied(),
+                             image_data.key,
+                             resource_cache,
+                             composite_state,
+@@ -2450,6 +2462,40 @@ impl TileCacheInstance {
+                     }
+                 }
+ 
++                if self.debug_flags.contains(DebugFlags::SURFACE_PROMOTION_LOGGING)
++                    && profiler::thread_is_being_profiled()
++                {
++                    // Include unpreferred images so absent candidacy is distinguishable from rejection.
++                    if self.profiled_rgb_candidates < 64 {
++                        if self.profiled_rgb_candidates == 0 {
++                            static NEXT_PROFILED_RGB_UPDATE: AtomicUsize = AtomicUsize::new(1);
++                            self.profiled_rgb_update = NEXT_PROFILED_RGB_UPDATE.fetch_add(1, Ordering::Relaxed);
++                        }
++                        let message = format!(
++                            "update={} candidate={} frame={} slice={} surface={} primitive_surface={} key={:?} generation={:?} preferred={} root={} alpha={:?} color_alpha={} mask={} atomic={} sub_slice={}/{} yuv_remaining={} rect={:?} result={:?}",
++                            self.profiled_rgb_update, self.profiled_rgb_candidates + 1,
++                            self.frame_id.as_u64(), self.slice, self.surface_index.0,
++                            prim_surface_index.0, image_data.key,
++                            resource_cache.get_image_generation(image_data.key),
++                            image_key.common.flags.contains(PrimitiveFlags::PREFER_COMPOSITOR_SURFACE),
++                            is_root_tile_cache, image_data.alpha_type, image_data.color.a * opacity,
++                            prim_clip_chain.needs_mask,
++                            self.slice_flags.contains(SliceFlags::IS_ATOMIC),
++                            sub_slice_index, self.sub_slices.len(), self.yuv_images_remaining,
++                            pic_coverage_rect, promotion_result,
++                        );
++                        profiler::add_text_marker("WR RGB promotion", &message, Duration::ZERO);
++                        self.profiled_rgb_candidates += 1;
++                    } else if self.profiled_rgb_candidates == 64 {
++                        profiler::add_text_marker(
++                            "WR RGB promotion truncated",
++                            &format!("update={} frame={} slice={} limit=64", self.profiled_rgb_update, self.frame_id.as_u64(), self.slice),
++                            Duration::ZERO,
++                        );
++                        self.profiled_rgb_candidates += 1;
++                    }
++                }
++
+                     if let Ok(kind) = promotion_result {
+                     scratch.frame.draw_mut(draw_index).compositor_surface_kind = kind;
+ 
+diff --git a/gfx/wr/webrender/src/transform.rs b/gfx/wr/webrender/src/transform.rs
+index 9ee33b7e2305..313ffb6f9e38 100644
+--- a/gfx/wr/webrender/src/transform.rs
++++ b/gfx/wr/webrender/src/transform.rs
+@@ -18,6 +18,10 @@ use crate::util::{TransformedRectKind, MatrixHelpers};
+ pub struct GpuTransformId(pub u32);
+ 
+ impl GpuTransformId {
++    pub(crate) fn sampling_index(self) -> usize {
++        (self.0 & Self::INDEX_MASK) as usize
++    }
++
+     /// Identity transform ID.
+     pub const IDENTITY: Self = GpuTransformId(0);
+     const INDEX_MASK: u32 = 0x003fffff;
+@@ -97,6 +101,10 @@ pub struct TransformData {
+ }
+ 
+ impl TransformData {
++    pub(crate) fn sampling_bits(&self) -> [[u32; 16]; 2] {
++        [self.transform.to_array().map(f32::to_bits), self.inv_transform.to_array().map(f32::to_bits)]
++    }
++
+     fn invalid() -> Self {
+         TransformData {
+             transform: LayoutToPictureTransform::identity(),
+diff --git a/gfx/wr/webrender_build/src/shader_features.rs b/gfx/wr/webrender_build/src/shader_features.rs
+index 873f413557c8..8c211a476993 100644
+--- a/gfx/wr/webrender_build/src/shader_features.rs
++++ b/gfx/wr/webrender_build/src/shader_features.rs
+@@ -134,6 +134,7 @@ pub fn get_shader_features(flags: ShaderFeatureFlags) -> ShaderFeatures {
+         list.add("YUV");
+         composite_features.push(list.finish());
+     }
++    composite_features.push("NO_RECT_AA,TEXTURE_2D".to_string());
+     shaders.insert("composite", composite_features);
+ 
+     // Prim shaders
+diff --git a/modules/libpref/init/StaticPrefList.yaml b/modules/libpref/init/StaticPrefList.yaml
+index ae9b27843135..974596db3a3e 100644
+--- a/modules/libpref/init/StaticPrefList.yaml
++++ b/modules/libpref/init/StaticPrefList.yaml
+@@ -8458,6 +8458,12 @@
+   mirror: once
+ #endif
+ 
++- name: gfx.webrender.single-image-opacity.enabled
++  type: RelaxedAtomicBool
++  value: false
++  mirror: always
++  rust: true
++
+ - name: gfx.webrender.debug.highlight-painted-layers
+   type: RelaxedAtomicBool
+   value: false
+diff --git a/umbrafox-conversion-guide/README.md b/umbrafox-conversion-guide/README.md
+index 4f6a0e719b37..e3dc3b7a690d 100644
+--- a/umbrafox-conversion-guide/README.md
++++ b/umbrafox-conversion-guide/README.md
+@@ -45,6 +45,7 @@ When new Firefox source arrives:
+    - `recipes/13-panel-keyup-escape.md`
+    - `recipes/14-browser-chrome-control-ui.md`
+    - `recipes/15-umbralink-diagnostics.md`
++   - `recipes/16-linux-dmabuf-video-canvas-readback.md`
+ 7. Use `reference/changed-files.md` as the file-level checklist.
+ 8. Use `reference/known-gotchas.md` before deciding a rebase is done.
+ 9. Use `reference/web-identity-leak-log.md` to preserve every web-visible
+diff --git a/umbrafox-conversion-guide/reference/changed-files.md b/umbrafox-conversion-guide/reference/changed-files.md
+index 21912abb4e7b..08a59953f99c 100644
+--- a/umbrafox-conversion-guide/reference/changed-files.md
++++ b/umbrafox-conversion-guide/reference/changed-files.md
+@@ -238,6 +238,27 @@ This inventory was generated from the current working tree when the guide was wr
+ - `toolkit/components/umbrafox/tests/browser/browser_control_service.js`
+ - `toolkit/components/umbrafox/tests/browser/browser_control_input.js`
+ - `toolkit/components/umbrafox/tests/browser/browser.toml`
++
++## Linux DMABUF video-to-canvas readback
++
++- `dom/canvas/CanvasRenderingContext2D.cpp`
++- `dom/media/ipc/PRemoteMediaManager.ipdl`
++- `dom/media/ipc/RemoteMediaManagerChild.cpp`
++- `dom/media/ipc/RemoteMediaManagerChild.h`
++- `dom/media/ipc/RemoteMediaManagerParent.cpp`
++- `dom/media/ipc/RemoteMediaManagerParent.h`
++- `gfx/gl/GLBlitHelper.cpp`
++- `gfx/gl/GLBlitHelper.h`
++- `gfx/layers/DMABUFSurfaceImage.cpp`
++- `gfx/layers/DMABUFSurfaceImage.h`
++- `gfx/layers/GPUVideoImage.h`
++- `gfx/layers/ImageContainer.cpp`
++- `gfx/layers/ImageContainer.h`
++- `widget/gtk/DMABufSurface.cpp`
++- `widget/gtk/DMABufSurface.h`
++
++## UmbraLink diagnostics and browser toggle
++
+ - `browser/components/BrowserGlue.sys.mjs`
+ - `browser/app/profile/firefox.js`
+ - `toolkit/modules/ActorManagerParent.sys.mjs`
+diff --git a/widget/gtk/DMABufSurface.cpp b/widget/gtk/DMABufSurface.cpp
+index 190eebc96fd7..3f86061c9620 100644
+--- a/widget/gtk/DMABufSurface.cpp
++++ b/widget/gtk/DMABufSurface.cpp
+@@ -706,17 +706,15 @@ bool DMABufSurface::CloseFileDescriptors() {
+ nsresult DMABufSurface::ReadIntoBuffer(mozilla::gl::GLContext* aGLContext,
+                                        uint8_t* aData, int32_t aStride,
+                                        const gfx::IntSize& aSize,
+-                                       gfx::SurfaceFormat aFormat) {
++                                       gfx::SurfaceFormat aFormat,
++                                       bool aScaleSourceToDest) {
+   LOGDMABUF("DMABufSurface::ReadIntoBuffer UID %d", mUID);
+ 
+   // We're empty, nothing to copy
+-  if (!GetTextureCount()) {
++  if (!GetTextureCount() || aSize.IsEmpty()) {
+     return NS_ERROR_FAILURE;
+   }
+ 
+-  MOZ_ASSERT(aSize.width == GetWidth());
+-  MOZ_ASSERT(aSize.height == GetHeight());
+-
+   for (int i = 0; i < GetTextureCount(); i++) {
+     if (!GetTexture(i) && !CreateTexture(aGLContext, i)) {
+       LOGDMABUF("ReadIntoBuffer: Failed to create DMABuf textures.");
+@@ -741,7 +739,8 @@ nsresult DMABufSurface::ReadIntoBuffer(mozilla::gl::GLContext* aGLContext,
+   {
+     const ScopedBindFramebuffer bindFB(aGLContext, autoFBForTex.FB());
+     if (!aGLContext->BlitHelper()->Blit(
+-            this, gfx::IntRect(gfx::IntPoint(0, 0), aSize), destOrigin)) {
++            this, gfx::IntRect(gfx::IntPoint(0, 0), aSize), destOrigin,
++            gfx::IntSize(), {}, aScaleSourceToDest)) {
+       LOGDMABUF("ReadIntoBuffer: Blit failed.");
+       return NS_ERROR_FAILURE;
+     }
+@@ -1486,6 +1485,13 @@ nsresult DMABufSurface::BuildSurfaceDescriptorBuffer(
+   return NS_ERROR_NOT_IMPLEMENTED;
+ }
+ 
++nsresult DMABufSurface::BuildSurfaceDescriptorBufferForSize(
++    SurfaceDescriptorBuffer& aSdBuffer, Image::BuildSdbFlags aFlags,
++    const gfx::IntSize& aSize,
++    const std::function<MemoryOrShmem(uint32_t)>& aAllocate) {
++  return NS_ERROR_NOT_IMPLEMENTED;
++}
++
+ #if 0
+ // Copy from source surface by GL
+ #  include "GLBlitHelper.h"
+@@ -2394,6 +2400,41 @@ nsresult DMABufSurfaceYUV::BuildSurfaceDescriptorBuffer(
+   }
+ }
+ 
++nsresult DMABufSurfaceYUV::BuildSurfaceDescriptorBufferForSize(
++    SurfaceDescriptorBuffer& aSdBuffer, Image::BuildSdbFlags aFlags,
++    const gfx::IntSize& aSize,
++    const std::function<MemoryOrShmem(uint32_t)>& aAllocate) {
++  LOGDMABUF("DMABufSurfaceYUV::BuildSurfaceDescriptorBufferForSize UID %d",
++            mUID);
++
++  if (aSize.IsEmpty()) {
++    return NS_ERROR_INVALID_ARG;
++  }
++
++  const auto format = gfx::SurfaceFormat::B8G8R8A8;
++
++  uint8_t* buffer = nullptr;
++  int32_t stride = 0;
++  nsresult rv = Image::AllocateSurfaceDescriptorBufferRgb(
++      aSize, format, buffer, aSdBuffer, stride, aAllocate);
++  if (NS_WARN_IF(NS_FAILED(rv))) {
++    LOGDMABUF("BuildSurfaceDescriptorBufferForSize allocate descriptor failed");
++    return rv;
++  }
++
++  if (mGL) {
++    return ReadIntoBuffer(mGL, buffer, stride, aSize, format, true);
++  }
++
++  StaticMutexAutoLock lock(sSnapshotContextMutex);
++  RefPtr<GLContext> context = ClaimSnapshotGLContext();
++  auto releaseTextures = mozilla::MakeScopeExit([&] {
++    ReleaseTextures();
++    ReturnSnapshotGLContext(context);
++  });
++  return ReadIntoBuffer(context, buffer, stride, aSize, format, true);
++}
++
+ #if 0
+ // Debugging / testing only
+ void DMABufSurfaceYUV::ClearPlane(int aPlane, int aValue) {
+diff --git a/widget/gtk/DMABufSurface.h b/widget/gtk/DMABufSurface.h
+index 23d550834ead..343ae6a8b01a 100644
+--- a/widget/gtk/DMABufSurface.h
++++ b/widget/gtk/DMABufSurface.h
+@@ -106,6 +106,11 @@ class DMABufSurface : public BufferSurface {
+       mozilla::layers::SurfaceDescriptorBuffer& aSdBuffer,
+       mozilla::layers::Image::BuildSdbFlags aFlags,
+       const std::function<mozilla::layers::MemoryOrShmem(uint32_t)>& aAllocate);
++  virtual nsresult BuildSurfaceDescriptorBufferForSize(
++      mozilla::layers::SurfaceDescriptorBuffer& aSdBuffer,
++      mozilla::layers::Image::BuildSdbFlags aFlags,
++      const mozilla::gfx::IntSize& aSize,
++      const std::function<mozilla::layers::MemoryOrShmem(uint32_t)>& aAllocate);
+ 
+   void FenceSet();
+   void FenceWait(mozilla::gl::GLContext* aGLContext = nullptr);
+@@ -214,7 +219,8 @@ class DMABufSurface : public BufferSurface {
+ 
+   nsresult ReadIntoBuffer(mozilla::gl::GLContext* aGLContext, uint8_t* aData,
+                           int32_t aStride, const mozilla::gfx::IntSize& aSize,
+-                          mozilla::gfx::SurfaceFormat aFormat);
++                          mozilla::gfx::SurfaceFormat aFormat,
++                          bool aScaleSourceToDest = false);
+ 
+   virtual ~DMABufSurface();
+ 
+@@ -366,6 +372,12 @@ class DMABufSurfaceYUV final : public DMABufSurface {
+       mozilla::layers::Image::BuildSdbFlags aFlags,
+       const std::function<mozilla::layers::MemoryOrShmem(uint32_t)>& aAllocate)
+       override;
++  nsresult BuildSurfaceDescriptorBufferForSize(
++      mozilla::layers::SurfaceDescriptorBuffer& aSdBuffer,
++      mozilla::layers::Image::BuildSdbFlags aFlags,
++      const mozilla::gfx::IntSize& aSize,
++      const std::function<mozilla::layers::MemoryOrShmem(uint32_t)>& aAllocate)
++      override;
+ 
+   int GetWidth(int aPlane = 0) override { return mWidth[aPlane]; }
+   int GetHeight(int aPlane = 0) override { return mHeight[aPlane]; }

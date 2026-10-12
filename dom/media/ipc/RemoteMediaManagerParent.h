@@ -35,8 +35,15 @@ class RemoteMediaManagerParent final : public PRemoteMediaManagerParent,
                   layers::TextureClient* aTexture);
 
   // IGPUVideoSurfaceManager methods
+  bool CanReadback() override { return false; }
   already_AddRefed<gfx::SourceSurface> Readback(
       const SurfaceDescriptorGPUVideo& aSD) override {
+    MOZ_ASSERT_UNREACHABLE("Not usable from the parent");
+    return nullptr;
+  }
+  already_AddRefed<gfx::SourceSurface> Readback(
+      const SurfaceDescriptorGPUVideo& aSD,
+      const gfx::IntSize& aReadbackSize) override {
     MOZ_ASSERT_UNREACHABLE("Not usable from the parent");
     return nullptr;
   }
@@ -84,6 +91,7 @@ class RemoteMediaManagerParent final : public PRemoteMediaManagerParent,
       const nsAString& aKeySystem);
 
   mozilla::ipc::IPCResult RecvReadback(const SurfaceDescriptorGPUVideo& aSD,
+                                       const Maybe<gfx::IntSize>& aReadbackSize,
                                        SurfaceDescriptor* aResult);
   mozilla::ipc::IPCResult RecvDeallocateSurfaceDescriptorGPUVideo(
       const SurfaceDescriptorGPUVideo& aSD);

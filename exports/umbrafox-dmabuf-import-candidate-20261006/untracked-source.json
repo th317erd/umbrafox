@@ -1,0 +1,57 @@
+[
+  {
+    "path": "browser/components/urlbar/tests/quicksuggest/unit/test_quicksuggest_regionDefaults.js",
+    "bytes": 4185,
+    "sha256": "eb3b29e364674563dda473d9f1695cf0e319af59920bf81eaa7400a262f84ccc"
+  },
+  {
+    "path": "dom/base/test/gtest/TestUmbrafoxMutationGate.cpp",
+    "bytes": 6508,
+    "sha256": "35e88192e07cccf63563ff45ed51960b6aa88a0dc9fad0ab8ee3142a05e877e0"
+  },
+  {
+    "path": "gfx/tests/gtest/TestGPUVideoImage.cpp",
+    "bytes": 9621,
+    "sha256": "0adf42629d562b629a9596e04afdea789aa2b00f726ce501132209a5f8a28544"
+  },
+  {
+    "path": "gfx/wr/webrender/src/renderer/sampling.rs",
+    "bytes": 18551,
+    "sha256": "cedbc1f297d187c4107887a691ad67d0d6adbbbfdf7ab82a76ec4ed10f9e07c2"
+  },
+  {
+    "path": "toolkit/actors/UmbrafoxControlExecutionChild.sys.mjs",
+    "bytes": 1561,
+    "sha256": "451c0e855b841bf265eeb140b543a82589ff83e51ffe14adcbf706f9b0349de0"
+  },
+  {
+    "path": "toolkit/actors/UmbrafoxControlExecutionParent.sys.mjs",
+    "bytes": 268,
+    "sha256": "01320fc92bb701c0f79b6d92909ff819f1ba1271f7a1146b75976584a1569e49"
+  },
+  {
+    "path": "toolkit/components/umbrafox/UmbrafoxControlBrowser.sys.mjs",
+    "bytes": 7109,
+    "sha256": "d76ac7443679d79d8261e267cab80f4350de8e2667718353856747c9177408c9"
+  },
+  {
+    "path": "toolkit/components/umbrafox/UmbrafoxControlScript.sys.mjs",
+    "bytes": 6383,
+    "sha256": "7f6c3b468f688f84c940d8921ceec31daecc4062763f134a49a5344b704d1289"
+  },
+  {
+    "path": "toolkit/components/umbrafox/docs/control.md",
+    "bytes": 7690,
+    "sha256": "063a1bb0e40ed85951a2cb1c8957f11f00b15d3e985ef30ca9a8c35470d57cc3"
+  },
+  {
+    "path": "toolkit/components/umbrafox/tests/browser/browser_control_browser.js",
+    "bytes": 8397,
+    "sha256": "3759e2d8fd0c2df08bbf57a17b85cc35252ff4f8068d4dc0d089f8d5e52ff46c"
+  },
+  {
+    "path": "toolkit/components/umbrafox/tests/browser/browser_userland_mutation_gate.js",
+    "bytes": 3508,
+    "sha256": "e5ccdd7d123c946226a560807d90a32f241176ec122473d40c4fd89828f5e12e"
+  }
+]

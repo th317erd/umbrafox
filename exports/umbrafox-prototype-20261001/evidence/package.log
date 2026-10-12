@@ -1,0 +1,35 @@
+ 0:00.39 Parallelism determined by memory: using 16 jobs for 16 cores based on 62.7 GiB RAM and estimated job size of 1.0 GiB
+ 0:00.39 /usr/bin/gmake -C . -j16 -s -w package
+ 0:00.54 gmake: Entering directory '/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu'
+ 0:00.54 gmake[1]: Entering directory '/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/browser/installer'
+ 0:00.56 gmake[2]: Entering directory '/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/browser/installer'
+ 0:00.56 gmake[3]: Entering directory '/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/browser/installer'
+ 0:00.56 BUILDSTATUS@browser/installer START_file_generate multilocale.txt
+ 0:00.56 BUILDSTATUS@browser/installer START_locale_manifest --output locale-manifest.in --base-path @RESPATH@ --locales  en-US --locale-entries @RESPATH@/browser/chrome/ @RESPATH@/chrome/
+ 0:00.56 BUILDSTATUS@browser/installer START_make_sourcestamp_file --output ../../dist//umbrafox-158.0a1.en-US.linux-x86_64.txt --buildid-header ../../buildid.h
+ 0:00.60 BUILDSTATUS@browser/installer END_locale_manifest --output locale-manifest.in --base-path @RESPATH@ --locales  en-US --locale-entries @RESPATH@/browser/chrome/ @RESPATH@/chrome/
+ 0:00.68 BUILDSTATUS@browser/installer END_make_sourcestamp_file --output ../../dist//umbrafox-158.0a1.en-US.linux-x86_64.txt --buildid-header ../../buildid.h
+ 0:00.69 BUILDSTATUS@browser/installer END_file_generate multilocale.txt
+ 0:07.84 Generating XPT artifacts archive (umbrafox-158.0a1.en-US.linux-x86_64.xpt_artifacts.zip)
+ 0:07.84 BUILDSTATUS@browser/installer START_zip umbrafox-158.0a1.en-US.linux-x86_64.xpt_artifacts.zip
+ 0:07.99 BUILDSTATUS@browser/installer END_zip umbrafox-158.0a1.en-US.linux-x86_64.xpt_artifacts.zip
+ 0:07.99 Compressing...
+ 0:07.99 BUILDSTATUS@browser/installer START_package XZ
+ 2:51.60 BUILDSTATUS@browser/installer END_package XZ
+ 2:51.60 gmake[3]: Leaving directory '/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/browser/installer'
+ 2:51.61 gmake[3]: Entering directory '/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/browser/locales'
+ 2:51.62 Making langpack
+ 2:51.62 gmake[4]: Entering directory '/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/browser/locales'
+ 2:51.62 BUILDSTATUS@browser/locales START_l10n_stage --locale=en-US --manifest=../../l10n-manifest.json --merge-tree=/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/browser/locales/merge-dir/en-US --dest=../../dist/xpi-stage/locale-en-US --topsrcdir=/home/wyatt/Projects/umbrafox-workspace/umbrafox --topobjdir=../..
+ 2:51.83 BUILDSTATUS@browser/locales END_l10n_stage --locale=en-US --manifest=../../l10n-manifest.json --merge-tree=/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/browser/locales/merge-dir/en-US --dest=../../dist/xpi-stage/locale-en-US --topsrcdir=/home/wyatt/Projects/umbrafox-workspace/umbrafox --topobjdir=../..
+ 2:51.83 gmake[4]: Leaving directory '/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/browser/locales'
+ 2:51.84 gmake[4]: Entering directory '/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/browser/locales'
+ 2:51.84 BUILDSTATUS@browser/locales START_package_langpack --locale=en-US --xpi-stage=../../dist/xpi-stage/locale-en-US --metadata=/home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/locales/en-US/langpack-metadata.ftl --output=/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/dist/linux-x86_64/xpi/umbrafox-158.0a1.en-US.langpack.xpi --eid=langpack-en-US@firefox.mozilla.org --app-version=158.0a1 --max-app-ver=158.0a1 --app-name=Umbrafox --l10n-basedir=/home/wyatt/.mozbuild/l10n-central --include=chrome --include=localization --include=browser --include=manifest.json
+ 2:52.09 BUILDSTATUS@browser/locales END_package_langpack --locale=en-US --xpi-stage=../../dist/xpi-stage/locale-en-US --metadata=/home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/locales/en-US/langpack-metadata.ftl --output=/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/dist/linux-x86_64/xpi/umbrafox-158.0a1.en-US.langpack.xpi --eid=langpack-en-US@firefox.mozilla.org --app-version=158.0a1 --max-app-ver=158.0a1 --app-name=Umbrafox --l10n-basedir=/home/wyatt/.mozbuild/l10n-central --include=chrome --include=localization --include=browser --include=manifest.json
+ 2:52.09 gmake[4]: Leaving directory '/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/browser/locales'
+ 2:52.09 gmake[3]: Leaving directory '/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/browser/locales'
+ 2:52.09 gmake[2]: Leaving directory '/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/browser/installer'
+ 2:52.10 gmake[1]: Leaving directory '/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/browser/installer'
+ 2:52.10 gmake: Leaving directory '/home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu'
+ 2:52.20 /usr/bin/notify-send '--app-name=Mozilla Build System' 'Mozilla Build System' 'Packaging complete'
+ 2:52.23 Created package: /home/wyatt/Projects/umbrafox-workspace/umbrafox/obj-x86_64-pc-linux-gnu/dist/umbrafox-158.0a1.en-US.linux-x86_64.tar.xz

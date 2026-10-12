@@ -73,6 +73,8 @@ pub struct FrameBuilderConfig {
     pub low_quality_pinch_zoom: bool,
     pub max_shared_surface_size: i32,
     pub enable_dithering: bool,
+    #[cfg_attr(feature = "replay", serde(default))]
+    pub enable_single_image_opacity: bool,
 }
 
 pub struct FrameScratchBuffer {

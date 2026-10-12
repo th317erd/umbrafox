@@ -1,0 +1,11 @@
+{
+  "binary": "/home/wyatt/Projects/umbrafox-workspace/umbrafox/exports/umbrafox-mutation-inline-candidate-20261003/umbrafox/umbrafox",
+  "root": "/home/wyatt/.cache/codex/mutation-inline-version-20261003-DP9jna",
+  "pid": 1944667,
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "stdout": "Umbrafox 158.0a1\n",
+  "stderr": "[1944669] Sandbox: CanCreateUserNamespace() unshare(CLONE_NEWPID): EPERM\n",
+  "rootAbsent": true
+}

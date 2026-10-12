@@ -171,6 +171,7 @@ pub fn prepare_image_quads(
     prim_rect: &LayoutRect,
     common_data: &PrimTemplateCommonData,
     image_data: &ImageData,
+    opacity: f32,
     coverage_rect: &LayoutRect,
     clips: &QuadClipStack,
     quad_transform: &mut QuadTransformState,
@@ -187,8 +188,10 @@ pub fn prepare_image_quads(
         return;
     };
 
+    let color = ColorF { a: image_data.color.a * opacity, ..image_data.color };
     let src_is_opaque = image_properties.descriptor.is_opaque()
-        && image_data.color.a >= 0.9999;
+        && opacity >= 1.0
+        && color.a >= 0.9999;
 
     let premultiplied = image_data.alpha_type == AlphaType::PremultipliedAlpha;
 
@@ -343,7 +346,7 @@ pub fn prepare_image_quads(
                 src_is_opaque,
                 premultiplied,
                 sampler_kind,
-                color: image_data.color,
+                color,
             };
 
             let bounds = tight_clip_rect.intersection_unchecked(&prim_rect);
@@ -456,7 +459,7 @@ pub fn prepare_image_quads(
                         src_is_opaque,
                         premultiplied,
                         sampler_kind,
-                        color: image_data.color,
+                        color,
                     };
 
                     quad::prepare_quad(
@@ -531,6 +534,7 @@ impl InternablePrimitive for Image {
     ) -> PrimitiveKind {
         PrimitiveKind::Image {
             data_handle,
+            opacity: 1.0,
         }
     }
 }
