@@ -12,7 +12,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -44,7 +43,9 @@ private const val NAVBAR_VISIBILITY_ANIMATION_MS = 150
  * @param customTabSessionId session ID of the custom tab in which the navigation bar is shown.
  * @param hideWhenKeyboardShown If true, navigation bar will be hidden when the keyboard is visible.
  * @param tabStripContent Composable content for the tab strip when shown together with the navigation bar.
+ * @param tabGroupsStripContent Composable content for the tab groups strip when shown together with the navigation bar.
  */
+@Suppress("LongParameterList")
 class BrowserNavigationBar(
     private val context: Context,
     private val container: ViewGroup,
@@ -53,17 +54,28 @@ class BrowserNavigationBar(
     private val customTabSessionId: String? = null,
     private val hideWhenKeyboardShown: Boolean,
     private val tabStripContent: () -> @Composable () -> Unit,
+    private val tabGroupsStripContent: () -> @Composable () -> Unit,
 ) {
     val layout =
         NavigationBarComposeView(context) {
                 val shouldShowTabStrip = remember {
                     customTabSessionId == null && settings.shouldShowTabStripAtBottom
                 }
+                val shouldShowTabGroupsStrip = remember {
+                    customTabSessionId == null && settings.shouldShowTabGroupsStrip
+                }
+                val hasBottomStrips = remember { hasBottomStrip() }
 
                 FirefoxTheme {
-                    Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
+                    TopDividerColumn(
+                        showDivider = hasBottomStrips,
+                        modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+                    ) {
                         if (shouldShowTabStrip) {
                             tabStripContent().invoke()
+                        }
+                        if (shouldShowTabGroupsStrip) {
+                            tabGroupsStripContent().invoke()
                         }
                         DefaultNavigationBarContent()
                     }
@@ -103,6 +115,7 @@ class BrowserNavigationBar(
                     false -> Top
                 }
             }
+        val hasBottomStrip = remember { hasBottomStrip() }
         val isKeyboardVisible =
             if (hideWhenKeyboardShown) {
                 val keyboardState by keyboardAsState()
@@ -129,12 +142,16 @@ class BrowserNavigationBar(
                     NavigationBar(
                         actions = uiState.displayState.navigationActions,
                         toolbarGravity = toolbarGravity,
+                        showDivider = toolbarGravity == Top && !hasBottomStrip,
                         onInteraction = { toolbarStore.dispatch(it) },
                     )
                 }
             }
         }
     }
+
+    private fun hasBottomStrip() =
+        customTabSessionId == null && (settings.shouldShowTabStripAtBottom || settings.shouldShowTabGroupsStrip)
 
     private fun addToParent(view: NavigationBarComposeView) {
         container.addView(

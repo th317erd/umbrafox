@@ -2,8 +2,6 @@
 
 ["browser_alt_keyup_in_content.js"]
 skip-if = [
-  "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
-  "os == 'mac' && os_version == '14.70' && arch == 'x86_64'", # Bug 1929440
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
 ]
 
@@ -57,6 +55,8 @@ support-files = [
   "browser_dragdrop_inner.html",
   "browser_dragdrop_outer.html",
 ]
+
+["browser_dragsession_end_without_dragend.js"]
 
 ["browser_dragimage.js"]
 support-files = [

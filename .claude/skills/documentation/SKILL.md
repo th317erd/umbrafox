@@ -164,17 +164,28 @@ Link to the **source file**, not to the generated URL:
 -   Bad: a full `https://firefox-source-docs.mozilla.org/...` URL for in-tree
     documentation -- it bypasses link validation and breaks when pages move.
 
-The path is rooted at the documentation tree (leading `/`), and the extension
-must match the actual source file (always `.md`). To link to a section, append
-the anchor: `/mots/index.md#desktop-theme`.
+The path is rooted at the documentation tree (leading `/`), which is the built
+tree, not the source checkout: `browser/components/urlbar/docs/index.md` is
+`/browser/urlbar/index.md`. The extension must match the actual source file
+(always `.md`). To link to a section, append the anchor:
+`/mots/index.md#desktop-theme`.
 
 A `{doc}` role with no link text renders the target page's *title*, so a noun
 after it reads twice: ``in the {doc}`api` reference`` comes out as "in the
 SessionStore API reference reference". Give the role its own text where the
 sentence already names the thing.
 
-A `{doc}` or `{ref}` target is a doc path *without* the extension -- the
-opposite of the markdown form -- and a directory needs its `/index` spelled out.
+A `{doc}` target is the same path *without* the extension -- the opposite of
+the markdown form -- and a directory needs its `/index` spelled out.
+
+A `{ref}` target is an explicit label, never a page title: page titles are not
+labels, so `{ref}`Address Bar`` fails with `undefined label`. Link a page with
+`{doc}` or the markdown form.
+
+Explicit labels share one namespace across the whole tree, so a short one claims
+its name for every page: a `(telemetry)=` in one guide takes `{ref}`telemetry``
+away from the Telemetry docs, with no warning. Prefix a label with its page's
+subject, and use `{doc}` when the link means the whole page.
 
 ### Anchors
 
@@ -250,15 +261,17 @@ they do not agree:
     the build does not avoid it. `--no-autodoc` builds the page anyway, with the
     generated API pages missing and `js:autoclass` warning as an unknown
     directive.
--   **jsdoc rejects type expressions that TypeScript accepts, and does it
-    quietly.** A type predicate (`{element is MozTabbrowserTab}`), a tuple,
-    indexed access, and a postfix `[]` on a parenthesised union (`{(A|B)[]}`)
-    each log a build ERROR while the member still renders -- without the row for
-    the parameter or return value being documented. Write `{Array<A|B>}` for the
-    last of those, and put a predicate's meaning in the summary line.
-    Indexed access (`{Foo['id']}`) has no spelling jsdoc accepts, whatever the
-    quoting, so a derived type needs a named `@typedef` alias beside the one it
-    derives from.
+-   **Write TypeScript types as TypeScript wants them.**
+    `docs/jsdoc-plugins/accept-typescript-types.mjs` passes predicates,
+    generics, indexed access, tuples, arrow and `import()` types through to the
+    page verbatim, though not as links.
+-   **Prose under an `@type` tag is moved above it** by
+    `docs/jsdoc-plugins/keep-type-descriptions.mjs`, where jsdoc reads it, but
+    only when `@type` is the first tag and the prose has its own lines. A
+    one-line `/** @type {number} Seconds since the epoch. */` loses its text;
+    write it out over several lines.
+-   **Give `@typedef` a type** -- `@typedef {object} Name` -- or jsdoc takes the
+    first `{` in the prose under it as the type and logs a build ERROR.
 -   **A documented default value renders**, so `[options.animate=true]` is a
     claim about the code. Write one only where the signature supplies that
     default, and describe a computed default in the prose instead, where it can

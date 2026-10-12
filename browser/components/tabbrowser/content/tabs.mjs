@@ -5,15 +5,30 @@
 const DIRECTION_BACKWARD = -1;
 const DIRECTION_FORWARD = 1;
 
-const isTab = element => gBrowser.isTab(element);
-const isTabGroup = element => gBrowser.isTabGroup(element);
-const isTabGroupLabel = element => gBrowser.isTabGroupLabel(element);
-const isSplitViewWrapper = element => gBrowser.isSplitViewWrapper(element);
+const { isTab, isTabGroup, isTabGroupLabel, isSplitViewWrapper } = Tabbrowser;
+
+const lazy = XPCOMUtils.declareLazy({
+  showTabHoverPreview: {
+    pref: "browser.tabs.hoverPreview.enabled",
+    default: false,
+  },
+  showTabGroupHoverPreview: {
+    pref: "browser.tabs.groups.hoverPreview.enabled",
+    default: false,
+  },
+  sidebarVisibility: {
+    pref: "sidebar.visibility",
+    default: "always-show",
+  },
+});
 
 export class MozTabbrowserTabs extends MozElements.TabsBase {
   static observedAttributes = ["orient"];
 
   #animatingGroups = new Set();
+
+  /** @type {Set<MozTabbrowserTab>} */
+  #openingTabs = new Set();
 
   constructor() {
     super();
@@ -57,7 +72,9 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
   init() {
     this.startupTime = Services.startup.getStartupInfo().start.getTime();
 
-    this.arrowScrollbox = document.getElementById("tabbrowser-arrowscrollbox");
+    this.arrowScrollbox = /** @type {MozArrowScrollbox} */ (
+      document.getElementById("tabbrowser-arrowscrollbox")
+    );
     this.arrowScrollbox.addEventListener("underflow", this);
     this.arrowScrollbox.addEventListener("overflow", this);
     this.pinnedTabsContainer = document.getElementById("pinned-tabs-container");
@@ -108,7 +125,9 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
 
     this._blockDblClick = false;
     this._closeButtonsUpdatePending = false;
-    this._closingTabsSpacer = this.querySelector(".closing-tabs-spacer");
+    this._closingTabsSpacer = /** @type {XULElement} */ (
+      this.querySelector(".closing-tabs-spacer")
+    );
     this._tabDefaultMaxWidth = NaN;
     this._lastTabClosedByMouse = false;
     this._hasTabTempMaxWidth = false;
@@ -138,7 +157,7 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
 
     this.boundObserve = (...args) => this.observe(...args);
     Services.prefs.addObserver("privacy.userContext", this.boundObserve);
-    this.observe(null, "nsPref:changed", "privacy.userContext.enabled");
+    this.observe(null, "nsPref:changed");
 
     document
       .getElementById("vertical-tabs-newtab-button")
@@ -147,6 +166,8 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
       .getElementById("tabs-newtab-button")
       .addEventListener("keypress", this);
 
+    /** @type {number} */
+    this._tabMinWidthPref;
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
       "_tabMinWidthPref",
@@ -163,22 +184,8 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
     CustomizableUI.addListener(this);
     this._updateNewTabVisibility();
 
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
-      "_closeTabByDblclick",
-      "browser.tabs.closeTabByDblclick",
-      false
-    );
-
     // The base class set these up before we had the arrowscrollbox.
     this.updateWheelListeners();
-
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
-      "_sidebarVisibility",
-      "sidebar.visibility",
-      "always-show"
-    );
 
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
@@ -190,19 +197,6 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
     if (gMultiProcessBrowser) {
       this.tabbox.tabpanels.setAttribute("async", "true");
     }
-
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
-      "_showTabHoverPreview",
-      "browser.tabs.hoverPreview.enabled",
-      false
-    );
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
-      "_showTabGroupHoverPreview",
-      "browser.tabs.groups.hoverPreview.enabled",
-      false
-    );
 
     this.tooltip = "tabbrowser-tab-tooltip";
 
@@ -235,7 +229,9 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
       // fall through
       case "mousemove":
         if (
-          document.getElementById("tabContextMenu").state != "open" &&
+          /** @type {XULPopupElement} */ (
+            document.getElementById("tabContextMenu")
+          ).state != "open" &&
           !this.#isMovingTab()
         ) {
           this._unlockTabSizing();
@@ -260,9 +256,9 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
    */
   on_TabSelect(event) {
     const {
-      target: newTab,
       detail: { previousTab },
     } = event;
+    let newTab = /** @type {MozTabbrowserTab} */ (event.target);
 
     // In some cases (e.g. by selecting a tab in a collapsed tab group),
     // changing the selected tab may cause a tab to appear/disappear.
@@ -298,7 +294,7 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
   }
 
   on_TabHoverStart(event) {
-    if (!this._showTabHoverPreview) {
+    if (!lazy.showTabHoverPreview) {
       return;
     }
     this.ensureTabPreviewPanelLoaded();
@@ -310,7 +306,7 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
   }
 
   on_TabNoteIconHoverStart(event) {
-    if (!this._showTabHoverPreview) {
+    if (!lazy.showTabHoverPreview) {
       return;
     }
     this.ensureTabPreviewPanelLoaded();
@@ -328,11 +324,11 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
   }
 
   cancelTabGroupPreview() {
-    this.previewPanel?.panelOpener.clear();
+    this.previewPanel?.panelOpener.clear(this.previewPanel.tabGroupPanel);
   }
 
   showTabGroupPreview(group) {
-    if (!this._showTabGroupHoverPreview) {
+    if (!lazy.showTabGroupHoverPreview) {
       return;
     }
     this.ensureTabPreviewPanelLoaded();
@@ -390,14 +386,16 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
       return;
     }
 
-    let tab = event.target?.closest("tab");
+    let tab = /** @type {MozTabbrowserTab} */ (
+      /** @type {Element} */ (event.target)?.closest("tab")
+    );
 
     if (!tab) {
       return;
     }
 
     if (tab.hasAttribute("fadein")) {
-      if (tab._fullyOpen) {
+      if (this.openAnimationFinished(tab)) {
         this._updateCloseButtons();
       } else {
         this._handleNewTab(tab);
@@ -481,7 +479,7 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
        * In this context, we're manually blocking the dblclick event.
        */
       if (this._blockDblClick) {
-        if (!("_clickedTabBarOnce" in this)) {
+        if (!Object.hasOwn(this, "_clickedTabBarOnce")) {
           this._clickedTabBarOnce = true;
           return;
         }
@@ -671,9 +669,9 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
         this.ariaFocusedItem = this.selectedItem;
       }
     }
-    let focusReturnedFromGroupPanel = event.relatedTarget?.classList.contains(
-      "group-preview-button"
-    );
+    let focusReturnedFromGroupPanel = /** @type {Element} */ (
+      event.relatedTarget
+    )?.classList.contains("group-preview-button");
     if (
       !focusReturnedFromGroupPanel &&
       this.tablistHasFocus &&
@@ -762,7 +760,7 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
 
     document
       .getElementById("tab-preview-panel")
-      ?.setAttribute("rolluponmousewheel", true);
+      ?.setAttribute("rolluponmousewheel", "true");
   }
 
   on_underflow(event) {
@@ -819,7 +817,9 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
   }
 
   get tabbox() {
-    return document.getElementById("tabbrowser-tabbox");
+    return /** @type {MozTabbox} */ (
+      document.getElementById("tabbrowser-tabbox")
+    );
   }
 
   get newTabButton() {
@@ -831,7 +831,7 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
   }
 
   get expandOnHover() {
-    return this._sidebarVisibility == "expand-on-hover";
+    return lazy.sidebarVisibility == "expand-on-hover";
   }
 
   get #rtlMode() {
@@ -860,11 +860,9 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
     // Iterate backwards over the array to preserve indices while we modify
     // things in place
     for (let i = unpinnedChildren.length - 1; i >= 0; i--) {
-      if (
-        unpinnedChildren[i].tagName == "tab-group" ||
-        unpinnedChildren[i].tagName == "tab-split-view-wrapper"
-      ) {
-        unpinnedChildren.splice(i, 1, ...unpinnedChildren[i].tabs);
+      let child = unpinnedChildren[i];
+      if (isTabGroup(child) || isSplitViewWrapper(child)) {
+        unpinnedChildren.splice(i, 1, ...child.tabs);
       }
     }
 
@@ -944,7 +942,7 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
     this.toggleAttribute("tablist-has-focus", hasFocus);
   }
 
-  /** @typedef {MozTabbrowserTab|MozTextLabel} FocusableItem */
+  /** @typedef {MozTabbrowserTab|MozTabbrowserTabGroupLabel} FocusableItem */
 
   /** @type {FocusableItem[]} */
   #focusableItems;
@@ -982,7 +980,7 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
 
         let visibleTabsInGroup = child.tabs.filter(tab => tab.visible);
         focusableItems.push(...visibleTabsInGroup);
-      } else if (child.tagName == "tab-split-view-wrapper") {
+      } else if (isSplitViewWrapper(child)) {
         let visibleTabsInSplitView = child.tabs.filter(tab => tab.visible);
         focusableItems.push(...visibleTabsInSplitView);
       }
@@ -1050,7 +1048,9 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
    * @param {-1|1} direction
    */
   #advanceFocus(direction) {
-    let currentIndex = this.ariaFocusableItems.indexOf(this.ariaFocusedItem);
+    let currentIndex = this.ariaFocusableItems.indexOf(
+      /** @type {FocusableItem} */ (this.ariaFocusedItem)
+    );
     let newIndex = currentIndex + direction;
 
     // Clamp the index so that the focus stops at the edges of the tab strip
@@ -1125,8 +1125,8 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
    * select tabs (and never tab group labels), see `advanceSelectedTab`.
    *
    * @override
-   * @param {-1|1} direction
-   * @param {boolean} shouldWrap
+   * @param {-1|1} aDir
+   * @param {boolean} aWrap
    */
   advanceSelectedItem(aDir, aWrap) {
     let groupPanel = this.previewPanel?.tabGroupPanel;
@@ -1147,7 +1147,9 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
     let currentItemIndex =
       ariaFocusedIndex >= 0
         ? ariaFocusedIndex
-        : ariaFocusableItems.indexOf(this.selectedItem);
+        : ariaFocusableItems.indexOf(
+            /** @type {MozTabbrowserTab} */ (this.selectedItem)
+          );
 
     let newItemIndex = currentItemIndex + aDir;
 
@@ -1202,10 +1204,19 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
     }
   }
 
+  /**
+   * @param {Node} tab
+   * @returns {Node}
+   */
   appendChild(tab) {
     return this.insertBefore(tab, null);
   }
 
+  /**
+   * @param {Node} tab
+   * @param {Node|null} node
+   * @returns {Node}
+   */
   insertBefore(tab, node) {
     if (!this.arrowScrollbox) {
       throw new Error("Shouldn't call this without arrowscrollbox");
@@ -1216,7 +1227,8 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
       node = this.arrowScrollbox.lastChild;
     }
 
-    node.before(tab);
+    /** @type {Element} */ (node).before(tab);
+    return tab;
   }
 
   #updateTabMinWidth(val) {
@@ -1263,7 +1275,11 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
           "vertical-tabs-newtab-button"
         );
 
-        for (let button of [newTab, newTab2, newTabVertical]) {
+        for (let button of /** @type {MozToolbarbutton[]} */ ([
+          newTab,
+          newTab2,
+          newTabVertical,
+        ])) {
           if (!button) {
             continue;
           }
@@ -1276,9 +1292,9 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
           if (containersEnabled) {
             button.setAttribute("context", "new-tab-button-popup");
 
-            let popup = document
-              .getElementById("new-tab-button-popup")
-              .cloneNode(true);
+            let popup = /** @type {XULPopupElement} */ (
+              document.getElementById("new-tab-button-popup").cloneNode(true)
+            );
             popup.removeAttribute("id");
             popup.className = "new-tab-popup";
             popup.setAttribute("position", "after_end");
@@ -1293,7 +1309,7 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
           } else {
             DynamicShortcutTooltip.nodeToTooltipMap[button.id] =
               "newTabButton.tooltip";
-            button.removeAttribute("context", "new-tab-button-popup");
+            button.removeAttribute("context");
           }
           // evict from tooltip cache
           DynamicShortcutTooltip.cache.delete(button.id);
@@ -1361,10 +1377,8 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
    * @param {boolean} [aInstant]
    */
   _handleTabSelect(aInstant) {
-    let selectedTab = this.selectedItem;
+    let selectedTab = /** @type {MozTabbrowserTab} */ (this.selectedItem);
     this.#ensureTabIsVisible(selectedTab, aInstant);
-
-    selectedTab._notselectedsinceload = false;
   }
 
   /**
@@ -1372,7 +1386,9 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
    * @param {boolean} [shouldScrollInstantly=false]
    */
   #ensureTabIsVisible(tab, shouldScrollInstantly = false) {
-    let arrowScrollbox = tab.closest("arrowscrollbox");
+    let arrowScrollbox = /** @type {MozArrowScrollbox} */ (
+      tab.closest("arrowscrollbox")
+    );
     if (arrowScrollbox?.overflowing) {
       arrowScrollbox.ensureElementIsVisible(tab, shouldScrollInstantly);
     }
@@ -1494,7 +1510,7 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
 
     if (this.hasAttribute("using-closing-tabs-spacer")) {
       this.removeAttribute("using-closing-tabs-spacer");
-      this._closingTabsSpacer.style.width = 0;
+      this._closingTabsSpacer.style.width = "0";
     }
   }
 
@@ -1509,23 +1525,22 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
         .promiseDocumentFlushed(() => {
           let lastTabRect =
             this._lastTabToScrollIntoView.getBoundingClientRect();
-          let selectedTab = this.selectedItem;
-          if (selectedTab.pinned) {
-            selectedTab = null;
-          } else {
-            selectedTab = selectedTab.getBoundingClientRect();
-            selectedTab = {
-              left: selectedTab.left,
-              right: selectedTab.right,
-              top: selectedTab.top,
-              bottom: selectedTab.bottom,
+          let selectedTab = /** @type {MozTabbrowserTab} */ (this.selectedItem);
+          let selectedRect = null;
+          if (!selectedTab.pinned) {
+            let rect = selectedTab.getBoundingClientRect();
+            selectedRect = {
+              left: rect.left,
+              right: rect.right,
+              top: rect.top,
+              bottom: rect.bottom,
             };
           }
           return [
             this._lastTabToScrollIntoView,
             this.arrowScrollbox.scrollClientRect,
             lastTabRect,
-            selectedTab,
+            selectedRect,
           ];
         })
         .then(([tabToScrollIntoView, scrollRect, tabRect, selectedRect]) => {
@@ -1593,12 +1608,49 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
     }
   }
 
+  /**
+   * The number of tabs that are opening or closing, whether or not they
+   * actually animate.
+   *
+   * @type {number}
+   */
+  get tabAnimationsInProgress() {
+    return this.#openingTabs.size + gBrowser._removingTabs.size;
+  }
+
+  /**
+   * Whether the tab has finished its opening animation.
+   *
+   * @param {MozTabbrowserTab} tab
+   * @returns {boolean}
+   */
+  openAnimationFinished(tab) {
+    return !this.#openingTabs.has(tab);
+  }
+
+  /**
+   * Marks a newly added tab as opening until `_handleNewTab` runs for it.
+   *
+   * @param {MozTabbrowserTab} tab
+   */
+  markTabOpening(tab) {
+    this.#openingTabs.add(tab);
+  }
+
+  /**
+   * Stops counting a tab that starts closing as opening.
+   *
+   * @param {MozTabbrowserTab} tab
+   */
+  cancelTabOpening(tab) {
+    this.#openingTabs.delete(tab);
+  }
+
   _handleNewTab(tab) {
     if (tab.container != this) {
       return;
     }
-    tab._fullyOpen = true;
-    gBrowser.tabAnimationsInProgress--;
+    this.#openingTabs.delete(tab);
 
     this._updateCloseButtons();
 

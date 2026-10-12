@@ -3,23 +3,28 @@
 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
-
+use crate::ads::{AdImage, AdSpoc, AdTile};
+#[cfg(feature = "stateful")]
 use crate::ads_store::AdsStore;
-use crate::common::bytesize::ByteSize;
+use crate::bytesize::ByteSize;
 use crate::http_cache::{CachePolicy, HttpCache};
 use crate::mars::ad_request::{AdPlacementRequest, AdRequestFlags};
-use crate::mars::ad_response::{AdImage, AdResponse, AdResponseValue, AdSpoc, AdTile};
+use crate::mars::ad_response::{AdResponse, AdResponseValue};
 use crate::mars::error::{RecordClickError, RecordImpressionError, ReportAdError};
 use crate::mars::{MARSClient, ReportReason};
-use crate::shutdown::{AdsStoreShutdown, ShutdownReferences};
+#[cfg(feature = "stateful")]
+use crate::shutdown::AdsStoreShutdown;
+use crate::shutdown::ShutdownReferences;
 use crate::telemetry::Telemetry;
 use config::AdsClientConfig;
 use context_id::{ContextIDComponent, DefaultContextIdCallback};
 use error::RequestAdsError;
+#[cfg(feature = "stateful")]
 use parking_lot::Mutex;
+use std::collections::HashMap;
+#[cfg(feature = "stateful")]
+use std::sync::Arc;
+use std::time::Duration;
 use url::Url;
 use uuid::Uuid;
 
@@ -30,23 +35,14 @@ const DEFAULT_TTL_SECONDS: u64 = 300;
 const DEFAULT_MAX_CACHE_SIZE_MIB: u64 = 10;
 const DEFAULT_ROTATION_DAYS: u8 = 3;
 
-pub trait ContextIdProvider: Send + Sync {
-    fn context_id(&self) -> context_id::ApiResult<String>;
-}
-
-impl ContextIdProvider for ContextIDComponent {
-    fn context_id(&self) -> context_id::ApiResult<String> {
-        self.request(DEFAULT_ROTATION_DAYS)
-    }
-}
-
 pub struct AdsClient<T>
 where
     T: Clone + Telemetry,
 {
+    #[cfg(feature = "stateful")]
     ads_store: Arc<Mutex<Option<AdsStore>>>,
     client: MARSClient<T>,
-    context_id_provider: Box<dyn ContextIdProvider>,
+    context_id_component: ContextIDComponent,
     telemetry: T,
 }
 
@@ -55,14 +51,12 @@ where
     T: Clone + Telemetry,
 {
     pub fn new(client_config: AdsClientConfig<T>) -> Self {
-        let context_id_provider = client_config.context_id_provider.unwrap_or_else(|| {
-            Box::new(ContextIDComponent::new(
-                &Uuid::new_v4().to_string(),
-                0,
-                cfg!(test),
-                Box::new(DefaultContextIdCallback),
-            ))
-        });
+        let context_id_component = ContextIDComponent::new(
+            &Uuid::new_v4().to_string(),
+            0,
+            cfg!(test),
+            Box::new(DefaultContextIdCallback),
+        );
 
         let telemetry = client_config.telemetry;
         let environment = client_config.environment;
@@ -91,24 +85,25 @@ where
             }
         });
 
-        let ads_store =
-            client_config
-                .store_config
-                .and_then(|x| match AdsStore::builder(x.db_path).build() {
-                    Ok(store) => Some(store),
-                    Err(e) => {
-                        telemetry.record(&e);
-                        None
-                    }
-                });
+        #[cfg(feature = "stateful")]
+        let ads_store = client_config.store_config.and_then(|x| {
+            match AdsStore::builder(x.db_path).build(telemetry.clone()) {
+                Ok(store) => Some(store),
+                Err(e) => {
+                    telemetry.record(&e);
+                    None
+                }
+            }
+        });
 
         let client = MARSClient::new(environment, http_cache, telemetry.clone());
         telemetry.record(&ClientOperationEvent::New);
         Self {
-            client,
-            context_id_provider,
-            telemetry: telemetry.clone(),
+            #[cfg(feature = "stateful")]
             ads_store: Arc::new(Mutex::new(ads_store)),
+            client,
+            context_id_component,
+            telemetry: telemetry.clone(),
         }
     }
 
@@ -117,14 +112,14 @@ where
     }
 
     pub fn get_context_id(&self) -> context_id::ApiResult<String> {
-        self.context_id_provider.context_id()
+        self.context_id_component.request(DEFAULT_ROTATION_DAYS)
     }
 
     pub fn record_click(&self, click_url: Url, ohttp: bool) -> Result<(), RecordClickError> {
         // TODO: Re-enable cache invalidation behind a Nimbus experiment.
         // The mobile team has requested this be temporarily disabled.
         // let mut click_url = click_url.clone();
-        // if let Some(request_hash) = pop_request_hash_from_url(&mut click_url) {
+        // if let Some(request_hash) = RequestHash::pop_from_url(&mut click_url) {
         //     let _ = self.client.invalidate_cache_by_hash(&request_hash);
         // }
         self.client
@@ -145,7 +140,7 @@ where
         // TODO: Re-enable cache invalidation behind a Nimbus experiment.
         // The mobile team has requested this be temporarily disabled.
         // let mut impression_url = impression_url.clone();
-        // if let Some(request_hash) = pop_request_hash_from_url(&mut impression_url) {
+        // if let Some(request_hash) = RequestHash::pop_from_url(&mut impression_url) {
         //     let _ = self.client.invalidate_cache_by_hash(&request_hash);
         // }
 
@@ -255,6 +250,14 @@ where
             })
     }
 
+    pub fn shutdown_references(&self) -> ShutdownReferences<T> {
+        ShutdownReferences::new(
+            self.telemetry.clone(),
+            #[cfg(feature = "stateful")]
+            AdsStoreShutdown::new(self.ads_store.clone()),
+        )
+    }
+
     fn request_ads<A>(
         &self,
         placements: Vec<AdPlacementRequest>,
@@ -279,13 +282,6 @@ where
         response.enrich_callbacks(&request_hash);
         Ok(response)
     }
-
-    pub fn shutdown_references(&self) -> ShutdownReferences<T> {
-        ShutdownReferences::new(
-            self.telemetry.clone(),
-            AdsStoreShutdown::new(self.ads_store.clone()),
-        )
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -299,10 +295,10 @@ pub enum ClientOperationEvent {
 
 #[cfg(test)]
 mod tests {
-    use std::assert_eq;
 
+    #[cfg(feature = "stateful")]
+    use crate::ads_store::builder::AdsStoreBuilder;
     use crate::{
-        ads_store::builder::AdsStoreBuilder,
         ffi::telemetry::MozAdsTelemetryWrapper,
         mars::Environment,
         test_utils::{
@@ -318,19 +314,20 @@ mod tests {
     ) -> AdsClient<MozAdsTelemetryWrapper> {
         let telemetry = client.get_telemetry();
         AdsClient {
+            #[cfg(feature = "stateful")]
+            ads_store: Arc::new(Mutex::new(Some(
+                AdsStoreBuilder::new("test_store.db")
+                    .build(MozAdsTelemetryWrapper::noop())
+                    .expect("Simplest AdsStoreBuilder should be constructable"),
+            ))),
             client,
-            context_id_provider: Box::new(ContextIDComponent::new(
+            context_id_component: ContextIDComponent::new(
                 &Uuid::new_v4().to_string(),
                 0,
                 false,
                 Box::new(DefaultContextIdCallback),
-            )),
+            ),
             telemetry,
-            ads_store: Arc::new(Mutex::new(Some(
-                AdsStoreBuilder::new("test_store.db")
-                    .build()
-                    .expect("Simplest AdsStoreBuilder should be constructable"),
-            ))),
         }
     }
 
@@ -338,10 +335,10 @@ mod tests {
     fn test_get_context_id() {
         let config = AdsClientConfig {
             cache_config: None,
-            context_id_provider: None,
             environment: Environment::Test,
-            telemetry: MozAdsTelemetryWrapper::noop(),
+            #[cfg(feature = "stateful")]
             store_config: None,
+            telemetry: MozAdsTelemetryWrapper::noop(),
         };
         let client = AdsClient::new(config);
         let context_id = client.get_context_id().unwrap();
@@ -424,36 +421,32 @@ mod tests {
     }
 
     #[test]
-    fn test_custom_context_id_provider() {
+    fn test_context_id_is_sent_to_mars() {
         viaduct_dev::init_backend_dev();
 
-        struct FixedContextId;
-        impl ContextIdProvider for FixedContextId {
-            fn context_id(&self) -> context_id::ApiResult<String> {
-                Ok("custom-context-id-12345".to_string())
-            }
-        }
+        let config = AdsClientConfig {
+            cache_config: None,
+            environment: Environment::Test,
+            #[cfg(feature = "stateful")]
+            store_config: None,
+            telemetry: MozAdsTelemetryWrapper::noop(),
+        };
+        let client = AdsClient::new(config);
+
+        // The client generates its own context id, so read it back first and
+        // assert that exactly that value reaches the wire.
+        let context_id = client.get_context_id().unwrap();
+        assert!(Uuid::parse_str(&context_id).is_ok());
 
         let expected_response = get_example_happy_image_response();
         let m = mockito::mock("POST", "/ads")
-            .match_body(mockito::Matcher::PartialJsonString(
-                r#"{"context_id":"custom-context-id-12345"}"#.to_string(),
-            ))
+            .match_body(mockito::Matcher::PartialJsonString(format!(
+                r#"{{"context_id":"{context_id}"}}"#
+            )))
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(serde_json::to_string(&expected_response.data).unwrap())
             .create();
-
-        let config = AdsClientConfig {
-            cache_config: None,
-            context_id_provider: Some(Box::new(FixedContextId)),
-            environment: Environment::Test,
-            telemetry: MozAdsTelemetryWrapper::noop(),
-            store_config: None,
-        };
-        let client = AdsClient::new(config);
-
-        assert_eq!(client.get_context_id().unwrap(), "custom-context-id-12345");
 
         let result = client.request_image_ads(
             make_happy_placement_requests(),

@@ -34,7 +34,7 @@ test("actual producer fence methods preserve ownership and avoid reconstruction"
   const declarations = region(
     header,
     retained ? "  class ProducerFence final {" : "  void FenceSet(",
-    "  // Set and get a global surface UID."
+    "  // Creates a global reference counter objects attached to the surface."
   );
   const methods = region(
     implementation,

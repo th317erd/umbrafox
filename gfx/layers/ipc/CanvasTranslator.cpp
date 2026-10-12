@@ -535,7 +535,7 @@ already_AddRefed<gfx::SourceSurface> CanvasTranslator::WaitForSurface(
       !mSharedContext->IsContextLost()) {
     surf->mSharedSurface =
         mSharedContext->ExportSharedSurface(mWebglTextureType, surf->mData);
-    if (surf->mSharedSurface) {
+    if (surf->mSharedSurface && surf->mSharedSurface->IsValid()) {
       surf->mSharedSurface->BeginRead();
       *aDesc = surf->mSharedSurface->ToSurfaceDescriptor();
       surf->mSharedSurface->EndRead();
@@ -1271,8 +1271,8 @@ already_AddRefed<gfx::DrawTarget> CanvasTranslator::CreateDrawTarget(
     if (EnsureSharedContextWebgl()) {
       mSharedContext->EnterTlsScope();
     }
-    if (RefPtr<gfx::DrawTargetWebgl> webgl =
-            gfx::DrawTargetWebgl::Create(aSize, aFormat, mSharedContext)) {
+    if (RefPtr<gfx::DrawTargetWebgl> webgl = gfx::DrawTargetWebgl::Create(
+            aSize, aFormat, mSharedContext, mContentId)) {
       webgl->BeginFrame(true);
       dt = webgl.forget().downcast<gfx::DrawTarget>();
       if (dt) {
@@ -1670,14 +1670,16 @@ CanvasTranslator::MaybeRecycleDataSurfaceForSurfaceDescriptor(
 #ifdef MOZ_WIDGET_GTK
 already_AddRefed<gfx::SourceSurface>
 CanvasTranslator::GetZeroCopySurfaceFromDMABuf(
-    TextureHost* aTextureHost, SurfaceDescriptorRemoteDecoderId aFrameID) {
+    gfx::DrawTarget* aDT, TextureHost* aTextureHost,
+    SurfaceDescriptorRemoteDecoderId aFrameID) {
   bool imported = false;
   auto clearOnFailure = MakeScopeExit([&] {
     if (!imported && mSharedContext) {
       mSharedContext->ClearVideoSurfaceCache();
     }
   });
-  if (!aTextureHost) {
+  if (!aTextureHost || !aDT ||
+      aDT->GetBackendType() != gfx::BackendType::WEBGL) {
     return nullptr;
   }
   // The wrapping texture hosts forward GetTextureHostType(), so it does not
@@ -1719,11 +1721,16 @@ CanvasTranslator::GetZeroCopySurfaceFromDMABuf(
   if (!EnsureSharedContextWebgl() || !mSharedContext) {
     return nullptr;
   }
+  auto* target = static_cast<gfx::DrawTargetWebgl*>(aDT);
+  if (target->GetSharedContext() != mSharedContext) {
+    return nullptr;
+  }
   RefPtr<gfx::SourceSurface> surface =
-      mIsTranslating ? mSharedContext->ImportVideoSurfaceDescriptor(
-                           *hostSd, size, format, aTextureHost, aFrameID)
-                     : mSharedContext->ImportSurfaceDescriptor(*hostSd, size,
-                                                               format, true);
+      mIsTranslating
+          ? mSharedContext->ImportVideoSurfaceDescriptor(
+                target, *hostSd, size, format, aTextureHost, aFrameID)
+          : mSharedContext->ImportSurfaceDescriptor(target, *hostSd, size,
+                                                    format, true);
   imported = !!surface;
   return surface.forget();
 }
@@ -1731,7 +1738,7 @@ CanvasTranslator::GetZeroCopySurfaceFromDMABuf(
 
 already_AddRefed<gfx::SourceSurface>
 CanvasTranslator::LookupSourceSurfaceFromSurfaceDescriptor(
-    const SurfaceDescriptor& aDesc) {
+    DrawTarget* aDT, const SurfaceDescriptor& aDesc) {
   bool importedVideo = false;
   auto clearOnOtherSurface = MakeScopeExit([&] {
     if (!importedVideo && mSharedContext) {
@@ -1805,7 +1812,7 @@ CanvasTranslator::LookupSourceSurfaceFromSurfaceDescriptor(
 #ifdef MOZ_WIDGET_GTK
   if (sdrd.videoType() == RemoteDecoderVideoType::DMABuf) {
     if (RefPtr<gfx::SourceSurface> surf =
-            GetZeroCopySurfaceFromDMABuf(texture, sdrd.id())) {
+            GetZeroCopySurfaceFromDMABuf(aDT, texture, sdrd.id())) {
       importedVideo = true;
       return surf.forget();
     }
@@ -1936,23 +1943,21 @@ bool CanvasTranslator::ResolveExternalSnapshot(uint64_t aSyncId,
   mExternalSnapshots.erase(it);
 
   RefPtr<gfx::SourceSurface> resolved;
-  if (snapshot.mSharedSurface) {
+  if (snapshot.mSharedSurface && snapshot.mSharedSurface->IsValid()) {
     snapshot.mSharedSurface->BeginRead();
-  }
-  if (snapshot.mDescriptor) {
-    if (aDT) {
-      resolved =
-          aDT->ImportSurfaceDescriptor(*snapshot.mDescriptor, aSize, aFormat);
+    if (snapshot.mDescriptor) {
+      if (aDT) {
+        resolved =
+            aDT->ImportSurfaceDescriptor(*snapshot.mDescriptor, aSize, aFormat);
+      }
+      if (!resolved && gfx::gfxVars::UseAcceleratedCanvas2D() &&
+          EnsureSharedContextWebgl()) {
+        // If we can't import the surface using the DT, then try using the
+        // global shared context to allow for a readback.
+        resolved = mSharedContext->ImportSurfaceDescriptor(
+            nullptr, *snapshot.mDescriptor, aSize, aFormat);
+      }
     }
-    if (!resolved && gfx::gfxVars::UseAcceleratedCanvas2D() &&
-        EnsureSharedContextWebgl()) {
-      // If we can't import the surface using the DT, then try using the global
-      // shared context to allow for a readback.
-      resolved = mSharedContext->ImportSurfaceDescriptor(*snapshot.mDescriptor,
-                                                         aSize, aFormat);
-    }
-  }
-  if (snapshot.mSharedSurface) {
     snapshot.mSharedSurface->EndRead();
     if (snapshot.mWebgl) {
       snapshot.mWebgl->RecycleSnapshotSharedSurface(snapshot.mSharedSurface);

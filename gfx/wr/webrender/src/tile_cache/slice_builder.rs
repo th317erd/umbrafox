@@ -5,7 +5,6 @@
 use api::{BorderRadius, ClipId, ClipMode, ColorF, DebugFlags, PrimitiveFlags, QualitySettings, RasterSpace};
 use api::units::*;
 use crate::clip::{clamped_radius, ClipItemKeyKind, ClipNodeId, ClipTreeBuilder, SceneClipStore, intersect_rounded_rects};
-use crate::frame_builder::FrameBuilderConfig;
 use crate::internal_types::FastHashMap;
 use crate::picture::{PrimitiveList, PictureInstance, Picture3DContext, PictureFlags};
 use crate::picture_composite_mode::PictureCompositeMode;
@@ -268,12 +267,17 @@ impl TileCacheBuilder {
     }
 
     /// Add a primitive, either to the current tile cache, or a new one, depending on various conditions.
+    /// A non-atomic slice picks the tile cache by `placement_node_index`, which
+    /// is the primitive's spatial node except for a backdrop-filter chain: that
+    /// is in its backdrop root's space, only known once the slice is built, so
+    /// it is placed by the backdrop-filter element's spatial node.
     pub fn add_prim(
         &mut self,
         prim_instance: PrimitiveInstance,
         prim_rect: LayoutRect,
         prim_local_clip_rect: LayoutRect,
         spatial_node_index: SpatialNodeIndex,
+        placement_node_index: SpatialNodeIndex,
         prim_flags: PrimitiveFlags,
         spatial_tree: &SceneSpatialTree,
         quality_settings: &QualitySettings,
@@ -294,11 +298,11 @@ impl TileCacheBuilder {
                 );
             }
             SliceKind::Default { ref mut secondary_slices } => {
-                assert_ne!(spatial_node_index, SpatialNodeIndex::UNKNOWN);
+                assert_ne!(placement_node_index, SpatialNodeIndex::UNKNOWN);
 
                 // Check if we want to create a new slice based on the current / next scroll root
                 let scroll_root = find_scroll_root(
-                    spatial_node_index,
+                    placement_node_index,
                     &mut self.prev_scroll_root_cache,
                     spatial_tree,
                     // Allow sticky frames as scroll roots, unless our quality settings prefer
@@ -395,7 +399,6 @@ impl TileCacheBuilder {
     /// Consume this object and build the list of tile cache primitives
     pub fn build(
         mut self,
-        config: &FrameBuilderConfig,
         prim_store: &mut PrimitiveStore,
         spatial_tree: &SceneSpatialTree,
         prim_instances: &[PrimitiveInstance],
@@ -427,7 +430,6 @@ impl TileCacheBuilder {
                             primary_slice.background_color,
                             prim_store,
                             prim_instances,
-                            config,
                             &mut result.tile_caches,
                             &mut tile_cache_pictures,
                             clip_tree_builder,
@@ -447,7 +449,6 @@ impl TileCacheBuilder {
                             primary_slice.background_color,
                             prim_store,
                             prim_instances,
-                            config,
                             &mut result.tile_caches,
                             &mut tile_cache_pictures,
                             clip_tree_builder,
@@ -491,7 +492,6 @@ fn create_tile_cache(
     background_color: Option<ColorF>,
     prim_store: &mut PrimitiveStore,
     prim_instances: &[PrimitiveInstance],
-    frame_builder_config: &FrameBuilderConfig,
     tile_caches: &mut FastHashMap<SliceId, TileCacheParams>,
     tile_cache_pictures: &mut Vec<PictureIndex>,
     clip_tree_builder: &mut ClipTreeBuilder,
@@ -677,7 +677,6 @@ fn create_tile_cache(
         background_color,
         shared_clip_node_id,
         tile_clip_node_id,
-        virtual_surface_size: frame_builder_config.compositor_kind.get_virtual_surface_size(),
         image_surface_count: prim_list.image_surface_count,
         yuv_image_surface_count: prim_list.yuv_image_surface_count,
     });

@@ -98,8 +98,7 @@ run-sequentially = ["true"] # hardcoded ports
 
 ["test_cert_expiration_canary.js"]
 run-if = [
-  "false",
-  #"nightly_build",
+  "nightly_build",
 ]
 
 ["test_cert_keyUsage.js"]
@@ -196,7 +195,6 @@ run-if = [
 ]
 skip-if = [
   "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11' && opt && condprof",
-  "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && opt && condprof",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && opt && condprof",
 ]
 
@@ -212,13 +210,14 @@ run-sequentially = ["true"] # hardcoded ports
 run-sequentially = ["true"] # hardcoded ports
 
 ["test_enterprise_roots.js"]
-# This feature is implemented for Windows and OS X. However, we don't currently
-# have a way to test it on OS X.
+# This feature is implemented for Windows and OS X.
 run-if = [
   "os == 'mac'",
   "os == 'win'",
 ]
-skip-if = ["os == 'mac' && arch == 'aarch64'"]  # Asserts non-zero enterprise roots; fails on macOS aarch64 workers (see Bug 2037084 discussion)
+skip-if = [
+  "macos_vm", # Bug 2076510
+]
 
 ["test_ev_certs.js"]
 tags = "blocklist psm"
@@ -302,9 +301,6 @@ run-sequentially = ["true"] # hardcoded ports
 run-sequentially = ["true"] # hardcoded ports
 
 ["test_oskeystore.js"]
-skip-if = [
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1729538
-]
 
 ["test_osreauthenticator.js"]
 # Reauthentication has been implemented on Windows and MacOS, so running this

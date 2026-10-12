@@ -4,6 +4,8 @@
 
 package org.mozilla.fenix.ui.efficiency.selectors
 
+import mozilla.components.compose.menu.R as MozacMenuR
+import mozilla.components.feature.summarize.R as summarizeR
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.menu.MenuDialogTestTag
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
@@ -28,6 +30,7 @@ object MainMenuSelectors : SelectorContainer {
         HOME_BANNER,
         MORE_MAIN_MENU_ITEMS,
         MORE_MENU_ITEMS,
+        SIGN_IN_TO_SUMMARIZE_BOTTOM_SHEET,
     }
 
     val MAIN_MENU_ANCHOR =
@@ -322,7 +325,7 @@ object MainMenuSelectors : SelectorContainer {
     val DEFAULT_BROWSER_BANNER_DISMISS =
         Selector(
             strategy = SelectorStrategy.COMPOSE_BY_CONTENT_DESCRIPTION,
-            value = getStringResource(R.string.browser_menu_default_banner_dismiss_promotion),
+            value = getStringResource(MozacMenuR.string.mozac_menu_banner_dismiss_description),
             description = "Make Firefox your default banner dismiss button",
             groups = setOf(Group.HOME_BANNER, Group.HOME_PAGE_MAIN_MENU_ITEMS),
         )
@@ -394,6 +397,43 @@ object MainMenuSelectors : SelectorContainer {
             groups = setOf(Group.MORE_MAIN_MENU_SUB_LIST),
         )
 
+    // The "Sign in to summarize" bottom sheet shown when an unauthenticated user taps Summarize page.
+    val SIGN_IN_TO_SUMMARIZE_TITLE =
+        Selector(
+            strategy = SelectorStrategy.COMPOSE_BY_TEXT,
+            value = getStringResource(summarizeR.string.mozac_summarize_fxa_sign_in_title),
+            description = "Sign in to summarize bottom sheet title",
+            groups = setOf(Group.SIGN_IN_TO_SUMMARIZE_BOTTOM_SHEET),
+        )
+
+    // The message and its inline "Learn more" link render as a single text node, so match them joined.
+    val SIGN_IN_TO_SUMMARIZE_MESSAGE =
+        Selector(
+            strategy = SelectorStrategy.COMPOSE_BY_TEXT,
+            value =
+                getStringResource(summarizeR.string.mozac_summarize_fxa_sign_in_message) +
+                    " " +
+                    getStringResource(summarizeR.string.mozac_summarize_learn_more_link),
+            description = "Sign in to summarize bottom sheet message",
+            groups = setOf(Group.SIGN_IN_TO_SUMMARIZE_BOTTOM_SHEET),
+        )
+
+    val SIGN_IN_TO_SUMMARIZE_SIGN_IN_BUTTON =
+        Selector(
+            strategy = SelectorStrategy.COMPOSE_BY_TEXT,
+            value = getStringResource(summarizeR.string.mozac_summarize_fxa_sign_in_button_positive),
+            description = "Sign in to summarize bottom sheet Sign in button",
+            groups = setOf(Group.SIGN_IN_TO_SUMMARIZE_BOTTOM_SHEET),
+        )
+
+    val SIGN_IN_TO_SUMMARIZE_DISMISS_BUTTON =
+        Selector(
+            strategy = SelectorStrategy.COMPOSE_BY_TEXT,
+            value = getStringResource(summarizeR.string.mozac_summarize_error_dissmiss),
+            description = "Sign in to summarize bottom sheet Dismiss button",
+            groups = setOf(Group.SIGN_IN_TO_SUMMARIZE_BOTTOM_SHEET),
+        )
+
     val PRINT_BUTTON =
         Selector(
             strategy = SelectorStrategy.COMPOSE_BY_CONTENT_DESCRIPTION,
@@ -416,6 +456,16 @@ object MainMenuSelectors : SelectorContainer {
             value = getStringResource(R.string.browser_menu_add_to_homescreen),
             description = "Main menu add to homescreen button",
             groups = setOf(Group.BROWSER_VIEW_MAIN_MENU_MORE_ITEMS, Group.MORE_MAIN_MENU_SUB_LIST),
+        )
+
+    // Only present in the "More settings" submenu while a private tab is in the foreground; not part of the
+    // MORE_MAIN_MENU_SUB_LIST group, which models the normal-browsing sub-list.
+    val MOVE_TO_NON_PRIVATE_TAB_BUTTON =
+        Selector(
+            strategy = SelectorStrategy.COMPOSE_BY_CONTENT_DESCRIPTION,
+            value = getStringResource(R.string.browser_menu_move_to_non_private_tab),
+            description = "Main menu Move to non-private tab button",
+            groups = setOf(),
         )
 
     val ADD_APP_TO_HOMESCREEN_BUTTON =

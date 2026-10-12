@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use parking_lot::RwLock;
 
+#[cfg(feature = "stateful")]
 use crate::ads_store::builder::AdsStoreBuilderError;
 use crate::client::error::RequestAdsError;
 use crate::client::ClientOperationEvent;
@@ -54,12 +55,6 @@ impl MozAdsTelemetryWrapper {
 }
 
 impl Telemetry for MozAdsTelemetryWrapper {
-    // MozAdsTelemetry has hanging uniffi callbacks which need to be explicitly dropped before closing.
-    // This replaces it with a `None` internally, meaning future calls will be noops.
-    fn shutdown(&self) {
-        let _dropped = self.inner.write().take();
-    }
-
     fn record(&self, event: &dyn Any) {
         let Some(inner) = self.inner.read().clone() else {
             return;
@@ -97,6 +92,8 @@ impl Telemetry for MozAdsTelemetryWrapper {
             });
             return;
         }
+
+        #[cfg(feature = "stateful")]
         if let Some(cache_builder_error) = event.downcast_ref::<AdsStoreBuilderError>() {
             inner.record_build_cache_error(
                 match cache_builder_error {
@@ -154,6 +151,12 @@ impl Telemetry for MozAdsTelemetryWrapper {
         eprintln!("Unsupported telemetry event type: {:?}", event.type_id());
         #[cfg(test)]
         panic!("Unsupported telemetry event type: {:?}", event.type_id());
+    }
+
+    // MozAdsTelemetry has hanging uniffi callbacks which need to be explicitly dropped before closing.
+    // This replaces it with a `None` internally, meaning future calls will be noops.
+    fn shutdown(&self) {
+        let _dropped = self.inner.write().take();
     }
 }
 

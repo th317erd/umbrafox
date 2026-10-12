@@ -147,7 +147,7 @@ bool PathOps::CheckedStreamToSink(PathSink& aPathSink) const {
 
 void PathOps::TransformedCopyTo(const Matrix& aTransform,
                                 PathOps& aDest) const {
-  MOZ_ALWAYS_TRUE(
+  MOZ_RELEASE_ASSERT(
       aDest.mPathData.reserve(aDest.mPathData.length() + mPathData.length()));
   const uint8_t* nextByte = mPathData.begin();
   const uint8_t* end = mPathData.end();
@@ -515,6 +515,7 @@ PathRecording::PathRecording(BackendType aBackend, FillRule aFillRule,
       mBackendType(aBackend),
       mPathOps(aPathOps) {}
 
+// Ensure any state referring to the path's identity is cleared before reuse.
 void PathRecording::ResetCachedState() {
   if (!mStoredRecorders.empty()) {
     for (size_t i = 0; i < mStoredRecorders.size(); i++) {
@@ -549,9 +550,12 @@ already_AddRefed<PathBuilder> PathRecording::MoveToBuilder(
     FillRule aFillRule, already_AddRefed<PathBuilder> aBuilder) {
   RefPtr builder(aBuilder.downcast<PathBuilderRecording>());
   if (builder) {
+    ResetCachedState();
     builder->mBackendType = mBackendType;
     builder->mFillRule = aFillRule;
     builder->mPath = do_AddRef(this);
+    builder->mCurrentPoint = mCurrentPoint;
+    builder->mBeginPoint = mBeginPoint;
   } else {
     builder = MakeRefPtr<PathBuilderRecording>(mBackendType, aFillRule,
                                                do_AddRef(this));

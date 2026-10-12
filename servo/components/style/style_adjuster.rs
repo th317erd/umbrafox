@@ -698,27 +698,44 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
-    /// Computes the RELEVANT_LINK_VISITED flag based on the parent style and on
-    /// whether we're a relevant link.
-    ///
-    /// NOTE(emilio): We don't do this for text styles, which is... dubious, but
-    /// Gecko doesn't seem to do it either. It's extremely easy to do if needed
-    /// though.
-    ///
-    /// FIXME(emilio): This isn't technically a style adjustment thingie, could
-    /// it move somewhere else?
-    fn adjust_for_visited<E>(&mut self, element: Option<E>)
+    fn enforce_link_underline(&mut self) {
+        use crate::values::computed::{Color, TextDecorationLine, TextDecorationStyle};
+
+        let text_style = self.style.get_text();
+        let old_line = *text_style.get_text_decoration_line();
+        let needs_adjustment = !old_line.intersects(TextDecorationLine::UNDERLINE)
+            || text_style.get_text_decoration_style() != &TextDecorationStyle::Solid
+            || text_style.get_text_decoration_color() != &Color::CurrentColor;
+        if !needs_adjustment {
+            return;
+        }
+
+        let text_style = self.style.mutate_text();
+        // Preserve any existing flags that could be mixed with underline.
+        let new_line = (old_line & TextDecorationLine::MIXED_FLAGS) | TextDecorationLine::UNDERLINE;
+        text_style.set_text_decoration_line(new_line);
+        text_style.set_text_decoration_color(Color::CurrentColor);
+        text_style.set_text_decoration_style(TextDecorationStyle::Solid);
+    }
+
+    /// Sets or unset the RELEVANT_LINK_VISITED flag if we're a link (note that it's otherwise
+    /// propagated via flag inheritance), and enforces underlines if configured to do so.
+    fn adjust_for_links<E>(&mut self, element: Option<E>)
     where
         E: TElement,
     {
         if !self.style.has_visited_style() {
+            // Not inside a link.
             return;
         }
 
         let is_link_element = self.style.pseudo.is_none() && element.is_some_and(|e| e.is_link());
-
         if !is_link_element {
             return;
+        }
+
+        if crate::pref!("layout.css.always_underline_links") {
+            self.enforce_link_underline();
         }
 
         if element.unwrap().is_visited_link() {
@@ -804,7 +821,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// We intentionally don't check 'list-style-image' below since we want it to use
     /// the same font as its fallback ('list-style-type') in case it fails to load.
     #[cfg(feature = "gecko")]
-    fn adjust_for_marker_pseudo(&mut self, author_specified_properties: &LonghandIdSet) {
+    fn adjust_for_marker_pseudo(&mut self, author_or_user_specified_properties: &LonghandIdSet) {
         use crate::values::computed::counters::Content;
         use crate::values::computed::font::{FontFamily, FontSynthesis, FontSynthesisStyle};
         use crate::values::computed::text::{LetterSpacing, WordSpacing};
@@ -815,7 +832,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         if !is_legacy_marker {
             return;
         }
-        if !author_specified_properties.contains(LonghandId::FontFamily) {
+        if !author_or_user_specified_properties.contains(LonghandId::FontFamily) {
             self.style
                 .mutate_font()
                 .set_font_family(FontFamily::moz_bullet().clone());
@@ -823,23 +840,23 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             // FIXME(mats): We can remove this if support for font-synthesis is added to @font-face rules.
             // Then we can add it to the @font-face rule in html.css instead.
             // https://github.com/w3c/csswg-drafts/issues/6081
-            if !author_specified_properties.contains(LonghandId::FontSynthesisWeight) {
+            if !author_or_user_specified_properties.contains(LonghandId::FontSynthesisWeight) {
                 self.style
                     .mutate_font()
                     .set_font_synthesis_weight(FontSynthesis::None);
             }
-            if !author_specified_properties.contains(LonghandId::FontSynthesisStyle) {
+            if !author_or_user_specified_properties.contains(LonghandId::FontSynthesisStyle) {
                 self.style
                     .mutate_font()
                     .set_font_synthesis_style(FontSynthesisStyle::None);
             }
         }
-        if !author_specified_properties.contains(LonghandId::LetterSpacing) {
+        if !author_or_user_specified_properties.contains(LonghandId::LetterSpacing) {
             self.style
                 .mutate_inherited_text()
                 .set_letter_spacing(LetterSpacing::normal());
         }
-        if !author_specified_properties.contains(LonghandId::WordSpacing) {
+        if !author_or_user_specified_properties.contains(LonghandId::WordSpacing) {
             self.style
                 .mutate_inherited_text()
                 .set_word_spacing(WordSpacing::normal());
@@ -1021,7 +1038,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         layout_parent_style: &ComputedValues,
         element: Option<E>,
         try_tactic: &PositionTryFallbacksTryTactic,
-        author_specified_properties: &LonghandIdSet,
+        author_or_user_specified_properties: &LonghandIdSet,
     ) where
         E: TElement,
     {
@@ -1046,7 +1063,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         //     "Should always have an element around for non-pseudo styles"
         // );
 
-        self.adjust_for_visited(element);
+        self.adjust_for_links(element);
         #[cfg(feature = "gecko")]
         {
             self.adjust_for_prohibited_display_contents(element);
@@ -1071,7 +1088,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         self.adjust_for_ruby(element);
         self.adjust_for_appearance(element);
         #[cfg(feature = "gecko")]
-        self.adjust_for_marker_pseudo(author_specified_properties);
+        self.adjust_for_marker_pseudo(author_or_user_specified_properties);
         if !try_tactic.is_empty() {
             self.adjust_for_try_tactic(try_tactic);
         }

@@ -938,6 +938,11 @@ struct BaseCompiler final {
   //
   // Stack maps
 
+  // Fails compilation if the frame has grown past MaxFrameSize.  This must be
+  // checked before creating each stackmap, since a larger frame would overflow
+  // StackMapHeader::numMappedWords.
+  [[nodiscard]] bool checkStackHeight();
+
   // Various methods for creating a stackmap.  Stackmaps are indexed by the
   // lowest address of the instruction immediately *after* the instruction of
   // interest.  In practice that means either: the return point of a call, the
@@ -1229,7 +1234,20 @@ struct BaseCompiler final {
   //
   // Global variable access.
 
-  Address addressOfGlobalVar(const GlobalDesc& global, RegPtr tmp);
+  // The address of a global variable, together with the scratch register it is
+  // based on when it needs one. Construct it as a temporary or local that
+  // outlives the access.
+  class GlobalVarAddress {
+    Maybe<ScratchPtr> tmp_;
+    Address address_;
+
+    Address init(BaseCompiler& bc, const GlobalDesc& global);
+
+   public:
+    GlobalVarAddress(BaseCompiler& bc, const GlobalDesc& global)
+        : address_(init(bc, global)) {}
+    operator Address() const { return address_; }
+  };
 
   //////////////////////////////////////////////////////////////////////
   //

@@ -256,7 +256,7 @@ nsresult txMozillaXMLOutput::endElement() MOZ_CAN_RUN_SCRIPT_BOUNDARY {
         // must perform a microtask checkpoint, and then prepare the script
         // element.
         {
-          nsAutoMicroTask mt;
+          nsAutoMicroTaskForDocument mt(mDocument);
         }
         bool block = sele->AttemptToExecute(nullptr /* aParser */);
         // If the act of insertion evaluated the script, we're fine.
@@ -272,6 +272,7 @@ nsresult txMozillaXMLOutput::endElement() MOZ_CAN_RUN_SCRIPT_BOUNDARY {
     } else if (nsIContent::RequiresDoneAddingChildren(
                    element->NodeInfo()->NamespaceID(),
                    element->NodeInfo()->NameAtom())) {
+      nsAutoScriptBlocker scriptBlocker;
       element->DoneAddingChildren(true);
     }
   }

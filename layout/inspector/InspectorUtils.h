@@ -13,7 +13,9 @@
 
 class nsAtom;
 class nsINode;
-class nsRange;
+namespace mozilla::dom {
+class Range;
+}  // namespace mozilla::dom
 
 namespace mozilla {
 class ErrorResult;
@@ -222,7 +224,7 @@ class InspectorUtils {
                                  ErrorResult& aRv);
   static uint64_t GetContentState(GlobalObject& aGlobal, Element& aElement);
 
-  static void GetUsedFontFaces(GlobalObject& aGlobal, nsRange& aRange,
+  static void GetUsedFontFaces(GlobalObject& aGlobal, dom::Range& aRange,
                                uint32_t aMaxRanges,  // max number of ranges to
                                                      // record for each face
                                bool aSkipCollapsedWhitespace,
@@ -304,6 +306,7 @@ class InspectorUtils {
    * Returns whether or not a CSS property value is valid for the passed syntax
    */
   static bool ValueMatchesSyntax(GlobalObject&, Document& aDocument,
+                                 const nsACString& aProperty,
                                  const nsACString& aValue,
                                  const nsACString& aSyntax);
 

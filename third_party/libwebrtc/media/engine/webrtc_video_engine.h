@@ -35,6 +35,7 @@
 #include "api/media_types.h"
 #include "api/rtc_error.h"
 #include "api/rtp_headers.h"
+#include "api/rtp_packet_infos.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_sender_interface.h"
 #include "api/scoped_refptr.h"
@@ -42,7 +43,7 @@
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/transport/bitrate_settings.h"
-#include "api/transport/rtp/rtp_source.h"
+#include "api/units/timestamp.h"
 #include "api/video/recordable_encoded_frame.h"
 #include "api/video/video_bitrate_allocator_factory.h"
 #include "api/video/video_frame.h"
@@ -53,6 +54,7 @@
 #include "call/call.h"
 #include "call/flexfec_receive_stream.h"
 #include "call/rtp_config.h"
+#include "call/sframe_options.h"
 #include "call/video_receive_stream.h"
 #include "call/video_send_stream.h"
 #include "media/base/codec.h"
@@ -116,7 +118,9 @@ class WebRtcVideoEngine : public VideoEngineInterface {
       Call* call,
       const MediaConfig& config,
       const CryptoOptions& crypto_options,
-      absl::AnyInvocable<void(uint32_t ssrc)> on_first_packet) override;
+      absl::AnyInvocable<void(uint32_t ssrc)> on_first_packet,
+      absl::AnyInvocable<void(uint32_t ssrc, const RtpPacketInfos&, Timestamp)
+                             const> on_frame_delivered_callback) override;
 
   // TODO: https://issues.webrtc.org/360058654 - remove Legacy functions.
   std::vector<Codec> LegacySendCodecs() const override {
@@ -241,11 +245,18 @@ class WebRtcVideoSendChannel : public MediaChannelUtil,
       uint32_t ssrc,
       scoped_refptr<VideoEncoderFactory::EncoderSelectorInterface>
           encoder_selector) override;
+  bool SetEncoderFactoryOverride(
+      uint32_t ssrc,
+      absl_nonnull std::unique_ptr<VideoEncoderFactory> encoder_factory)
+      override;
+  void ResetEncoderFactoryOverride(uint32_t ssrc) override;
 
   void SetSsrcListChangedCallback(
       absl::AnyInvocable<void(const std::set<uint32_t>&)> callback) override {
     ssrc_list_changed_callback_ = std::move(callback);
   }
+
+  void EnableSframe() override;
 
   // Implemented for VideoMediaChannelTest.
   bool sending() const {
@@ -332,6 +343,9 @@ class WebRtcVideoSendChannel : public MediaChannelUtil,
     void SetEncoderSelector(
         scoped_refptr<VideoEncoderFactory::EncoderSelectorInterface>
             encoder_selector);
+    void SetEncoderFactoryOverride(
+        absl_nonnull std::unique_ptr<VideoEncoderFactory> encoder_factory);
+    void ResetEncoderFactoryOverride();
 
     void SetSend(bool send);
 
@@ -414,6 +428,11 @@ class WebRtcVideoSendChannel : public MediaChannelUtil,
     // DegrationPreferences::MAINTAIN_RESOLUTION isn't sufficient to disable
     // downscaling everywhere in the pipeline.
     const bool disable_automatic_resize_;
+
+    // If set, this factory overrides the default video encoder factory used by
+    // this WebRtcVideoSendStream.
+    std::unique_ptr<VideoEncoderFactory> encoder_factory_override_
+        RTC_GUARDED_BY(&thread_checker_);
   };
 
   // Get all codecs that are compatible with the receiver.
@@ -469,6 +488,7 @@ class WebRtcVideoSendChannel : public MediaChannelUtil,
   // Per peer connection crypto options that last for the lifetime of the peer
   // connection.
   const CryptoOptions crypto_options_;
+  SframeSendOptions sframe_options_ RTC_GUARDED_BY(worker_thread_);
 
   // Callback invoked whenever the list of SSRCs changes.
   absl::AnyInvocable<void(const std::set<uint32_t>&)>
@@ -492,7 +512,9 @@ class WebRtcVideoReceiveChannel : public MediaChannelUtil,
       const MediaConfig& config,
       const CryptoOptions& crypto_options,
       VideoDecoderFactory* absl_nullable decoder_factory,
-      absl::AnyInvocable<void(uint32_t ssrc)> on_first_packet);
+      absl::AnyInvocable<void(uint32_t ssrc)> on_first_packet,
+      absl::AnyInvocable<void(uint32_t ssrc, const RtpPacketInfos&, Timestamp)
+                             const> on_frame_delivered_callback);
   ~WebRtcVideoReceiveChannel() override;
 
  public:
@@ -550,7 +572,8 @@ class WebRtcVideoReceiveChannel : public MediaChannelUtil,
   void SetDepacketizerToDecoderFrameTransformer(
       uint32_t ssrc,
       scoped_refptr<FrameTransformerInterface> frame_transformer) override;
-  std::vector<RtpSource> GetSources(uint32_t ssrc) const override;
+
+  void EnableSframe() override;
 
  private:
   class WebRtcVideoReceiveStream;
@@ -606,8 +629,6 @@ class WebRtcVideoReceiveChannel : public MediaChannelUtil,
 
     const std::vector<uint32_t>& GetSsrcs() const;
 
-    std::vector<RtpSource> GetSources();
-
     // Does not return codecs, nor header extensions,  they are filled by the
     // owning WebRtcVideoChannel.
     RtpParameters GetRtpParameters() const;
@@ -662,6 +683,8 @@ class WebRtcVideoReceiveChannel : public MediaChannelUtil,
     VideoReceiveStreamInterface* stream_;
     const bool default_stream_;
     VideoReceiveStreamInterface::Config config_;
+    const absl::AnyInvocable<void(const RtpPacketInfos&, Timestamp) const>
+        on_frame_delivered_callback_;
     FlexfecReceiveStream::Config flexfec_config_;
     FlexfecReceiveStream* flexfec_stream_;
     std::optional<VideoReceiveStreamInterface::Stats> previous_stats_;
@@ -752,10 +775,14 @@ class WebRtcVideoReceiveChannel : public MediaChannelUtil,
   // Per peer connection crypto options that last for the lifetime of the peer
   // connection.
   const CryptoOptions crypto_options_;
+  SframeReceiveOptions sframe_options_ RTC_GUARDED_BY(thread_checker_);
 
   // Optional frame transformer set on unsignaled streams.
   scoped_refptr<FrameTransformerInterface> unsignaled_frame_transformer_
       RTC_GUARDED_BY(thread_checker_);
+  const absl::AnyInvocable<void(uint32_t ssrc, const RtpPacketInfos&, Timestamp)
+                               const>
+      on_frame_delivered_callback_;
 
   const int receive_buffer_size_;
 

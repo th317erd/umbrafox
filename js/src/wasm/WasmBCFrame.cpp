@@ -139,17 +139,22 @@ void BaseLocalIter::operator++(int) {
 //
 // Stack map methods.
 
+bool BaseCompiler::checkStackHeight() {
+  if (MOZ_UNLIKELY(!fr.checkStackHeight())) {
+    return decoder_.fail(decoder_.beginOffset(), "stack frame is too large");
+  }
+  return true;
+}
+
 bool BaseCompiler::createStackMap(Maybe<Trap> reason) {
-  const ExitStubMapVector noExtras;
-  StackMap* stackMap;
-  return stackMapGenerator_.createStackMap(reason, noExtras,
-                                           HasDebugFrameWithLiveRefs::No, stk_,
-                                           &stackMap) &&
-         (!stackMap || stackMaps_->add(masm.currentOffset(), stackMap));
+  return createStackMap(reason, HasDebugFrameWithLiveRefs::No);
 }
 
 bool BaseCompiler::createStackMap(Maybe<Trap> reason,
                                   CodeOffset assemblerOffset) {
+  if (!checkStackHeight()) {
+    return false;
+  }
   const ExitStubMapVector noExtras;
   StackMap* stackMap;
   return stackMapGenerator_.createStackMap(reason, noExtras,
@@ -160,6 +165,9 @@ bool BaseCompiler::createStackMap(Maybe<Trap> reason,
 
 bool BaseCompiler::createStackMap(
     Maybe<Trap> reason, HasDebugFrameWithLiveRefs debugFrameWithLiveRefs) {
+  if (!checkStackHeight()) {
+    return false;
+  }
   const ExitStubMapVector noExtras;
   StackMap* stackMap;
   return stackMapGenerator_.createStackMap(
@@ -189,6 +197,10 @@ bool BaseCompiler::createDebugOnlyStackMapForNonResumingTrap(StackMap** result,
 
   if (MOZ_LIKELY(!compilerEnv_.debugEnabled())) {
     return true;
+  }
+
+  if (!checkStackHeight()) {
+    return false;
   }
 
   // We can use either `t1` or `t2` (when valid) here, since ::createStackMap
@@ -565,14 +577,19 @@ void BaseStackFrame::zeroLocals(BaseRegAlloc* ra) {
     return;
   }
 
-  // For other cases, it's best to have a zero in a register.
+  // For other cases, it's best to have a zero in a register. ARM64 stores an
+  // immediate zero from its zero register.
   //
   // One can do more here with SIMD registers (store 16 bytes at a time) or
   // with instructions like STRD on ARM (store 8 bytes at a time), but that's
   // for another day.
 
+#ifdef JS_CODEGEN_ARM64
+  ImmWord zero(0);
+#else
   RegI32 zero = ra->needI32();
   masm.mov(ImmWord(0), zero);
+#endif
 
   // For the general case we want to have a loop body of UNROLL_LIMIT stores
   // and then a tail of less than UNROLL_LIMIT stores.  When initWords is less
@@ -588,7 +605,9 @@ void BaseStackFrame::zeroLocals(BaseRegAlloc* ra) {
     for (uint32_t i = low; i < high; i += wordSize) {
       masm.storePtr(zero, Address(sp_, localOffset(i + wordSize)));
     }
+#ifndef JS_CODEGEN_ARM64
     ra->freeI32(zero);
+#endif
     return;
   }
 
@@ -621,7 +640,9 @@ void BaseStackFrame::zeroLocals(BaseRegAlloc* ra) {
 
   ra->freeI32(p);
   ra->freeI32(lim);
+#ifndef JS_CODEGEN_ARM64
   ra->freeI32(zero);
+#endif
 }
 
 }  // namespace wasm

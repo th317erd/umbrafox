@@ -382,12 +382,6 @@ pref("gfx.downloadable_fonts.enabled", true);
 pref("gfx.downloadable_fonts.fallback_delay", 3000);
 pref("gfx.downloadable_fonts.fallback_delay_short", 100);
 
-#ifdef XP_WIN
-  // Bug 2011408 will remove this pref and the code that uses it completely if
-  // we don't see any performance issues.
-  pref("gfx.font_rendering.directwrite.use_gdi_table_loading", false);
-#endif
-
 // comma separated list of backends to use in order of preference
 // e.g., pref("gfx.canvas.azure.backends", "direct2d,skia");
 pref("gfx.canvas.azure.backends", "skia");
@@ -1367,11 +1361,6 @@ pref("network.negotiate-auth.allow-proxies", true);
 
 // Path to a specific gssapi library
 pref("network.negotiate-auth.gsslib", "");
-
-#ifdef XP_WIN
-  // Default to using the SSPI intead of GSSAPI on windows
-  pref("network.auth.use-sspi", true);
-#endif
 
 // Controls which NTLM authentication implementation we default to. True forces
 // the use of our generic (internal) NTLM authentication implementation vs. any
@@ -3469,6 +3458,12 @@ pref("browser.search.separatePrivateDefault.enabled", false);
 pref("browser.search.separatePrivateDefault.featureGate", false);
 pref("browser.search.removeEngineInfobar.enabled", true);
 
+// Enables a new search configuration style with no functional changes for the
+// user. This is solely intended as a rollout button - it will go away once the
+// new configuration has been rolled out.
+// Whether search-config-v3 is enabled.
+pref("browser.search.configV3.featureGate", false);
+
 // GMPInstallManager prefs
 
 // User-settable override to media.gmp-manager.url for testing purposes.
@@ -3663,6 +3658,8 @@ pref("browser.ml.modelHubUrlTemplate", "{model}/{revision}");
 pref("browser.ml.modelCacheMaxSize", 4);
 // Model cache timeout in ms
 pref("browser.ml.modelCacheTimeout", 120000);
+// Route llama.cpp inference to the HWInference utility process
+pref("browser.ml.llama.hwInference", true);
 // Minimal Physical RAM required in GiB
 pref("browser.ml.minimumPhysicalMemory", 3);
 // Check for memory before running
@@ -3793,6 +3790,8 @@ pref("services.common.log.logger.tokenserverclient", "Debug");
   // The addresses and CC engines might not actually be available at all.
   pref("services.sync.engine.addresses.available", false);
   pref("services.sync.engine.creditcards.available", false);
+
+  pref("services.sync.perDeviceEngineChoices", false);
 
   // If true, add-on sync ignores changes to the user-enabled flag. This
   // allows people to have the same set of add-ons installed across all
@@ -4077,6 +4076,10 @@ pref("extensions.formautofill.useml.timeoutMS", 120000);
 // Controlled by the autofill-ml-ignore-field-types Nimbus feature.
 pref("extensions.formautofill.useml.ignoreFieldTypes", "");
 
+// If ML identifies a field as 'other' or cannot identify a field,
+// use the heuristics value instead if assigned.
+pref("extensions.formautofill.useml.useHeuristicsForOther", false);
+
 // Optional AutoFill tokenizer features, as a JSON array of feature keys that
 // change a field's exported mlData:
 //   "select_option"    - "<first>...<last>" option-range token for a <select>.
@@ -4088,6 +4091,14 @@ pref("extensions.formautofill.useml.ignoreFieldTypes", "");
 // Default "[]" (none). Each feature changes the mlData contract, so the consuming
 // model must be trained with the same features enabled.
 pref("extensions.formautofill.useml.features", "[]");
+
+// Field types whose regex-heuristic recommendation is fed to the model as a
+// "**hint<class>" token (the "regex_hint" mlFeature); a regex prediction outside
+// this set becomes "**hintnone". Only takes effect when "regex_hint" is in
+// useml.features. This list is part of the model's input contract and must match
+// the hintable set the shipped model was trained with.
+pref("extensions.formautofill.useml.hint.fields",
+  "[\"email\",\"tel\",\"tel-country-code\",\"street-address\",\"address-line1\",\"address-line2\",\"address-line3\",\"postal-code\",\"address-level1\",\"address-level2\",\"organization\",\"country\",\"name\",\"given-name\",\"family-name\",\"cc-name\",\"cc-type\"]");
 
 // Pin the ML model revision to load (the encoder and head engines share one
 // version). Empty = use the Remote Settings default.
@@ -4162,6 +4173,14 @@ pref("extensions.formautofill.creditCards.cvv.supported", "off");
 // CVVs are only captured and stored when both prefs are true; see
 // FormAutofill.isAutofillCreditCardCVVEnabled.
 pref("extensions.formautofill.creditCards.cvv.enabled", true);
+
+// Leave a field whose autocomplete attribute is present but cannot be parsed
+// into a known field name, e.g. autocomplete="shopify checkout", out of
+// autofill entirely: it is offered no dropdown of its own, and it is not
+// filled when autofill is triggered from another field in the same form.
+// Treated as a signal that the site provides its own suggestion UI. A field
+// with no autocomplete attribute, or with "off"/"on", is unaffected.
+pref("extensions.formautofill.suppressUnrecognizedAutocomplete.enabled", false);
 
 // Supported countries need to follow ISO 3166-1 to align with "browser.search.region"
 pref("extensions.formautofill.creditCards.supportedCountries", "US,CA,GB,FR,DE,IT,ES,AT,BE,PL");
@@ -4238,4 +4257,15 @@ pref("general.smoothScroll", true, sticky);
 // Trigger FOG's Artifact Build support on artifact builds.
 #ifdef MOZ_ARTIFACT_BUILDS
   pref("telemetry.fog.artifact_build", true);
+#endif
+
+// For artifact builds, launch child process executables using the executable
+// names in their respective Info.plist files rather than the compile-time
+// branding macros. Artifact build branding doesn't always match the local
+// repo branding configuration leading to mismatches because some macOS
+// executable filenames are derived from the branding. The plist files could
+// always be used, but reading the executable names from the plist requires
+// extra library calls so by default we'll use compile-time brand macros.
+#if defined(MOZ_ARTIFACT_BUILDS) && defined(XP_MACOSX)
+  pref("dom.ipc.processLaunch.useMacPlists", true);
 #endif

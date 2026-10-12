@@ -24,14 +24,18 @@ class TexturePlaneSurface final : public DMABufSurface {
  public:
   TexturePlaneSurface(gl::GLContext* aGL, const IntSize& aSize,
                       const std::array<std::vector<uint8_t>, 3>& aPlanes)
-      : DMABufSurface(SURFACE_YUV), mSize(aSize), mReportedSize(aSize) {
+      : DMABufSurface(SURFACE_YUV) {
     mGL = aGL;
+    mBufferPlaneCount = 3;
     mFOURCCFormat = VA_FOURCC_I420;
     SetYUVColorSpace(YUVColorSpace::BT709);
     const gl::ScopedBindTexture binding(mGL, 0);
     const gl::ResetUnpackState unpack(mGL);
     mGL->fGenTextures(3, mTextures.data());
     for (size_t plane = 0; plane < mTextures.size(); ++plane) {
+      mWidth[plane] = plane ? aSize.width / 2 : aSize.width;
+      mHeight[plane] = plane ? aSize.height / 2 : aSize.height;
+      mTexture[plane] = mTextures[plane];
       const IntSize size(GetWidth(plane), GetHeight(plane));
       EXPECT_EQ(aPlanes[plane].size(), size_t(size.width * size.height));
       mGL->fBindTexture(LOCAL_GL_TEXTURE_2D, mTextures[plane]);
@@ -43,24 +47,25 @@ class TexturePlaneSurface final : public DMABufSurface {
     }
   }
 
-  int GetWidth(int aPlane = 0) override {
-    return aPlane ? mSize.width / 2 : mReportedSize.width;
-  }
-  int GetHeight(int aPlane = 0) override {
-    return aPlane ? mSize.height / 2 : mReportedSize.height;
-  }
   int GetWidthAligned(int aPlane = 0) override { return GetWidth(aPlane); }
   int GetHeightAligned(int aPlane = 0) override { return GetHeight(aPlane); }
   int GetTextureCount() override { return 3; }
-  GLuint GetTexture(int aPlane = 0) override {
-    return aPlane == mMissingPlane ? 0 : mTextures[aPlane];
-  }
-  bool HoldsTexture() override { return true; }
   bool Serialize(layers::SurfaceDescriptor&) override { return false; }
   void ReleaseSurface() override {}
 
-  void SetReportedSize(const IntSize& aSize) { mReportedSize = aSize; }
-  void SetMissingPlane(int aPlane) { mMissingPlane = aPlane; }
+  void SetReportedSize(const IntSize& aSize) {
+    mWidth[0] = aSize.width;
+    mHeight[0] = aSize.height;
+  }
+  void SetMissingPlane(int aPlane) {
+    if (mMissingPlane >= 0) {
+      mTexture[mMissingPlane] = mTextures[mMissingPlane];
+    }
+    mMissingPlane = aPlane;
+    if (mMissingPlane >= 0) {
+      mTexture[mMissingPlane] = 0;
+    }
+  }
 
   nsresult Read(const IntSize& aSize, bool aScaled,
                 std::vector<uint8_t>& aBytes, uint8_t aFill = 0) {
@@ -75,12 +80,13 @@ class TexturePlaneSurface final : public DMABufSurface {
     mGL->fDeleteTextures(3, mTextures.data());
   }
   bool Create(const layers::SurfaceDescriptor&) override { return false; }
+  bool CreateTexture(gl::GLContext* aGL, int aPlane) override {
+    return aGL == mGL && mTexture[aPlane];
+  }
   bool OpenFileDescriptorForPlane(widget::DMABufDeviceLock*, int) override {
     return false;
   }
 
-  const IntSize mSize;
-  IntSize mReportedSize;
   int mMissingPlane = -1;
   std::array<GLuint, 3> mTextures{};
 };

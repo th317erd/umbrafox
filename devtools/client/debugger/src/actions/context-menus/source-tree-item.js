@@ -158,7 +158,7 @@ export function showSourceTreeItemContextMenu(
 
     addNewUserlandScriptOption(menuOptions, item, canCreateUserlandScript);
 
-    showMenu(event, menuOptions);
+    showMenu(event, menuOptions, { accesskeyConflictsBug: 2073896 });
   };
 }
 

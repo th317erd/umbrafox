@@ -5,8 +5,10 @@
 #include "mozilla/dom/SpeculationRules.h"
 
 #include "mozilla/CycleCollectedJSContext.h"
+#include "mozilla/PresShell.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/Document.h"
+#include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/PrefetchCandidates.h"
 #include "mozilla/dom/PrefetchLog.h"
@@ -22,6 +24,8 @@
 #include "nsITimer.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
+#include "nsPresContext.h"
+#include "nsRefreshObservers.h"
 #include "nsTArray.h"
 #include "nsTHashMap.h"
 
@@ -157,6 +161,12 @@ void SpeculationRules::InnerConsiderLoads() {
     return;
   }
 
+  // In order to find matching links, we need the link frames to have been
+  // constructed. If frame construction is pending, wait for it.
+  if (WaitForPendingFrames()) {
+    return;
+  }
+
   // https://html.spec.whatwg.org/#find-matching-links
   // The result doesn't depend on any particular rule set, so it's computed
   // once here and shared across every rule set's ConsiderLoads call below.
@@ -188,6 +198,47 @@ void SpeculationRules::InnerConsiderLoads() {
   EnactCandidates(nullptr, Eagerness::Immediate);
 }
 
+bool SpeculationRules::IsFrameConstructionPending() const {
+  PresShell* presShell = mDocument ? mDocument->GetPresShell() : nullptr;
+  return presShell && presShell->NeedFlush(FlushType::Frames, false);
+}
+
+bool SpeculationRules::WaitForPendingFrames() {
+  if (mPendingFramesObserver) {
+    return true;
+  }
+
+  if (!IsFrameConstructionPending()) {
+    return false;
+  }
+  nsPresContext* presContext = mDocument->GetPresContext();
+  if (!presContext) {
+    return false;
+  }
+
+  // If there are no document rules, no links will be matched against, so
+  // don't bother waiting.
+  if (std::none_of(
+          mRuleSetsFromScript.begin(), mRuleSetsFromScript.end(),
+          [](auto& entry) { return entry.GetData()->HasDocumentRules(); })) {
+    return false;
+  }
+
+  mPendingFramesObserver = MakeRefPtr<ManagedPostRefreshObserver>(
+      presContext, [self = RefPtr{this}](bool aWasCanceled) {
+        if (!aWasCanceled && self->IsFrameConstructionPending()) {
+          return ManagedPostRefreshObserver::Unregister::No;
+        }
+        self->mPendingFramesObserver = nullptr;
+        if (!aWasCanceled) {
+          self->InnerConsiderLoads();
+        }
+        return ManagedPostRefreshObserver::Unregister::Yes;
+      });
+  presContext->RegisterManagedPostRefreshObserver(mPendingFramesObserver);
+  return true;
+}
+
 void SpeculationRules::EnactCandidates(nsIURI* aURL, Eagerness aTriggerLevel) {
   LOG_SPECRULES(("EnactCandidates: %zu group(s), eagerness>=%d, url=%s",
                  mCandidateGroups.Length(), static_cast<int>(aTriggerLevel),
@@ -205,14 +256,25 @@ void SpeculationRules::EnactCandidates(nsIURI* aURL, Eagerness aTriggerLevel) {
       continue;
     }
 
+    nsCOMPtr<nsIURI> candidateUri;
+    if (NS_FAILED(NS_NewURI(getter_AddRefs(candidateUri), candidate.url))) {
+      continue;
+    }
+
+    nsIURI* documentUri = mDocument->GetDocumentURI();
+    if (bool equals = false;
+        documentUri &&
+        NS_SUCCEEDED(documentUri->EqualsExceptRef(candidateUri, &equals)) &&
+        equals) {
+      continue;
+    }
+
     if (aURL) {
       // Candidate URLs are serialized by the Rust URL parser, so they are
       // compared as URIs rather than as strings, to avoid relying on it and
       // nsIURI agreeing on a normal form.
-      nsCOMPtr<nsIURI> uri;
       bool equals = false;
-      if (NS_FAILED(NS_NewURI(getter_AddRefs(uri), candidate.url)) ||
-          NS_FAILED(aURL->Equals(uri, &equals)) || !equals) {
+      if (NS_FAILED(aURL->Equals(candidateUri, &equals)) || !equals) {
         continue;
       }
     }
@@ -236,12 +298,15 @@ void SpeculationRules::EnactCandidates(nsIURI* aURL, Eagerness aTriggerLevel) {
 
 void SpeculationRules::AddLink(Element* aElement) {
   mLinks.Insert(aElement);
-  ConsiderLoads();
+  if (!mRuleSetsFromScript.IsEmpty()) {
+    ConsiderLoads();
+  }
 }
 
 void SpeculationRules::RemoveLink(Element* aElement) {
   mLinks.Remove(aElement);
-  if (mDocument && mDocument->IsFullyActive()) {
+  if (!mRuleSetsFromScript.IsEmpty() && mDocument &&
+      mDocument->IsFullyActive()) {
     // Link elements are removed when a document is being cycle-collected; we
     // shouldn't bother firing the microtask in that case.
     ConsiderLoads();

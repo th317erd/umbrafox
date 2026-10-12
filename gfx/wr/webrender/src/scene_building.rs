@@ -590,13 +590,16 @@ impl<'a> SceneBuilder<'a> {
 
         // Construct the picture cache primitive instance(s) from the tile cache builder
         let (tile_cache_config, tile_cache_pictures) = builder.tile_cache_builder.build(
-            &builder.config,
             &mut builder.prim_store,
             &builder.spatial_tree,
             &builder.prim_instances,
             &mut builder.clip_tree_builder,
             &builder.interners.clip,
         );
+
+        for params in tile_cache_config.tile_caches.values() {
+            builder.spatial_tree.add_slice_root(params.spatial_node_index);
+        }
 
         for pic_index in &builder.snapshot_pictures {
             builder.picture_graph.add_root(*pic_index);
@@ -1199,6 +1202,7 @@ impl<'a> SceneBuilder<'a> {
             ClipId::root(iframe_pipeline_id),
             info.space_and_clip.spatial_id,
             &info.clip_rect,
+            false,
         );
 
         self.clip_tree_builder.push_clip_id(ClipId::root(iframe_pipeline_id));
@@ -1301,15 +1305,17 @@ impl<'a> SceneBuilder<'a> {
             common.clip_chain_id,
         );
 
+        let aligned_aa_edges = if common.flags.contains(PrimitiveFlags::ANTIALISED) {
+            EdgeMask::all()
+        } else {
+            EdgeMask::empty()
+        };
+
         let layout = LayoutPrimitiveInfo {
             rect: prim_rect,
             clip_rect,
             flags: common.flags,
-            // TODO: for CSS primitives axis-aligned edges should not get anti-aliased whereas
-            // for SVG primitives, they should. WebRender currently does not apply anti-aliasing
-            // to SVG aligned primitives as it should, which has gone largely unnoticed because
-            // most SVG primitives are rendered via blob-images.
-            aligned_aa_edges: EdgeMask::empty(),
+            aligned_aa_edges,
             transformed_aa_edges: EdgeMask::all(),
         };
 
@@ -1663,6 +1669,7 @@ impl<'a> SceneBuilder<'a> {
                     info.spatial_id,
                     &info.clip,
                     info.snap_outset,
+                    info.anti_aliased,
                 );
             }
             DisplayItem::RectClip(ref info) => {
@@ -1672,6 +1679,7 @@ impl<'a> SceneBuilder<'a> {
                     info.id,
                     info.spatial_id,
                     &info.clip_rect,
+                    info.anti_aliased,
                 );
             }
             DisplayItem::ClipChain(ref info) => {
@@ -1805,6 +1813,7 @@ impl<'a> SceneBuilder<'a> {
                     prim_instance,
                     prim_rect,
                     prim_local_clip_rect,
+                    spatial_node_index,
                     spatial_node_index,
                     flags,
                     self.spatial_tree,
@@ -2666,6 +2675,7 @@ impl<'a> SceneBuilder<'a> {
         new_node_id: ClipId,
         spatial_id: SpatialId,
         clip_rect: &LayoutRect,
+        anti_aliased: bool,
     ) {
         let spatial_node_index = self.get_space(spatial_id);
 
@@ -2688,6 +2698,7 @@ impl<'a> SceneBuilder<'a> {
             handle,
             spatial_node_index,
             clip_rect,
+            anti_aliased,
         );
     }
 
@@ -2697,6 +2708,7 @@ impl<'a> SceneBuilder<'a> {
         spatial_id: SpatialId,
         clip: &ComplexClipRegion,
         snap_outset: f32,
+        anti_aliased: bool,
     ) {
         let spatial_node_index = self.get_space(spatial_id);
 
@@ -2725,6 +2737,7 @@ impl<'a> SceneBuilder<'a> {
             spatial_node_index,
             region_rect,
             snap_outset,
+            anti_aliased,
         );
     }
 
@@ -3226,6 +3239,7 @@ impl<'a> SceneBuilder<'a> {
                         // A picture has no local clip rect of its own.
                         LayoutRect::max_rect(),
                         filter_spatial_node_index,
+                        spatial_node_index,
                         info.flags,
                         self.spatial_tree,
                         &self.quality_settings,
@@ -3521,11 +3535,11 @@ impl<'a> SceneBuilder<'a> {
                                 newnode.inputs = remapped_inputs;
                                 (newnode.clone(), op.clone())
                             },
-                            FilterGraphOp::SVGFEDisplacementMap { scale, .. } => {
+                            FilterGraphOp::SVGFEDisplacementMap { scale_x, scale_y, .. } => {
                                 assert!(remapped_inputs.len() == 2);
                                 let padding = LayoutSize::new(
-                                    scale.ceil(),
-                                    scale.ceil(),
+                                    scale_x.abs().ceil(),
+                                    scale_y.abs().ceil(),
                                 );
                                 // Add padding to both inputs for source and target
                                 // rects, we might be able to skip some of these,

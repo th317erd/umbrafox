@@ -28,6 +28,7 @@
 #include "mozilla/ContentBlockingAllowList.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/FlowMarkers.h"
+#include "mozilla/LoadInfo.h"
 #include "mozilla/NullPrincipal.h"
 #include "mozilla/PerfStats.h"
 #include "mozilla/ProfilerDumpOrCrash.h"
@@ -685,6 +686,13 @@ nsresult nsHttpChannel::PrepareToConnect() {
                     }
                     return;
                   }
+                  if (!self->mDictDecompress) {
+                    // The request already completed and released the dictionary
+                    // (SetDecompressDictionary(nullptr) from the compress
+                    // converter's OnStopRequest) before this async prefetch
+                    // callback ran. Nothing left to resume.
+                    return;
+                  }
                   MOZ_ASSERT(self->mDictDecompress->DictionaryReady());
                   if (self->mSuspendedForDictionary) {
                     LOG(
@@ -979,9 +987,10 @@ nsresult nsHttpChannel::OnBeforeConnect() {
       };
 
       bool willCallback = false;
-      rv = NS_ShouldSecureUpgrade(
-          mURI, mLoadInfo, resultPrincipal, LoadAllowSTS(), originAttributes,
-          shouldUpgrade, std::move(resultCallback), willCallback);
+      rv = NS_ShouldSecureUpgrade(mURI, mLoadInfo, this, resultPrincipal,
+                                  LoadAllowSTS(), originAttributes,
+                                  shouldUpgrade, std::move(resultCallback),
+                                  willCallback);
       // If the request gets upgraded because of the HTTPS-Only mode, but no
       // event listener has been registered so far, we want to do that here.
       uint32_t httpOnlyStatus = mLoadInfo->GetHttpsOnlyStatus();
@@ -1180,6 +1189,7 @@ nsresult nsHttpChannel::ContinueOnBeforeConnect(bool aShouldUpgrade,
     // already present in the loadinfo.
     if (aUpgradeWithHTTPSRR) {
       mLoadInfo->SetHttpsUpgradeTelemetry(nsILoadInfo::HTTPS_RR);
+      NS_LogSecureUpgradeToConsole(mURI, mLoadInfo, this, "HTTPS RR"_ns);
     }
     return AsyncCall(&nsHttpChannel::HandleAsyncRedirectChannelToHttps);
   }
@@ -1233,21 +1243,24 @@ nsresult nsHttpChannel::ContinueOnBeforeConnect(bool aShouldUpgrade,
   mCaps |= NS_HTTP_TRR_FLAGS_FROM_MODE(nsIRequest::GetTRRMode());
 
   // Finalize ConnectionInfo flags before SpeculativeConnect
-  mConnectionInfo->SetAnonymous((mLoadFlags & LOAD_ANONYMOUS) != 0);
-  mConnectionInfo->SetPrivate(mPrivateBrowsing);
-  mConnectionInfo->SetNoSpdy(mCaps & NS_HTTP_DISALLOW_SPDY);
-  mConnectionInfo->SetBeConservative((mCaps & NS_HTTP_BE_CONSERVATIVE) ||
-                                     LoadBeConservative());
-  mConnectionInfo->SetTlsFlags(mTlsFlags);
-  mConnectionInfo->SetIsTrrServiceChannel(LoadIsTRRServiceChannel());
-  mConnectionInfo->SetTRRMode(nsIRequest::GetTRRMode());
-  mConnectionInfo->SetIPv4Disabled(mCaps & NS_HTTP_DISABLE_IPV4);
-  mConnectionInfo->SetIPv6Disabled(mCaps & NS_HTTP_DISABLE_IPV6);
-  mConnectionInfo->SetHttp3Policy((mCaps & NS_HTTP_DISALLOW_HTTP3)
-                                      ? Http3Policy::Disabled
-                                      : Http3Policy::Allowed);
-  mConnectionInfo->SetAnonymousAllowClientCert(
-      (mLoadFlags & LOAD_ANONYMOUS_ALLOW_CLIENT_CERT) != 0);
+  mConnectionInfo =
+      mConnectionInfo->Mutate()
+          .SetAnonymous((mLoadFlags & LOAD_ANONYMOUS) != 0)
+          .SetPrivate(mPrivateBrowsing)
+          .SetNoSpdy(mCaps & NS_HTTP_DISALLOW_SPDY)
+          .SetBeConservative((mCaps & NS_HTTP_BE_CONSERVATIVE) ||
+                             LoadBeConservative())
+          .SetTlsFlags(mTlsFlags)
+          .SetIsTrrServiceChannel(LoadIsTRRServiceChannel())
+          .SetTRRMode(nsIRequest::GetTRRMode())
+          .SetIPv4Disabled(mCaps & NS_HTTP_DISABLE_IPV4)
+          .SetIPv6Disabled(mCaps & NS_HTTP_DISABLE_IPV6)
+          .SetHttp3Policy((mCaps & NS_HTTP_DISALLOW_HTTP3)
+                              ? Http3Policy::Disabled
+                              : Http3Policy::Allowed)
+          .SetAnonymousAllowClientCert(
+              (mLoadFlags & LOAD_ANONYMOUS_ALLOW_CLIENT_CERT) != 0)
+          .Finalize();
 
   if (mWebTransportSessionEventListener) {
     nsTArray<RefPtr<nsIWebTransportHash>> aServerCertHashes;
@@ -4243,7 +4256,7 @@ nsresult nsHttpChannel::RedirectToNewChannelForAuthRetry() {
   }
 
   MOZ_ASSERT(mConnectionInfo);
-  httpChannelImpl->mConnectionInfo = mConnectionInfo->Clone();
+  httpChannelImpl->mConnectionInfo = mConnectionInfo;
 
   // we need to store the state to skip unnecessary checks in the new channel
   httpChannelImpl->StoreAuthRedirectedChannel(true);
@@ -5490,6 +5503,17 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, uint32_t* aResult) {
         LoadAllowStaleCacheContent(), LoadForceValidateCacheContent(),
         isImmutable, LoadCustomConditionalRequest(), mRequestHead, entry,
         cacheControlRequest, fromPreviousSession, &doBackgroundValidation);
+
+    // A navigation activated from a completed speculation-rules prefetch record
+    // must serve the prefetched response as-is (spec: "create navigation params
+    // from a prefetch record"), so skip freshness/no-store revalidation of the
+    // entry we just found.
+    if (doValidation && mLoadInfo->GetActivatedFromNavigationalPrefetch()) {
+      LOG(
+          ("  serving speculation-rules prefetch from cache without "
+           "validation"));
+      doValidation = false;
+    }
   }
 
   nsAutoCString requestedETag;
@@ -5938,6 +5962,24 @@ nsresult nsHttpChannel::OpenCacheInputStream(nsICacheEntry* cacheEntry,
 
   nsAutoCString contentType;
   mCachedResponseHead->ContentType(contentType);
+
+  // Alt-data written by a content process (bytecode cache) may only be
+  // consumed by a load whose principal matches the one that produced it.
+  if (altDataFromChild && !altDataType.IsEmpty()) {
+    nsAutoCString storedOrigin;
+    cacheEntry->GetMetaDataElement("alt-data-principal",
+                                   getter_Copies(storedOrigin));
+    nsAutoCString currentOrigin;
+    GetAltDataBindingOrigin(currentOrigin);
+    if (storedOrigin.IsEmpty() || currentOrigin.IsEmpty() ||
+        !storedOrigin.Equals(currentOrigin)) {
+      LOG(
+          ("Rejecting child-written alt-data due to principal mismatch "
+           "[channel=%p, stored='%s', current='%s']",
+           this, storedOrigin.get(), currentOrigin.get()));
+      altDataType.Truncate();
+    }
+  }
 
   bool foundAltData = false;
   bool deliverAltData = true;
@@ -8195,8 +8237,10 @@ nsresult nsHttpChannel::BeginConnect() {
       }
       wtconSettings->GetDedicated(&dedicated);
       if (dedicated) {
-        connInfo->SetWebTransportId(
-            nsHttpConnectionInfo::GenerateNewWebTransportId());
+        connInfo = connInfo->Mutate()
+                       .SetWebTransportId(
+                           nsHttpConnectionInfo::GenerateNewWebTransportId())
+                       .Finalize();
       }
     } else {
       connInfo = new nsHttpConnectionInfo(host, port, ""_ns, mUsername,
@@ -8340,7 +8384,8 @@ nsresult nsHttpChannel::BeginConnect() {
     LOG(("%p NS_HTTP_USE_HAPPY_EYEBALLS ", this));
     mCaps |= NS_HTTP_USE_HAPPY_EYEBALLS;
     mCaps &= ~NS_HTTP_FORCE_WAIT_HTTP_RR;
-    mConnectionInfo->SetHappyEyeballsEnabled(true);
+    mConnectionInfo =
+        mConnectionInfo->Mutate().SetHappyEyeballsEnabled(true).Finalize();
   }
 
   // No need to lookup HTTPSSVC record if mHTTPSSVCRecord already contains a
@@ -8354,7 +8399,7 @@ nsresult nsHttpChannel::BeginConnect() {
       gHttpHandler->IsHttp2Excluded(mConnectionInfo)) {
     StoreAllowSpdy(0);
     mCaps |= NS_HTTP_DISALLOW_SPDY;
-    mConnectionInfo->SetNoSpdy(true);
+    mConnectionInfo = mConnectionInfo->Mutate().SetNoSpdy(true).Finalize();
   }
 
   // We can be passed with the auth provider if this channel was
@@ -12628,11 +12673,17 @@ void nsHttpChannel::ReEvaluateReferrerAfterTrackingStatusIsKnown() {
 
 namespace {
 
-class BackgroundRevalidatingListener : public nsIStreamListener {
+// Also acts as the only notification callbacks of the revalidating channel, so
+// that none of its notifications reach the consumer of the original channel.
+class BackgroundRevalidatingListener : public nsIStreamListener,
+                                       public nsIInterfaceRequestor,
+                                       public nsIChannelEventSink {
+ public:
   NS_DECL_ISUPPORTS
-
   NS_DECL_NSISTREAMLISTENER
   NS_DECL_NSIREQUESTOBSERVER
+  NS_DECL_NSIINTERFACEREQUESTOR
+  NS_DECL_NSICHANNELEVENTSINK
 
  private:
   virtual ~BackgroundRevalidatingListener() = default;
@@ -12666,8 +12717,29 @@ BackgroundRevalidatingListener::OnStopRequest(nsIRequest* request,
   return NS_OK;
 }
 
+NS_IMETHODIMP
+BackgroundRevalidatingListener::GetInterface(const nsIID& aIID,
+                                             void** aResult) {
+  if (aIID.Equals(NS_GET_IID(nsIChannelEventSink))) {
+    return QueryInterface(aIID, aResult);
+  }
+  return NS_ERROR_NO_INTERFACE;
+}
+
+// The redirect response itself revalidates the cache entry, there is no need
+// to follow it.
+NS_IMETHODIMP
+BackgroundRevalidatingListener::AsyncOnChannelRedirect(
+    nsIChannel* aOldChannel, nsIChannel* aNewChannel, uint32_t aFlags,
+    nsIAsyncVerifyRedirectCallback* aCallback) {
+  LOG(("BackgroundRevalidatingListener::AsyncOnChannelRedirect %p vetoing",
+       aOldChannel));
+  return NS_BINDING_ABORTED;
+}
+
 NS_IMPL_ISUPPORTS(BackgroundRevalidatingListener, nsIStreamListener,
-                  nsIRequestObserver)
+                  nsIRequestObserver, nsIInterfaceRequestor,
+                  nsIChannelEventSink)
 
 }  // namespace
 
@@ -12700,10 +12772,30 @@ void nsHttpChannel::PerformBackgroundCacheRevalidationNow() {
   nsLoadFlags loadFlags = mLoadFlags | LOAD_ONLY_IF_MODIFIED | VALIDATE_ALWAYS |
                           LOAD_BACKGROUND | LOAD_BYPASS_SERVICE_WORKER;
 
+  RefPtr<BackgroundRevalidatingListener> listener =
+      new BackgroundRevalidatingListener();
+
+  nsCOMPtr<nsIPrincipal> principal;
+  nsContentUtils::GetSecurityManager()->GetChannelResultPrincipal(
+      this, getter_AddRefs(principal));
+  nsCOMPtr<nsILoadGroup> loadGroup;
+  rv = NS_NewLoadGroup(getter_AddRefs(loadGroup), principal);
+  if (NS_FAILED(rv)) {
+    LOG(("  failed to create the load group, rv=0x%08x",
+         static_cast<uint32_t>(rv)));
+    return;
+  }
+
+  // XXX(valentin): Preserving the old load info means mInitialSecurityCheckDone
+  // will be true. Using CloneForNewRequest would be closer to the spec, but
+  // it would mean redoing previous checks.
+  nsCOMPtr<nsILoadInfo> loadInfo =
+      static_cast<mozilla::net::LoadInfo*>(mLoadInfo.get())->Clone();
+
   nsCOMPtr<nsIChannel> validatingChannel;
-  rv = NS_NewChannelInternal(getter_AddRefs(validatingChannel), mURI, mLoadInfo,
-                             nullptr /* performance storage */, mLoadGroup,
-                             mCallbacks, loadFlags);
+  rv = NS_NewChannelInternal(getter_AddRefs(validatingChannel), mURI, loadInfo,
+                             nullptr /* performance storage */, loadGroup,
+                             listener, loadFlags);
   if (NS_FAILED(rv)) {
     LOG(("  failed to created the channel, rv=0x%08x",
          static_cast<uint32_t>(rv)));
@@ -12712,6 +12804,7 @@ void nsHttpChannel::PerformBackgroundCacheRevalidationNow() {
 
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(validatingChannel));
   MOZ_ASSERT(httpChannel);
+
   nsCOMPtr<nsIHttpHeaderVisitor> visitor =
       new CopyNonDefaultHeaderVisitor(httpChannel);
   rv = VisitNonDefaultRequestHeaders(visitor);
@@ -12736,8 +12829,6 @@ void nsHttpChannel::PerformBackgroundCacheRevalidationNow() {
     httpChan->mStaleRevalidation = true;
   }
 
-  RefPtr<BackgroundRevalidatingListener> listener =
-      new BackgroundRevalidatingListener();
   rv = validatingChannel->AsyncOpen(listener);
   if (NS_FAILED(rv)) {
     LOG(("  failed to open the channel, rv=0x%08x", static_cast<uint32_t>(rv)));

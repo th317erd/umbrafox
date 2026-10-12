@@ -44,20 +44,6 @@ gcc-8.5.0:
         strip-components: 1
         add-prefix: gcc-source/
 
-gcc-9.5.0:
-    description: GCC 9.5.0 source code
-    fetch:
-        type: static-url
-        url: https://ftp.gnu.org/gnu/gcc/gcc-9.5.0/gcc-9.5.0.tar.xz
-        sha256: 27769f64ef1d4cd5e2be8682c0c93f9887983e6cfd1a927ce5a0a2915a95cf8f
-        size: 72462752
-        gpg-signature:
-            sig-url: "{url}.sig"
-            key-path: build/unix/build-gcc/7F74F97C103468EE5D750B583AB00996FC26A641.key
-        artifact-name: gcc-source.tar.zst
-        strip-components: 1
-        add-prefix: gcc-source/
-
 gcc-11.5.0:
     description: GCC 11.5.0 source code
     fetch:
@@ -317,7 +303,7 @@ gn:
     fetch:
         type: git
         repo: https://gn.googlesource.com/gn
-        revision: 6f8c0328ee29c76e3566a216f2f0cf2992daa6ed
+        revision: 6b0190f746976a2e3b26ed529a9d487ae2587868
 
 grcov:
     description: grcov source code
@@ -358,13 +344,6 @@ mingw-w64-trunk:
         repo: https://git.code.sf.net/p/mingw-w64/mingw-w64
         branch: master
 
-llvm-mingw:
-    description: llvm-mingw source code
-    fetch:
-        type: git
-        repo: https://github.com/mstorsjo/llvm-mingw
-        revision: 9f8e5cebd6dbbb7546e8917e6c59284699a48d26
-
 android-ndk-rs:
     description: android-ndk-rs source code
     fetch:
@@ -377,13 +356,6 @@ android-ndk-rs:
         # Example: https://github.com/rust-mobile/cargo-apk/issues/74
         repo: https://github.com/jamienicol/android-ndk-rs
         revision: abddf7b2a3f491637440e0418087f68fb4a401c1
-
-clang-14:
-    description: clang 14.0.5 source code
-    fetch:
-        type: git
-        repo: https://github.com/llvm/llvm-project
-        revision: 4bc1d0b51c8e488d78ab69c8b19cfbcd1f7db6a4
 
 clang-19:
     description: clang 19.1.7 source code
@@ -854,12 +826,12 @@ jj:
         revision: 2508982cde5c7e4db0933e0b6469f9e778e71e28
 
 searchfox-cli:
-    description: searchfox-cli 0.19.0 source code
+    description: searchfox-cli 0.20.5 source code
     fetch:
         type: static-url
-        url: https://crates.io/api/v1/crates/searchfox-cli/0.19.0/download
-        sha256: 25612ec327e523e8e253f009a55157eae079431bdc8a93d1015c59dada4f6b3f
-        size: 26768
+        url: https://crates.io/api/v1/crates/searchfox-cli/0.20.5/download
+        sha256: e77e5334075599c4263b973effbb42d63769cb4cdd0dc6c1a8b5a39662e3ef65
+        size: 26871
         artifact-name: searchfox-cli.tar.zst
         strip-components: 1
         add-prefix: searchfox-cli/
@@ -876,34 +848,34 @@ socorro-cli:
         add-prefix: socorro-cli/
 
 stmo-cli:
-    description: stmo-cli 0.9.1 source code
+    description: stmo-cli 0.12.0 source code
     fetch:
         type: static-url
-        url: https://crates.io/api/v1/crates/stmo-cli/0.9.1/download
-        sha256: c76a2f976d24294c145a8d7a22ee9e7e048b054d29d397c43d5007144badd7e8
-        size: 88219
+        url: https://crates.io/api/v1/crates/stmo-cli/0.12.0/download
+        sha256: fa6b363ab846d1f637eb158fe90386378d1e5aa7c509e034c4e108963155bb86
+        size: 110603
         artifact-name: stmo-cli.tar.zst
         strip-components: 1
         add-prefix: stmo-cli/
 
 treeherder-cli:
-    description: treeherder-cli 0.2.16 source code
+    description: treeherder-cli 0.3.1 source code
     fetch:
         type: static-url
-        url: https://crates.io/api/v1/crates/treeherder-cli/0.2.16/download
-        sha256: 918230aacff5e5b71a42290a2d2d8ad82480b7c3dca565cfe4abd63abafde6ff
-        size: 126790
+        url: https://crates.io/api/v1/crates/treeherder-cli/0.3.1/download
+        sha256: a44fbca9fa66907d2aa9f8491a923a7402e5619e55a508b3269ea74b77f96cd2
+        size: 141088
         artifact-name: treeherder-cli.tar.zst
         strip-components: 1
         add-prefix: treeherder-cli/
 
 webspec-index:
-    description: webspec-index 0.12.0 source code
+    description: webspec-index 0.13.1 source code
     fetch:
         type: static-url
-        url: https://crates.io/api/v1/crates/webspec-index/0.12.0/download
-        sha256: 1a82dc18333061cf11092ebf7f8f509ca36ae682b525ed3e8701c9b9c8f8ad2f
-        size: 184601
+        url: https://crates.io/api/v1/crates/webspec-index/0.13.1/download
+        sha256: 81d89d3a2db260f224dd617c9b36ec804fa145c84a8cc9a23a42f05170219fc1
+        size: 206446
         artifact-name: webspec-index.tar.zst
         strip-components: 1
         add-prefix: webspec-index/
@@ -913,7 +885,7 @@ firefox-profiler:
     fetch:
         type: git
         repo: https://github.com/firefox-devtools/profiler
-        revision: a04f7ea013f28042d203b2c2db3fc632506d2903
+        revision: 3f9a08b126dff1494286a500ec47cbc5496232c3
 
 # See https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads
 # We can't catch regressions from these updates in CI. Testing should focus on

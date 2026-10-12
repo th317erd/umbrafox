@@ -2487,7 +2487,7 @@ void ScrollContainerFrame::ScrollToCSSPixels(const CSSPoint& aScrollPosition,
   // 'this' might be destroyed here
 }
 
-void ScrollContainerFrame::ScrollToCSSPixelsForApz(
+bool ScrollContainerFrame::ScrollToCSSPixelsForApz(
     const CSSPoint& aScrollPosition, ScrollSnapTargetIds&& aLastSnapTargetIds,
     const APZScrollGeneration& aGenerationOnApz) {
   mScrollGenerationOnApz = aGenerationOnApz;
@@ -2495,11 +2495,13 @@ void ScrollContainerFrame::ScrollToCSSPixelsForApz(
   nscoord halfRange = nsPresContext::CSSPixelsToAppUnits(1000);
   nsRect range(pt.x - halfRange, pt.y - halfRange, 2 * halfRange - 1,
                2 * halfRange - 1);
+  AutoWeakFrame weakFrame(this);
   ScrollToWithOrigin(
       pt, &range,
       ScrollOperationParams{ScrollMode::Instant, ScrollOrigin::Apz,
                             std::move(aLastSnapTargetIds)});
   // 'this' might be destroyed here
+  return weakFrame.IsAlive();
 }
 
 CSSIntPoint ScrollContainerFrame::GetRoundedScrollPositionCSSPixels() {
@@ -6886,11 +6888,17 @@ void ScrollContainerFrame::LayoutScrollbars(ScrollReflowInput& aState,
 
     nsRect r;
     r.width = std::max(std::max(r.width, scrollbarSize), resizerMinSize.width);
-    r.x = scrollbarOnLeft ? aInsideBorderArea.x
-                          : aInsideBorderArea.XMost() - r.width;
     r.height =
         std::max(std::max(r.height, scrollbarSize), resizerMinSize.height);
-    r.y = aInsideBorderArea.YMost() - r.height;
+
+    // Get scrollbar insets specified via -moz-scrollbar-inset-{inline,block}.
+    // These are used to position the resizer within rounded corners.
+    const nsMargin scrollbarInset = ScrollbarInsets();
+
+    r.x = scrollbarOnLeft
+              ? aInsideBorderArea.x + scrollbarInset.left
+              : aInsideBorderArea.XMost() - r.width - scrollbarInset.right;
+    r.y = aInsideBorderArea.YMost() - r.height - scrollbarInset.bottom;
 
     LayoutScrollbarPartAtRect(aState, resizerRI, r);
   }
@@ -7559,6 +7567,8 @@ void ScrollContainerFrame::FireScrolledAreaEvent() {
   nsIContent* content = GetContent();
 
   event.mArea = mScrolledFrame->ScrollableOverflowRectRelativeToParent();
+  event.mFlags.mOnlyChromeDispatch =
+      !StaticPrefs::layout_scrolled_area_changed_content_enabled();
   if (RefPtr<Document> doc = content->GetUncomposedDoc()) {
     EventDispatcher::Dispatch(doc, presContext, &event, nullptr);
   }

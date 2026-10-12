@@ -30,6 +30,7 @@ class CanvasVideoSurfaceCache : public ::testing::Test {
   };
 
   RefPtr<SharedContextWebgl> mContext;
+  RefPtr<DrawTargetWebgl> mTarget;
   Input mRed;
   Input mGreen;
   Maybe<bool> mSoftwarePolicy;
@@ -57,6 +58,9 @@ class CanvasVideoSurfaceCache : public ::testing::Test {
     mSoftwarePolicy = Some(gfxVars::UseSoftwareWebRender());
     RecordProperty("originalSoftwarePolicy", mSoftwarePolicy.value() ? 1 : 0);
     gfxVars::SetUseSoftwareWebRender(false);
+    mTarget = DrawTargetWebgl::Create(IntSize(kSize, kSize), kFormat, mContext,
+                                      dom::ContentParentId(1));
+    ASSERT_TRUE(mTarget);
     ASSERT_NO_FATAL_FAILURE(CreateInput(mRed, false));
     ASSERT_NO_FATAL_FAILURE(CreateInput(mGreen, true));
   }
@@ -64,6 +68,7 @@ class CanvasVideoSurfaceCache : public ::testing::Test {
   void TearDown() override {
     mRed.host = nullptr;
     mGreen.host = nullptr;
+    mTarget = nullptr;
     mContext = nullptr;
     if (mSoftwarePolicy) {
       gfxVars::SetUseSoftwareWebRender(mSoftwarePolicy.value());
@@ -80,7 +85,7 @@ class CanvasVideoSurfaceCache : public ::testing::Test {
         gl, kSize, kSize, DMABUF_ALPHA | DMABUF_TEXTURE);
     ASSERT_TRUE(dmabuf)
     << "This suite requires actual DMABuf allocation";
-    ASSERT_TRUE(dmabuf->CreateTexture(gl));
+    ASSERT_TRUE(dmabuf->CreateTextures(gl));
     std::array<uint8_t, kSize * kSize * 4> bytes{};
     for (size_t i = 0; i < bytes.size(); i += 4) {
       bytes[i + (aGreen ? 1 : 0)] = 255;
@@ -110,7 +115,7 @@ class CanvasVideoSurfaceCache : public ::testing::Test {
 
   already_AddRefed<SourceSurface> Import(const Input& aInput) {
     return mContext->ImportVideoSurfaceDescriptor(
-        aInput.descriptor, IntSize(kSize, kSize), kFormat, aInput.host,
+        mTarget, aInput.descriptor, IntSize(kSize, kSize), kFormat, aInput.host,
         aInput.id);
   }
 
@@ -175,7 +180,7 @@ TEST_F(CanvasVideoSurfaceCache,
     EXPECT_TRUE(descriptor.refCount()[0].IsValid());
   }
   RefPtr<SourceSurface> surface = mContext->ImportVideoSurfaceDescriptor(
-      *borrowed, IntSize(kSize, kSize), kFormat, input.host, input.id);
+      mTarget, *borrowed, IntSize(kSize, kSize), kFormat, input.host, input.id);
   ASSERT_NO_FATAL_FAILURE(ExpectPixels(surface, false));
 }
 
@@ -194,7 +199,7 @@ TEST_F(CanvasVideoSurfaceCache, GenericImportsAreDistinctAndInvalidate) {
   RefPtr<SourceSurface> first = Import(mRed);
   ASSERT_TRUE(first);
   RefPtr<SourceSurface> generic = mContext->ImportSurfaceDescriptor(
-      mRed.descriptor, IntSize(kSize, kSize), kFormat, true);
+      mTarget, mRed.descriptor, IntSize(kSize, kSize), kFormat, true);
   ASSERT_TRUE(generic);
   EXPECT_NE(generic, first);
   ExpectEmptyCache();
@@ -218,6 +223,36 @@ TEST_F(CanvasVideoSurfaceCache, FrameAndHostIdentityCannotAlias) {
   EXPECT_NE(differentHost, newID);
   ASSERT_NO_FATAL_FAILURE(ExpectPixels(first, false));
   ASSERT_NO_FATAL_FAILURE(ExpectPixels(differentHost, true));
+}
+
+TEST_F(CanvasVideoSurfaceCache, ContentOwnershipCannotAlias) {
+  RefPtr<SourceSurface> first = Import(mRed);
+  ASSERT_TRUE(first);
+  mTarget = DrawTargetWebgl::Create(IntSize(kSize, kSize), kFormat, mContext,
+                                    dom::ContentParentId(2));
+  ASSERT_TRUE(mTarget);
+  RefPtr<SourceSurface> second = Import(mRed);
+  ASSERT_TRUE(second);
+  EXPECT_NE(second, first);
+  RefPtr<SourceSurface> hit = Import(mRed);
+  EXPECT_EQ(hit, second);
+  ASSERT_NO_FATAL_FAILURE(ExpectPixels(first, false));
+  ASSERT_NO_FATAL_FAILURE(ExpectPixels(second, false));
+}
+
+TEST_F(CanvasVideoSurfaceCache, MissingTargetNeverPublishes) {
+  RefPtr<SourceSurface> first = Import(mRed);
+  ASSERT_TRUE(first);
+  mTarget = nullptr;
+  RefPtr<SourceSurface> second = Import(mRed);
+  ASSERT_TRUE(second);
+  EXPECT_NE(second, first);
+  ExpectEmptyCache();
+  RefPtr<SourceSurface> third = Import(mRed);
+  ASSERT_TRUE(third);
+  EXPECT_NE(third, second);
+  ExpectEmptyCache();
+  ASSERT_NO_FATAL_FAILURE(ExpectPixels(third, false));
 }
 
 TEST_F(CanvasVideoSurfaceCache, MissingIdentityNeverPublishes) {
@@ -290,12 +325,14 @@ TEST_F(CanvasVideoSurfaceCache, FailedImportsDoNotPoisonRecovery) {
   ASSERT_TRUE(first);
   const layers::SurfaceDescriptor unusable;
   RefPtr<SourceSurface> failed = mContext->ImportVideoSurfaceDescriptor(
-      unusable, IntSize(kSize, kSize), kFormat, mGreen.host, mGreen.id);
+      mTarget, unusable, IntSize(kSize, kSize), kFormat, mGreen.host,
+      mGreen.id);
   EXPECT_FALSE(failed);
   ExpectEmptyCache();
   failed = mContext->ImportVideoSurfaceDescriptor(
-      mGreen.descriptor, IntSize(std::numeric_limits<int32_t>::max(), kSize),
-      kFormat, mGreen.host, mGreen.id);
+      mTarget, mGreen.descriptor,
+      IntSize(std::numeric_limits<int32_t>::max(), kSize), kFormat, mGreen.host,
+      mGreen.id);
   EXPECT_FALSE(failed);
   ExpectEmptyCache();
   RefPtr<SourceSurface> recovered = Import(mGreen);
@@ -318,6 +355,9 @@ TEST_F(CanvasVideoSurfaceCache, ContextLossRejectsAndReplacementRecovers) {
   ASSERT_NE(mContext, lost);
   ASSERT_FALSE(mContext->IsContextLost());
   ExpectEmptyCache();
+  mTarget = DrawTargetWebgl::Create(IntSize(kSize, kSize), kFormat, mContext,
+                                    dom::ContentParentId(1));
+  ASSERT_TRUE(mTarget);
   RefPtr<SourceSurface> recovered = Import(mRed);
   ASSERT_TRUE(recovered);
   EXPECT_NE(recovered, first);

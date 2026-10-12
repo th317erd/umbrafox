@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <memory>
 
 #include "AnchorPositioningUtils.h"
 #include "Attr.h"
@@ -180,6 +181,7 @@
 #include "mozilla/dom/FromParser.h"
 #include "mozilla/dom/HTMLAllCollection.h"
 #include "mozilla/dom/HTMLBodyElement.h"
+#include "mozilla/dom/HTMLCanvasElement.h"
 #include "mozilla/dom/HTMLCollectionBinding.h"
 #include "mozilla/dom/HTMLDialogElement.h"
 #include "mozilla/dom/HTMLEmbedElement.h"
@@ -230,6 +232,7 @@
 #include "mozilla/dom/ProcessingInstruction.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/PromiseNativeHandler.h"
+#include "mozilla/dom/Range.h"
 #include "mozilla/dom/ReferrerPolicyBinding.h"
 #include "mozilla/dom/RemoteBrowser.h"
 #include "mozilla/dom/ReportDeliver.h"
@@ -240,6 +243,7 @@
 #include "mozilla/dom/SVGSVGElement.h"
 #include "mozilla/dom/SVGUseElement.h"
 #include "mozilla/dom/Sanitizer.h"
+#include "mozilla/dom/ScreenOrientation.h"
 #include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/Selection.h"
@@ -450,7 +454,6 @@
 #include "nsPresContext.h"
 #include "nsQueryFrame.h"
 #include "nsQueryObject.h"
-#include "nsRange.h"
 #include "nsRect.h"
 #include "nsRefreshDriver.h"
 #include "nsSandboxFlags.h"
@@ -2076,8 +2079,8 @@ void Document::ConstructUbiNode(void* storage) {
 }
 
 void Document::LoadEventFired() {
-  // Collect page load timings. The pageload event itself is now submitted from
-  // Document::Destroy() so it can include the final LCP value and any other
+  // Collect page load timings. The pageload telemetry itself is submitted once
+  // the page is hidden so it can include the final LCP value and any other
   // metrics that aren't stable at load time.
   AccumulatePageLoadTelemetry();
 
@@ -2088,10 +2091,26 @@ void Document::LoadEventFired() {
   }
 }
 
+void Document::ReportPageLoadTelemetry() {
+  // Page hide can fire more than once per document, but the sampling roll in
+  // ReportPageLoadEvent must only happen once.
+  if (mPageLoadTelemetryReported) {
+    return;
+  }
+  mPageLoadTelemetryReported = true;
+
+  // Catches documents never collected from: those whose load event never
+  // fired, and those hidden before LoadEventFired ran.
+  AccumulatePageLoadTelemetry();
+
+  ReportPageLoadEvent();
+  ReportLCP();
+}
+
 void Document::ReportPageLoadEvent() {
-  // If the page load time is empty, then the content wasn't something we want
-  // to report (i.e. not a top level document, or load never completed).
-  if (!mPageloadEventData.HasLoadTime()) {
+  // If we never collected any metrics, the content wasn't something we want to
+  // report (i.e. not a top level document).
+  if (!mPageLoadMetricsAccumulated) {
     return;
   }
   MOZ_ASSERT(IsTopLevelContentDocument());
@@ -2122,11 +2141,15 @@ void Document::ReportPageLoadEvent() {
     return;
   }
 
-  // Refresh metrics that can change between the load event and document
-  // destruction. LCP in particular keeps updating until first user interaction
-  // or page teardown, so the value captured in AccumulatePageLoadTelemetry is
+  // Refresh metrics that can change between the load event and the page being
+  // hidden. LCP in particular keeps updating until first user interaction or
+  // the page is hidden, so the value captured in AccumulatePageLoadTelemetry is
   // not necessarily final.
-  if (const nsDOMNavigationTiming* timing = GetNavigationTiming()) {
+  //
+  // A document replaced before its load event fired has an LCP that reads low,
+  // so report none for those.
+  if (const nsDOMNavigationTiming* timing =
+          mPageLoadCompleted ? GetNavigationTiming() : nullptr) {
     if (TimeStamp navigationStart = timing->GetNavigationStartTimeStamp()) {
       if (TimeStamp lcpTime = timing->GetLargestContentfulRenderTimeStamp()) {
         mPageloadEventData.set_lcpTime(static_cast<uint32_t>(
@@ -2265,11 +2288,15 @@ void Document::ReportPageLoadEvent() {
 }
 
 void Document::AccumulatePageLoadTelemetry() {
-  // Interested only in top level documents for real websites that are in the
-  // foreground.
+  // Runs from the load event, and again at page hide for documents whose load
+  // event never fired. Only collect once.
+  if (mPageLoadMetricsAccumulated) {
+    return;
+  }
+
+  // Interested only in top level documents for real websites.
   if (!ShouldIncludeInTelemetry() || !IsTopLevelContentDocument() ||
-      !GetNavigationTiming() ||
-      !GetNavigationTiming()->DocShellHasBeenActiveSinceNavigationStart()) {
+      !GetNavigationTiming()) {
     return;
   }
 
@@ -2281,6 +2308,19 @@ void Document::AccumulatePageLoadTelemetry() {
   if (!timedChannel) {
     return;
   }
+
+  mPageLoadMetricsAccumulated = true;
+
+  // Whether the tab was foreground when the load event started. A background
+  // load is still reported, but its timings are inflated by throttling and
+  // deferred painting, so the histograms skip it and the event records the
+  // flag. A load that never reached its load event leaves the flag off the
+  // event, rather than claiming either way.
+  Maybe<bool> loadedInForeground = GetNavigationTiming()->LoadedInForeground();
+  if (loadedInForeground) {
+    mPageloadEventData.set_loadedInForeground(*loadedInForeground);
+  }
+  mPageLoadWasForeground = loadedInForeground.valueOr(false);
 
   bool isCacheHit = false;
   if (nsCOMPtr<nsICacheInfoChannel> cacheInfoChannel =
@@ -2395,22 +2435,9 @@ void Document::AccumulatePageLoadTelemetry() {
     }
   }
 
-  TimeStamp asyncOpen;
-  timedChannel->GetAsyncOpen(&asyncOpen);
-  if (asyncOpen) {
-    glean::perf::dns_first_byte.Get(dnsKey).AccumulateRawDuration(
-        responseStart - asyncOpen);
-  }
-
   // First Contentful Composite
   if (TimeStamp firstContentfulComposite =
           GetNavigationTiming()->GetFirstContentfulCompositeTimeStamp()) {
-    glean::performance_pageload::fcp.AccumulateRawDuration(
-        firstContentfulComposite - navigationStart);
-
-    glean::performance_pageload::fcp_responsestart.AccumulateRawDuration(
-        firstContentfulComposite - responseStart);
-
     TimeDuration fcpTime = firstContentfulComposite - navigationStart;
     if (fcpTime > zeroDuration) {
       mPageloadEventData.set_fcpTime(
@@ -2418,7 +2445,77 @@ void Document::AccumulatePageLoadTelemetry() {
     }
   }
 
-  // Load event
+  // These need only the response, so they remain valid for a document replaced
+  // before its load event fired.
+  if (responseStart) {
+    TimeDuration responseTime = responseStart - navigationStart;
+    if (responseTime > zeroDuration) {
+      mPageloadEventData.set_responseTime(
+          static_cast<uint32_t>(responseTime.ToMilliseconds()));
+    }
+  }
+
+  TimeStamp requestStart;
+  timedChannel->GetRequestStart(&requestStart);
+  if (requestStart) {
+    TimeDuration timeToRequestStart = requestStart - navigationStart;
+    if (timeToRequestStart > zeroDuration) {
+      mPageloadEventData.set_timeToRequestStart(
+          static_cast<uint32_t>(timeToRequestStart.ToMilliseconds()));
+    } else {
+      // Speculative and pre-established connections may yield zero or
+      // slightly negative timeToRequestStart timings. We record these as zero
+      // to maintain consistent, non-negative timing data, while still
+      // capturing the impact of early connection establishment.
+      mPageloadEventData.set_timeToRequestStart(0);
+    }
+  }
+
+  TimeStamp secureConnectStart;
+  TimeStamp connectEnd;
+  timedChannel->GetSecureConnectionStart(&secureConnectStart);
+  timedChannel->GetConnectEnd(&connectEnd);
+  if (secureConnectStart && connectEnd) {
+    TimeDuration tlsHandshakeTime = connectEnd - secureConnectStart;
+    if (tlsHandshakeTime > zeroDuration) {
+      mPageloadEventData.set_tlsHandshakeTime(
+          static_cast<uint32_t>(tlsHandshakeTime.ToMilliseconds()));
+    }
+  }
+
+  // Load event. Absent when the document was replaced before it fired.
+  if (TimeStamp loadEventStart =
+          GetNavigationTiming()->GetLoadEventStartTimeStamp()) {
+    mPageLoadCompleted = true;
+
+    TimeDuration loadTime = loadEventStart - navigationStart;
+    if (loadTime > zeroDuration) {
+      mPageloadEventData.set_loadTime(
+          static_cast<uint32_t>(loadTime.ToMilliseconds()));
+    }
+  }
+
+  // Our histograms remain gated on the page having loaded in the foreground.
+  if (!mPageLoadWasForeground) {
+    return;
+  }
+
+  TimeStamp asyncOpen;
+  timedChannel->GetAsyncOpen(&asyncOpen);
+  if (asyncOpen) {
+    glean::perf::dns_first_byte.Get(dnsKey).AccumulateRawDuration(
+        responseStart - asyncOpen);
+  }
+
+  if (TimeStamp firstContentfulComposite =
+          GetNavigationTiming()->GetFirstContentfulCompositeTimeStamp()) {
+    glean::performance_pageload::fcp.AccumulateRawDuration(
+        firstContentfulComposite - navigationStart);
+
+    glean::performance_pageload::fcp_responsestart.AccumulateRawDuration(
+        firstContentfulComposite - responseStart);
+  }
+
   if (TimeStamp loadEventStart =
           GetNavigationTiming()->GetLoadEventStartTimeStamp()) {
     glean::performance_pageload::load_time.AccumulateRawDuration(
@@ -2426,46 +2523,6 @@ void Document::AccumulatePageLoadTelemetry() {
 
     glean::performance_pageload::load_time_responsestart.AccumulateRawDuration(
         loadEventStart - responseStart);
-
-    TimeDuration responseTime = responseStart - navigationStart;
-    if (responseTime > zeroDuration) {
-      mPageloadEventData.set_responseTime(
-          static_cast<uint32_t>(responseTime.ToMilliseconds()));
-    }
-
-    TimeDuration loadTime = loadEventStart - navigationStart;
-    if (loadTime > zeroDuration) {
-      mPageloadEventData.set_loadTime(
-          static_cast<uint32_t>(loadTime.ToMilliseconds()));
-    }
-
-    TimeStamp requestStart;
-    timedChannel->GetRequestStart(&requestStart);
-    if (requestStart) {
-      TimeDuration timeToRequestStart = requestStart - navigationStart;
-      if (timeToRequestStart > zeroDuration) {
-        mPageloadEventData.set_timeToRequestStart(
-            static_cast<uint32_t>(timeToRequestStart.ToMilliseconds()));
-      } else {
-        // Speculative and pre-established connections may yield zero or
-        // slightly negative timeToRequestStart timings. We record these as zero
-        // to maintain consistent, non-negative timing data, while still
-        // capturing the impact of early connection establishment.
-        mPageloadEventData.set_timeToRequestStart(0);
-      }
-    }
-
-    TimeStamp secureConnectStart;
-    TimeStamp connectEnd;
-    timedChannel->GetSecureConnectionStart(&secureConnectStart);
-    timedChannel->GetConnectEnd(&connectEnd);
-    if (secureConnectStart && connectEnd) {
-      TimeDuration tlsHandshakeTime = connectEnd - secureConnectStart;
-      if (tlsHandshakeTime > zeroDuration) {
-        mPageloadEventData.set_tlsHandshakeTime(
-            static_cast<uint32_t>(tlsHandshakeTime.ToMilliseconds()));
-      }
-    }
   }
 }
 
@@ -6604,6 +6661,13 @@ nsresult Document::EditingStateChanged() {
   bool spellRecheckAll = false;
   bool putOffToRemoveScriptBlockerUntilModifyingEditingState = false;
 
+  if (makeWindowEditable && NS_WARN_IF(!IsHTMLOrXHTML())) {
+    // Don't allow editing on non-HTML/XHTML documents.
+    // Return NS_OK so that the setter of designMode on non-HTML documents
+    // does not fail.
+    return NS_OK;
+  }
+
   RefPtr<HTMLEditor> htmlEditor;
   {
     nsAutoEditingState push(this, EditingState::eSettingUp);
@@ -6672,14 +6736,8 @@ nsresult Document::EditingStateChanged() {
 
     // XXX Need to call TearDownEditorOnWindow for all failures.
     htmlEditor = docshell->GetHTMLEditor();
-    if (!htmlEditor) {
-      // Return NS_OK even though we've failed to create an editor here.  This
-      // is so that the setter of designMode on non-HTML documents does not
-      // fail.
-      // This is OK to do because in nsEditingSession::SetupEditorOnWindow() we
-      // would detect that we can't support the mimetype if appropriate and
-      // would fall onto the eEditorErrorCantEditMimeType path.
-      return NS_OK;
+    if (NS_WARN_IF(!htmlEditor)) {
+      return NS_ERROR_FAILURE;
     }
 
     if (collapseSelectionAtBeginningOfDocument) {
@@ -6702,19 +6760,6 @@ nsresult Document::EditingStateChanged() {
   }
 
   if (makeWindowEditable) {
-    // TODO: We should do this earlier in this method.
-    //       Previously, we called `ExecCommand` with `insertBrOnReturn` command
-    //       whose argument is false here.  Then, if it returns error, we
-    //       stopped making it editable.  However, after bug 1697078 fixed,
-    //       `ExecCommand` returns error only when the document is not XHTML's
-    //       nor HTML's.  Therefore, we use same error handling for now.
-    if (MOZ_UNLIKELY(NS_WARN_IF(!IsHTMLOrXHTML()))) {
-      // Editor setup failed. Editing is not on after all.
-      // XXX Should we reset the editable flag on nodes?
-      editSession->TearDownEditorOnWindow(window);
-      mEditingState = EditingState::eOff;
-      return NS_ERROR_DOM_INVALID_STATE_ERR;
-    }
     // Set the editor to not insert <br> elements on return when in <p> elements
     // by default.
     htmlEditor->SetReturnInParagraphCreatesNewParagraph(true);
@@ -6861,7 +6906,7 @@ void Document::DeferredContentEditableCountChange(Element* aElement) {
 
         if (spellChecker &&
             aElement->InclusiveDescendantMayNeedSpellchecking(htmlEditor)) {
-          RefPtr<nsRange> range = nsRange::Create(aElement);
+          RefPtr<dom::Range> range = dom::Range::Create(aElement);
           IgnoredErrorResult res;
           range->SelectNodeContents(*aElement, res);
           if (res.Failed()) {
@@ -8452,6 +8497,9 @@ static void NotifyActivityChangedCallback(nsISupports* aSupports) {
   if (auto* mediaElem = HTMLMediaElement::FromNodeOrNull(content)) {
     mediaElem->NotifyOwnerDocumentActivityChanged();
   }
+  if (auto* canvasElem = HTMLCanvasElement::FromNodeOrNull(content)) {
+    canvasElem->NotifyOwnerDocumentActivityChanged();
+  }
   nsCOMPtr<nsIDocumentActivity> objectDocumentActivity(
       do_QueryInterface(aSupports));
   if (objectDocumentActivity) {
@@ -9829,8 +9877,8 @@ already_AddRefed<nsINode> Document::ImportNode(
   return nullptr;
 }
 
-already_AddRefed<nsRange> Document::CreateRange(ErrorResult& rv) {
-  return nsRange::Create(this, 0, this, 0, rv);
+already_AddRefed<Range> Document::CreateRange(ErrorResult& rv) {
+  return Range::Create(this, 0, this, 0, rv);
 }
 
 already_AddRefed<NodeIterator> Document::CreateNodeIterator(
@@ -11935,15 +11983,15 @@ void Document::FlushPendingNotifications(mozilla::ChangesToFlush aFlush) {
 
   RefPtr<Document> documentOnStack = this;
 
-  // We need to flush the sink for non-HTML documents (because the XML
-  // parser still does insertion with deferred notifications).  We
-  // also need to flush the sink if this is a layout-related flush, to
-  // make sure that layout is started as needed.  But we can skip that
-  // part if we have no presshell or if it's already done an initial
-  // reflow.
-  if ((!IsHTMLDocument() || (flushType > FlushType::ContentAndNotify &&
-                             mPresShell && !mPresShell->DidInitialize())) &&
-      (mParser || mWeakSink)) {
+  if (flushType < FlushType::Style) {
+    // Nothing to do here
+    return;
+  }
+
+  // We need to flush the sink if this is a layout-related flush, to make sure
+  // that layout is started as needed.  But we can skip that part if we have no
+  // presshell or if it's already done an initial reflow.
+  if (mPresShell && !mPresShell->DidInitialize() && (mParser || mWeakSink)) {
     nsCOMPtr<nsIContentSink> sink;
     if (mParser) {
       sink = mParser->GetContentSink();
@@ -11955,17 +12003,12 @@ void Document::FlushPendingNotifications(mozilla::ChangesToFlush aFlush) {
     }
     // Determine if it is safe to flush the sink notifications
     // by determining if it safe to flush all the presshells.
-    if (sink && (flushType == FlushType::Content || IsSafeToFlush())) {
+    if (sink && IsSafeToFlush()) {
       sink->FlushPendingNotifications(flushType);
     }
   }
 
   // Should we be flushing pending binding constructors in here?
-
-  if (flushType <= FlushType::ContentAndNotify) {
-    // Nothing to do here
-    return;
-  }
 
   // If we have a parent we must flush the parent too to ensure that our
   // container is reflowed if its size was changed.
@@ -12315,7 +12358,7 @@ void Document::Sanitize() {
 
   nsAutoString value;
 
-  uint32_t length = nodes->Length(true);
+  uint32_t length = nodes->Length();
   for (uint32_t i = 0; i < length; ++i) {
     NS_ASSERTION(nodes->Item(i), "null item in node list!");
 
@@ -12332,7 +12375,7 @@ void Document::Sanitize() {
   // Now locate all _form_ elements that have autocomplete=off and reset them
   nodes = GetElementsByTagName(u"form"_ns);
 
-  length = nodes->Length(true);
+  length = nodes->Length();
   for (uint32_t i = 0; i < length; ++i) {
     // Reset() may change the list dynamically.
     RefPtr<HTMLFormElement> form =
@@ -12633,11 +12676,9 @@ void Document::Destroy() {
   RemoveCustomContentContainer();
 
   ReportDocumentUseCounters();
-  // ReportPageLoadEvent must run before ReportLCP: ReportLCP skips submitting
-  // its histogram when mPageloadEventData.HasDomain() is true, and HasDomain()
-  // is set inside ReportPageLoadEvent.
-  ReportPageLoadEvent();
-  ReportLCP();
+  // Normally already done from OnPageHide; covers documents destroyed without
+  // ever being hidden.
+  ReportPageLoadTelemetry();
   SetDevToolsWatchingDOMMutations(false);
 
   mIsGoingAway = true;
@@ -12936,9 +12977,9 @@ void Document::OnPageShow(bool aPersisted, EventTarget* aDispatchStartTarget,
     RefPtr<ContentList> links =
         NS_GetContentList(root, kNameSpaceID_XHTML, u"link"_ns);
 
-    uint32_t linkCount = links->Length(true);
+    uint32_t linkCount = links->Length();
     for (uint32_t i = 0; i < linkCount; ++i) {
-      static_cast<HTMLLinkElement*>(links->Item(i, false))->LinkAdded();
+      static_cast<HTMLLinkElement*>(links->Item(i))->LinkAdded();
     }
   }
 
@@ -13076,6 +13117,12 @@ void Document::OnPageHide(bool aPersisted, EventTarget* aDispatchStartTarget,
 
   if (!inFrameLoaderSwap) {
     UpdateVisibilityState();
+
+    // Submitted here rather than from Destroy(): by teardown the parent process
+    // often sees this document's BrowsingContext as discarded and cannot
+    // resolve is_first_daily_load. Being hidden is also where LCP stops
+    // updating.
+    ReportPageLoadTelemetry();
   }
 
   EnumerateExternalResources([aPersisted](Document& aExternalResource)
@@ -13085,6 +13132,8 @@ void Document::OnPageHide(bool aPersisted, EventTarget* aDispatchStartTarget,
                                    return CallState::Continue;
                                  });
   NotifyActivityChanged();
+
+  ScreenOrientation::ReleaseLock(this);
 
   ClearPendingFullscreenRequests(this);
   if (Fullscreen()) {
@@ -14278,11 +14327,11 @@ void Document::ScrollToRef() {
   // Monkeypatching HTML § 7.4.6.3 Scrolling to a fragment:
   // 1. Let text directives be the document's pending text directives.
   const RefPtr fragmentDirective = FragmentDirective();
-  const nsTArray<RefPtr<nsRange>> textDirectives =
+  const nsTArray<RefPtr<Range>> textDirectives =
       fragmentDirective->FindTextFragmentsInDocument();
   // 2. If ranges is non-empty, then:
   // 2.1 Let firstRange be the first item of ranges
-  const RefPtr<nsRange> textDirectiveToScroll =
+  const RefPtr<Range> textDirectiveToScroll =
       !textDirectives.IsEmpty() ? textDirectives[0] : nullptr;
   // 2.2 Visually indicate each range in ranges in an implementation-defined
   // way. The indication must not be observable from author script. See § 3.7
@@ -14506,8 +14555,8 @@ static nsINode* GetCorrespondingNodeInDocument(const nsINode* aOrigNode,
  * Note that we cannot use the selection obtained from GetOriginalDocument()
  * since that selection may have mutated after the print was invoked.
  *
- * Note also that because nsRange objects point into a specific document's
- * nodes, we cannot reuse an array of nsRange objects across multiple static
+ * Note also that because Range objects point into a specific document's
+ * nodes, we cannot reuse an array of Range objects across multiple static
  * clone documents. For that reason we cache a new array of ranges on each
  * static clone that we create.
  *
@@ -14553,10 +14602,10 @@ static void CachePrintSelectionRanges(const Document& aSourceDoc,
   }
 
   const Selection* origSelection = nullptr;
-  const nsTArray<RefPtr<nsRange>>* origRanges = nullptr;
+  const nsTArray<RefPtr<Range>>* origRanges = nullptr;
 
   if (sourceDocIsStatic) {
-    origRanges = static_cast<nsTArray<RefPtr<nsRange>>*>(
+    origRanges = static_cast<nsTArray<RefPtr<Range>>*>(
         aSourceDoc.GetProperty(nsGkAtoms::printselectionranges));
   } else if (PresShell* shell = aSourceDoc.GetPresShell()) {
     origSelection = shell->GetCurrentSelection(SelectionType::eNormal);
@@ -14568,13 +14617,13 @@ static void CachePrintSelectionRanges(const Document& aSourceDoc,
 
   const uint32_t rangeCount =
       sourceDocIsStatic ? origRanges->Length() : origSelection->RangeCount();
-  auto printRanges = MakeUnique<nsTArray<RefPtr<nsRange>>>(rangeCount);
+  auto printRanges = MakeUnique<nsTArray<RefPtr<Range>>>(rangeCount);
 
   for (const uint32_t i : IntegerRange(rangeCount)) {
     MOZ_ASSERT_IF(!sourceDocIsStatic,
                   origSelection->RangeCount() == rangeCount);
-    const nsRange* range = sourceDocIsStatic ? origRanges->ElementAt(i).get()
-                                             : origSelection->GetRangeAt(i);
+    const Range* range = sourceDocIsStatic ? origRanges->ElementAt(i).get()
+                                           : origSelection->GetRangeAt(i);
     MOZ_ASSERT(range);
     nsINode* startContainer = range->GetMayCrossShadowBoundaryStartContainer();
     nsINode* endContainer = range->GetMayCrossShadowBoundaryEndContainer();
@@ -14592,10 +14641,10 @@ static void CachePrintSelectionRanges(const Document& aSourceDoc,
       continue;
     }
 
-    RefPtr<nsRange> clonedRange =
-        nsRange::Create(startNode, range->MayCrossShadowBoundaryStartOffset(),
-                        endNode, range->MayCrossShadowBoundaryEndOffset(),
-                        IgnoreErrors(), AllowRangeCrossShadowBoundary::Yes);
+    RefPtr<Range> clonedRange =
+        Range::Create(startNode, range->MayCrossShadowBoundaryStartOffset(),
+                      endNode, range->MayCrossShadowBoundaryEndOffset(),
+                      IgnoreErrors(), AllowRangeCrossShadowBoundary::Yes);
     if (clonedRange &&
         !clonedRange->AreNormalRangeAndCrossShadowBoundaryRangeCollapsed()) {
       printRanges->AppendElement(std::move(clonedRange));
@@ -14608,7 +14657,7 @@ static void CachePrintSelectionRanges(const Document& aSourceDoc,
 
   aStaticClone.SetProperty(nsGkAtoms::printselectionranges,
                            printRanges.release(),
-                           nsINode::DeleteProperty<nsTArray<RefPtr<nsRange>>>);
+                           nsINode::DeleteProperty<nsTArray<RefPtr<Range>>>);
 }
 
 already_AddRefed<Document> Document::CreateStaticClone(
@@ -14872,7 +14921,12 @@ void Document::WarnOnceAbout(
   mDocWarningWarnedAbout[aWarning] = true;
   uint32_t flags =
       asError ? nsIScriptError::errorFlag : nsIScriptError::warningFlag;
-  nsContentUtils::ReportToConsole(flags, "DOM Core"_ns, this,
+
+  // Give SafePromiseResolve it's own category to power the LEARN_MORE link.
+  const auto& category = aWarning == eSafePromiseResolveReordering
+                             ? "SafePromiseResolve"_ns
+                             : "DOM Core"_ns;
+  nsContentUtils::ReportToConsole(flags, category, this,
                                   PropertiesFile::DOM_PROPERTIES,
                                   kDocumentWarnings[aWarning], aParams);
 }
@@ -15257,8 +15311,7 @@ already_AddRefed<nsDOMCaretPosition> Document::CaretPositionFromPoint(
   return aCaretPos.forget();
 }
 
-already_AddRefed<nsRange> Document::CaretRangeFromPoint(int32_t aX,
-                                                        int32_t aY) {
+already_AddRefed<Range> Document::CaretRangeFromPoint(int32_t aX, int32_t aY) {
   RefPtr<nsDOMCaretPosition> caretPos = CaretPositionFromPoint(
       float(aX), float(aY), CaretPositionFromPointOptions());
   if (!caretPos) {
@@ -15274,8 +15327,8 @@ already_AddRefed<nsRange> Document::CaretRangeFromPoint(int32_t aX,
     offset = 0;
   }
 
-  RefPtr<nsRange> range =
-      nsRange::Create(node, offset, node, offset, mozilla::IgnoreErrors());
+  RefPtr<Range> range =
+      Range::Create(node, offset, node, offset, mozilla::IgnoreErrors());
   if (!range) {
     return nullptr;
   }
@@ -18174,10 +18227,16 @@ void Document::ReportLCP() {
     return;
   }
 
-  const nsDOMNavigationTiming* timing = GetNavigationTiming();
+  // These histograms cover foreground loads only, matching the ones recorded in
+  // AccumulatePageLoadTelemetry, which is where that was determined. A load
+  // that never finished is left out too, since its LCP reads low.
+  if (!mPageLoadMetricsAccumulated || !mPageLoadWasForeground ||
+      !mPageLoadCompleted) {
+    return;
+  }
 
-  if (!ShouldIncludeInTelemetry() || !IsTopLevelContentDocument() || !timing ||
-      !timing->DocShellHasBeenActiveSinceNavigationStart()) {
+  const nsDOMNavigationTiming* timing = GetNavigationTiming();
+  if (!timing) {
     return;
   }
 
@@ -18827,7 +18886,7 @@ void Document::NotifyLayerManagerRecreated() {
 
 XPathEvaluator* Document::XPathEvaluator() {
   if (!mXPathEvaluator) {
-    mXPathEvaluator.reset(new dom::XPathEvaluator(this));
+    mXPathEvaluator = std::make_unique<dom::XPathEvaluator>(this);
   }
   return mXPathEvaluator.get();
 }
@@ -19072,8 +19131,10 @@ void Document::SetUserHasInteracted() {
   MOZ_LOG(gUserInteractionPRLog, LogLevel::Debug,
           ("Document %p has been interacted by user.", this));
 
-  // We maybe need to update the user-interaction permission.
-  bool alreadyHadUserInteractionPermission =
+  // We maybe need to update the user-interaction permission. The
+  // opener-after-user-interaction heuristic below needs to know whether this
+  // principal had been interacted with before this interaction
+  const bool hadPriorUserInteraction =
       ContentBlockingUserInteraction::Exists(NodePrincipal());
   MaybeStoreUserInteractionAsPermission();
 
@@ -19103,9 +19164,7 @@ void Document::SetUserHasInteracted() {
     wgc->SendUpdateDocumentHasUserInteracted(true);
   }
 
-  if (alreadyHadUserInteractionPermission) {
-    MaybeAllowStorageForOpenerAfterUserInteraction();
-  }
+  MaybeAllowStorageForOpenerAfterUserInteraction(hadPriorUserInteraction);
 }
 
 BrowsingContext* Document::GetBrowsingContext() const {
@@ -19282,7 +19341,8 @@ void Document::SetDocTreeHadMedia() {
   }
 }
 
-void Document::MaybeAllowStorageForOpenerAfterUserInteraction() {
+void Document::MaybeAllowStorageForOpenerAfterUserInteraction(
+    bool aHadPriorUserInteraction) {
   if (!CookieJarSettings()->GetRejectThirdPartyContexts()) {
     return;
   }
@@ -19360,17 +19420,20 @@ void Document::MaybeAllowStorageForOpenerAfterUserInteraction() {
   MOZ_ASSERT(identityHandler);
   identityHandler->IsContinuationWindow()->Then(
       GetCurrentSerialEventTarget(), __func__,
-      [self, openerBC](const MozPromise<bool, nsresult,
-                                        true>::ResolveOrRejectValue& result) {
+      [self, openerBC, aHadPriorUserInteraction](
+          const MozPromise<bool, nsresult, true>::ResolveOrRejectValue&
+              result) {
         if (!result.IsResolve() || !result.ResolveValue()) {
           if (XRE_IsParentProcess()) {
             (void)StorageAccessAPIHelper::AllowAccessForOnParentProcess(
                 self->NodePrincipal(), openerBC,
-                ContentBlockingNotifier::eOpenerAfterUserInteraction);
+                ContentBlockingNotifier::eOpenerAfterUserInteraction, nullptr,
+                Some(aHadPriorUserInteraction));
           } else {
             (void)StorageAccessAPIHelper::AllowAccessForOnChildProcess(
                 self->NodePrincipal(), openerBC,
-                ContentBlockingNotifier::eOpenerAfterUserInteraction);
+                ContentBlockingNotifier::eOpenerAfterUserInteraction, nullptr,
+                Some(aHadPriorUserInteraction));
           }
         }
       });
@@ -21571,11 +21634,11 @@ already_AddRefed<Document> Document::ParseHTMLUnsafe(
 
   // Step 5. Parse HTML from a string given document, compliantHTML,
   // sanitizerConfig and false.
-  // TODO(bug 1960845): Investigate the behavior around <noscript> with
-  // parseHTML
+  // The document has no browsing context, so scripting is disabled and
+  // <noscript> content is parsed as markup.
   aError = nsContentUtils::ParseDocumentHTML(
       *compliantString, doc,
-      /* aScriptingEnabledForNoscriptParsing */ sanitize,
+      /* aScriptingEnabledForNoscriptParsing */ false,
       sanitizeWhileParsing ? sanitizer.get() : nullptr, /* aSafe */ false);
   if (aError.Failed()) {
     return nullptr;
@@ -21622,10 +21685,10 @@ already_AddRefed<Document> Document::ParseHTML(GlobalObject& aGlobal,
 
   // Step 4. Parse HTML from a string given document, html, sanitizerConfig
   // and true.
-  // TODO(bug 1960845): Investigate the behavior around <noscript> with
-  // parseHTML
+  // The document has no browsing context, so scripting is disabled and
+  // <noscript> content is parsed as markup.
   aError = nsContentUtils::ParseDocumentHTML(
-      aHTML, doc, /* aScriptingEnabledForNoscriptParsing */ true,
+      aHTML, doc, /* aScriptingEnabledForNoscriptParsing */ false,
       sanitizeWhileParsing ? sanitizer.get() : nullptr, /* aSafe */ true);
   if (aError.Failed()) {
     return nullptr;

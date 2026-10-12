@@ -40,24 +40,29 @@ describe("AboutPreferences Feed", () => {
   const PREFS_LABELS = {
     "home-prefs-clocks-header": "Clock",
     "home-prefs-crossword-widget-header": "Crossword",
+    "home-prefs-horoscopes-header": "Horoscopes",
     "home-prefs-lists-header": "Lists",
     "home-prefs-picture-header": "Picture of the day",
     "home-prefs-privacy-header": "Privacy",
     "home-prefs-search-widget-header": "Search",
-    "home-prefs-stocks-header": "Stocks",
+    "home-prefs-stocks-header2": "Finance",
     "home-prefs-timer-header": "Timer",
     "home-prefs-weather-header-srd": "Weather",
     "home-prefs-fixture-header": "Fixture widget",
   };
 
   // The German, Greek and Japanese labels are Firefox's own translations,
-  // apart from the fixture widget's and the Japanese Search label.
+  // apart from the fixture widget's, the Japanese Search label and the
+  // Horoscopes labels, which have no translations yet. The Finance fixtures
+  // reuse the Stocks translations as stand-ins until the renamed message is
+  // translated.
   // Übersicht sorts before Uhr only under locale-aware collation; a code
   // point comparison would put it after Wetter.
   const GERMAN_PREFS_LABELS = {
-    "home-prefs-stocks-header": "Aktien",
+    "home-prefs-stocks-header2": "Aktien",
     "home-prefs-picture-header": "Bild des Tages",
     "home-prefs-privacy-header": "Datenschutz",
+    "home-prefs-horoscopes-header": "Horoskope",
     "home-prefs-crossword-widget-header": "Kreuzworträtsel",
     "home-prefs-lists-header": "Listen",
     "home-prefs-search-widget-header": "Suche",
@@ -74,9 +79,10 @@ describe("AboutPreferences Feed", () => {
     "home-prefs-picture-header": "Εικόνα της ημέρας",
     "home-prefs-weather-header-srd": "Καιρός",
     "home-prefs-lists-header": "Λίστες",
-    "home-prefs-stocks-header": "Μετοχές",
+    "home-prefs-stocks-header2": "Μετοχές",
     "home-prefs-clocks-header": "Ρολόι",
     "home-prefs-crossword-widget-header": "Σταυρόλεξο",
+    "home-prefs-horoscopes-header": "Ωροσκόπια",
   };
 
   // Latin letters sort before kana and kana before kanji under the default
@@ -86,22 +92,24 @@ describe("AboutPreferences Feed", () => {
     "home-prefs-crossword-widget-header": "クロスワードパズル",
     "home-prefs-timer-header": "タイマー",
     "home-prefs-privacy-header": "プライバシー",
+    "home-prefs-horoscopes-header": "ホロスコープ",
     "home-prefs-picture-header": "今日の一枚",
     "home-prefs-search-widget-header": "最近の検索",
     "home-prefs-weather-header-srd": "天気予報",
     "home-prefs-clocks-header": "時計",
-    "home-prefs-stocks-header": "株価情報",
+    "home-prefs-stocks-header2": "株価情報",
   };
 
   // Expected orders are written by hand so the tests do not mirror the sort.
   const EN_US_ORDER = [
     "clocks",
     "crossword",
+    "stocks",
+    "horoscopes",
     "lists",
     "pictureOfTheDay",
     "privacy",
     "recentSearches",
-    "stocks",
     "focusTimer",
     "weather",
   ];
@@ -110,6 +118,7 @@ describe("AboutPreferences Feed", () => {
     "stocks",
     "pictureOfTheDay",
     "privacy",
+    "horoscopes",
     "crossword",
     "lists",
     "recentSearches",
@@ -129,6 +138,7 @@ describe("AboutPreferences Feed", () => {
     "stocks",
     "clocks",
     "crossword",
+    "horoscopes",
   ];
 
   const JAPANESE_ORDER = [
@@ -136,6 +146,7 @@ describe("AboutPreferences Feed", () => {
     "crossword",
     "focusTimer",
     "privacy",
+    "horoscopes",
     "pictureOfTheDay",
     "recentSearches",
     "weather",
@@ -143,11 +154,27 @@ describe("AboutPreferences Feed", () => {
     "stocks",
   ];
 
+  // The order when Timer alone sorts under its id, the rest under their
+  // labels: "focusTimer" follows "Finance" and precedes "Lists".
+  const TIMER_ID_SORT_ORDER = [
+    "clocks",
+    "crossword",
+    "stocks",
+    "focusTimer",
+    "horoscopes",
+    "lists",
+    "pictureOfTheDay",
+    "privacy",
+    "recentSearches",
+    "weather",
+  ];
+
   // The order when every widget sorts under its own id.
   const ID_ORDER = [
     "clocks",
     "crossword",
     "focusTimer",
+    "horoscopes",
     "lists",
     "pictureOfTheDay",
     "privacy",
@@ -716,11 +743,12 @@ describe("AboutPreferences Feed", () => {
       expect(widgets.items).toEqual([
         { id: "clocks", l10nId: "home-prefs-clocks-header" },
         { id: "crossword", l10nId: "home-prefs-crossword-widget-header" },
+        { id: "stocks", l10nId: "home-prefs-stocks-header2" },
+        { id: "horoscopes", l10nId: "home-prefs-horoscopes-header" },
         { id: "lists", l10nId: "home-prefs-lists-header" },
         { id: "pictureOfTheDay", l10nId: "home-prefs-picture-header" },
         { id: "privacy", l10nId: "home-prefs-privacy-header" },
         { id: "recentSearches", l10nId: "home-prefs-search-widget-header" },
-        { id: "stocks", l10nId: "home-prefs-stocks-header" },
         { id: "focusTimer", l10nId: "home-prefs-timer-header" },
       ]);
     });
@@ -959,8 +987,7 @@ describe("AboutPreferences Feed", () => {
       const group = instance._setupHomeGroup({ Preferences });
 
       const widgets = group.items.find(i => i.id === "widgets");
-      // "focusTimer" as a sort key lands third, which happens to be ID_ORDER.
-      expect(widgets.items.map(i => i.id)).toEqual(ID_ORDER);
+      expect(widgets.items.map(i => i.id)).toEqual(TIMER_ID_SORT_ORDER);
     });
 
     it("still builds the group, sorted by id, when the label lookup throws", () => {

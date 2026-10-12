@@ -1,5 +1,31 @@
 # Umbrafox Working Memory and Resume Instructions
 
+## October 12: Upstream Source Integration
+
+Owner requested commit/push of existing work, then upstream merge before any
+more optimization. Original work is committed and pushed as f16351a82412;
+local recovery branch sync-before-upstream-20261012 retains that revision.
+Integrated upstream/main 1a097ed8d31f6b307a5d0ebc34a82ceaf7f3727b, 4,399 incoming
+commits. Resolved 21 conflicts, including the tab.js -> tab.mjs move, canvas
+draw-target/content ownership, DMABuf BufferSurface changes, and both the fork
+opacity setting and upstream YUV overlay setting. Experimental defaults stay OFF.
+
+Final combined-tree tooling suite: 465 PASS. Additional probe-contract 14 PASS,
+sampling-parser 36 PASS, isolated Rust probe OFF 3 / ON 22 PASS. The import-cache
+fixture now covers 48 cases, including cross-content and null-target admission.
+Scoped ESLint: zero errors; firefox.js is intentionally ignored by its config.
+Mach's new lint-environment setup timed out, so installed ESLint was used.
+No complete Gecko/native build, real-GPU tests, or runtime parity run performed.
+This is source integration, not a newly built or installed prototype.
+
+Report: bot-docs/reports/2026-10-12-upstream-sync.md. Evidence/backups:
+/home/wyatt/.cache/codex/umbrafox-upstream-sync-20261012-ssNJPxDz/.
+Generated browser packages/extractions remain on disk but are excluded from Git;
+source snapshots, manifests and reports are preserved. Check git log/status for
+the merge commit and origin publication. No installed browser/profile changed.
+Next optimization contract remains bot-docs/plans/audio-on-seek.md; do not mistake
+this merge or old muted tests for reproduction of the audio-on seek symptom.
+
 ## October 12: Default Profile Migration
 
 Owner closed browser and requested normal default selection plus profile copy.

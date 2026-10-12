@@ -175,7 +175,6 @@ class nsIVariant;
 class nsNodeInfoManager;
 class nsPIWindowRoot;
 class nsPresContext;
-class nsRange;
 class nsTextNode;
 class nsViewManager;
 class nsViewportInfo;
@@ -273,6 +272,7 @@ enum class SkipTransitionReason : uint8_t;
 class ProcessingInstruction;
 class Promise;
 struct PropertyDefinition;
+class Range;
 class ScriptLoader;
 class Selection;
 class ServiceWorkerDescriptor;
@@ -1726,9 +1726,7 @@ class Document : public nsINode,
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY nsresult TurnEditingOff();
 
-  // MOZ_CAN_RUN_SCRIPT_BOUNDARY because this is called from all sorts
-  // of places, and I'm pretty sure the exact ExecCommand call it
-  // makes cannot actually run script.
+  // TODO: Convert this to MOZ_CAN_RUN_SCRIPT
   MOZ_CAN_RUN_SCRIPT_BOUNDARY nsresult EditingStateChanged();
 
   void MaybeEditingStateChanged();
@@ -2864,6 +2862,7 @@ class Document : public nsINode,
                "Display documents should not nest");
     mDisplayDocument = aDisplayDocument;
     mHasDisplayDocument = !!aDisplayDocument;
+    mIsBeingUsedAsImage |= aDisplayDocument->mIsBeingUsedAsImage;
   }
 
   /**
@@ -3617,7 +3616,7 @@ class Document : public nsINode,
   already_AddRefed<Event> CreateEvent(const nsAString& aEventType,
                                       CallerType aCallerType,
                                       ErrorResult& rv) const;
-  already_AddRefed<nsRange> CreateRange(ErrorResult& rv);
+  already_AddRefed<Range> CreateRange(ErrorResult& rv);
   already_AddRefed<NodeIterator> CreateNodeIterator(nsINode& aRoot,
                                                     uint32_t aWhatToShow,
                                                     NodeFilter* aFilter,
@@ -3874,7 +3873,7 @@ class Document : public nsINode,
    * Wrapper around CaretPositionFromPoint that returns Range instead of
    * CaretPosition.
    */
-  already_AddRefed<nsRange> CaretRangeFromPoint(int32_t aX, int32_t aY);
+  already_AddRefed<Range> CaretRangeFromPoint(int32_t aX, int32_t aY);
 
   MOZ_CAN_RUN_SCRIPT Element* GetScrollingElement();
   // Like GetScrollingElement, but does not flush pending layout. Callers get
@@ -4940,7 +4939,8 @@ class Document : public nsINode,
   Element* GetScrollingElementImpl(Flush);
   bool IsPotentiallyScrollableImpl(HTMLBodyElement* aBody, Flush);
 
-  void MaybeAllowStorageForOpenerAfterUserInteraction();
+  void MaybeAllowStorageForOpenerAfterUserInteraction(
+      bool aHadPriorUserInteraction);
 
   void MaybeStoreUserInteractionAsPermission();
 
@@ -5965,7 +5965,25 @@ class Document : public nsINode,
   // Collection of data used by the pageload event.
   PageloadEventData mPageloadEventData;
 
-  // Submit the page load event at the end of the document's lifetime.
+  // Whether AccumulatePageLoadTelemetry() collected metrics, and whether the
+  // tab was foreground when the load event started. Background loads are still
+  // reported, but are left out of the paint and load timing histograms, as is
+  // a load whose load event never fired.
+  bool mPageLoadMetricsAccumulated = false;
+  bool mPageLoadWasForeground = false;
+
+  // Whether the load event fired. Tracked separately from loadTime, which is
+  // only set for a strictly positive duration.
+  bool mPageLoadCompleted = false;
+
+  // Whether ReportPageLoadTelemetry() has already run for this document.
+  bool mPageLoadTelemetryReported = false;
+
+  // Submit the page load event and the LCP histograms, once the document is
+  // hidden or at the end of its lifetime if it never was. ReportPageLoadEvent
+  // must run first: ReportLCP skips its histogram when the event carried the
+  // same LCP value.
+  void ReportPageLoadTelemetry();
   void ReportPageLoadEvent();
 
   // Accumulate JS telemetry collected

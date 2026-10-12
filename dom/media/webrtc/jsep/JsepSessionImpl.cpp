@@ -316,8 +316,9 @@ nsresult JsepSessionImpl::CreateOfferMsection(const JsepOfferOptions& options,
   }
 
   if (msection->GetMediaType() != SdpMediaSection::MediaType::kApplication) {
-    // Ditto for extmap-allow-mixed
-    msection->GetAttributeList().SetAttribute(
+    // Ditto for extmap-allow-mixed Add to session level instead of media
+    // level. Adding more than once is a no-op.
+    local->GetAttributeList().SetAttribute(
         MakeUnique<SdpFlagAttribute>(SdpAttribute::kExtmapAllowMixedAttribute));
   }
 
@@ -2034,9 +2035,14 @@ JsepSession::Result JsepSessionImpl::ValidateLocalDescription(
       return Result(dom::PCError::InvalidModificationError);
     }
 
+    if (mSdpHelper.FingerprintsDiffer(origMsection, finalMsection)) {
+      JSEP_SET_ERROR(
+          "Changing the DTLS fingerprint of m-sections is not allowed.");
+      return Result(dom::PCError::InvalidModificationError);
+    }
+
     // TODO(bug 1095218): Check msid
     // TODO(bug 1095226): Check ice-ufrag and ice-pwd
-    // TODO(bug 1095226): Check fingerprints
     // TODO(bug 1095226): Check payload types (at least ensure that payload
     // types we don't actually support weren't added)
     // TODO(bug 1095226): Check ice-options?

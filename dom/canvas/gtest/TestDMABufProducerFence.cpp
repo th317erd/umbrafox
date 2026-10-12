@@ -155,7 +155,7 @@ class DMABufProducerFence : public ::testing::Test {
         DMABufSurface::CreateDMABufSurface(aDescriptor);
     ASSERT_TRUE(imported);
     ASSERT_TRUE(mGL->MakeCurrent());
-    ASSERT_TRUE(imported->CreateTexture(mGL));
+    ASSERT_TRUE(imported->CreateTextures(mGL));
     auto release = MakeScopeExit([&] { imported->ReleaseTextures(); });
     imported->FenceWait(mGL);
     const ScopedFramebufferForTexture framebuffer(mGL, imported->GetTexture());

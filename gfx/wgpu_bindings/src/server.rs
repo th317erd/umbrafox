@@ -3,12 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    error::{error_to_string, GPUError},
+    error::{pipeline_error_to_ffi, request_device_error_to_ffi, GPUError},
     make_byte_buf,
     telemetry::build_telemetry_struct,
     wgpu_string, AdapterInformation, BufferMapResult, ByteBuf, DeviceAction, FfiDeviceLostReason,
     FfiErrorFilter, FfiPopErrorScopeResultType, FfiSlice, FfiTextureDescriptor, Message,
-    PipelineError, QueueWriteAction, QueueWriteDataSource, ServerMessage,
+    QueueWriteAction, QueueWriteDataSource, RequestDeviceError, ServerMessage,
     ShaderModuleCompilationMessage, SwapChainId, TextureAction,
 };
 
@@ -124,34 +124,141 @@ fn unsupported_dmabuf_extensions(
 }
 
 fn restrict_limits(limits: wgt::Limits) -> wgt::Limits {
+    let wgt::Limits {
+        max_texture_dimension_1d,
+        max_texture_dimension_2d,
+        max_texture_dimension_3d,
+        max_texture_array_layers,
+        max_bind_groups,
+        max_bind_groups_plus_vertex_buffers,
+        max_bindings_per_bind_group,
+        max_dynamic_uniform_buffers_per_pipeline_layout,
+        max_dynamic_storage_buffers_per_pipeline_layout,
+        max_sampled_textures_per_shader_stage,
+        max_samplers_per_shader_stage,
+        max_storage_buffers_per_shader_stage,
+        max_storage_buffers_in_vertex_stage,
+        max_storage_buffers_in_fragment_stage,
+        max_storage_textures_per_shader_stage,
+        max_storage_textures_in_vertex_stage,
+        max_storage_textures_in_fragment_stage,
+        max_uniform_buffers_per_shader_stage,
+        max_binding_array_elements_per_shader_stage,
+        max_binding_array_acceleration_structure_elements_per_shader_stage,
+        max_binding_array_sampler_elements_per_shader_stage,
+        max_uniform_buffer_binding_size,
+        max_storage_buffer_binding_size,
+        max_vertex_buffers,
+        max_buffer_size,
+        max_vertex_attributes,
+        max_vertex_buffer_array_stride,
+        max_inter_stage_shader_variables,
+        min_uniform_buffer_offset_alignment,
+        min_storage_buffer_offset_alignment,
+        max_color_attachments,
+        max_color_attachment_bytes_per_sample,
+        max_compute_workgroup_storage_size,
+        max_compute_invocations_per_workgroup,
+        max_compute_workgroup_size_x,
+        max_compute_workgroup_size_y,
+        max_compute_workgroup_size_z,
+        max_compute_workgroups_per_dimension,
+        max_immediate_size,
+        max_non_sampler_bindings: _,
+        max_task_workgroup_total_count,
+        max_task_workgroups_per_dimension,
+        max_mesh_workgroup_total_count,
+        max_mesh_workgroups_per_dimension,
+        max_task_invocations_per_workgroup,
+        max_task_invocations_per_dimension,
+        max_mesh_invocations_per_workgroup,
+        max_mesh_invocations_per_dimension,
+        max_task_payload_size,
+        max_mesh_output_vertices,
+        max_mesh_output_primitives,
+        max_mesh_output_layers,
+        max_mesh_multiview_view_count,
+        max_blas_primitive_count,
+        max_blas_geometry_count,
+        max_tlas_instance_count,
+        max_acceleration_structures_per_shader_stage,
+        max_buffers_and_acceleration_structures_per_shader_stage,
+        max_multiview_view_count,
+        max_ray_dispatch_count,
+        max_ray_recursion_depth,
+    } = limits;
+
     wgt::Limits {
-        max_buffer_size: limits.max_buffer_size.min(MAX_BUFFER_SIZE),
-        max_texture_dimension_1d: limits.max_texture_dimension_1d.min(MAX_TEXTURE_EXTENT),
-        max_texture_dimension_2d: limits.max_texture_dimension_2d.min(MAX_TEXTURE_EXTENT),
-        max_texture_dimension_3d: limits.max_texture_dimension_3d.min(MAX_TEXTURE_EXTENT),
-        max_sampled_textures_per_shader_stage: limits
-            .max_sampled_textures_per_shader_stage
+        max_texture_dimension_1d: max_texture_dimension_1d.min(MAX_TEXTURE_EXTENT),
+        max_texture_dimension_2d: max_texture_dimension_2d.min(MAX_TEXTURE_EXTENT),
+        max_texture_dimension_3d: max_texture_dimension_3d.min(MAX_TEXTURE_EXTENT),
+        max_texture_array_layers,
+        max_bind_groups,
+        max_bind_groups_plus_vertex_buffers,
+        max_bindings_per_bind_group,
+        max_dynamic_uniform_buffers_per_pipeline_layout,
+        max_dynamic_storage_buffers_per_pipeline_layout,
+        max_sampled_textures_per_shader_stage: max_sampled_textures_per_shader_stage
             .min(MAX_BINDINGS_PER_RESOURCE_TYPE),
-        max_samplers_per_shader_stage: limits
-            .max_samplers_per_shader_stage
+        max_samplers_per_shader_stage: max_samplers_per_shader_stage
             .min(MAX_BINDINGS_PER_RESOURCE_TYPE),
-        max_storage_textures_per_shader_stage: limits
-            .max_storage_textures_per_shader_stage
+        max_storage_buffers_per_shader_stage: max_storage_buffers_per_shader_stage
             .min(MAX_BINDINGS_PER_RESOURCE_TYPE),
-        max_uniform_buffers_per_shader_stage: limits
-            .max_uniform_buffers_per_shader_stage
+        max_storage_buffers_in_vertex_stage: max_storage_buffers_in_vertex_stage
             .min(MAX_BINDINGS_PER_RESOURCE_TYPE),
-        max_storage_buffers_per_shader_stage: limits
-            .max_storage_buffers_per_shader_stage
+        max_storage_buffers_in_fragment_stage: max_storage_buffers_in_fragment_stage
             .min(MAX_BINDINGS_PER_RESOURCE_TYPE),
-        max_uniform_buffer_binding_size: limits
-            .max_uniform_buffer_binding_size
-            .min(MAX_BUFFER_SIZE),
-        max_storage_buffer_binding_size: limits
-            .max_storage_buffer_binding_size
-            .min(MAX_BUFFER_SIZE),
+        max_storage_textures_per_shader_stage: max_storage_textures_per_shader_stage
+            .min(MAX_BINDINGS_PER_RESOURCE_TYPE),
+        max_storage_textures_in_vertex_stage: max_storage_textures_in_vertex_stage
+            .min(MAX_BINDINGS_PER_RESOURCE_TYPE),
+        max_storage_textures_in_fragment_stage: max_storage_textures_in_fragment_stage
+            .min(MAX_BINDINGS_PER_RESOURCE_TYPE),
+        max_uniform_buffers_per_shader_stage: max_uniform_buffers_per_shader_stage
+            .min(MAX_BINDINGS_PER_RESOURCE_TYPE),
+        max_binding_array_elements_per_shader_stage,
+        max_binding_array_acceleration_structure_elements_per_shader_stage,
+        max_binding_array_sampler_elements_per_shader_stage,
+        max_uniform_buffer_binding_size: max_uniform_buffer_binding_size.min(MAX_BUFFER_SIZE),
+        max_storage_buffer_binding_size: max_storage_buffer_binding_size.min(MAX_BUFFER_SIZE),
+        max_vertex_buffers,
+        max_buffer_size: max_buffer_size.min(MAX_BUFFER_SIZE),
+        max_vertex_attributes,
+        max_vertex_buffer_array_stride,
+        max_inter_stage_shader_variables,
+        min_uniform_buffer_offset_alignment,
+        min_storage_buffer_offset_alignment,
+        max_color_attachments,
+        max_color_attachment_bytes_per_sample,
+        max_compute_workgroup_storage_size,
+        max_compute_invocations_per_workgroup,
+        max_compute_workgroup_size_x,
+        max_compute_workgroup_size_y,
+        max_compute_workgroup_size_z,
+        max_compute_workgroups_per_dimension,
+        max_immediate_size,
         max_non_sampler_bindings: 500_000,
-        ..limits
+        max_task_workgroup_total_count,
+        max_task_workgroups_per_dimension,
+        max_mesh_workgroup_total_count,
+        max_mesh_workgroups_per_dimension,
+        max_task_invocations_per_workgroup,
+        max_task_invocations_per_dimension,
+        max_mesh_invocations_per_workgroup,
+        max_mesh_invocations_per_dimension,
+        max_task_payload_size,
+        max_mesh_output_vertices,
+        max_mesh_output_primitives,
+        max_mesh_output_layers,
+        max_mesh_multiview_view_count,
+        max_blas_primitive_count,
+        max_blas_geometry_count,
+        max_tlas_instance_count,
+        max_acceleration_structures_per_shader_stage,
+        max_buffers_and_acceleration_structures_per_shader_stage,
+        max_multiview_view_count,
+        max_ray_dispatch_count,
+        max_ray_recursion_depth,
     }
 }
 
@@ -465,47 +572,20 @@ unsafe fn adapter_request_device(
     desc: DeviceDescriptor,
     new_device_id: id::DeviceId,
     new_queue_id: id::QueueId,
-) -> Result<(), String> {
-    let mut sanitized_desc = {
-        let DeviceDescriptor {
-            label,
-            required_features,
-            required_limits,
-            default_queue,
-            experimental_features,
-            memory_hints,
-            trace,
-        } = desc;
+) -> Result<(), RequestDeviceError> {
+    // Note that wgpu-core will generally ignore all required features and limits that
+    // are not part of the spec. See docs of `InstanceFlags::STRICT_WEBGPU_COMPLIANCE`
+    // for exceptions and actual behavior.
 
-        assert_eq!(required_features.features_wgpu, wgt::FeaturesWGPU::empty());
-        // TODO: compare to DeviceDescriptor::default() once wgpu offers `Eq`
-        // for the necessary types.
-        assert!(!experimental_features.is_enabled());
-        assert!(matches!(memory_hints, wgt::MemoryHints::Performance));
-        assert!(matches!(trace, wgt::Trace::Off));
-
-        // Note that wgpu-core will generally ignore all required features and limits that
-        // are not part of the spec. See docs of `InstanceFlags::STRICT_WEBGPU_COMPLIANCE`
-        // for exceptions and actual behavior.
-
-        DeviceDescriptor {
-            label,
-            required_features,
-            required_limits,
-            default_queue,
-            experimental_features: wgt::ExperimentalFeatures::disabled(),
-            memory_hints: wgt::MemoryHints::MemoryUsage,
-            trace: wgt::Trace::Off, // may be overridden below
-        }
-    };
-
+    let mut trace = wgt::Trace::Off;
     if let Some(env_dir) = std::env::var_os("WGPU_TRACE") {
         match create_next_numbered_dir(&std::path::PathBuf::from(env_dir)) {
-            Ok(path) => sanitized_desc.trace = wgt::Trace::Directory(path),
+            Ok(path) => trace = wgt::Trace::Directory(path),
             Err(err) => log::warn!("Failed to create directory for wgpu recording: {err:?}"),
         }
     }
 
+    let mut additional_features = wgt::Features::empty();
     if unsafe { wgpu_parent_is_external_texture_enabled() } {
         // Enable features used for external texture support, if available. We
         // avoid adding unsupported features to required_features so that we
@@ -518,7 +598,7 @@ unsafe fn adapter_request_device(
             wgt::Features::TEXTURE_FORMAT_16BIT_NORM,
         ] {
             if global.adapter_features(self_id).contains(feature) {
-                sanitized_desc.required_features.insert(feature);
+                additional_features.insert(feature);
             }
         }
     }
@@ -548,9 +628,23 @@ unsafe fn adapter_request_device(
         match support_dma_buf {
             false => {}
             true => {
+                let mut sanitized_desc = wgt::DeviceDescriptor {
+                    label: desc.label,
+                    required_features: wgt::Features::from_internal_flags(
+                        wgt::FeaturesWGPU::empty(),
+                        desc.required_features,
+                    )
+                    .union(additional_features),
+                    required_limits: desc.required_limits,
+                    default_queue: desc.default_queue,
+                    experimental_features: wgt::ExperimentalFeatures::disabled(),
+                    memory_hints: wgt::MemoryHints::MemoryUsage,
+                    trace,
+                };
+
                 global
                     .adapter_validate_device_descriptor(self_id, &mut sanitized_desc)
-                    .map_err(|err| err.to_string())?;
+                    .map_err(request_device_error_to_ffi)?;
 
                 let mut enabled_extensions =
                     hal_adapter.required_device_extensions(sanitized_desc.required_features);
@@ -581,7 +675,9 @@ unsafe fn adapter_request_device(
                 let Some(queue_family_index) = queue_family_index else {
                     let msg = c"Vulkan device has no graphics queue";
                     unsafe { gfx_critical_note(msg.as_ptr()) };
-                    return Err(format!("Internal Error: Failed to create ash::Device"));
+                    return Err(RequestDeviceError::operation_error(
+                        "Internal Error: Failed to create ash::Device".to_string(),
+                    ));
                 };
 
                 let family_info = vk::DeviceQueueCreateInfo::default()
@@ -612,7 +708,9 @@ unsafe fn adapter_request_device(
                             let msg =
                                 CString::new(format!("create_device() failed: {:?}", err)).unwrap();
                             gfx_critical_note(msg.as_ptr());
-                            format!("Internal Error: Failed to create ash::Device")
+                            RequestDeviceError::operation_error(
+                                "Internal Error: Failed to create ash::Device".to_string(),
+                            )
                         })?
                 };
 
@@ -638,7 +736,9 @@ unsafe fn adapter_request_device(
                             let msg = CString::new(format!("device_from_raw() failed: {:?}", err))
                                 .unwrap();
                             gfx_critical_note(msg.as_ptr());
-                            format!("Internal Error: Failed to create ash::Device")
+                            RequestDeviceError::operation_error(
+                                "Internal Error: Failed to create ash::Device".to_string(),
+                            )
                         })?
                 };
 
@@ -653,7 +753,7 @@ unsafe fn adapter_request_device(
                             new_device_id,
                             new_queue_id,
                         )
-                        .map_err(|err| err.to_string())?;
+                        .map_err(request_device_error_to_ffi)?;
                 }
 
                 return Ok(());
@@ -662,8 +762,15 @@ unsafe fn adapter_request_device(
     }
 
     global
-        .adapter_request_device(self_id, &sanitized_desc, new_device_id, new_queue_id)
-        .map_err(|err| err.to_string())?;
+        .adapter_request_device(
+            self_id,
+            &desc,
+            trace,
+            additional_features,
+            new_device_id,
+            new_queue_id,
+        )
+        .map_err(request_device_error_to_ffi)?;
 
     Ok(())
 }
@@ -792,10 +899,8 @@ pub extern "C" fn wgpu_server_device_create_buffer(
     device_id: id::DeviceId,
     buffer_id: id::BufferId,
     size: wgt::BufferAddress,
-    usage: u32,
+    usage: wgt::BufferUsagesWebGPU,
 ) -> bool {
-    let usage = wgt::BufferUsages::from_bits_retain(usage);
-
     let desc = BufferDescriptor {
         label: None,
         size,
@@ -906,10 +1011,10 @@ pub enum HostMap {
 }
 
 impl HostMap {
-    fn to_wgc(&self) -> wgc::device::HostMap {
+    fn to_wgc(&self) -> wgt::MapMode {
         match self {
-            HostMap::Read => wgc::device::HostMap::Read,
-            HostMap::Write => wgc::device::HostMap::Write,
+            HostMap::Read => wgt::MapMode::Read,
+            HostMap::Write => wgt::MapMode::Write,
         }
     }
 }
@@ -938,7 +1043,7 @@ pub unsafe extern "C" fn wgpu_server_buffer_map(
     .detach();
 
     let operation = wgc::resource::BufferMapOperation {
-        host: map_mode.to_wgc(),
+        mode: map_mode.to_wgc(),
         callback: Some(Box::new(move |result| {
             // Send the map result from whatever thread this callback is running
             // on to the task we spawned above.
@@ -978,7 +1083,7 @@ pub extern "C" fn wgpu_server_buffer_map_blocking(
     // poll might happen on another thread.
     let status_passback = Arc::new(OnceLock::new());
     let op = wgc::resource::BufferMapOperation {
-        host: map_mode.to_wgc(),
+        mode: map_mode.to_wgc(),
         callback: Some(Box::new({
             let status_passback = Arc::clone(&status_passback);
             move |status| {
@@ -1603,7 +1708,6 @@ extern "C" {
     );
     fn wgpu_parent_queue_submit(
         parent: WebGPUParentPtr,
-        device_id: id::DeviceId,
         queue_id: id::QueueId,
         command_buffer_ids: *const id::CommandBufferId,
         command_buffer_ids_length: usize,
@@ -1797,6 +1901,7 @@ impl Global {
                 desc.size,
                 1,
                 1,
+                None,
             )
         };
         let (_, error) = unsafe {
@@ -1806,7 +1911,10 @@ impl Global {
                 &desc,
                 wgt::TextureUses::UNINITIALIZED,
                 texture_id,
-                /* cleared */ false,
+                // NOTE: We want `false`, but we can't yet, because
+                // upstream's API isn't quite right yet.
+                /* cleared */
+                true,
             )
         };
         if let Some(err) = error {
@@ -2058,7 +2166,10 @@ impl Global {
                 &desc,
                 wgt::TextureUses::UNINITIALIZED,
                 texture_id,
-                /* cleared */ false,
+                // NOTE: We want `false`, but we can't yet, because
+                // upstream's API isn't quite right yet.
+                /* cleared */
+                true,
             );
             if let Some(err) = error {
                 let msg =
@@ -2087,9 +2198,9 @@ impl Global {
                 desc,
                 shmem_handle_index,
             } => {
-                let has_map_flags = desc
-                    .usage
-                    .intersects(wgt::BufferUsages::MAP_READ | wgt::BufferUsages::MAP_WRITE);
+                let has_map_flags = desc.usage.intersects(
+                    wgt::BufferUsagesWebGPU::MAP_READ | wgt::BufferUsagesWebGPU::MAP_WRITE,
+                );
                 let needs_shmem = has_map_flags || desc.mapped_at_creation;
 
                 let shmem_data =
@@ -2353,14 +2464,7 @@ impl Global {
             DeviceAction::CreateComputePipeline(id, desc, is_async) => {
                 if is_async {
                     let result = self.device_create_compute_pipeline_or_error(device_id, &desc, id);
-                    let error = result.err().map(|e| -> _ {
-                        let is_validation_error =
-                            matches!(e.webgpu_error_type(), ErrorType::Validation);
-                        PipelineError {
-                            is_validation_error,
-                            error: error_to_string(e),
-                        }
-                    });
+                    let error = result.err().map(pipeline_error_to_ffi);
                     *response_byte_buf =
                         make_byte_buf(&ServerMessage::CreateComputePipelineResponse {
                             pipeline_id: id,
@@ -2372,15 +2476,8 @@ impl Global {
             }
             DeviceAction::CreateRenderPipeline(id, desc, is_async) => {
                 if is_async {
-                    let result = self.create_render_pipeline_or_error(device_id, &desc, id);
-                    let error = result.err().map(|e| -> _ {
-                        let is_validation_error =
-                            matches!(e.webgpu_error_type(), ErrorType::Validation);
-                        PipelineError {
-                            is_validation_error,
-                            error: error_to_string(e),
-                        }
-                    });
+                    let result = self.device_create_render_pipeline_or_error(device_id, &desc, id);
+                    let error = result.err().map(pipeline_error_to_ffi);
                     *response_byte_buf =
                         make_byte_buf(&ServerMessage::CreateRenderPipelineResponse {
                             pipeline_id: id,
@@ -2569,7 +2666,7 @@ fn process_buffer_map(global: &Global, msg: Message, response_byte_buf: &mut Byt
     .detach();
 
     let operation = wgc::resource::BufferMapOperation {
-        host: mode.to_wgc(),
+        mode: mode.to_wgc(),
         callback: Some(Box::new(move |result| {
             // Send the map result from whatever thread this callback is running
             // on to the task we spawned above.
@@ -2718,18 +2815,18 @@ unsafe fn process_message(
             queue_id,
             desc,
         } => {
-            let res = adapter_request_device(global, adapter_id, desc, device_id, queue_id);
-
-            if res.is_ok() {
-                set_uncaptured_error_handler(global, device_id);
-                set_device_lost_handler(global, device_id);
-                wgpu_parent_post_request_device(global.owner, device_id);
-            }
+            let res =
+                adapter_request_device(global, adapter_id, desc, device_id, queue_id).map(|()| {
+                    set_uncaptured_error_handler(global, device_id);
+                    set_device_lost_handler(global, device_id);
+                    wgpu_parent_post_request_device(global.owner, device_id);
+                    // Not the limits we were asked for: wgpu-core adjusts them
+                    // per <https://www.w3.org/TR/webgpu/#a-new-device>.
+                    global.device_limits(device_id)
+                });
 
             *response_byte_buf = make_byte_buf(&ServerMessage::RequestDeviceResponse(
-                device_id,
-                queue_id,
-                res.err(),
+                device_id, queue_id, res,
             ));
         }
         Message::Device(id, action) => {
@@ -2779,14 +2876,12 @@ unsafe fn process_message(
             wgpu_parent_buffer_unmap(global.owner, device_id, buffer_id, flush);
         }
         Message::QueueSubmit(
-            device_id,
             queue_id,
             command_buffer_ids,
             texture_ids,
             external_texture_source_ids,
         ) => wgpu_parent_queue_submit(
             global.owner,
-            device_id,
             queue_id,
             command_buffer_ids.as_ptr(),
             command_buffer_ids.len(),
@@ -3112,9 +3207,8 @@ pub struct VkSemaphoreHandle(pub u64);
 /// closure.
 #[cfg(target_os = "linux")]
 fn enqueue_signal_semaphores_destruction(
-    global: &Global,
-    device_id: id::DeviceId,
-    queue_id: id::QueueId,
+    queue: &Arc<wgc::device::queue::Queue>,
+    device: Arc<wgc::device::Device>,
     handles: &[VkSemaphoreHandle],
     submission_errored: bool,
 ) {
@@ -3128,9 +3222,6 @@ fn enqueue_signal_semaphores_destruction(
         .iter()
         .map(|handle| vk::Semaphore::from_raw(handle.0))
         .collect();
-
-    let device = global.resolve_device_id(device_id);
-    let queue = global.resolve_queue_id(queue_id);
 
     if submission_errored {
         // Unregister the pending signals so that a later submission on this
@@ -3170,24 +3261,27 @@ fn enqueue_signal_semaphores_destruction(
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_server_queue_submit(
     global: &Global,
-    device_id: id::DeviceId,
     queue_id: id::QueueId,
     command_buffer_ids: FfiSlice<'_, id::CommandBufferId>,
     signal_semaphores: FfiSlice<'_, VkSemaphoreHandle>,
 ) -> u64 {
-    global.device_push_error_scope(device_id, ErrorFilter::Validation);
+    use wgc::resource::ParentDevice as _;
+
+    let queue = global.resolve_queue_id(queue_id);
+    let device = queue.device();
+
+    device.push_error_scope(ErrorFilter::Validation);
     let submission_index = global.queue_submit(queue_id, command_buffer_ids.as_slice());
-    let error = global.device_pop_error_scope(device_id).unwrap();
+    let error = device.pop_error_scope().unwrap();
     let submission_succeeded = error.is_none();
     if let Some(error) = error {
-        global.device_handle_error(device_id, error, None, "Queue::submit");
+        device.handle_error(error, None, "Queue::submit");
     }
 
     #[cfg(target_os = "linux")]
     enqueue_signal_semaphores_destruction(
-        global,
-        device_id,
-        queue_id,
+        &queue,
+        device.clone(),
         signal_semaphores.as_slice(),
         !submission_succeeded,
     );
@@ -3214,14 +3308,15 @@ pub struct SubmittedWorkDoneClosure {
 #[cfg(target_os = "linux")]
 pub extern "C" fn wgpu_vksemaphore_create_signal_semaphore(
     global: &Global,
-    device_id: id::DeviceId,
     queue_id: id::QueueId,
     out_fd: *mut i32,
 ) -> VkSemaphoreHandle {
     use ash::vk::Handle as _;
+    use wgc::resource::ParentDevice as _;
 
-    let device = global.resolve_device_id(device_id);
     let queue = global.resolve_queue_id(queue_id);
+    let device = queue.device().clone();
+
     let hal_device =
         unsafe { device.as_hal::<wgc::api::Vulkan>() }.expect("Vulkan backend device on linux");
     let hal_queue =
@@ -3307,6 +3402,7 @@ pub unsafe extern "C" fn wgpu_server_device_import_texture_from_shared_handle(
         desc.size,
         desc.mip_level_count,
         desc.sample_count,
+        None,
     );
 
     let (_, error) = global.create_texture_from_hal(
@@ -3329,13 +3425,15 @@ pub unsafe extern "C" fn wgpu_server_device_import_texture_from_shared_handle(
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_server_device_wait_fence_from_shared_handle(
     global: &Global,
-    device_id: id::DeviceId,
     queue_id: id::QueueId,
     fence_handle: *mut core::ffi::c_void,
     fence_value: u64,
 ) -> bool {
-    let device = global.resolve_device_id(device_id);
+    use wgc::resource::ParentDevice as _;
+
     let queue = global.resolve_queue_id(queue_id);
+    let device = queue.device().clone();
+
     let hal_device =
         unsafe { device.as_hal::<wgc::api::Dx12>() }.expect("D3D12 backend device on windows");
     let hal_queue =
@@ -3583,7 +3681,10 @@ mod macos {
                     &desc,
                     wgt::TextureUses::UNINITIALIZED,
                     texture_id,
-                    /* cleared */ false,
+                    // NOTE: We want `false`, but we can't yet, because
+                    // upstream's API isn't quite right yet.
+                    /* cleared */
+                    true,
                 )
             };
             if let Some(err) = error {

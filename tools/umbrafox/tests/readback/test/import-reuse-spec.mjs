@@ -166,7 +166,7 @@ test("reuse keeps eviction, writer invalidation and translator boundaries", asyn
   );
   assert(
     lookup.indexOf("LookupTexture(mContentId, sdrd.handle())") <
-      lookup.indexOf("GetZeroCopySurfaceFromDMABuf(texture, sdrd.id())")
+      lookup.indexOf("GetZeroCopySurfaceFromDMABuf(aDT, texture, sdrd.id())")
   );
   assert.match(lookup, /MakeScopeExit[\s\S]*ClearVideoSurfaceCache\(\)/);
   const prune = region(

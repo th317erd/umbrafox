@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { UrlbarShared } from "chrome://browser/content/urlbar/UrlbarShared.mjs";
-import * as UrlbarContentUtils from "chrome://browser/content/urlbar/UrlbarContentUtils.mjs";
+import { UrlbarContentUtils } from "chrome://browser/content/urlbar/UrlbarContentUtils.mjs";
 
 const lazy = {};
 
@@ -226,7 +226,8 @@ export class UrlbarParent extends JSWindowActorParent {
           message.data.searchTerms,
           message.data.where,
           message.data.inBackground,
-          message.data.browserId
+          message.data.browserId,
+          message.data.tracksBounce
         );
         break;
       case "OpenSearchForm":

@@ -142,8 +142,7 @@ class HTMLSelectElement final : public nsGenericHTMLFormControlElementWithState,
     return mOptions->ItemAsOption(aIdx);
   }
   HTMLOptionElement* NamedItem(const nsAString& aName) const {
-    return static_cast<HTMLOptionElement*>(
-        mOptions->NamedItem(aName, /* aDoFlush = */ true));
+    return static_cast<HTMLOptionElement*>(mOptions->NamedItem(aName));
   }
   void Add(const HTMLOptionElementOrHTMLOptGroupElement& aElement,
            const Nullable<HTMLElementOrLong>& aBefore, ErrorResult& aRv);
@@ -394,12 +393,12 @@ class HTMLSelectElement final : public nsGenericHTMLFormControlElementWithState,
 
   void ScrollToSelectedOption() { return ScrollToOption(SelectedIndex()); }
 
-  void ResetListBoxSelection(bool aAllowScrolling);
-
  protected:
   virtual ~HTMLSelectElement();
 
   // Helper Methods
+  void ResetListBoxSelection();
+
   /**
    * Check whether the option specified by the index is selected
    * @param aIndex the index

@@ -99,8 +99,8 @@ nsresult nsGNOMEShellService::Init() {
   return appPath->GetNativePath(mAppPath);
 }
 
-NS_IMPL_ISUPPORTS(nsGNOMEShellService, nsIGNOMEShellService, nsIShellService,
-                  nsIToolkitShellService)
+NS_IMPL_ISUPPORTS_INHERITED(nsGNOMEShellService, nsShellService,
+                            nsIGNOMEShellService, nsIShellService)
 
 bool nsGNOMEShellService::GetAppPathFromLauncher() {
   gchar* tmp;
@@ -169,7 +169,7 @@ bool nsGNOMEShellService::CheckHandlerMatchesAppName(
 }
 
 NS_IMETHODIMP
-nsGNOMEShellService::IsDefaultBrowser(bool aForAllTypes,
+nsGNOMEShellService::IsDefaultBrowser(bool /*aForAllTypes*/,
                                       bool* aIsDefaultBrowser) {
   *aIsDefaultBrowser = false;
 
@@ -215,6 +215,13 @@ nsGNOMEShellService::IsDefaultBrowser(bool aForAllTypes,
   *aIsDefaultBrowser = true;
 
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsGNOMEShellService::IsDefaultBrowserAsync(bool aForAllTypes,
+                                           JSContext* aContext,
+                                           mozilla::dom::Promise** _retval) {
+  return nsShellService::IsDefaultBrowserAsync(aForAllTypes, aContext, _retval);
 }
 
 bool nsGNOMEShellService::IsDefaultForSchemeHelper(
@@ -346,7 +353,7 @@ static nsresult WriteImage(const nsCString& aPath, imgIContainer* aImage) {
 NS_IMETHODIMP
 nsGNOMEShellService::SetDesktopBackground(dom::Element* aElement,
                                           int32_t aPosition,
-                                          const nsACString& aImageName) {
+                                          const nsACString& /*aImageName*/) {
   nsCOMPtr<nsIImageLoadingContent> imageContent = do_QueryInterface(aElement);
   if (!imageContent) {
     return NS_ERROR_FAILURE;

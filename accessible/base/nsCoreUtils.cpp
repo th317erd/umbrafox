@@ -23,6 +23,7 @@
 #include "mozilla/dom/HTMLOptionElement.h"
 #include "mozilla/dom/HTMLSelectElement.h"
 #include "mozilla/dom/MouseEventBinding.h"
+#include "mozilla/dom/Range.h"
 #include "mozilla/dom/Selection.h"
 #include "mozilla/dom/TouchEvent.h"
 #include "nsAccUtils.h"
@@ -36,7 +37,6 @@
 #include "nsISelectionController.h"
 #include "nsISimpleEnumerator.h"
 #include "nsPresContext.h"
-#include "nsRange.h"
 #include "nsTreeColumns.h"
 #include "nsXULElement.h"
 
@@ -227,7 +227,8 @@ bool nsCoreUtils::IsAncestorOf(nsINode* aPossibleAncestorNode,
   return false;
 }
 
-nsresult nsCoreUtils::ScrollSubstringTo(nsIFrame* aFrame, nsRange* aRange,
+nsresult nsCoreUtils::ScrollSubstringTo(nsIFrame* aFrame,
+                                        mozilla::dom::Range* aRange,
                                         uint32_t aScrollType) {
   AxisScrollParams vertical, horizontal;
   ConvertScrollTypeToPercents(aScrollType, &vertical, &horizontal);
@@ -235,7 +236,8 @@ nsresult nsCoreUtils::ScrollSubstringTo(nsIFrame* aFrame, nsRange* aRange,
   return ScrollSubstringTo(aFrame, aRange, vertical, horizontal);
 }
 
-nsresult nsCoreUtils::ScrollSubstringTo(nsIFrame* aFrame, nsRange* aRange,
+nsresult nsCoreUtils::ScrollSubstringTo(nsIFrame* aFrame,
+                                        mozilla::dom::Range* aRange,
                                         AxisScrollParams aVertical,
                                         AxisScrollParams aHorizontal) {
   if (!aFrame || !aRange) {

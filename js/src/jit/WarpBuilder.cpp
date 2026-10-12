@@ -319,6 +319,9 @@ bool WarpBuilder::build() {
   // instead. If this happens frequently, we disable Ion for the script and
   // the generator will run in Baseline instead.
   for (auto iter = pendingInnerLoopResumes_.iter(); !iter.done(); iter.next()) {
+    if (!alloc().ensureBallast()) {
+      return false;
+    }
     MBasicBlock* block = iter.get().value();
     MOZ_ASSERT(!block->hasLastIns());
     block->add(MBail::New(alloc(), BailoutKind::UncompiledGeneratorResume));
@@ -1264,6 +1267,13 @@ bool WarpBuilder::build_SetArg(BytecodeLocation loc) {
     // it doesn't map to the actual arguments values. Either way, we
     // don't need to worry about synchronizing the argument values
     // when writing to them.
+    //
+    // If this SetArg is pruned, a bailout may resume before it, in which case
+    // Baseline will store `val` into the formal. If formals are observable via
+    // Function.arguments, `val` should not be optimized out.
+    if (info().isObservableSlot(info().argSlot(arg))) {
+      val->setImplicitlyUsedUnchecked();
+    }
     current->setArg(arg);
     return true;
   }
@@ -3542,8 +3552,7 @@ bool WarpBuilder::build_TableSwitch(BytecodeLocation loc) {
 }
 
 bool WarpBuilder::build_Rest(BytecodeLocation loc) {
-  auto* snapshot = getOpSnapshot<WarpRest>(loc);
-  Shape* shape = snapshot ? snapshot->shape() : nullptr;
+  Shape* shape = getOpSnapshot<WarpRest>(loc)->shape();
 
   // NOTE: Keep this code in sync with |ArgumentsReplacer|.
 
@@ -3558,7 +3567,7 @@ bool WarpBuilder::build_Rest(BytecodeLocation loc) {
 
     // Allocate an array of the correct size.
     MInstruction* newArray;
-    if (shape && gc::CanUseFixedElementsForArray(numRest)) {
+    if (gc::CanUseFixedElementsForArray(numRest)) {
       auto* shapeConstant = MConstant::NewShape(alloc(), shape);
       current->add(shapeConstant);
       newArray = MNewArrayObject::New(alloc(), shapeConstant, numRest, heap);

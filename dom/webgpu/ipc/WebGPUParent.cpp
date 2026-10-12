@@ -4,6 +4,7 @@
 
 #include "WebGPUParent.h"
 
+#include <memory>
 #include <unordered_set>
 
 #include "ExternalTexture.h"
@@ -258,7 +259,7 @@ extern void wgpu_parent_buffer_unmap(WGPUWebGPUParentPtr aParent,
 }
 
 extern void wgpu_parent_queue_submit(
-    WGPUWebGPUParentPtr aParent, WGPUDeviceId aDeviceId, WGPUQueueId aQueueId,
+    WGPUWebGPUParentPtr aParent, WGPUQueueId aQueueId,
     const WGPUCommandBufferId* aCommandBufferIds,
     uintptr_t aCommandBufferIdsLength, const WGPUTextureId* aTextureIds,
     uintptr_t aTextureIdsLength,
@@ -269,7 +270,7 @@ extern void wgpu_parent_queue_submit(
   auto textures = Span(aTextureIds, aTextureIdsLength);
   auto externalTextureSources =
       Span(aExternalTextureSourceIds, aExternalTextureSourceIdsLength);
-  parent->QueueSubmit(aQueueId, aDeviceId, command_buffers, textures,
+  parent->QueueSubmit(aQueueId, command_buffers, textures,
                       externalTextureSources);
 }
 
@@ -337,9 +338,9 @@ extern ffi::WGPUBufferMapClosure wgpu_parent_build_buffer_map_closure(
     ffi::WGPUHostMap aMode, uint64_t aOffset, uint64_t aSize) {
   auto* parent = static_cast<WebGPUParent*>(aParent);
 
-  std::unique_ptr<WebGPUParent::MapRequest> request(
-      new WebGPUParent::MapRequest{parent, aDeviceId, aBufferId, aMode, aOffset,
-                                   aSize});
+  auto request =
+      std::make_unique<WebGPUParent::MapRequest>(WebGPUParent::MapRequest{
+          parent, aDeviceId, aBufferId, aMode, aOffset, aSize});
 
   ffi::WGPUBufferMapClosure closure = {
       &WebGPUParent::MapCallback,
@@ -353,8 +354,8 @@ wgpu_parent_build_submitted_work_done_closure(WGPUWebGPUParentPtr aParent,
                                               WGPUQueueId aQueueId) {
   auto* parent = static_cast<WebGPUParent*>(aParent);
 
-  std::unique_ptr<WebGPUParent::OnSubmittedWorkDoneRequest> request(
-      new WebGPUParent::OnSubmittedWorkDoneRequest{parent, aQueueId});
+  auto request = std::make_unique<WebGPUParent::OnSubmittedWorkDoneRequest>(
+      WebGPUParent::OnSubmittedWorkDoneRequest{parent, aQueueId});
 
   ffi::WGPUSubmittedWorkDoneClosure closure = {
       &WebGPUParent::OnSubmittedWorkDoneCallback,
@@ -662,7 +663,7 @@ void WebGPUParent::DropExternalTextureSource(RawId aSourceId) {
   }
 }
 
-void WebGPUParent::QueueSubmit(RawId aQueueId, RawId aDeviceId,
+void WebGPUParent::QueueSubmit(RawId aQueueId,
                                Span<const RawId> aCommandBuffers,
                                Span<const RawId> aTextureIds,
                                Span<const RawId> aExternalTextureSourceIds) {
@@ -670,7 +671,7 @@ void WebGPUParent::QueueSubmit(RawId aQueueId, RawId aDeviceId,
     auto it = mExternalTextureSources.find(sourceId);
     if (it != mExternalTextureSources.end()) {
       auto& source = it->second;
-      if (!source.OnBeforeQueueSubmit(this, aDeviceId, aQueueId)) {
+      if (!source.OnBeforeQueueSubmit(this, aQueueId)) {
         // If the above call failed we cannot submit the command buffers, as
         // it would be invalid to read from the external textures.
         return;
@@ -686,13 +687,13 @@ void WebGPUParent::QueueSubmit(RawId aQueueId, RawId aDeviceId,
     auto it = mSharedTextures.find(textureId);
     if (it != mSharedTextures.end()) {
       auto& sharedTexture = it->second;
-      sharedTexture->onBeforeQueueSubmit(mContext.get(), aDeviceId, aQueueId,
+      sharedTexture->onBeforeQueueSubmit(mContext.get(), aQueueId,
                                          signalSemaphores);
     }
   }
 
   auto index = ffi::wgpu_server_queue_submit(
-      mContext.get(), aDeviceId, aQueueId,
+      mContext.get(), aQueueId,
       {aCommandBuffers.Elements(), aCommandBuffers.Length()},
       {signalSemaphores.Elements(), signalSemaphores.Length()});
   // Check if index is valid. 0 means error.
@@ -1085,8 +1086,9 @@ ipc::IPCResult WebGPUParent::GetFrontBufferSnapshot(
       bufferId = data->mUnassignedBufferIds.back();
       data->mUnassignedBufferIds.pop_back();
 
-      ffi::WGPUBufferUsages usage =
-          WGPUBufferUsages_COPY_DST | WGPUBufferUsages_MAP_READ;
+      ffi::WGPUBufferUsagesWebGPU usage =
+          dom::GPUBufferUsage_Binding::COPY_DST |
+          dom::GPUBufferUsage_Binding::MAP_READ;
 
       bool succeeded = ffi::wgpu_server_device_create_buffer(
           mContext.get(), data->mDeviceId, bufferId, bufferSize, usage);
@@ -1234,8 +1236,9 @@ void WebGPUParent::SwapChainPresent(
       bufferId = data->mUnassignedBufferIds.back();
       data->mUnassignedBufferIds.pop_back();
 
-      ffi::WGPUBufferUsages usage =
-          WGPUBufferUsages_COPY_DST | WGPUBufferUsages_MAP_READ;
+      ffi::WGPUBufferUsagesWebGPU usage =
+          dom::GPUBufferUsage_Binding::COPY_DST |
+          dom::GPUBufferUsage_Binding::MAP_READ;
 
       bool succeeded = ffi::wgpu_server_device_create_buffer(
           mContext.get(), data->mDeviceId, bufferId, bufferSize, usage);

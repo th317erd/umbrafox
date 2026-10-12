@@ -136,7 +136,6 @@ use crate::spatial_tree::CoordinateSystemId;
 use crate::surface::{SurfaceDescriptor, SurfaceTileDescriptor, get_surface_rects};
 use crate::surface::{SurfaceIndex, SurfaceInfo, SubpixelMode};
 use smallvec::SmallVec;
-use std::mem;
 use std::ops::Range;
 use crate::picture_textures::PictureCacheTextureHandle;
 use crate::util::{MaxRect, Recycler, ScaleOffset};
@@ -400,10 +399,7 @@ pub struct PrimitiveList {
 }
 
 impl PrimitiveList {
-    /// Construct an empty primitive list. This is
-    /// just used during the take_context / restore_context
-    /// borrow check dance, which will be removed as the
-    /// picture traversal pass is completed.
+    /// Construct an empty primitive list.
     pub fn empty() -> Self {
         PrimitiveList {
             clusters: Vec::new(),
@@ -585,17 +581,6 @@ pub struct PictureInstance {
     /// composited into the parent picture.
     pub spatial_node_index: SpatialNodeIndex,
 
-    /// Store the state of the previous local rect
-    /// for this picture. We need this in order to know when
-    /// to invalidate segments / drop-shadow gpu cache handles.
-    pub prev_local_rect: LayoutRect,
-
-    /// If false, this picture needs to (re)build segments
-    /// if it supports segment rendering. This can occur
-    /// if the local rect of the picture changes due to
-    /// transform animation and/or scrolling.
-    pub segments_are_valid: bool,
-
     /// Requested raster space for this picture
     pub raster_space: RasterSpace,
 
@@ -690,8 +675,6 @@ impl PictureInstance {
             context_3d,
             is_backface_visible: prim_flags.contains(PrimitiveFlags::IS_BACKFACE_VISIBLE),
             spatial_node_index,
-            prev_local_rect: LayoutRect::zero(),
-            segments_are_valid: false,
             raster_space,
             flags,
             clip_root: None,
@@ -709,7 +692,7 @@ impl PictureInstance {
         data_stores: &DataStores,
         scratch: &mut PrimitiveScratchBuffer,
         tile_caches: &mut FastHashMap<SliceId, Box<TileCacheInstance>>,
-    ) -> Option<(PictureContext, PictureState, PrimitiveList, storage::Index<PictureScratch>)> {
+    ) -> Option<(PictureContext, PictureState, storage::Index<PictureScratch>)> {
         let mut picture_scratch = PictureScratch::empty();
 
         let dbg_flags = DebugFlags::PICTURE_CACHING_DBG | DebugFlags::PICTURE_BORDERS;
@@ -743,18 +726,6 @@ impl PictureInstance {
             frame_context.spatial_tree,
         );
 
-        // TODO: Compute the picture bounds by projecting the parent surface's
-        // culling rect into this surface's raster space, rather than the screen
-        // rect from the root.
-        let pic_bounds = map_pic_to_device
-            .unmap(&map_pic_to_device.bounds)
-            .unwrap_or_else(PictureRect::max_rect);
-
-        let map_local_to_pic = SpaceMapper::new(
-            surface_spatial_node_index,
-            pic_bounds,
-        );
-
         match self.raster_config {
             Some(RasterConfig { surface_index, composite_mode: PictureCompositeMode::TileCache { slice_id }, .. }) => {
                 prepare_tiled_picture_surface(
@@ -768,31 +739,11 @@ impl PictureInstance {
                 );
             }
             Some(ref mut raster_config) => {
-                let (pic_rect, force_scissor_rect) = {
-                    let surface = &frame_state.surfaces[raster_config.surface_index.0];
-                    (surface.clipped_local_rect, surface.force_scissor_rect)
-                };
+                let force_scissor_rect = frame_state
+                    .surfaces[raster_config.surface_index.0]
+                    .force_scissor_rect;
 
                 let parent_surface_index = parent_surface_index.expect("bug: no parent for child surface");
-
-                // Layout space for the picture is picture space from the
-                // perspective of its child primitives.
-                let local_rect = pic_rect * Scale::new(1.0);
-
-                // If the precise rect changed since last frame, we need to invalidate
-                // any segments and gpu cache handles for drop-shadows.
-                // TODO(gw): Requiring storage of the `prev_precise_local_rect` here
-                //           is a total hack. It's required because `prev_precise_local_rect`
-                //           gets written to twice (during initial vis pass and also during
-                //           prepare pass). The proper longer term fix for this is to make
-                //           use of the conservative picture rect for segmenting (which should
-                //           be done during scene building).
-                if local_rect != self.prev_local_rect {
-                    // Invalidate any segments built for this picture, since the local
-                    // rect has changed.
-                    self.segments_are_valid = false;
-                    self.prev_local_rect = local_rect;
-                }
 
                 let max_surface_size = frame_context.max_surface_size() as f32;
 
@@ -847,7 +798,6 @@ impl PictureInstance {
         };
 
         let state = PictureState {
-            map_local_to_pic,
             map_pic_to_device,
         };
 
@@ -877,16 +827,13 @@ impl PictureInstance {
             subpixel_mode,
         };
 
-        let prim_list = mem::replace(&mut self.prim_list, PrimitiveList::empty());
-
         let scratch_handle = scratch.frame.pictures.push(picture_scratch);
-        Some((context, state, prim_list, scratch_handle))
+        Some((context, state, scratch_handle))
     }
 
     pub fn restore_context(
         &mut self,
         pic_index: PictureIndex,
-        prim_list: PrimitiveList,
         context: PictureContext,
         frame_context: &FrameBuildingContext,
         frame_state: &mut FrameBuildingState,
@@ -965,8 +912,6 @@ impl PictureInstance {
                 }
             }
         }
-
-        self.prim_list = prim_list;
     }
 
     /// Add a primitive instance to the plane splitter. The function would generate
@@ -1896,7 +1841,6 @@ fn prepare_tiled_picture_surface(
                                     let opaque = frame_state
                                         .resource_cache
                                         .create_compositor_surface(
-                                            tile_cache.virtual_offset,
                                             tile_cache.current_tile_size,
                                             true,
                                         );
@@ -1904,7 +1848,6 @@ fn prepare_tiled_picture_surface(
                                     let alpha = frame_state
                                         .resource_cache
                                         .create_compositor_surface(
-                                            tile_cache.virtual_offset,
                                             tile_cache.current_tile_size,
                                             false,
                                         );
@@ -2667,6 +2610,7 @@ pub fn prepare_picture_primitive(
     // local-to-raster scale-offset transform (and the clip
     // rect it implies) rather than the cluster's transform.
     let mut local_transform;
+    let mut raster_mapping = None;
     let (local_clip_rect, transform) = if is_same_coord_system {
         (prim_info.clip_chain.local_clip_rect, quad_transform)
     } else {
@@ -2697,6 +2641,7 @@ pub fn prepare_picture_primitive(
             pic_context.raster_spatial_node_index,
             quad_transform.device_pixel_scale(),
         );
+        raster_mapping = Some((map_local_to_raster, local_to_raster_so));
 
         (adjusted_clip_rect, &mut local_transform)
     };
@@ -2789,7 +2734,14 @@ pub fn prepare_picture_primitive(
         // shadow color, sampled through its alpha) and then
         // the unblurred content on top.
         for shadow in shadows {
-            let shadow_rect = pic_local_rect.translate(shadow.offset);
+            // The scale-offset above drops any flip (e.g. a 180 degree
+            // rotation), so map the offset through the real transform.
+            let mut shadow_rect = pic_local_rect.translate(shadow.offset);
+            if let Some((ref map_local_to_raster, ref local_to_raster_so)) = raster_mapping {
+                if let Some(raster_shadow_rect) = map_local_to_raster.map(&shadow_rect) {
+                    shadow_rect = local_to_raster_so.unmap_rect(&raster_shadow_rect);
+                }
+            }
             let shadow_pattern = ShadowPattern {
                 src_task_id: pic_task_id,
                 color: shadow.color,

@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/**
+ * @import {Store} from "resource://newtab/lib/Store.sys.mjs"
+ * @import {WidgetRegistryEntry} from "resource://newtab/common/WidgetsRegistry.mjs"
+ */
+
 import { actionTypes as at } from "resource://newtab/common/Actions.mjs";
 import {
   WIDGET_REGISTRY,
@@ -15,6 +20,9 @@ export const PREFERENCES_LOADED_EVENT = "home-pane-loaded";
 export const PREFERENCES_LOADED_EVENT_SUBPANE = "customHomepage-pane-loaded";
 
 export class AboutPreferences {
+  /** @type {Store} */
+  store = null;
+
   init() {
     Services.obs.addObserver(this, PREFERENCES_LOADED_EVENT);
     Services.obs.addObserver(this, PREFERENCES_LOADED_EVENT_SUBPANE);

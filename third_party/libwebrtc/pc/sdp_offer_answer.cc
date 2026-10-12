@@ -199,11 +199,6 @@ const char kDefaultStreamId[] = "default";
 const char kDefaultAudioSenderId[] = "defaulta0";
 const char kDefaultVideoSenderId[] = "defaultv0";
 
-void NoteAddIceCandidateResult(int result) {
-  RTC_HISTOGRAM_ENUMERATION("WebRTC.PeerConnection.AddIceCandidate", result,
-                            kAddIceCandidateMax);
-}
-
 flat_map<std::string, const ContentGroup*> GetBundleGroupsByMid(
     const SessionDescription* desc) {
   std::vector<const ContentGroup*> bundle_groups =
@@ -767,7 +762,7 @@ RTCError ValidateCryptex(
     const ContentInfo* first_media_content = nullptr;
     for (const std::string& name : bundle->content_names()) {
       const ContentInfo* content = description->GetContentByName(name);
-      if (content && content->media_description()->type() != MediaType::DATA) {
+      if (content && IsRtpProtocol(content->media_description()->protocol())) {
         first_media_content = content;
         break;
       }
@@ -1618,7 +1613,7 @@ class SdpOfferAnswerHandler::CreateSessionDescriptionObserverOperationWrapper
  public:
   CreateSessionDescriptionObserverOperationWrapper(
       scoped_refptr<CreateSessionDescriptionObserver> observer,
-      std::function<void()> operation_complete_callback,
+      absl::AnyInvocable<void() &&> operation_complete_callback,
       WeakPtr<SdpOfferAnswerHandler> sdp_handler,
       SdpType type)
       : observer_(std::move(observer)),
@@ -1644,11 +1639,11 @@ class SdpOfferAnswerHandler::CreateSessionDescriptionObserverOperationWrapper
       sdp_handler_->TraceCreateSessionDescriptionComplete(type_, desc,
                                                           RTCError::OK());
     }
-    // Completing the operation before invoking the observer allows the observer
-    // to execute SetLocalDescription() without delay.
-    operation_complete_callback_();
+    scoped_refptr<CreateSessionDescriptionObserver> observer = observer_;
+    auto operation_complete_callback = std::move(operation_complete_callback_);
+    observer->OnOperationComplete(std::move(operation_complete_callback));
     desc->RelinquishThreadOwnership();
-    observer_->OnSuccess(desc);
+    observer->OnSuccess(desc);
   }
 
   void OnFailure(RTCError error) override {
@@ -1660,8 +1655,10 @@ class SdpOfferAnswerHandler::CreateSessionDescriptionObserverOperationWrapper
       sdp_handler_->TraceCreateSessionDescriptionComplete(type_, nullptr,
                                                           error);
     }
-    operation_complete_callback_();
-    observer_->OnFailure(std::move(error));
+    scoped_refptr<CreateSessionDescriptionObserver> observer = observer_;
+    auto operation_complete_callback = std::move(operation_complete_callback_);
+    observer->OnOperationComplete(std::move(operation_complete_callback));
+    observer->OnFailure(std::move(error));
   }
 
  private:
@@ -1669,7 +1666,7 @@ class SdpOfferAnswerHandler::CreateSessionDescriptionObserverOperationWrapper
   bool was_called_ = false;
 #endif  // RTC_DCHECK_IS_ON
   scoped_refptr<CreateSessionDescriptionObserver> observer_;
-  std::function<void()> operation_complete_callback_;
+  absl::AnyInvocable<void() &&> operation_complete_callback_;
   const WeakPtr<SdpOfferAnswerHandler> sdp_handler_;
   const SdpType type_;
 };
@@ -2029,6 +2026,26 @@ void SdpOfferAnswerHandler::CreateOffer(
                 std::move(observer_refptr),
                 std::move(operations_chain_callback), this_weak_ptr,
                 SdpType::kOffer);
+        if (this_weak_ptr->pc_->IsClosed()) {
+          const absl::string_view error =
+              "CreateOffer called when PeerConnection is closed.";
+          RTC_LOG(LS_ERROR) << error;
+          observer_wrapper->OnFailure(
+              RTCError(RTCErrorType::INVALID_STATE, error));
+          return;
+        }
+        const auto signaling_state = this_weak_ptr->signaling_state();
+        if (options.restrict_offer_to_stable_or_have_local_offer &&
+            signaling_state != PeerConnectionInterface::kStable &&
+            signaling_state != PeerConnectionInterface::kHaveLocalOffer) {
+          const absl::string_view error =
+              "PeerConnection cannot create an offer in a state other than "
+              "stable or have-local-offer.";
+          RTC_LOG(LS_ERROR) << error;
+          observer_wrapper->OnFailure(
+              RTCError(RTCErrorType::INVALID_STATE, error));
+          return;
+        }
         this_weak_ptr->DoCreateOffer(options, observer_wrapper);
       });
 }
@@ -2095,14 +2112,11 @@ void SdpOfferAnswerHandler::SetLocalDescription(
           observer->OnSetLocalDescriptionComplete(RTCError(
               RTCErrorType::INTERNAL_ERROR,
               "SetLocalDescription failed because the session was shut down"));
-          operations_chain_callback();
+          observer->OnOperationComplete(std::move(operations_chain_callback));
           return;
         }
         this_weak_ptr->DoSetLocalDescription(std::move(desc), observer);
-        // DoSetLocalDescription() is implemented as a synchronous operation.
-        // The `observer` will already have been informed that it completed, and
-        // we can mark this operation as complete without any loose ends.
-        operations_chain_callback();
+        observer->OnOperationComplete(std::move(operations_chain_callback));
       });
 }
 
@@ -2471,15 +2485,23 @@ void SdpOfferAnswerHandler::UpdateSenderSsrcsFromLocalDescription() {
       // stream". Need to call this so the sender won't attempt to configure
       // a no longer existing stream and run into DCHECKs in the lower
       // layers.
-      worker_tasks.AddWithFinalizer(sender->SetSsrcTask(0));
+      worker_tasks.AddWithFinalizer(sender->SetSsrcTask(0, /*layer_count=*/0));
     } else {
       const std::vector<StreamParams>& streams =
           transceiver->channel_local_streams();
       sender->set_stream_ids(streams[0].stream_ids());
       std::vector<RtpEncodingParameters> encodings =
           sender->init_send_encodings();
+      // The local description is authoritative for the number of send layers.
+      // This is the same view that the media channel has, since the channel
+      // derives its encodings from these same `StreamParams` (see
+      // `CreateRtpParametersWithEncodings()`). Computing it here means the
+      // sender does not have to discover a mismatch on the worker thread,
+      // where the context needed to act on it is gone.
+      std::vector<uint32_t> primary_ssrcs;
+      streams[0].GetPrimarySsrcs(&primary_ssrcs);
       worker_tasks.AddWithFinalizer(
-          sender->SetSsrcTask(streams[0].first_ssrc()));
+          sender->SetSsrcTask(streams[0].first_ssrc(), primary_ssrcs.size()));
       if (!encodings.empty()) {
         transceivers()
             ->StableState(transceiver_ext)
@@ -2696,6 +2718,7 @@ void SdpOfferAnswerHandler::ApplyRemoteDescriptionUpdateTransceiverState(
   std::vector<scoped_refptr<RtpTransceiverInterface>> remove_list;
   std::vector<scoped_refptr<MediaStreamInterface>> added_streams;
   std::vector<scoped_refptr<MediaStreamInterface>> removed_streams;
+  ScopedOperationsBatcher network_tasks(context_->network_thread());
   ScopedOperationsBatcher worker_tasks(context_->worker_thread());
   flat_map<std::string, DtlsTransportAndName> dtls_transports_by_mid =
       GetDtlsTransports(*transceivers(), context_->network_thread(),
@@ -2775,7 +2798,8 @@ void SdpOfferAnswerHandler::ApplyRemoteDescriptionUpdateTransceiverState(
       // direction.
       transceiver->set_current_direction(local_direction);
       // 2.2.8.1.11.[3-6]: Set the transport internal slots.
-      if (transceiver->mid()) {
+      // A stopped transceiver has no channel and therefore no transport.
+      if (transceiver->mid() && !transceiver->stopped()) {
         auto it = dtls_transports_by_mid.find(*transceiver->mid());
         RTC_DCHECK(it != dtls_transports_by_mid.end());
         transceiver->SetTransport(it->second.transport,
@@ -2799,11 +2823,14 @@ void SdpOfferAnswerHandler::ApplyRemoteDescriptionUpdateTransceiverState(
           !media_desc->sframe_enabled() && !transceiver->stopped()) {
         RTC_LOG(LS_INFO) << "Stopping transceiver for MID=" << content->mid()
                          << " since the remote answer does not include Sframe.";
-        transceiver->ClearChannel();
+        network_tasks.Add(transceiver->GetClearChannelNetworkTask());
+        worker_tasks.Add(transceiver->GetDeleteChannelWorkerTask(
+            /*stop_senders=*/false));
         worker_tasks.Add(transceiver->GetStopTransceiverProcedure());
       }
     }
-    if (!content->rejected && RtpTransceiverDirectionHasRecv(local_direction)) {
+    if (!content->rejected && !transceiver->stopped() &&
+        RtpTransceiverDirectionHasRecv(local_direction)) {
       if (!media_desc->streams().empty() &&
           media_desc->streams()[0].has_ssrcs()) {
         uint32_t ssrc = media_desc->streams()[0].first_ssrc();
@@ -2816,7 +2843,16 @@ void SdpOfferAnswerHandler::ApplyRemoteDescriptionUpdateTransceiverState(
     }
   }
 
-  worker_tasks.Run();
+  RTCError error = network_tasks.Run();
+  RTC_DCHECK(error.ok());
+  error = worker_tasks.Run();
+  RTC_DCHECK(error.ok());
+
+  if (auto* tracer = pc_->tracer()) {
+    for (const auto& transceiver : now_receiving_transceivers) {
+      tracer->OnTrack(*transceiver);
+    }
+  }
 
   // Once all processing has finished, fire off callbacks.
   pc_->RunWithObserver([&](auto observer) {
@@ -3194,15 +3230,6 @@ void SdpOfferAnswerHandler::DoCreateOffer(
     return;
   }
 
-  if (pc_->IsClosed()) {
-    std::string error = "CreateOffer called when PeerConnection is closed.";
-    RTC_LOG(LS_ERROR) << error;
-    pc_->message_handler()->PostCreateSessionDescriptionFailure(
-        observer.get(),
-        RTCError(RTCErrorType::INVALID_STATE, std::move(error)));
-    return;
-  }
-
   // If a session error has occurred the PeerConnection is in a possibly
   // inconsistent state so fail right away.
   if (session_error() != SessionError::kNone) {
@@ -3284,6 +3311,25 @@ void SdpOfferAnswerHandler::CreateAnswer(
                 std::move(observer_refptr),
                 std::move(operations_chain_callback), this_weak_ptr,
                 SdpType::kAnswer);
+        if (this_weak_ptr->pc_->IsClosed()) {
+          const absl::string_view error =
+              "CreateAnswer called when PeerConnection is closed.";
+          RTC_LOG(LS_ERROR) << error;
+          observer_wrapper->OnFailure(
+              RTCError(RTCErrorType::INVALID_STATE, error));
+          return;
+        }
+        const auto signaling_state = this_weak_ptr->signaling_state();
+        if (signaling_state != PeerConnectionInterface::kHaveRemoteOffer &&
+            signaling_state != PeerConnectionInterface::kHaveLocalPrAnswer) {
+          const absl::string_view error =
+              "PeerConnection cannot create an answer in a state other than "
+              "have-remote-offer or have-local-pranswer.";
+          RTC_LOG(LS_ERROR) << error;
+          observer_wrapper->OnFailure(
+              RTCError(RTCErrorType::INVALID_STATE, error));
+          return;
+        }
         this_weak_ptr->DoCreateAnswer(options, observer_wrapper);
       });
 }
@@ -3307,18 +3353,6 @@ void SdpOfferAnswerHandler::DoCreateAnswer(
     pc_->message_handler()->PostCreateSessionDescriptionFailure(
         observer.get(),
         RTCError(RTCErrorType::INTERNAL_ERROR, std::move(error_message)));
-    return;
-  }
-
-  if (!(signaling_state_ == PeerConnectionInterface::kHaveRemoteOffer ||
-        signaling_state_ == PeerConnectionInterface::kHaveLocalPrAnswer)) {
-    std::string error =
-        "PeerConnection cannot create an answer in a state other than "
-        "have-remote-offer or have-local-pranswer.";
-    RTC_LOG(LS_ERROR) << error;
-    pc_->message_handler()->PostCreateSessionDescriptionFailure(
-        observer.get(),
-        RTCError(RTCErrorType::INVALID_STATE, std::move(error)));
     return;
   }
 
@@ -3462,7 +3496,6 @@ void SdpOfferAnswerHandler::SetAssociatedRemoteStreams(
 bool SdpOfferAnswerHandler::AddIceCandidate(const IceCandidate* ice_candidate) {
   RTC_LOG_THREAD_BLOCK_COUNT();
   const AddIceCandidateResult result = AddIceCandidateInternal(ice_candidate);
-  NoteAddIceCandidateResult(result);
   // If the return value is kAddIceCandidateFailNotReady, the candidate has
   // been added, although not 'ready', but that's a success.
   return result == kAddIceCandidateSuccess ||
@@ -3517,7 +3550,8 @@ AddIceCandidateResult SdpOfferAnswerHandler::AddIceCandidateInternal(
 
 void SdpOfferAnswerHandler::AddIceCandidate(
     std::unique_ptr<IceCandidate> candidate,
-    std::function<void(RTCError)> callback) {
+    absl::AnyInvocable<void(RTCError, absl::AnyInvocable<void() &&>) &&>
+        callback) {
   TRACE_EVENT0("webrtc", "SdpOfferAnswerHandler::AddIceCandidate");
   RTC_DCHECK_RUN_ON(signaling_thread());
   // Chain this operation. If asynchronous operations are pending on the
@@ -3526,37 +3560,34 @@ void SdpOfferAnswerHandler::AddIceCandidate(
   operations_chain_->ChainOperation(
       [this_weak_ptr = weak_ptr_factory_.GetWeakPtr(),
        candidate = std::move(candidate), callback = std::move(callback)](
-          std::function<void()> operations_chain_callback) {
+          std::function<void()> operations_chain_callback) mutable {
         auto result =
             this_weak_ptr
                 ? this_weak_ptr->AddIceCandidateInternal(candidate.get())
                 : kAddIceCandidateFailClosed;
-        NoteAddIceCandidateResult(result);
-        operations_chain_callback();
+        RTCError error = RTCError::OK();
         switch (result) {
           case AddIceCandidateResult::kAddIceCandidateSuccess:
           case AddIceCandidateResult::kAddIceCandidateFailNotReady:
-            // Success!
-            callback(RTCError::OK());
             break;
           case AddIceCandidateResult::kAddIceCandidateFailClosed:
             // Note that the spec says to just abort without resolving the
             // promise in this case, but this layer must return an RTCError.
-            callback(RTCError(
+            error = RTCError(
                 RTCErrorType::INVALID_STATE,
-                "AddIceCandidate failed because the session was shut down"));
+                "AddIceCandidate failed because the session was shut down");
             break;
           case AddIceCandidateResult::kAddIceCandidateFailNoRemoteDescription:
             // Spec: "If remoteDescription is null return a promise rejected
             // with a newly created InvalidStateError."
-            callback(RTCError(RTCErrorType::INVALID_STATE,
-                              "The remote description was null"));
+            error = RTCError(RTCErrorType::INVALID_STATE,
+                             "The remote description was null");
             break;
           case AddIceCandidateResult::kAddIceCandidateFailNullCandidate:
             // TODO(https://crbug.com/935898): Handle end-of-candidates instead
             // of treating null candidate as an error.
-            callback(RTCError(RTCErrorType::UNSUPPORTED_OPERATION,
-                              "Error processing ICE candidate"));
+            error = RTCError(RTCErrorType::UNSUPPORTED_OPERATION,
+                             "Error processing ICE candidate");
             break;
           case AddIceCandidateResult::kAddIceCandidateFailNotValid:
           case AddIceCandidateResult::kAddIceCandidateFailInAddition:
@@ -3564,12 +3595,17 @@ void SdpOfferAnswerHandler::AddIceCandidate(
             // Spec: "If candidate could not be successfully added [...] Reject
             // p with a newly created OperationError and abort these steps."
             // UNSUPPORTED_OPERATION maps to OperationError.
-            callback(RTCError(RTCErrorType::UNSUPPORTED_OPERATION,
-                              "Error processing ICE candidate"));
+            error = RTCError(RTCErrorType::UNSUPPORTED_OPERATION,
+                             "Error processing ICE candidate");
             break;
           default:
             RTC_DCHECK_NOTREACHED();
+            error = RTCError(RTCErrorType::INTERNAL_ERROR,
+                             "Unexpected AddIceCandidate result");
+            break;
         }
+        std::move(callback)(std::move(error),
+                            std::move(operations_chain_callback));
       });
 }
 
@@ -3898,6 +3934,12 @@ RTCError SdpOfferAnswerHandler::Rollback(SdpType desc_type) {
   std::vector<scoped_refptr<MediaStreamInterface>> all_added_streams;
   std::vector<scoped_refptr<MediaStreamInterface>> all_removed_streams;
   std::vector<scoped_refptr<RtpReceiverInterface>> removed_receivers;
+  // Senders whose pre-offer encodings are restored after the channel teardown
+  // tasks below have run.
+  std::vector<std::pair<scoped_refptr<RtpSenderInternal>,
+                        std::vector<RtpEncodingParameters>>>
+      senders_to_restore;
+
   // Keep to-be-removed transceivers alive until after tasks for them have been
   // run.
   std::vector<RtpTransceiverProxyRefPtr> transceivers_to_remove;
@@ -3960,6 +4002,13 @@ RTCError SdpOfferAnswerHandler::Rollback(SdpType desc_type) {
 
     RTC_DCHECK(transceiver->internal()->mid().has_value());
     network_tasks.Add(transceiver->internal()->GetClearChannelNetworkTask());
+    auto sender_internal = transceiver->internal()->sender_internal();
+    // The channel the sender was configured against is about to go away.
+    // Detach the sender from its send stream first, so that it returns to the
+    // un-negotiated state instead of holding on to an ssrc that no longer
+    // exists.
+    worker_tasks.AddWithFinalizer(
+        sender_internal->SetSsrcTask(0, /*layer_count=*/0));
     worker_tasks.Add(transceiver->internal()->GetDeleteChannelWorkerTask(
         /*stop_senders=*/false));
 
@@ -3976,11 +4025,13 @@ RTCError SdpOfferAnswerHandler::Rollback(SdpType desc_type) {
         transceivers_to_remove.push_back(transceiver);
       }
     }
-    auto sender_internal = transceiver->internal()->sender_internal();
     if (stable_state.init_send_encodings()) {
-      sender_internal->set_init_send_encodings(
-          stable_state.init_send_encodings().value());
+      // Restore the encodings once the tasks above have run, since detaching
+      // the sender from its send stream clears them.
+      senders_to_restore.emplace_back(std::move(sender_internal),
+                                      *stable_state.init_send_encodings());
     }
+
     transceiver->internal()->SetTransport(nullptr, std::nullopt);
     if (stable_state.has_m_section()) {
       transceiver->internal()->set_mid(stable_state.mid());
@@ -3992,6 +4043,10 @@ RTCError SdpOfferAnswerHandler::Rollback(SdpType desc_type) {
   RTC_DCHECK(e.ok());  // only void tasks queued.
   e = worker_tasks.Run();
   RTC_DCHECK(e.ok());  // only void tasks queued.
+
+  for (const auto& [sender, encodings] : senders_to_restore) {
+    sender->set_init_send_encodings(encodings);
+  }
   e = transport_controller_s()->RollbackTransports();
   if (!e.ok()) {
     return e;
@@ -4000,6 +4055,12 @@ RTCError SdpOfferAnswerHandler::Rollback(SdpType desc_type) {
   pending_local_description_.reset();
   pending_remote_description_.reset();
   ChangeSignalingState(PeerConnectionInterface::kStable);
+
+  if (auto* tracer = pc_->tracer()) {
+    for (const auto& transceiver : now_receiving_transceivers) {
+      tracer->OnTrack(*transceiver);
+    }
+  }
 
   // Once all processing has finished, fire off callbacks.
   pc_->RunWithObserver([&](auto observer) {
@@ -4726,7 +4787,10 @@ SdpOfferAnswerHandler::AssociateTransceiver(
     // mapping between transceivers and m= section indices established when
     // creating the offer.
     if (!transceiver) {
-      transceiver = transceivers()->FindByMLineIndex(mline_index);
+      // Only consider transceivers that are not yet associated. The channel of
+      // an associated transceiver stays bound to the MID it was created for
+      // (and to the transport of that MID), so the MID must not change.
+      transceiver = transceivers()->FindUnassociatedByMLineIndex(mline_index);
     }
     if (!transceiver) {
       // This may happen normally when media sections are rejected.
@@ -4839,7 +4903,8 @@ void SdpOfferAnswerHandler::UpdateTransceiverChannel(
   TRACE_EVENT0("webrtc", "SdpOfferAnswerHandler::UpdateTransceiverChannel");
   RTC_DCHECK(IsUnifiedPlan());
   RTC_DCHECK(transceiver);
-  if (content.rejected) {
+  // A stopped transceiver must not have a channel.
+  if (content.rejected || transceiver->internal()->stopped()) {
     if (transceiver->internal()->HasChannel()) {
       network_teardown_tasks.Add(
           transceiver->internal()->GetClearChannelNetworkTask());
@@ -4959,7 +5024,7 @@ SdpOfferAnswerHandler::FindAvailableTransceiverToReceive(
   // the same type that were added to the PeerConnection by addTrack and are not
   // associated with any m= section and are not stopped, find the first such
   // RtpTransceiver.
-  for (auto transceiver : transceivers()->List()) {
+  for (const auto& transceiver : transceivers()->List()) {
     if (transceiver->media_type() == media_type &&
         transceiver->internal()->created_by_addtrack() && !transceiver->mid() &&
         !transceiver->stopped()) {
@@ -5003,12 +5068,14 @@ void SdpOfferAnswerHandler::GetOptionsForOffer(
     RTC_ALLOW_PLAN_B_DEPRECATION_END();
   }
 
-  // Apply ICE restart flag and renomination flag.
+  // Apply ICE restart flag and renomination and dtls-in-stun ICE options.
   bool ice_restart = offer_answer_options.ice_restart || HasNewIceCredentials();
   for (auto& options : session_options->media_description_options) {
     options.transport_options.ice_restart = ice_restart;
     options.transport_options.enable_ice_renomination =
         pc_->configuration()->enable_ice_renomination;
+    options.transport_options.dtls_handshake_in_stun =
+        pc_->CanAttemptDtlsStunPiggybacking();
   }
 
   session_options->rtcp_cname = rtcp_cname_;
@@ -5298,10 +5365,12 @@ void SdpOfferAnswerHandler::GetOptionsForAnswer(
     RTC_ALLOW_PLAN_B_DEPRECATION_END();
   }
 
-  // Apply ICE renomination flag.
+  // Apply renomination and dtls-in-stun ICE options.
   for (auto& options : session_options->media_description_options) {
     options.transport_options.enable_ice_renomination =
         pc_->configuration()->enable_ice_renomination;
+    options.transport_options.dtls_handshake_in_stun =
+        pc_->CanAttemptDtlsStunPiggybacking();
   }
 
   session_options->rtcp_cname = rtcp_cname_;
@@ -5929,7 +5998,11 @@ void SdpOfferAnswerHandler::RemoveStoppedTransceivers() {
   }
   // Traverse a copy of the transceiver list.
   auto transceiver_list = transceivers()->List();
-  for (auto transceiver : transceiver_list) {
+  // Batched channel teardown for removed transceivers. The tasks run at the
+  // end of this function while `transceiver_list` still holds references.
+  ScopedOperationsBatcher network_teardown_tasks(context_->network_thread());
+  ScopedOperationsBatcher worker_tasks(context_->worker_thread());
+  for (const auto& transceiver : transceiver_list) {
     // 3.2.10.1.1: If transceiver is stopped, associated with an m= section
     //             and the associated m= section is rejected in
     //             connection.[[CurrentLocalDescription]] or
@@ -5954,8 +6027,19 @@ void SdpOfferAnswerHandler::RemoveStoppedTransceivers() {
       RTC_LOG(LS_INFO)
           << "Dropping stopped transceiver that was never associated";
     }
+    // Make sure the channel is cleared before the transceiver is removed.
+    if (transceiver->internal()->HasChannel()) {
+      network_teardown_tasks.Add(
+          transceiver->internal()->GetClearChannelNetworkTask());
+      worker_tasks.Add(transceiver->internal()->GetDeleteChannelWorkerTask(
+          /*stop_senders=*/false));
+    }
     transceivers()->Remove(transceiver);
   }
+  RTCError error = network_teardown_tasks.Run();
+  RTC_DCHECK(error.ok());
+  error = worker_tasks.Run();
+  RTC_DCHECK(error.ok());
 }
 
 void SdpOfferAnswerHandler::RemoveUnusedChannels(

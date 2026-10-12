@@ -106,15 +106,20 @@ test("canvas fallback preserves full source pixels and early failure ordering", 
   const acquisition = canvas.slice(sourceStart, sourceEnd);
   assert.match(
     acquisition,
-    /video && mBufferProvider->IsAccelerated\(\) &&\s*mTarget->IsRecording\(\) &&\s*!\(NeedToApplyFilter\(\) \|\| NeedToDrawShadow\(\)\)/
+    /bool fastPath = mBufferProvider->IsAccelerated\(\) &&\s*mTarget->IsRecording\(\) &&\s*!\(NeedToApplyFilter\(\) \|\| NeedToDrawShadow\(\)\)/
   );
+  assert.match(acquisition, /if \(video && fastPath\)/);
   assert.match(
     acquisition,
     /if \(surfaceDescriptor\.isNothing\(\) && res\.mLayersImage\)\s*\{\s*if \(\(res\.mSourceSurface =\s*res\.mLayersImage->GetAsSourceSurface\(\)\)\)/
   );
   assert.match(
     acquisition,
-    /#ifdef MOZ_WIDGET_GTK[\s\S]*SurfaceFromVideoFrame\([\s\S]*Some\(layers::RemoteDecoderVideoType::DMABuf\)[\s\S]*#endif/
+    /#ifdef MOZ_WIDGET_GTK\s*videoFrameType = Some\(layers::RemoteDecoderVideoType::DMABuf\);\s*#endif/
+  );
+  assert.match(
+    acquisition,
+    /if \(fastPath && videoFrameType\)[\s\S]*SurfaceFromVideoFrame\([\s\S]*getDescriptorOrSurface\(videoFrameType\)/
   );
   const fullSource = acquisition.indexOf("srcSurf = res.GetSourceSurface();");
   const unusable = acquisition.indexOf(

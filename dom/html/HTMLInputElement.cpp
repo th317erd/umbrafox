@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 
 #include "HTMLDataListElement.h"
 #include "HTMLFormSubmissionConstants.h"
@@ -830,9 +831,9 @@ nsTArray<nsString> HTMLInputElement::GetColorsFromList() {
   nsTArray<nsString> colors;
 
   RefPtr<ContentList> options = dataList->Options();
-  uint32_t length = options->Length(true);
+  uint32_t length = options->Length();
   for (uint32_t i = 0; i < length; ++i) {
-    auto* option = HTMLOptionElement::FromNodeOrNull(options->Item(i, false));
+    auto* option = HTMLOptionElement::FromNodeOrNull(options->Item(i));
     if (!option) {
       continue;
     }
@@ -4728,7 +4729,7 @@ void HTMLInputElement::HandleTypeChange(FormControlType aNewType,
   if (aNewType == FormControlType::InputFile ||
       oldType == FormControlType::InputFile) {
     if (aNewType == FormControlType::InputFile) {
-      mFileData.reset(new FileData());
+      mFileData = std::make_unique<FileData>();
     } else {
       mFileData->Unlink();
       mFileData = nullptr;

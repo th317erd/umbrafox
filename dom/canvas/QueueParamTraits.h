@@ -52,7 +52,7 @@ template <typename Arg>
 struct QueueParamTraits;  // Todo: s/QueueParamTraits/SizedParamTraits/
 
 template <typename T>
-inline Range<T> AsRange(T* const begin, T* const end) {
+inline mozilla::Range<T> AsRange(T* const begin, T* const end) {
   const auto size = MaybeAs<size_t>(end - begin);
   MOZ_RELEASE_ASSERT(size);
   return {begin, *size};
@@ -114,7 +114,7 @@ class ProducerView {
   explicit ProducerView(Producer* aProducer) : mProducer(aProducer) {}
 
   template <typename T>
-  bool WriteFromRange(const Range<const T>& src) {
+  bool WriteFromRange(const mozilla::Range<const T>& src) {
     static_assert(BytesAlwaysValidT<T>::value);
     if (mOk) [[likely]] {
       mOk &= mProducer->WriteFromRange(src);
@@ -181,7 +181,7 @@ class ConsumerView {
 
   /// Return a view wrapping the shmem.
   template <typename T>
-  inline Maybe<Range<const T>> ReadRange(const size_t elemCount) {
+  inline Maybe<mozilla::Range<const T>> ReadRange(const size_t elemCount) {
     static_assert(BytesAlwaysValidT<T>::value);
     if (!mOk) [[unlikely]] {
       return {};
@@ -372,7 +372,7 @@ struct QueueParamTraits<webgl::TexUnpackBlobDesc> {
 
       const size_t dataSize = stride * surfSize.height;
       const auto& begin = map.GetData();
-      const auto range = Range<const uint8_t>{begin, dataSize};
+      const auto range = mozilla::Range<const uint8_t>{begin, dataSize};
       if (!view.WriteFromRange(range)) {
         return false;
       }

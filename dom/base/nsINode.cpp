@@ -71,6 +71,7 @@
 #include "mozilla/dom/NodeInfoInlines.h"
 #include "mozilla/dom/PermissionsPolicyUtils.h"
 #include "mozilla/dom/PolicyContainer.h"
+#include "mozilla/dom/Range.h"
 #include "mozilla/dom/SVGUseElement.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/Selection.h"
@@ -110,7 +111,6 @@
 #include "nsPIDOMWindow.h"
 #include "nsPresContext.h"
 #include "nsPrintfCString.h"
-#include "nsRange.h"
 #include "nsString.h"
 #include "nsStyleConsts.h"
 #include "nsTHashMap.h"
@@ -741,7 +741,7 @@ static const nsINode* GetClosestCommonInclusiveAncestorForRangeInSelection(
 
 /**
  * A Comparator suitable for mozilla::BinarySearchIf for searching a collection
- * of nsRange* for an overlap of (mNode, mStartOffset) .. (mNode, mEndOffset).
+ * of Range* for an overlap of (mNode, mStartOffset) .. (mNode, mEndOffset).
  */
 class IsItemInRangeComparator {
  public:
@@ -900,11 +900,11 @@ bool nsINode::IsSelected(const uint32_t aStartOffset, const uint32_t aEndOffset,
         }
 
         if (range->MayCrossShadowBoundary()) {
-          MOZ_ASSERT(range->IsDynamicRange(),
+          MOZ_ASSERT(range->IsRange(),
                      "range->MayCrossShadowBoundary() can only return true for "
                      "dynamic range");
           StaticRange* crossBoundaryRange =
-              range->AsDynamicRange()->GetCrossShadowBoundaryRange();
+              range->AsRange()->GetCrossShadowBoundaryRange();
           MOZ_ASSERT(crossBoundaryRange);
           if (!crossBoundaryRange->Collapsed()) {
             return true;
@@ -4253,10 +4253,11 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
   // aNode.
   class NodeInfo* nodeInfo = aNode->mNodeInfo;
   RefPtr<class NodeInfo> newNodeInfo;
+  Document* newDoc =
+      nodeInfoManager ? nodeInfoManager->GetDocument() : aNode->OwnerDoc();
   if (nodeInfoManager) {
     // Don't allow importing/adopting nodes from non-privileged "scriptable"
     // documents to "non-scriptable" documents.
-    Document* newDoc = nodeInfoManager->GetDocument();
     if (NS_WARN_IF(!newDoc)) {
       aError.Throw(NS_ERROR_UNEXPECTED);
       return nullptr;
@@ -4294,7 +4295,7 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
 
     // https://dom.spec.whatwg.org/#clone-a-single-node
     // Step 2: If node is an element:
-    if (elem) {
+    if (elem && !newDoc->IsStaticDocument()) {
       Element* cloneElem = clone->AsElement();
       CustomElementRegistry* registry = nullptr;
 

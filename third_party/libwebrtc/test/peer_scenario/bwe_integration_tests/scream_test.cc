@@ -65,11 +65,8 @@ using test::GetAveragePacingDelay;
 using test::GetCurrentRoundTripTime;
 using test::GetFirstReportAtOrAfter;
 using test::GetPacketsLost;
-using test::GetPacketsReceived;
-using test::GetPacketsReceivedWithCe;
 using test::GetPacketsReceivedWithEct1;
 using test::GetPacketsSent;
-using test::GetPacketsSentWithEct1;
 using test::GetStatsAndProcess;
 using test::PeerScenario;
 using test::PeerScenarioClient;
@@ -353,9 +350,13 @@ TEST(ScreamTest, MaybeTest(LinkCapacity600KbpsRtt100msNoEcn)) {
       CreateNetworkPath(s, /*use_dual_pi= */ false,
                         DataRate::KilobitsPerSec(600), TimeDelta::Millis(50));
   SendMediaTestResult result = SendMediaInOneDirection(std::move(params), s);
-  EXPECT_THAT(result.caller().subspan(1), Each(AvailableSendBitrateIsBetween(
-                                              DataRate::KilobitsPerSec(250),
-                                              DataRate::KilobitsPerSec(700))));
+  EXPECT_THAT(
+      result.caller().subspan(0, 4),
+      Each(AvailableSendBitrateIsBetween(DataRate::KilobitsPerSec(200),
+                                         DataRate::KilobitsPerSec(700))));
+  EXPECT_THAT(result.caller().subspan(4), Each(AvailableSendBitrateIsBetween(
+                                              DataRate::KilobitsPerSec(400),
+                                              DataRate::KilobitsPerSec(650))));
 }
 
 TEST(ScreamTest,
@@ -442,58 +443,6 @@ TEST(ScreamTest, MaybeTest(LinkCapacity600KbpsRtt100msEcn)) {
   EXPECT_THAT(result.caller().subspan(3), Each(AvailableSendBitrateIsBetween(
                                               DataRate::KilobitsPerSec(350),
                                               DataRate::KilobitsPerSec(660))));
-}
-
-TEST(ScreamTest, MaybeTest(LinkCapacity600KbpsRtt100msEcnAfterCe)) {
-  PeerScenario s(*testing::UnitTest::GetInstance()->current_test_info());
-  SendMediaTestParams params;
-  params.callee_to_caller_path =
-      CreateNetworkPath(s, /*use_dual_pi= */ true,
-                        DataRate::KilobitsPerSec(600), TimeDelta::Millis(50));
-  params.caller_to_callee_path =
-      CreateNetworkPath(s, /*use_dual_pi= */ true,
-                        DataRate::KilobitsPerSec(600), TimeDelta::Millis(50));
-  params.field_trials = {
-      {"WebRTC-RFC8888CongestionControlFeedback", "Enabled,offer:true"},
-      {"WebRTC-Bwe-ScreamV2", "mode:only_after_ce"}};
-
-  SendMediaTestResult result = SendMediaInOneDirection(std::move(params), s);
-
-  // All packets are sent as ECT1.
-  EXPECT_EQ(GetPacketsSent(result.caller_stats.back()),
-            GetPacketsSentWithEct1(result.caller_stats.back()));
-  // Not all packets has been received yet.
-  EXPECT_GE(GetPacketsSentWithEct1(result.caller_stats.back()),
-            0.9 * (GetPacketsReceived(result.callee_stats.back())));
-  EXPECT_THAT(result.caller_stats.back(),
-              AvailableSendBitrateIsBetween(DataRate::KilobitsPerSec(350),
-                                            DataRate::KilobitsPerSec(660)));
-}
-
-// Test that we can switch from Goog CC sending ECT1 to send ECT 0 and adapt.
-TEST(ScreamTest, MaybeTest(LinkCapacity600KbpsRtt100msEcnWithGoogCcAfterCe)) {
-  PeerScenario s(*testing::UnitTest::GetInstance()->current_test_info());
-  SendMediaTestParams params;
-  params.callee_to_caller_path =
-      CreateNetworkPath(s, /*use_dual_pi= */ true,
-                        DataRate::KilobitsPerSec(600), TimeDelta::Millis(50));
-  params.caller_to_callee_path =
-      CreateNetworkPath(s, /*use_dual_pi= */ true,
-                        DataRate::KilobitsPerSec(600), TimeDelta::Millis(50));
-  params.field_trials = {
-      {"WebRTC-RFC8888CongestionControlFeedback", "Enabled,offer:true"},
-      {"WebRTC-Bwe-ScreamV2", "mode:goog_cc_with_ect1"}};
-
-  SendMediaTestResult result = SendMediaInOneDirection(std::move(params), s);
-  EXPECT_THAT(result.caller_stats.back(),
-              AvailableSendBitrateIsBetween(DataRate::KilobitsPerSec(350),
-                                            DataRate::KilobitsPerSec(660)));
-
-  // Not all packets are sent as ECT1 since packets are supposed to be sent as
-  // not ECT if CE is detected.
-  EXPECT_GT(GetPacketsSent(result.caller_stats.back()),
-            GetPacketsSentWithEct1(result.caller_stats.back()));
-  EXPECT_GE(GetPacketsReceivedWithCe(result.callee_stats.back()), 1);
 }
 
 TEST(ScreamTest, MaybeTest(LinkCapacity1000KbpsRtt100msEcn)) {
@@ -801,12 +750,12 @@ TEST(ScreamTest, MaybeTest(LinkCapacity2MbitRepeatedDelaySpikesNoEcn)) {
   SendMediaTestResult result = SendMediaInOneDirection(std::move(params), s);
   // Ignore BWE the first second.
   EXPECT_THAT(result.caller().subspan(5), Each(AvailableSendBitrateIsBetween(
-                                              DataRate::KilobitsPerSec(700),
+                                              DataRate::KilobitsPerSec(550),
                                               DataRate::KilobitsPerSec(2000))));
-  // Ensure average pacing delay between two reports is below 50ms.
+  // Ensure average pacing delay between two reports is below 70ms.
   for (size_t i = 1; i < result.caller_stats.size(); ++i) {
     EXPECT_THAT(result.caller_stats[i],
-                AveragePacingDelayIsBelow(TimeDelta::Millis(50),
+                AveragePacingDelayIsBelow(TimeDelta::Millis(70),
                                           result.caller_stats[i - 1]));
   }
 }

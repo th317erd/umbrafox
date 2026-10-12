@@ -1,5 +1,37 @@
 # Umbrafox Codex Details
 
+## October 12 Upstream Integration
+
+Owner authorized committing/pushing all work, then merging upstream before
+returning to optimization. Existing work pushed to origin/main as f16351a82412;
+recovery ref sync-before-upstream-20261012 points there. Upstream target is
+1a097ed8d31f6b307a5d0ebc34a82ceaf7f3727b (4,399 incoming commits). All 21 merge
+conflicts resolved; combined-tree suite 465 PASS. Source-region probe checks:
+14 contract, 36 parser, Rust OFF 3 / ON 22 PASS. Native extracted import-cache
+fixture 48 cases PASS, including new content-owner isolation and invalid targets.
+Seven resolved/test JS files pass direct installed ESLint; firefox.js is ignored
+by repository configuration. Registered mach lint timed out preparing its updated
+lint environment, not while reporting source errors. All 36 prepared resolution
+hashes stayed stable through tests. Scoped diff whitespace clean; 133 paths warned
+by full merge whitespace check are exact upstream blobs, left untouched.
+
+Integration adapts tab customization to upstream tab.mjs, DrawTargetWebgl content
+ownership and BufferSurface APIs; retains upstream YUV overlay setting alongside
+fork opacity control. Video-surface cache now requires matching content owner;
+null targets never publish entries. Updated native GL tests are NOT compiled/run.
+Experimental defaults remain OFF. No full Gecko build/runtime parity/install,
+browser control/restart, or profile changes. October 7 object cleanup still means
+the next native build must regenerate its inputs; do not silently treat old obj
+paths as usable. Generated export browser packages stay untracked/on disk.
+
+Report: bot-docs/reports/2026-10-12-upstream-sync.md. Durable scratch/backups/logs:
+/home/wyatt/.cache/codex/umbrafox-upstream-sync-20261012-ssNJPxDz/.
+Git partial-clone blobs were hydrated in bounded batches before the actual merge.
+Timed-out pre-merge attempts were restored only at verified affected paths before
+retry; final merge and tests used the actual combined worktree. No force-push or
+upstream push. Inspect git log/status for final merge/publication receipt.
+Next performance work remains the separate audio-on-seek plan, not yet executed.
+
 ## October 12 Default Profile Migration Completed
 
 Owner closed the browser and authorized removing forced profile selection and

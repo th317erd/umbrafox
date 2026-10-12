@@ -68,6 +68,12 @@ add_task(async function switcherEntersSearchMode() {
 
   await NewtabSearchbarTestUtils.spawn(tab.linkedBrowser, [], async () => {
     let utils = NewtabSearchbarContentTestUtils;
+    let bar = utils.getUrlbar(content);
+    let viewOpened = false;
+    let observer = new content.MutationObserver(() => {
+      viewOpened ||= bar.view.isOpen;
+    });
+    observer.observe(bar, { attributeFilter: ["open"] });
     await utils.activateSearchModeSwitcherItem(
       content,
       "panel-item[data-engine-id=engine2]"
@@ -80,6 +86,11 @@ add_task(async function switcherEntersSearchMode() {
     });
 
     await utils.exitSearchMode(content, { waitForSearch: false });
+    observer.disconnect();
+    Assert.ok(
+      !viewOpened,
+      "The view never opened, since the engine had no results to show"
+    );
   });
 
   BrowserTestUtils.removeTab(tab);
@@ -278,6 +289,39 @@ add_task(async function pressAndReleaseChoosesAnEngine() {
       isGeneralPurposeEngine: true,
     });
   });
+
+  BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function urlInSearchModeNavigates() {
+  let tab = await NewtabSearchbarTestUtils.openNewTabPage();
+  let browser = tab.linkedBrowser;
+
+  await NewtabSearchbarTestUtils.spawn(browser, [], async () => {
+    let utils = NewtabSearchbarContentTestUtils;
+    await utils.activateSearchModeSwitcherItem(
+      content,
+      "panel-item[data-engine-id=engine2]"
+    );
+    await utils.search(content, { value: "example.org" });
+    Assert.equal(
+      utils.getUrlbar(content).searchMode?.engineName,
+      "engine2",
+      "the bar is still in search mode"
+    );
+  });
+
+  let details = await NewtabSearchbarTestUtils.getDetailsOfResultAt(browser, 0);
+  Assert.equal(
+    details.type,
+    UrlbarShared.RESULT_TYPE.URL,
+    "the heuristic is a URL"
+  );
+  Assert.ok(details.heuristic, "the result is the heuristic");
+
+  // Schemeless HTTPS-First may upgrade the load, so check only the host.
+  await doEnter(browser);
+  Assert.equal(browser.currentURI.host, "example.org", "the URL loaded");
 
   BrowserTestUtils.removeTab(tab);
 });

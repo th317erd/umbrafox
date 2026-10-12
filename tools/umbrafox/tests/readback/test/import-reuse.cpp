@@ -113,6 +113,21 @@ namespace gfx {
 using ::IntSize;
 using ::SurfaceFormat;
 struct SharedContextWebgl;
+namespace dom {
+using ContentParentId = uint64_t;
+}
+enum class BackendType { WEBGL, SKIA };
+struct DrawTarget {
+  virtual ~DrawTarget() = default;
+  virtual BackendType GetBackendType() const { return BackendType::SKIA; }
+};
+struct DrawTargetWebgl : DrawTarget {
+  SharedContextWebgl* context = nullptr;
+  dom::ContentParentId contentId = 1;
+  BackendType GetBackendType() const override { return BackendType::WEBGL; }
+  SharedContextWebgl* GetSharedContext() const { return context; }
+  dom::ContentParentId GetContentId() const { return contentId; }
+};
 struct TextureHandle;
 struct SourceSurface : std::enable_shared_from_this<SourceSurface> {
   virtual ~SourceSurface() = default;
@@ -182,6 +197,7 @@ struct SharedContextWebgl : std::enable_shared_from_this<SharedContextWebgl> {
     return failCreate ? nullptr : new SharedContextWebgl;
   }
   unsigned conversions = 0;
+  std::vector<dom::ContentParentId> importOwners;
   bool IsContextLost() const { return lost; }
   void EnterTlsScope() {}
   void ExitTlsScope() {}
@@ -200,11 +216,12 @@ struct SharedContextWebgl : std::enable_shared_from_this<SharedContextWebgl> {
 #include "scratch-guard.inc"
   }
   already_AddRefed<SourceSurface> ImportSurfaceDescriptor(
-      const layers::SurfaceDescriptor&, const IntSize& size,
-      SurfaceFormat format, bool allowFallback) {
+      DrawTargetWebgl* target, const layers::SurfaceDescriptor&,
+      const IntSize& size, SurfaceFormat format, bool allowFallback) {
     assert(allowFallback);
     ClearVideoSurfaceCache();
     ++conversions;
+    importOwners.push_back(target ? target->GetContentId() : 0);
     if (lost || failImport) return nullptr;
     RefPtr<TextureHandle> handle = new TextureHandle(size, format);
     mTextureHandles.values.push_back(handle);
@@ -214,8 +231,9 @@ struct SharedContextWebgl : std::enable_shared_from_this<SharedContextWebgl> {
   }
 #ifdef HAS_REUSE
   already_AddRefed<SourceSurface> ImportVideoSurfaceDescriptor(
-      const layers::SurfaceDescriptor&, const IntSize&, SurfaceFormat,
-      layers::TextureHost*, layers::SurfaceDescriptorRemoteDecoderId);
+      DrawTargetWebgl*, const layers::SurfaceDescriptor&, const IntSize&,
+      SurfaceFormat, layers::TextureHost*,
+      layers::SurfaceDescriptorRemoteDecoderId);
 #endif
 };
 #include "reuse-methods.inc"
@@ -304,18 +322,20 @@ struct CanvasTranslator {
   }
   bool TranslateRecording();
   already_AddRefed<gfx::SourceSurface> GetZeroCopySurfaceFromDMABuf(
-      TextureHost*
+      gfx::DrawTarget*, TextureHost*
 #ifdef HAS_REUSE
       ,
       SurfaceDescriptorRemoteDecoderId
 #endif
   );
   RefPtr<gfx::SourceSurface> draw(TextureHost* host, uint64_t id = 1) {
+    gfx::DrawTargetWebgl target;
+    target.context = mSharedContext;
 #ifdef HAS_REUSE
-    return GetZeroCopySurfaceFromDMABuf(host, {id});
+    return GetZeroCopySurfaceFromDMABuf(&target, host, {id});
 #else
     (void)id;
-    return GetZeroCopySurfaceFromDMABuf(host);
+    return GetZeroCopySurfaceFromDMABuf(&target, host);
 #endif
   }
 };
@@ -468,6 +488,66 @@ int main() {
           "frame alias");
     check(translator.mSharedContext->conversions == 3, "miss count");
   });
+  test("same frame cannot reuse another content process texture", [] {
+    CanvasTranslator translator;
+    translator.mIsTranslating = true;
+    RefPtr<TextureHost> host = new TextureHost;
+    gfx::DrawTargetWebgl target;
+    target.context = translator.mSharedContext;
+    auto first = translator.GetZeroCopySurfaceFromDMABuf(&target, host, {1});
+    target.contentId = 2;
+    auto second = translator.GetZeroCopySurfaceFromDMABuf(&target, host, {1});
+    check(second && second.get() != first.get(), "cross-content cache hit");
+    auto third = translator.GetZeroCopySurfaceFromDMABuf(&target, host, {1});
+    check(third.get() == second.get(), "same-content cache missed");
+    check(translator.mSharedContext->importOwners ==
+              std::vector<gfx::dom::ContentParentId>{1, 2},
+          "import did not forward content owner");
+  });
+  test("unowned imports never populate or reuse the video cache", [] {
+    CanvasTranslator translator;
+    RefPtr<TextureHost> host = new TextureHost;
+    auto context = translator.mSharedContext;
+    gfx::DrawTargetWebgl target;
+    target.context = context;
+    auto draw = [&](gfx::DrawTargetWebgl* owner) {
+      return context->ImportVideoSurfaceDescriptor(
+          owner, host->desc, host->size, SurfaceFormat::B8G8R8X8, host, {1});
+    };
+    auto first = draw(&target);
+    auto second = draw(nullptr);
+    auto third = draw(nullptr);
+    auto fourth = draw(&target);
+    check(context->conversions == 4, "unowned import reused a cached texture");
+    check(first.get() != second.get() && second.get() != third.get() &&
+              third.get() != fourth.get(),
+          "unowned texture escaped its import");
+    check(context->importOwners ==
+              std::vector<gfx::dom::ContentParentId>{1, 0, 0, 1},
+          "null-target imports lost their allocation scope");
+  });
+  for (unsigned mode = 0; mode < 4; ++mode)
+    test("invalid draw targets discard cached video and fail to fallback", [=] {
+      CanvasTranslator translator;
+      translator.mIsTranslating = true;
+      RefPtr<TextureHost> host = new TextureHost;
+      auto original = translator.mSharedContext;
+      auto first = translator.draw(host);
+      gfx::DrawTarget cpu;
+      gfx::DrawTargetWebgl target;
+      target.context = original;
+      RefPtr<gfx::SharedContextWebgl> foreign = new gfx::SharedContextWebgl;
+      gfx::DrawTarget* candidate = &target;
+      if (mode == 0) candidate = nullptr;
+      if (mode == 1) candidate = &cpu;
+      if (mode == 2) target.context = foreign;
+      if (mode == 3) original->lost = true;
+      check(!translator.GetZeroCopySurfaceFromDMABuf(candidate, host, {1}),
+            "invalid target imported a frame");
+      check(original->conversions == 1, "invalid target started a new import");
+      check(host.ptr.use_count() == 1,
+            "invalid target retained frame identity");
+    });
   test("invalid IDs and imports outside translation do not reuse", [] {
     CanvasTranslator translator;
     RefPtr<TextureHost> host = new TextureHost;
@@ -592,7 +672,7 @@ int main() {
     check(host.ptr.use_count() == 1, "host identity retained after clear");
     auto second = translator.draw(host);
     auto generic = translator.mSharedContext->ImportSurfaceDescriptor(
-        {}, host->size, SurfaceFormat::B8G8R8X8, true);
+        nullptr, {}, host->size, SurfaceFormat::B8G8R8X8, true);
     auto third = translator.draw(host);
     check(second.get() != third.get(), "generic import left entry intact");
     check(translator.mSharedContext->conversions == 4, "generic path changed");

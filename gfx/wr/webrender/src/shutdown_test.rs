@@ -86,6 +86,7 @@ fn test_frame_config() -> FrameBuilderConfig {
         max_shared_surface_size: 2048,
         enable_dithering: false,
         enable_single_image_opacity: false,
+        enable_yuv_overlay_stability: false,
     }
 }
 

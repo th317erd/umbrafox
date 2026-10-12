@@ -3,6 +3,12 @@
 
 "use strict";
 
+/* import-globals-from head_aitab.js */
+Services.scriptloader.loadSubScript(
+  getRootDirectory(gTestPath) + "head_aitab.js",
+  this
+);
+
 // Drives delete the way a reader does: click the trash button, confirm in the
 // dialog, and check that the page and its conversation are actually gone from
 // both databases and that the tab is sent home. The store-level tests in
@@ -23,6 +29,10 @@ const { ConversationStore } = ChromeUtils.importESModule(
 const { Conversation } = ChromeUtils.importESModule(
   "moz-src:///browser/components/aiwindow/models/Conversation.sys.mjs"
 );
+const { MockEngineManager } = ChromeUtils.importESModule(
+  "resource://testing-common/AIWindowTestUtils.sys.mjs"
+);
+
 // AIWINDOW_URL and openAIWindow come from head.js.
 
 const AITAB_PREF = "browser.smartwindow.aitab.enabled";
@@ -33,16 +43,6 @@ const PAGE_URL = `about:smartpage?page=${SLUG}`;
 // Every Smart Window openSeededPage() hands out, so cleanup can close any a
 // failing task left behind.
 const gOpenedWindows = new Set();
-
-// The renderer still reads the legacy header/blocks/footer shape while the
-// store holds the newer `components` block list. Until that migration lands
-// the test
-// hands the component a page config directly so there is a header to click;
-// everything from the click onwards is the real path.
-const PAGE_CONFIG = {
-  header: { type: "header", title: "Delete me", subhead: "A page to remove" },
-  blocks: [],
-};
 
 /**
  * Recreates the stored page and its conversation from scratch. Leaving a
@@ -55,7 +55,12 @@ async function seedPage() {
   await ConversationStore.updateConversation(
     new Conversation({ id: CONV_ID, feature: "aitab" })
   );
-  await AITabStore.create({ convId: CONV_ID, slug: SLUG, title: "Delete me" });
+  await AITabStore.create({
+    convId: "conv-delete-flow-chat",
+    toolConvId: CONV_ID,
+    slug: SLUG,
+    title: "Delete me",
+  });
 }
 
 /**
@@ -132,8 +137,12 @@ function openDeleteDialog(browser) {
   });
 }
 
+let gMockEngineManager;
 add_setup(async function () {
+  gMockEngineManager = new MockEngineManager();
   await SpecialPowers.pushPrefEnv({ set: [[AITAB_PREF, true]] });
+
+  registerCleanupFunction(() => {});
 });
 
 add_task(async function test_cancelling_the_dialog_keeps_the_page() {
@@ -348,6 +357,8 @@ add_task(async function test_a_non_web_link_is_refused() {
 });
 
 registerCleanupFunction(async () => {
+  gMockEngineManager.rejectAllRequests();
+
   // A task that throws never reaches its own closeWindow(), and a leftover
   // window fails the whole file with "Found an unexpected browser window",
   // which reads louder than the failure that caused it.
@@ -360,4 +371,6 @@ registerCleanupFunction(async () => {
 
   await AITabStore.deleteBySlug(SLUG);
   await ConversationStore.deleteConversationById(CONV_ID);
+
+  gMockEngineManager.cleanupMocks();
 });

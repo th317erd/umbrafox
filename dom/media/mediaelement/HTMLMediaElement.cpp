@@ -87,6 +87,7 @@
 #include "mozilla/dom/PermissionsPolicyUtils.h"
 #include "mozilla/dom/PlayPromise.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/dom/Range.h"
 #include "mozilla/dom/TextTrack.h"
 #include "mozilla/dom/UserActivation.h"
 #include "mozilla/dom/VideoPlaybackQuality.h"
@@ -129,7 +130,6 @@
 #include "nsNodeInfoManager.h"
 #include "nsPresContext.h"
 #include "nsQueryObject.h"
-#include "nsRange.h"
 #include "nsSize.h"
 #include "nsThreadUtils.h"
 #include "nsURIHashKey.h"
@@ -6452,6 +6452,7 @@ void HTMLMediaElement::Error(uint16_t aErrorCode,
 }
 
 void HTMLMediaElement::PlaybackEnded() {
+  RefPtr<HTMLMediaElement> kungFuDeathGrip(this);
   // We changed state which can affect AddRemoveSelfReference
   AddRemoveSelfReference();
 
@@ -6519,6 +6520,7 @@ void HTMLMediaElement::UpdatePlayedRangesBeforeSeek(double aRangeEndTime) {
 }
 
 void HTMLMediaElement::SeekCompleted() {
+  RefPtr<HTMLMediaElement> kungFuDeathGrip(this);
   mPlayingBeforeSeek = false;
   SetPlayedOrSeeked(true);
   if (mTextTrackManager) {

@@ -17,6 +17,7 @@
 #include "mozilla/dom/BrowserParent.h"
 #include "mozilla/dom/BrowsingContextBinding.h"
 #include "mozilla/dom/BrowsingContextGroup.h"
+#include "mozilla/dom/ChromeUtils.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/EventTarget.h"
 #include "mozilla/dom/Navigation.h"
@@ -336,11 +337,12 @@ void CanonicalBrowsingContext::ReplacedBy(
   txn.SetForceDesktopViewport(GetForceDesktopViewport());
   txn.SetIsUnderHiddenEmbedderElement(GetIsUnderHiddenEmbedderElement());
 
-  // Propagate WatchedByDevTools state so that cross-group navigations
-  // are kept being tracked by DevTools.
-  if (GetWatchedByDevToolsInternal()) {
-    txn.SetWatchedByDevToolsInternal(true);
-  }
+  // Propagate the WatchedByDevTools state so that cross-group navigations can
+  // be tracked by DevTools. Never set the flag if DevTools are not open, would
+  // trigger a crash (bug 2073442).
+  bool watched =
+      GetWatchedByDevToolsInternal() && ChromeUtils::IsDevToolsOpened();
+  txn.SetWatchedByDevToolsInternal(watched);
 
   // When using site-specific zoom, we let the frontend manage the zoom level
   // of BFCache'd contexts. Overriding those zoom levels can cause weirdness
@@ -1117,10 +1119,13 @@ RefPtr<PrintPromise> CanonicalBrowsingContext::PrintWithNoContentAnalysis(
     return promise;
   }
 
-  layout::RemotePrintJobParent* remotePrintJob =
-      new layout::RemotePrintJobParent(printSettings);
+  auto remotePrintJob = MakeRefPtr<layout::RemotePrintJobParent>(printSettings);
   printData.remotePrintJob() =
       browserParent->Manager()->SendPRemotePrintJobConstructor(remotePrintJob);
+  if (NS_WARN_IF(!printData.remotePrintJob())) {
+    promise->Reject(NS_ERROR_FAILURE, __func__);
+    return promise;
+  }
 
   remotePrintJob->RegisterListener(listener);
 
@@ -2975,12 +2980,14 @@ void CanonicalBrowsingContext::ReactivateDocuments(
     Group()->EachParent([&](ContentParent* aContentParent) {
       nsTArray<SessionHistoryInfo> newSHIs;
       Maybe<SessionHistoryInfo> reactivatedEntry;
+      Maybe<PreviousSessionHistoryInfo> previousEntry;
       if (GetContentParent() == aContentParent && Navigation::IsAPIEnabled()) {
         newSHIs.AppendElements(std::move(topNewSHIs));
         reactivatedEntry.emplace(mActiveEntry->Info());
+        previousEntry = previousEntryForActivation;
       }
-      (void)aContentParent->SendReactivateDocuments(
-          this, reactivatedEntry, newSHIs, previousEntryForActivation);
+      (void)aContentParent->SendReactivateDocuments(this, reactivatedEntry,
+                                                    newSHIs, previousEntry);
     });
 
     UpdateCurrentTopByBrowserId(this);

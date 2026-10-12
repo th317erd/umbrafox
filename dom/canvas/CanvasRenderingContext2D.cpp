@@ -1374,6 +1374,12 @@ void CanvasRenderingContext2D::ResetBitmap(bool aFreeBuffer) {
   mFrameCaptureState = FrameCaptureState::CLEAN;
 }
 
+void CanvasRenderingContext2D::OnWindowDestroy() {
+  // Ensure the buffer provider is released as soon as it is known it cannot be
+  // used, since the owning window has gone away, rather than wait until a GC.
+  ResetBitmap();
+}
+
 void CanvasRenderingContext2D::OnShutdown() {
   RefPtr<PersistentBufferProvider> provider = mBufferProvider;
 
@@ -6127,43 +6133,16 @@ void CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
                         nsLayoutUtils::SFE_NO_RASTERIZING_VECTORS |
                         nsLayoutUtils::SFE_ALLOW_UNCROPPED_UNSCALED;
 
-    if (offscreenCanvas) {
-      res = nsLayoutUtils::SurfaceFromOffscreenCanvas(offscreenCanvas, sfeFlags,
-                                                      mTarget);
-    } else if (videoFrame) {
-#ifdef MOZ_WIDGET_GTK
-      if (mBufferProvider->IsAccelerated() && mTarget->IsRecording() &&
-          !(NeedToApplyFilter() || NeedToDrawShadow())) {
-        res = nsLayoutUtils::SurfaceFromVideoFrame(
-            videoFrame, sfeFlags, mTarget, /* aOptimizeSourceSurface */ false);
-        surfaceDescriptor = MaybeGetSurfaceDescriptorForRemoteCanvas(
-            res, Some(layers::RemoteDecoderVideoType::DMABuf));
-        if (surfaceDescriptor.isNothing() && res.mLayersImage) {
-          if ((res.mSourceSurface = res.mLayersImage->GetAsSourceSurface())) {
-            RefPtr<SourceSurface> opt =
-                mTarget->OptimizeSourceSurface(res.mSourceSurface);
-            if (opt) {
-              res.mSourceSurface = opt;
-            }
-          }
-        }
-      } else
-#endif
-      {
-        res =
-            nsLayoutUtils::SurfaceFromVideoFrame(videoFrame, sfeFlags, mTarget);
-      }
-    } else {
-      res = CanvasRenderingContext2D::CachedSurfaceFromElement(element);
-      if (!res.mSourceSurface) {
-        HTMLVideoElement* video = HTMLVideoElement::FromNodeOrNull(element);
-        if (video && mBufferProvider->IsAccelerated() &&
-            mTarget->IsRecording() &&
-            !(NeedToApplyFilter() || NeedToDrawShadow())) {
-          res = nsLayoutUtils::SurfaceFromElement(
-              video, sfeFlags, mTarget, /* aOptimizeSourceSurface */ false);
+    bool fastPath = mBufferProvider->IsAccelerated() &&
+                    mTarget->IsRecording() &&
+                    !(NeedToApplyFilter() || NeedToDrawShadow());
+
+    // Prefer handing the remote canvas a surface descriptor, and fall back to
+    // an optimized source surface if there is none we can use.
+    auto getDescriptorOrSurface =
+        [&](Maybe<layers::RemoteDecoderVideoType> aOnlyVideoType) {
           surfaceDescriptor =
-              MaybeGetSurfaceDescriptorForRemoteCanvas(res, Nothing());
+              MaybeGetSurfaceDescriptorForRemoteCanvas(res, aOnlyVideoType);
           if (surfaceDescriptor.isNothing() && res.mLayersImage) {
             if ((res.mSourceSurface = res.mLayersImage->GetAsSourceSurface())) {
               RefPtr<SourceSurface> opt =
@@ -6173,6 +6152,36 @@ void CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
               }
             }
           }
+        };
+
+    // The VideoFrame fast path has only been evaluated for DMABuf on Linux.
+    // Leaving it unrestricted would also route software decoded frames through
+    // the descriptor path on every platform.
+    Maybe<layers::RemoteDecoderVideoType> videoFrameType;
+#ifdef MOZ_WIDGET_GTK
+    videoFrameType = Some(layers::RemoteDecoderVideoType::DMABuf);
+#endif
+
+    if (offscreenCanvas) {
+      res = nsLayoutUtils::SurfaceFromOffscreenCanvas(offscreenCanvas, sfeFlags,
+                                                      mTarget);
+    } else if (videoFrame) {
+      if (fastPath && videoFrameType) {
+        res = nsLayoutUtils::SurfaceFromVideoFrame(
+            videoFrame, sfeFlags, mTarget, /* aOptimizeSourceSurface */ false);
+        getDescriptorOrSurface(videoFrameType);
+      } else {
+        res =
+            nsLayoutUtils::SurfaceFromVideoFrame(videoFrame, sfeFlags, mTarget);
+      }
+    } else {
+      res = CanvasRenderingContext2D::CachedSurfaceFromElement(element);
+      if (!res.mSourceSurface) {
+        HTMLVideoElement* video = HTMLVideoElement::FromNodeOrNull(element);
+        if (video && fastPath) {
+          res = nsLayoutUtils::SurfaceFromElement(
+              video, sfeFlags, mTarget, /* aOptimizeSourceSurface */ false);
+          getDescriptorOrSurface(Nothing());
         } else {
           res = nsLayoutUtils::SurfaceFromElement(element, sfeFlags, mTarget);
         }

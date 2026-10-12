@@ -934,6 +934,10 @@ void DocAccessible::AttributeChanged(dom::Element* aElement,
                                      int32_t aNameSpaceID, nsAtom* aAttribute,
                                      AttrModType aModType,
                                      const nsAttrValue* aOldValue) {
+  if (!HasLoadState(eTreeConstructed)) {
+    // We haven't built the initial tree yet, so there's nothing to mutate.
+    return;
+  }
   if (sIsAttrElementChanging) {
     // See the comment above the definition of sIsAttrElementChanging.
     return;
@@ -963,24 +967,24 @@ void DocAccessible::AttributeChanged(dom::Element* aElement,
     return;
   }
 
-  LocalAccessible* accessible = GetAccessible(aElement);
+  LocalAccessible* accessible = GetAccessibleOrDocument(aElement);
   if (!accessible) {
-    if (mContent == aElement) {
-      // The attribute change occurred on the root content of this
-      // DocAccessible, so handle it as an attribute change on this.
-      accessible = this;
-    } else {
-      if (aModType == AttrModType::Addition &&
-          aria::AttrCharacteristicsFor(aAttribute) & ATTR_GLOBAL) {
-        // The element doesn't have an Accessible, but a global ARIA attribute
-        // was just added, which means we should probably create an Accessible.
-        ContentInserted(aElement, aElement->GetNextSibling());
-        return;
-      }
-      // The element doesn't have an Accessible, so ignore the attribute
-      // change.
+    if (aModType == AttrModType::Addition &&
+        aria::AttrCharacteristicsFor(aAttribute) & ATTR_GLOBAL) {
+      // The element doesn't have an Accessible, but a global ARIA attribute
+      // was just added, which means we should probably create an Accessible.
+      ContentInserted(aElement, aElement->GetNextSibling());
       return;
     }
+    if (aAttribute == nsGkAtoms::contenteditable) {
+      // This element might have become editable, but it currently has no
+      // Accessible. Create one if appropriate.
+      ContentInserted(aElement, aElement->GetNextSibling());
+      return;
+    }
+    // The element doesn't have an Accessible, so ignore the attribute
+    // change.
+    return;
   }
 
   MOZ_ASSERT(accessible->IsBoundToParent() || accessible->IsDoc(),
@@ -2295,6 +2299,12 @@ void DocAccessible::UpdateDocRoleMapEntry() {
 
   const uint8_t oldRoleMapEntryIndex = mRoleMapEntryIndex;
   SetRoleMapEntry(entry);
+  // Some code (e.g. LocalAccessible::ContainerWidget) assumes that mContent
+  // must be set if there is an ARIA role. If there is a root element, mContent
+  // should already be set by the time this is called. If there is an ARIA role,
+  // there must be a root element, since the ARIA role comes from the root or
+  // the body.
+  MOZ_ASSERT(!entry || mContent);
   if (mIPCDoc && mRoleMapEntryIndex != oldRoleMapEntryIndex) {
     mIPCDoc->SendRoleChangedEvent(mRoleMapEntryIndex);
   }
@@ -3253,13 +3263,8 @@ void DocAccessible::ARIAActiveDescendantIDMaybeMoved(
 }
 
 bool DocAccessible::IsRootContent(nsINode* aNode) const {
-  // The root element can be replaced or removed while the document is live.
-  // This means until mContent is re-synced by UpdateRootElement, it can
-  // still be the detached, former root.
-  MOZ_ASSERT(!mContent || !mContent->IsInComposedDoc() ||
-                 mDocumentNode->GetRootElement() == mContent,
-             "The doc acc should be bound to the root element");
-  return mContent == aNode;
+  return mContent && mDocumentNode->GetRootElement() == mContent &&
+         mContent == aNode;
 }
 
 bool DocAccessible::IsBodyElement(const nsINode* aNode) const {

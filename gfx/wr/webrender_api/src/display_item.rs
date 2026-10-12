@@ -236,6 +236,11 @@ pub struct RectClipDisplayItem {
     pub id: ClipId,
     pub spatial_id: SpatialId,
     pub clip_rect: LayoutRect,
+    /// Keep the clip at its exact position instead of snapping it to the
+    /// device pixel grid, like primitives with `PrimitiveFlags::ANTIALIASING`.
+    /// Used for clips defined in the same space as anti-aliased content (e.g.
+    /// SVG user space).
+    pub anti_aliased: bool,
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
@@ -248,6 +253,8 @@ pub struct RoundedRectClipDisplayItem {
     /// ClipOut edge must stay a constant distance from the snapped element
     /// (bug 2052033). All public callers leave this 0.
     pub snap_outset: f32,
+    /// See `RectClipDisplayItem::anti_aliased`.
+    pub anti_aliased: bool,
 }
 
 /// The minimum and maximum allowable offset for a sticky frame in a single dimension.
@@ -1644,11 +1651,11 @@ pub enum FilterOp {
         limiting_cone_angle: f32 },
     /// calculate a distorted version of first input image using offset values
     /// from second input image at specified intensity
-    /// parameters: FilterOpGraphNode, scale, xChannelSelector, yChannelSelector
+    /// parameters: FilterOpGraphNode, scale_x, scale_y, xChannelSelector, yChannelSelector
     /// SVG filter semantics - selectable input(s), selectable between linear
     /// (default) and sRGB color space for calculations
     /// Spec: https://www.w3.org/TR/filter-effects-1/#InterfaceSVGFEDisplacementMapElement
-    SVGFEDisplacementMap { node: FilterOpGraphNode, scale: f32,
+    SVGFEDisplacementMap { node: FilterOpGraphNode, scale_x: f32, scale_y: f32,
         x_channel_selector: u32, y_channel_selector: u32 },
     /// create and merge a dropshadow version of the specified image's alpha
     /// channel with specified offset and blur radius

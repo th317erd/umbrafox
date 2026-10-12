@@ -69,6 +69,7 @@ import org.mozilla.fenix.utils.Settings
  * @param settings [Settings] object to get the toolbar position and other settings.
  * @param customTabSession [CustomTabSessionState] if the toolbar is shown in a custom tab.
  * @param tabStripContent Composable content for the tab strip.
+ * @param tabGroupsStripContent Composable content for the tab groups strip.
  * @param searchSuggestionsContent [Composable] as the search suggestions content to be displayed together with this
  *   toolbar.
  * @param navigationBarContent [Composable] content for the navigation bar.
@@ -84,6 +85,7 @@ class BrowserToolbarComposable(
     private val settings: Settings,
     private val customTabSession: CustomTabSessionState? = null,
     private val tabStripContent: @Composable () -> Unit,
+    private val tabGroupsStripContent: @Composable () -> Unit,
     private val searchSuggestionsContent: @Composable (Modifier) -> Unit,
     private val navigationBarContent: (@Composable () -> Unit)?,
 ) : ScrollableToolbar {
@@ -105,6 +107,13 @@ class BrowserToolbarComposable(
                 }
                 val shouldShowTabStripAtBottom = remember {
                     customTabSession == null && settings.shouldShowTabStripAtBottom
+                }
+                val shouldShowTabGroupsStrip: Boolean = remember {
+                    customTabSession == null && settings.shouldShowTabGroupsStrip
+                }
+                val hasBottomStrip = remember {
+                    customTabSession == null &&
+                        (settings.shouldShowTabStripAtBottom || settings.shouldShowTabGroupsStrip)
                 }
                 val customColors = browserScreenStore.observeAsComposableState { it.customTabColors }
                 val shouldUseBottomToolbar = remember { settings.shouldUseBottomToolbar }
@@ -175,18 +184,24 @@ class BrowserToolbarComposable(
                                     if (customTabSession == null) {
                                         searchSuggestionsContent(Modifier.weight(1f))
                                     }
-                                    if (shouldShowTabStripAtBottom) {
-                                        Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
-                                            tabStripContent()
+                                    TopDividerColumn(showDivider = hasBottomStrip, modifier = Modifier.fillMaxWidth()) {
+                                        if (shouldShowTabStripAtBottom) {
+                                            Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
+                                                tabStripContent()
+                                            }
                                         }
+                                        if (shouldShowTabGroupsStrip) {
+                                            tabGroupsStripContent()
+                                        }
+                                        BrowserToolbar(
+                                            store = toolbarStore,
+                                            cfr = toolbarCFR,
+                                            useMinimalBottomToolbarWhenEnteringText =
+                                                settings.shouldUseMinimalBottomToolbarWhenEnteringText,
+                                            showDivider = !hasBottomStrip,
+                                        )
+                                        navigationBarContent?.invoke()
                                     }
-                                    BrowserToolbar(
-                                        store = toolbarStore,
-                                        cfr = toolbarCFR,
-                                        useMinimalBottomToolbarWhenEnteringText =
-                                            settings.shouldUseMinimalBottomToolbarWhenEnteringText,
-                                    )
-                                    navigationBarContent?.invoke()
                                 }
                         }
                     }

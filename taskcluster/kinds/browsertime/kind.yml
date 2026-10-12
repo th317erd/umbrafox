@@ -19,7 +19,11 @@ transforms:
 # https://wiki.mozilla.org/Sheriffing/Job_Visibility_Policy
 
 task-defaults:
-    run-on-repo-type: [hg]
+    priority:
+        by-project:
+            autoland: high
+            mozilla-central: medium
+            default: null
     attributes:
         retrigger: true
     use-python: system

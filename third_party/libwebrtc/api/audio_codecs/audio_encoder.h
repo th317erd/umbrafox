@@ -20,7 +20,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/base/attributes.h"
 #include "absl/strings/string_view.h"
 #include "api/audio/audio_view.h"
 #include "api/call/bitrate_allocation.h"
@@ -93,6 +92,13 @@ class AudioEncoder {
     bool send_even_if_empty = false;
     bool speech = true;
     CodecType encoder_type = CodecType::kOther;
+
+    // Used by EncodedAudioFrameInjector to set metadata that override
+    // values used in the default case. Internal encoders do not set these
+    // values.
+    std::optional<uint8_t> audio_level_dbov_override;
+    std::optional<int64_t> absolute_capture_timestamp_ms_override;
+    std::optional<std::vector<uint32_t>> csrcs_override;
   };
 
   // This is the main struct for auxiliary encoding information. Each encoded
@@ -187,7 +193,7 @@ class AudioEncoder {
   // Tells the encoder what average bitrate we'd like it to produce. The
   // encoder is free to adjust or disregard the given bitrate (the default
   // implementation does the latter).
-  ABSL_DEPRECATED("Use OnReceivedTargetAudioBitrate instead")
+  [[deprecated("Use OnReceivedTargetAudioBitrate instead")]]
   virtual void SetTargetBitrate(int target_bps);
 
   // Causes this encoder to let go of any other encoders it contains, and
@@ -209,7 +215,7 @@ class AudioEncoder {
   virtual void OnReceivedUplinkPacketLossFraction(
       float uplink_packet_loss_fraction);
 
-  ABSL_DEPRECATED("")
+  [[deprecated]]
   virtual void OnReceivedUplinkRecoverablePacketLossFraction(
       float uplink_recoverable_packet_loss_fraction);
 
