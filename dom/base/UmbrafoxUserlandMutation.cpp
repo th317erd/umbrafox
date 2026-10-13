@@ -4,6 +4,7 @@
 
 #include "UmbrafoxUserlandMutation.h"
 
+#include "mozilla/Services.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/CharacterData.h"
 #include "mozilla/dom/Document.h"

@@ -215,7 +215,8 @@ class DMABufReadback : public ::testing::Test {
     ASSERT_TRUE(shared);
     RefPtr<DrawTargetWebgl> target = new DrawTargetWebgl;
     // Exercise drawing below the production minimum-size admission heuristic.
-    ASSERT_TRUE(target->Init(aDestination, SurfaceFormat::B8G8R8A8, shared));
+    ASSERT_TRUE(target->Init(aDestination, SurfaceFormat::B8G8R8A8, shared,
+                             dom::ContentParentId(1)));
     target->DrawSurface(source, Rect(Point(), Size(aDestination)),
                         Rect(Point(), Size(mSize)),
                         DrawSurfaceOptions(SamplingFilter::LINEAR),
@@ -282,8 +283,8 @@ class DMABufReadback : public ::testing::Test {
       shared = SharedContextWebgl::Create();
       ASSERT_TRUE(shared);
       RefPtr<DrawTargetWebgl> accelerated = new DrawTargetWebgl;
-      ASSERT_TRUE(
-          accelerated->Init(aDestination, SurfaceFormat::B8G8R8A8, shared));
+      ASSERT_TRUE(accelerated->Init(aDestination, SurfaceFormat::B8G8R8A8,
+                                    shared, dom::ContentParentId(1)));
       target = accelerated;
     }
     ASSERT_TRUE(target);

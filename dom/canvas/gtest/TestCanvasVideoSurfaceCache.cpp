@@ -31,6 +31,7 @@ class CanvasVideoSurfaceCache : public ::testing::Test {
 
   RefPtr<SharedContextWebgl> mContext;
   RefPtr<DrawTargetWebgl> mTarget;
+  SurfaceFormat mInputFormat = SurfaceFormat::UNKNOWN;
   Input mRed;
   Input mGreen;
   Maybe<bool> mSoftwarePolicy;
@@ -58,9 +59,7 @@ class CanvasVideoSurfaceCache : public ::testing::Test {
     mSoftwarePolicy = Some(gfxVars::UseSoftwareWebRender());
     RecordProperty("originalSoftwarePolicy", mSoftwarePolicy.value() ? 1 : 0);
     gfxVars::SetUseSoftwareWebRender(false);
-    mTarget = DrawTargetWebgl::Create(IntSize(kSize, kSize), kFormat, mContext,
-                                      dom::ContentParentId(1));
-    ASSERT_TRUE(mTarget);
+    ASSERT_NO_FATAL_FAILURE(CreateTarget(dom::ContentParentId(1)));
     ASSERT_NO_FATAL_FAILURE(CreateInput(mRed, false));
     ASSERT_NO_FATAL_FAILURE(CreateInput(mGreen, true));
   }
@@ -110,13 +109,27 @@ class CanvasVideoSurfaceCache : public ::testing::Test {
         aInput.descriptor.get_SurfaceDescriptorDMABuf());
     ASSERT_TRUE(aInput.host->IsValid());
     ASSERT_EQ(aInput.host->GetSize(), IntSize(kSize, kSize));
-    ASSERT_EQ(aInput.host->GetFormat(), kFormat);
+    const SurfaceFormat format = aInput.host->GetFormat();
+    ASSERT_TRUE(format == SurfaceFormat::B8G8R8A8 ||
+                format == SurfaceFormat::R8G8B8A8);
+    if (mInputFormat == SurfaceFormat::UNKNOWN) {
+      mInputFormat = format;
+      RecordProperty("inputFormat", int(format));
+    }
+    ASSERT_EQ(format, mInputFormat);
+  }
+
+  void CreateTarget(const dom::ContentParentId& aContentId) {
+    mTarget = new DrawTargetWebgl;
+    ASSERT_TRUE(
+        mTarget->Init(IntSize(kSize, kSize), kFormat, mContext, aContentId));
+    ASSERT_TRUE(mTarget->IsValid());
   }
 
   already_AddRefed<SourceSurface> Import(const Input& aInput) {
     return mContext->ImportVideoSurfaceDescriptor(
-        mTarget, aInput.descriptor, IntSize(kSize, kSize), kFormat, aInput.host,
-        aInput.id);
+        mTarget, aInput.descriptor, IntSize(kSize, kSize), mInputFormat,
+        aInput.host, aInput.id);
   }
 
   TextureHandle* CachedHandle() const {
@@ -134,17 +147,20 @@ class CanvasVideoSurfaceCache : public ::testing::Test {
   void ExpectPixels(SourceSurface* aSurface, bool aGreen) {
     ASSERT_TRUE(aSurface);
     ASSERT_EQ(aSurface->GetSize(), IntSize(kSize, kSize));
-    ASSERT_EQ(aSurface->GetFormat(), kFormat);
+    ASSERT_EQ(aSurface->GetFormat(), mInputFormat);
     RefPtr<DataSourceSurface> data = aSurface->GetDataSurface();
     ASSERT_TRUE(data);
+    ASSERT_EQ(data->GetFormat(), mInputFormat);
+    const size_t red = mInputFormat == SurfaceFormat::R8G8B8A8 ? 0 : 2;
+    const size_t blue = 2 - red;
     DataSourceSurface::ScopedMap map(data, DataSourceSurface::READ);
     ASSERT_TRUE(map.IsMapped());
     for (int32_t y = 0; y < kSize; ++y) {
       const auto* row = map.GetData() + y * map.GetStride();
       for (int32_t x = 0; x < kSize; ++x) {
-        ASSERT_EQ(row[4 * x], 0);
+        ASSERT_EQ(row[4 * x + blue], 0);
         ASSERT_EQ(row[4 * x + 1], aGreen ? 255 : 0);
-        ASSERT_EQ(row[4 * x + 2], aGreen ? 0 : 255);
+        ASSERT_EQ(row[4 * x + red], aGreen ? 0 : 255);
         ASSERT_EQ(row[4 * x + 3], 255);
       }
     }
@@ -180,7 +196,8 @@ TEST_F(CanvasVideoSurfaceCache,
     EXPECT_TRUE(descriptor.refCount()[0].IsValid());
   }
   RefPtr<SourceSurface> surface = mContext->ImportVideoSurfaceDescriptor(
-      mTarget, *borrowed, IntSize(kSize, kSize), kFormat, input.host, input.id);
+      mTarget, *borrowed, IntSize(kSize, kSize), mInputFormat, input.host,
+      input.id);
   ASSERT_NO_FATAL_FAILURE(ExpectPixels(surface, false));
 }
 
@@ -199,7 +216,7 @@ TEST_F(CanvasVideoSurfaceCache, GenericImportsAreDistinctAndInvalidate) {
   RefPtr<SourceSurface> first = Import(mRed);
   ASSERT_TRUE(first);
   RefPtr<SourceSurface> generic = mContext->ImportSurfaceDescriptor(
-      mTarget, mRed.descriptor, IntSize(kSize, kSize), kFormat, true);
+      mTarget, mRed.descriptor, IntSize(kSize, kSize), mInputFormat, true);
   ASSERT_TRUE(generic);
   EXPECT_NE(generic, first);
   ExpectEmptyCache();
@@ -228,9 +245,7 @@ TEST_F(CanvasVideoSurfaceCache, FrameAndHostIdentityCannotAlias) {
 TEST_F(CanvasVideoSurfaceCache, ContentOwnershipCannotAlias) {
   RefPtr<SourceSurface> first = Import(mRed);
   ASSERT_TRUE(first);
-  mTarget = DrawTargetWebgl::Create(IntSize(kSize, kSize), kFormat, mContext,
-                                    dom::ContentParentId(2));
-  ASSERT_TRUE(mTarget);
+  ASSERT_NO_FATAL_FAILURE(CreateTarget(dom::ContentParentId(2)));
   RefPtr<SourceSurface> second = Import(mRed);
   ASSERT_TRUE(second);
   EXPECT_NE(second, first);
@@ -325,14 +340,14 @@ TEST_F(CanvasVideoSurfaceCache, FailedImportsDoNotPoisonRecovery) {
   ASSERT_TRUE(first);
   const layers::SurfaceDescriptor unusable;
   RefPtr<SourceSurface> failed = mContext->ImportVideoSurfaceDescriptor(
-      mTarget, unusable, IntSize(kSize, kSize), kFormat, mGreen.host,
+      mTarget, unusable, IntSize(kSize, kSize), mInputFormat, mGreen.host,
       mGreen.id);
   EXPECT_FALSE(failed);
   ExpectEmptyCache();
   failed = mContext->ImportVideoSurfaceDescriptor(
       mTarget, mGreen.descriptor,
-      IntSize(std::numeric_limits<int32_t>::max(), kSize), kFormat, mGreen.host,
-      mGreen.id);
+      IntSize(std::numeric_limits<int32_t>::max(), kSize), mInputFormat,
+      mGreen.host, mGreen.id);
   EXPECT_FALSE(failed);
   ExpectEmptyCache();
   RefPtr<SourceSurface> recovered = Import(mGreen);
@@ -355,9 +370,7 @@ TEST_F(CanvasVideoSurfaceCache, ContextLossRejectsAndReplacementRecovers) {
   ASSERT_NE(mContext, lost);
   ASSERT_FALSE(mContext->IsContextLost());
   ExpectEmptyCache();
-  mTarget = DrawTargetWebgl::Create(IntSize(kSize, kSize), kFormat, mContext,
-                                    dom::ContentParentId(1));
-  ASSERT_TRUE(mTarget);
+  ASSERT_NO_FATAL_FAILURE(CreateTarget(dom::ContentParentId(1)));
   RefPtr<SourceSurface> recovered = Import(mRed);
   ASSERT_TRUE(recovered);
   EXPECT_NE(recovered, first);
