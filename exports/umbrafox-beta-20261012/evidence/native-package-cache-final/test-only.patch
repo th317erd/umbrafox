@@ -1,0 +1,51 @@
+diff --git c/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp w/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp
+index 386d9f3a63f5..92be75f1c111 100644
+--- c/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp
++++ w/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp
+@@ -58,9 +58,7 @@ class CanvasVideoSurfaceCache : public ::testing::Test {
+     mSoftwarePolicy = Some(gfxVars::UseSoftwareWebRender());
+     RecordProperty("originalSoftwarePolicy", mSoftwarePolicy.value() ? 1 : 0);
+     gfxVars::SetUseSoftwareWebRender(false);
+-    mTarget = DrawTargetWebgl::Create(IntSize(kSize, kSize), kFormat, mContext,
+-                                      dom::ContentParentId(1));
+-    ASSERT_TRUE(mTarget);
++    ASSERT_NO_FATAL_FAILURE(CreateTarget(dom::ContentParentId(1)));
+     ASSERT_NO_FATAL_FAILURE(CreateInput(mRed, false));
+     ASSERT_NO_FATAL_FAILURE(CreateInput(mGreen, true));
+   }
+@@ -113,6 +111,13 @@ class CanvasVideoSurfaceCache : public ::testing::Test {
+     ASSERT_EQ(aInput.host->GetFormat(), kFormat);
+   }
+ 
++  void CreateTarget(const dom::ContentParentId& aContentId) {
++    mTarget = new DrawTargetWebgl;
++    ASSERT_TRUE(
++        mTarget->Init(IntSize(kSize, kSize), kFormat, mContext, aContentId));
++    ASSERT_TRUE(mTarget->IsValid());
++  }
++
+   already_AddRefed<SourceSurface> Import(const Input& aInput) {
+     return mContext->ImportVideoSurfaceDescriptor(
+         mTarget, aInput.descriptor, IntSize(kSize, kSize), kFormat, aInput.host,
+@@ -228,9 +233,7 @@ TEST_F(CanvasVideoSurfaceCache, FrameAndHostIdentityCannotAlias) {
+ TEST_F(CanvasVideoSurfaceCache, ContentOwnershipCannotAlias) {
+   RefPtr<SourceSurface> first = Import(mRed);
+   ASSERT_TRUE(first);
+-  mTarget = DrawTargetWebgl::Create(IntSize(kSize, kSize), kFormat, mContext,
+-                                    dom::ContentParentId(2));
+-  ASSERT_TRUE(mTarget);
++  ASSERT_NO_FATAL_FAILURE(CreateTarget(dom::ContentParentId(2)));
+   RefPtr<SourceSurface> second = Import(mRed);
+   ASSERT_TRUE(second);
+   EXPECT_NE(second, first);
+@@ -355,9 +358,7 @@ TEST_F(CanvasVideoSurfaceCache, ContextLossRejectsAndReplacementRecovers) {
+   ASSERT_NE(mContext, lost);
+   ASSERT_FALSE(mContext->IsContextLost());
+   ExpectEmptyCache();
+-  mTarget = DrawTargetWebgl::Create(IntSize(kSize, kSize), kFormat, mContext,
+-                                    dom::ContentParentId(1));
+-  ASSERT_TRUE(mTarget);
++  ASSERT_NO_FATAL_FAILURE(CreateTarget(dom::ContentParentId(1)));
+   RefPtr<SourceSurface> recovered = Import(mRed);
+   ASSERT_TRUE(recovered);
+   EXPECT_NE(recovered, first);

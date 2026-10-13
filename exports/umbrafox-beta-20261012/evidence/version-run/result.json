@@ -1,0 +1,26 @@
+{
+  "pid": 929613,
+  "stdout": "Umbrafox 160.0a1\n",
+  "stderr": "",
+  "identity": {
+    "pid": 929613,
+    "state": "R",
+    "parent": 929602,
+    "group": 929613,
+    "session": 929613,
+    "start": "1668452"
+  },
+  "outcome": {
+    "code": 0,
+    "signal": null
+  },
+  "cleanup": {
+    "status": "clean",
+    "outcome": {
+      "code": 0,
+      "signal": null
+    }
+  },
+  "rootAbsent": true,
+  "status": "pass"
+}

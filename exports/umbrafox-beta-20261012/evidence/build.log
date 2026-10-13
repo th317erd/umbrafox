@@ -1,0 +1,2488 @@
+Creating local state directory: /home/wyatt/.mozbuild/srcdirs/source-38eb0eaf04cc
+Creating the 'mach' site at /home/wyatt/.mozbuild/srcdirs/source-38eb0eaf04cc/_virtualenvs/mach
+Creating the 'build' site at /home/wyatt/.mozbuild/srcdirs/source-38eb0eaf04cc/_virtualenvs/build
+ 0:05.80 W Warnings in third-party code are being suppressed from the terminal output. Use --show-all-warnings or --verbose to see them.
+ 0:05.80 W All warnings will still be dumped to /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/warnings_*.json at the end of the build.
+ 0:05.92 Clobber not needed.
+ 0:05.92 Config object not found by mach.
+ 0:06.11 Using Python 3.14.7 from /home/wyatt/.mozbuild/srcdirs/source-38eb0eaf04cc/_virtualenvs/build/bin/python
+ 0:06.11 Adding configure options from /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/mozconfig
+ 0:06.11   --with-ccache=sccache
+ 0:06.11   --disable-umbra-perf-probes
+ 0:06.11 checking for vcs source checkout... git
+ 0:06.14 checking for a shell... /usr/bin/sh
+ 0:06.19 checking for host system type... x86_64-pc-linux-gnu
+ 0:06.19 checking for target system type... x86_64-pc-linux-gnu
+ 0:06.45 checking whether cross compiling... no
+ 0:06.52 checking if configuration file confvars.sh exists... /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/browser/confvars.sh
+ 0:06.52 checking if configuration file configure.sh exists... /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/browser/branding/unofficial/configure.sh
+ 0:19.06 checking for bootstrappable toolchains... 232 found
+ 0:19.48 Updating bootstrapped toolchain in /home/wyatt/.mozbuild/clang
+ 0:19.77 Creating the 'common' site at /home/wyatt/.mozbuild/srcdirs/source-38eb0eaf04cc/_virtualenvs/common
+ 0:20.40 Setting up artifact clang.tar.zst
+ 0:20.40 Downloading artifact to local cache: /home/wyatt/.mozbuild/toolchains/b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst
+ 0:20.59 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 0.0 %
+ 0:29.53 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 7.4 %
+ 0:34.07 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 11.1 %
+ 0:42.10 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 18.5 %
+ 0:46.15 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 22.2 %
+ 0:54.15 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 25.9 %
+ 1:18.91 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 33.3 %
+ 1:31.30 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 37.0 %
+ 1:45.42 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 40.7 %
+ 2:09.74 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 48.1 %
+ 2:22.20 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 51.8 %
+ 2:34.65 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 55.5 %
+ 3:07.20 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 62.9 %
+ 3:15.27 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 66.6 %
+ 3:23.73 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 70.3 %
+ 3:39.61 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 77.7 %
+ 3:48.20 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 81.4 %
+ 3:53.44 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 85.1 %
+ 4:01.21 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 92.5 %
+ 4:06.08 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 96.3 %
+ 4:09.76 Downloading b98f8bc35a6345e6-public%2Fbuild%2Fclang.tar.zst... 100.0 %
+ 4:10.04 rm tree: /home/wyatt/.mozbuild/clang
+ 4:10.18 untarring "/home/wyatt/.mozbuild/clang.tar.zst"
+ 4:13.41 checking for the target C compiler... /home/wyatt/.mozbuild/clang/bin/clang
+ 4:13.72 Updating bootstrapped toolchain in /home/wyatt/.mozbuild/sccache
+ 4:14.50 Setting up artifact sccache.tar.zst
+ 4:14.51 Downloading artifact to local cache: /home/wyatt/.mozbuild/toolchains/c955d365cc408d8e-public%2Fbuild%2Fsccache.tar.zst
+ 4:14.77 Downloading c955d365cc408d8e-public%2Fbuild%2Fsccache.tar.zst... 0.0 %
+ 4:18.37 Downloading c955d365cc408d8e-public%2Fbuild%2Fsccache.tar.zst... 100.0 %
+ 4:18.38 rm tree: /home/wyatt/.mozbuild/sccache
+ 4:18.38 untarring "/home/wyatt/.mozbuild/sccache.tar.zst"
+ 4:18.57 checking for ccache... /home/wyatt/.mozbuild/sccache/sccache
+ 4:18.57 Using target sysroot in /home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu
+ 4:18.63 checking whether the target C compiler can be used... yes
+ 4:18.63 checking for the target C++ compiler... /home/wyatt/.mozbuild/clang/bin/clang++
+ 4:18.73 checking whether the target C++ compiler can be used... yes
+ 4:18.79 checking for unwind.h... yes
+ 4:18.84 checking for target linker... lld
+ 4:18.91 checking for _Unwind_Backtrace... yes
+ 4:18.91 checking for Python 3... /home/wyatt/.mozbuild/srcdirs/source-38eb0eaf04cc/_virtualenvs/build/bin/python (3.14.7)
+ 4:18.91 checking for git... /usr/bin/git
+ 4:18.91 checking for Git version... 2.55.0
+ 4:18.92 Using host sysroot in /home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu
+ 4:18.92 checking the target C compiler version... 22.1.8
+ 4:18.98 checking the target C compiler works... yes
+ 4:18.98 checking the target C++ compiler version... 22.1.8
+ 4:19.03 checking the target C++ compiler works... yes
+ 4:19.03 checking for the host C compiler... /home/wyatt/.mozbuild/clang/bin/clang
+ 4:19.03 checking whether the host C compiler can be used... yes
+ 4:19.03 checking the host C compiler version... 22.1.8
+ 4:19.03 checking the host C compiler works... yes
+ 4:19.03 checking for the host C++ compiler... /home/wyatt/.mozbuild/clang/bin/clang++
+ 4:19.03 checking whether the host C++ compiler can be used... yes
+ 4:19.03 checking the host C++ compiler version... 22.1.8
+ 4:19.03 checking the host C++ compiler works... yes
+ 4:19.08 checking for host linker... lld
+ 4:19.20 checking for 64-bit OS... yes
+ 4:19.26 checking for new enough STL headers from libstdc++... yes
+ 4:19.33 checking for __thread keyword for TLS variables... yes
+ 4:19.33 checking for the assembler... /home/wyatt/.mozbuild/clang/bin/clang
+ 4:19.34 checking for llvm-objdump... /home/wyatt/.mozbuild/clang/bin/llvm-objdump
+ 4:19.35 checking for ar... /home/wyatt/.mozbuild/clang/bin/llvm-ar
+ 4:19.41 checking whether ar supports response files... yes
+ 4:19.42 checking for host_ar... /home/wyatt/.mozbuild/clang/bin/llvm-ar
+ 4:19.43 checking for nm... /home/wyatt/.mozbuild/clang/bin/llvm-nm
+ 4:19.86 checking for -mavxvnni support... yes
+ 4:20.28 checking for -mavx512bw support... yes
+ 4:20.71 checking for -mavx512vnni support... yes
+ 4:20.96 Updating bootstrapped toolchain in /home/wyatt/.mozbuild/pkgconf
+ 4:21.60 Setting up artifact pkgconf.tar.zst
+ 4:21.60 Downloading artifact to local cache: /home/wyatt/.mozbuild/toolchains/d65c3594602af8eb-public%2Fbuild%2Fpkgconf.tar.zst
+ 4:21.72 Downloading d65c3594602af8eb-public%2Fbuild%2Fpkgconf.tar.zst... 0.0 %
+ 4:21.85 Downloading d65c3594602af8eb-public%2Fbuild%2Fpkgconf.tar.zst... 100.0 %
+ 4:21.85 rm tree: /home/wyatt/.mozbuild/pkgconf
+ 4:21.85 untarring "/home/wyatt/.mozbuild/pkgconf.tar.zst"
+ 4:21.97 checking for pkg_config... /home/wyatt/.mozbuild/pkgconf/pkg-config
+ 4:21.97 checking for pkg-config version... 3.0.7
+ 4:21.98 checking whether pkg-config is pkgconf... yes
+ 4:22.03 checking for strndup... yes
+ 4:22.09 checking for posix_memalign... yes
+ 4:22.15 checking for memalign... yes
+ 4:22.21 checking for malloc_usable_size... yes
+ 4:22.28 checking for malloc.h... yes
+ 4:22.34 checking whether malloc_usable_size definition can use const argument... no
+ 4:22.40 checking for stdint.h... yes
+ 4:22.45 checking for inttypes.h... yes
+ 4:22.51 checking for alloca.h... yes
+ 4:22.55 checking for sys/byteorder.h... no
+ 4:22.61 checking for getopt.h... yes
+ 4:22.68 checking for unistd.h... yes
+ 4:22.73 checking for nl_types.h... yes
+ 4:22.79 checking for cpuid.h... yes
+ 4:22.85 checking for fts.h... yes
+ 4:22.91 checking for sys/statvfs.h... yes
+ 4:22.97 checking for sys/statfs.h... yes
+ 4:23.02 checking for sys/vfs.h... yes
+ 4:23.08 checking for sys/mount.h... yes
+ 4:23.15 checking for sys/quota.h... yes
+ 4:23.25 checking for linux/quota.h... yes
+ 4:23.36 checking for linux/if_addr.h... yes
+ 4:23.47 checking for linux/rtnetlink.h... yes
+ 4:23.52 checking for sys/queue.h... yes
+ 4:23.58 checking for sys/types.h... yes
+ 4:23.64 checking for netinet/in.h... yes
+ 4:23.70 checking for byteswap.h... yes
+ 4:23.76 checking for memfd_create in sys/mman.h... no
+ 4:23.83 checking for clock_gettime(CLOCK_MONOTONIC)... yes
+ 4:23.90 checking for res_ninit()... yes
+ 4:23.96 checking for dladdr... no
+ 4:24.02 checking for dladdr in -ldl... yes
+ 4:24.08 checking for dlfcn.h... yes
+ 4:24.14 checking for dlopen in -ldl... yes
+ 4:24.20 checking for gethostbyname_r in -lc_r... no
+ 4:24.25 checking for socket in -lsocket... no
+ 4:24.31 checking for pthread_create... no
+ 4:24.37 checking for pthread_create in -lpthread... yes
+ 4:24.44 checking for pthread.h... yes
+ 4:24.49 checking whether the C compiler supports -pthread... yes
+ 4:24.79 checking whether 64-bits std::atomic requires -latomic... no
+ 4:24.84 checking whether the C++ compiler supports -Wdeprecated-literal-operator... yes
+ 4:24.90 checking whether the C compiler supports -Winvalid-utf8... yes
+ 4:24.95 checking whether the C++ compiler supports -Winvalid-utf8... yes
+ 4:25.01 checking whether the C compiler supports -Wformat... yes
+ 4:25.06 checking whether the C++ compiler supports -Wformat... yes
+ 4:25.12 checking whether the C++ compiler supports -fno-sized-deallocation... yes
+ 4:25.18 checking whether the C++ compiler supports -fno-aligned-new... yes
+ 4:25.50 checking whether we're trying to statically link with libstdc++... no
+ 4:25.56 checking whether the C compiler supports -fdiagnostics-absolute-paths... yes
+ 4:25.61 checking whether the C++ compiler supports -fdiagnostics-absolute-paths... yes
+ 4:25.67 checking whether the C linker supports -Wl,--build-id=uuid... yes
+ 4:25.73 checking whether the C assembler supports -Wa,--noexecstack... yes
+ 4:25.79 checking whether the C linker supports -Wl,-z,noexecstack... yes
+ 4:25.85 checking whether the C linker supports -Wl,-z,text... yes
+ 4:25.91 checking whether the C linker supports -Wl,-z,relro... yes
+ 4:25.97 checking whether the C linker supports -Wl,-z,now... yes
+ 4:26.03 checking whether the C linker supports -Wl,-z,nocopyreloc... yes
+ 4:26.08 checking whether the C assembler supports -fPIC... yes
+ 4:26.14 checking whether the C compiler supports -fPIC... yes
+ 4:26.19 checking whether the C++ compiler supports -fPIC... yes
+ 4:26.26 checking what kind of list files are supported by the linker... linkerlist
+ 4:26.26 checking for llvm_profdata... /home/wyatt/.mozbuild/clang/bin/llvm-profdata
+ 4:26.26 checking whether the linker supports call-graph profile sorting... yes
+ 4:26.28 checking for readelf... /home/wyatt/.mozbuild/clang/bin/llvm-readelf
+ 4:26.30 checking for objcopy... /home/wyatt/.mozbuild/clang/bin/llvm-objcopy
+ 4:26.30 checking for alsa... yes
+ 4:26.30 checking MOZ_ALSA_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/alsa
+ 4:26.30 checking MOZ_ALSA_LIBS... -L/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu -lasound
+ 4:26.30 checking for libpulse... yes
+ 4:26.30 checking MOZ_PULSEAUDIO_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include -D_REENTRANT
+ 4:26.30 checking MOZ_PULSEAUDIO_LIBS... -L/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu -lpulse
+ 4:26.30 checking for rustc... /home/wyatt/.cargo/bin/rustc
+ 4:26.30 checking for cargo... /home/wyatt/.cargo/bin/cargo
+ 4:26.33 Actually using '/home/wyatt/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc' as rustc
+ 4:26.34 Actually using '/home/wyatt/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo' as cargo
+ 4:26.35 checking rustc version... 1.94.0
+ 4:26.36 checking cargo version... 1.94.0
+ 4:26.41 checking for rust host triplet... x86_64-unknown-linux-gnu
+ 4:26.45 checking for rust target triplet... x86_64-unknown-linux-gnu
+ 4:26.45 checking for rustdoc... /home/wyatt/.cargo/bin/rustdoc
+ 4:26.70 Updating bootstrapped toolchain in /home/wyatt/.mozbuild/cbindgen
+ 4:27.35 Setting up artifact cbindgen.tar.zst
+ 4:27.36 Downloading artifact to local cache: /home/wyatt/.mozbuild/toolchains/215fc5bc4b4a2127-public%2Fbuild%2Fcbindgen.tar.zst
+ 4:27.48 Downloading 215fc5bc4b4a2127-public%2Fbuild%2Fcbindgen.tar.zst... 0.0 %
+ 4:27.99 Downloading 215fc5bc4b4a2127-public%2Fbuild%2Fcbindgen.tar.zst... 100.0 %
+ 4:27.99 rm tree: /home/wyatt/.mozbuild/cbindgen
+ 4:27.99 untarring "/home/wyatt/.mozbuild/cbindgen.tar.zst"
+ 4:28.12 checking for cbindgen... /home/wyatt/.mozbuild/cbindgen/cbindgen
+ 4:28.13 checking for rustfmt... /home/wyatt/.cargo/bin/rustfmt
+ 4:28.13 checking for clang for bindgen... /home/wyatt/.mozbuild/clang/bin/clang++
+ 4:28.13 checking for libclang for bindgen... /home/wyatt/.mozbuild/clang/lib/libclang.so
+ 4:28.14 checking that libclang is new enough... yes
+ 4:28.14 checking bindgen cflags... ['-x', 'c++', '-fno-sized-deallocation', '-fno-aligned-new', '-DTRACING=1', '-DIMPL_LIBXUL', '-DMOZILLA_INTERNAL_API', '-DRUST_BINDGEN', '--sysroot', '/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu', '-std=gnu++20']
+ 4:28.20 checking for tm_zone and tm_gmtoff in struct tm... yes
+ 4:28.26 checking for getpagesize... yes
+ 4:28.32 checking for gmtime_r... yes
+ 4:28.38 checking for localtime_r... yes
+ 4:28.43 checking for gettid... no
+ 4:28.49 checking for setpriority... yes
+ 4:28.55 checking for syscall... yes
+ 4:28.61 checking for getc_unlocked... yes
+ 4:28.67 checking for pthread_getname_np... no
+ 4:28.73 checking for pthread_get_name_np... no
+ 4:28.80 checking for nl_langinfo and CODESET... yes
+ 4:28.86 checking for __cxa_demangle... yes
+ 4:28.92 checking for _getc_nolock... no
+ 4:28.98 checking for localeconv... yes
+ 4:28.98 checking for nodejs... /home/wyatt/.mozbuild/node/bin/node (22.16.0)
+ 4:28.99 checking for gtk+-wayland-3.0 >= 3.14 xkbcommon >= 0.4.1... yes
+ 4:28.99 checking MOZ_WAYLAND_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/gtk-3.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/pango-1.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/cairo -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/pixman-1 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/libpng12 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/gdk-pixbuf-2.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/atk-1.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/at-spi2-atk/2.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/at-spi-2.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/dbus-1.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu/dbus-1.0/include -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/freetype2 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/harfbuzz -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/gio-unix-2.0/ -pthread -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/glib-2.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu/glib-2.0/include
+ 4:28.99 checking MOZ_WAYLAND_LIBS... -L/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lcairo-gobject -lcairo -lgdk_pixbuf-2.0 -latk-1.0 -lpango-1.0 -lgio-2.0 -lgobject-2.0 -lglib-2.0 -lxkbcommon
+ 4:29.00 checking for pango >= 1.22.0... yes
+ 4:29.00 checking MOZ_PANGO_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/pango-1.0 -pthread -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/glib-2.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include
+ 4:29.00 checking MOZ_PANGO_LIBS... -L/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu -lpango-1.0 -lgobject-2.0 -lglib-2.0
+ 4:29.00 checking for fontconfig >= 2.7.0... yes
+ 4:29.00 checking _FONTCONFIG_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/freetype2
+ 4:29.00 checking _FONTCONFIG_LIBS... -L/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu -lfontconfig -lfreetype
+ 4:29.00 checking for freetype2 >= 9.10.3... yes
+ 4:29.00 checking _FT2_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/freetype2
+ 4:29.00 checking _FT2_LIBS... -L/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu -lfreetype
+ 4:29.00 checking for tar... /usr/bin/tar
+ 4:29.00 checking for unzip... /usr/bin/unzip
+ 4:29.00 checking for the Mozilla API key... no
+ 4:29.00 checking for the Google Location Service API key... no
+ 4:29.00 checking for the Google Safebrowsing API key... no
+ 4:29.00 checking for the Bing API key... no
+ 4:29.00 checking for the Adjust SDK key... no
+ 4:29.00 checking for the Leanplum SDK key... no
+ 4:29.00 checking for the Pocket API key... no
+ 4:29.01 checking for x11 xcb xcb-shm x11-xcb xext xfixes xrandr >= 1.4.0 xcomposite xcursor xdamage xi... yes
+ 4:29.01 checking MOZ_X11_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include
+ 4:29.01 checking MOZ_X11_LIBS... -L/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu -lxcb-shm -lX11-xcb -lXrandr -lXcomposite -lXcursor -lXdamage -lXi -lXext -lXfixes -lX11 -lxcb
+ 4:29.01 checking for ice sm... yes
+ 4:29.01 checking MOZ_X11_SM_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include
+ 4:29.07 checking for stat64... yes
+ 4:29.13 checking for lstat64... yes
+ 4:29.19 checking for truncate64... yes
+ 4:29.24 checking for statvfs64... yes
+ 4:29.30 checking for statvfs... yes
+ 4:29.36 checking for statfs64... yes
+ 4:29.42 checking for statfs... yes
+ 4:29.48 checking for lutimes... yes
+ 4:29.54 checking for posix_fadvise... yes
+ 4:29.60 checking for posix_fallocate... yes
+ 4:29.66 checking for eventfd... yes
+ 4:29.72 checking for arc4random... no
+ 4:29.78 checking for arc4random_buf... no
+ 4:29.84 checking for mallinfo... yes
+ 4:29.88 checking for sys/ioccom.h... no
+ 4:29.94 checking for execinfo.h... yes
+ 4:29.98 checking for sys/single_threaded.h... no
+ 4:30.05 checking for -z pack-relative-relocs option to ld... yes
+ 4:30.84 Updating bootstrapped toolchain in /home/wyatt/.mozbuild/nasm
+ 4:31.49 Setting up artifact nasm.tar.zst
+ 4:31.49 Downloading artifact to local cache: /home/wyatt/.mozbuild/toolchains/d567afc3abcca2ad-public%2Fbuild%2Fnasm.tar.zst
+ 4:31.75 Downloading d567afc3abcca2ad-public%2Fbuild%2Fnasm.tar.zst... 0.0 %
+ 4:32.14 Downloading d567afc3abcca2ad-public%2Fbuild%2Fnasm.tar.zst... 100.0 %
+ 4:32.14 rm tree: /home/wyatt/.mozbuild/nasm
+ 4:32.14 untarring "/home/wyatt/.mozbuild/nasm.tar.zst"
+ 4:32.27 checking for nasm... /home/wyatt/.mozbuild/nasm/nasm
+ 4:32.27 checking nasm version... 3.02
+ 4:32.56 Updating bootstrapped toolchain in /home/wyatt/.mozbuild/sysroot-wasm32-wasi
+ 4:33.17 Setting up artifact sysroot-wasm32-wasi.tar.zst
+ 4:33.17 Downloading artifact to local cache: /home/wyatt/.mozbuild/toolchains/7b8425b54c7cf8ad-public%2Fbuild%2Fsysroot-wasm32-wasi.tar.zst
+ 4:33.31 Downloading 7b8425b54c7cf8ad-public%2Fbuild%2Fsysroot-wasm32-wasi.tar.zst... 0.0 %
+ 4:36.15 Downloading 7b8425b54c7cf8ad-public%2Fbuild%2Fsysroot-wasm32-wasi.tar.zst... 100.0 %
+ 4:36.16 rm tree: /home/wyatt/.mozbuild/sysroot-wasm32-wasi
+ 4:36.27 untarring "/home/wyatt/.mozbuild/sysroot-wasm32-wasi.tar.zst"
+ 4:37.12 Using wasi sysroot in /home/wyatt/.mozbuild/sysroot-wasm32-wasi
+ 4:37.12 checking for the wasm C compiler... /home/wyatt/.mozbuild/clang/bin/clang
+ 4:37.21 checking whether the wasm C compiler can be used... yes
+ 4:37.21 checking the wasm C compiler version... 22.1.8
+ 4:37.26 checking the wasm C compiler works... yes
+ 4:37.32 checking the wasm C compiler can find wasi headers... yes
+ 4:37.39 checking the wasm C linker can find wasi libraries... yes
+ 4:37.39 checking for the wasm C++ compiler... /home/wyatt/.mozbuild/clang/bin/clang++
+ 4:37.48 checking whether the wasm C++ compiler can be used... yes
+ 4:37.48 checking the wasm C++ compiler version... 22.1.8
+ 4:37.53 checking the wasm C++ compiler works... yes
+ 4:37.59 checking the wasm C++ compiler can find wasi headers... yes
+ 4:37.68 checking the wasm C++ linker can find wasi libraries... yes
+ 4:37.73 checking for clock() in wasi sysroot... no
+ 4:37.80 checking for emulated clock() in wasi sysroot... yes
+ 4:38.06 Updating bootstrapped toolchain in /home/wyatt/.mozbuild/dump_syms
+ 4:38.69 Setting up artifact dump_syms.tar.zst
+ 4:38.69 Downloading artifact to local cache: /home/wyatt/.mozbuild/toolchains/185414fbc4dadbb7-public%2Fbuild%2Fdump_syms.tar.zst
+ 4:38.92 Downloading 185414fbc4dadbb7-public%2Fbuild%2Fdump_syms.tar.zst... 0.0 %
+ 4:40.08 Downloading 185414fbc4dadbb7-public%2Fbuild%2Fdump_syms.tar.zst... 100.0 %
+ 4:40.08 rm tree: /home/wyatt/.mozbuild/dump_syms
+ 4:40.08 untarring "/home/wyatt/.mozbuild/dump_syms.tar.zst"
+ 4:40.23 checking for dump_syms... /home/wyatt/.mozbuild/dump_syms/dump_syms
+ 4:40.29 checking for getcontext... yes
+ 4:40.29 checking for gthread-2.0... yes
+ 4:40.29 checking MOZ_GTHREAD_CFLAGS... -pthread -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/glib-2.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include
+ 4:40.29 checking MOZ_GTHREAD_LIBS... -L/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu -lgthread-2.0 -pthread -lglib-2.0
+ 4:40.30 checking for gtk+-3.0 >= 3.14.0 gtk+-unix-print-3.0 glib-2.0 gobject-2.0 gio-unix-2.0... yes
+ 4:40.30 checking MOZ_GTK3_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/gtk-3.0/unix-print -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/gtk-3.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/pango-1.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/cairo -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/at-spi2-atk/2.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/at-spi-2.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/dbus-1.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu/dbus-1.0/include -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/harfbuzz -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/atk-1.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/pixman-1 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/freetype2 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/libpng12 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/gdk-pixbuf-2.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/gio-unix-2.0/ -pthread -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/glib-2.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu/glib-2.0/include
+ 4:40.30 checking MOZ_GTK3_LIBS... -L/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lpango-1.0 -latk-1.0 -lcairo-gobject -lcairo -lgdk_pixbuf-2.0 -lgio-2.0 -lgobject-2.0 -lglib-2.0
+ 4:40.30 checking for glib-2.0 >= 2.42 gobject-2.0... yes
+ 4:40.30 checking GLIB_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/glib-2.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include
+ 4:40.30 checking GLIB_LIBS... -L/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu -lgobject-2.0 -lglib-2.0
+ 4:40.31 checking for dbus-1 >= 0.60... yes
+ 4:40.31 checking MOZ_DBUS_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/include/dbus-1.0 -I/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu/dbus-1.0/include
+ 4:40.31 checking MOZ_DBUS_LIBS... -L/home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu/usr/lib/x86_64-linux-gnu -ldbus-1
+ 4:40.37 checking for sin_len in struct sockaddr_in... no
+ 4:40.43 checking for sin_len6 in struct sockaddr_in6... no
+ 4:40.48 checking for sa_len in struct sockaddr... no
+ 4:40.54 checking for pthread_cond_timedwait_monotonic_np... no
+ 4:40.60 checking for 32-bits ethtool_cmd.speed... yes
+ 4:40.88 Updating bootstrapped toolchain in /home/wyatt/.mozbuild/onnxruntime-x86_64-linux-gnu
+ 4:41.53 Setting up artifact onnxruntime-x86_64-linux-gnu.tar.zst
+ 4:41.53 Downloading artifact to local cache: /home/wyatt/.mozbuild/toolchains/9513332bbbf6175f-public%2Fbuild%2Fonnxruntime-x86_64-linux-gnu.tar.zst
+ 4:41.79 Downloading 9513332bbbf6175f-public%2Fbuild%2Fonnxruntime-x86_64-linux-gnu.tar.zst... 0.0 %
+ 4:42.80 Downloading 9513332bbbf6175f-public%2Fbuild%2Fonnxruntime-x86_64-linux-gnu.tar.zst... 100.0 %
+ 4:42.80 rm tree: /home/wyatt/.mozbuild/onnxruntime-x86_64-linux-gnu
+ 4:42.80 untarring "/home/wyatt/.mozbuild/onnxruntime-x86_64-linux-gnu.tar.zst"
+ 4:42.98 checking ONNX install path... /home/wyatt/.mozbuild/onnxruntime-x86_64-linux-gnu/libonnxruntime.so
+ 4:43.04 checking for valid C compiler optimization flags... yes
+ 4:43.04 checking for gmake... /usr/bin/make
+ 4:43.04 checking for gmake version... 4.4.1
+ 4:43.05 checking for watchman... not found
+ 4:43.05 checking for xargs... /usr/bin/xargs
+ 4:43.09 checking for strip... /home/wyatt/.mozbuild/clang/bin/llvm-strip
+ 4:43.09 Creating config.status
+ 4:43.37 Reticulating splines...
+ 4:52.60 Finished reading 2824 moz.build files in 1.93s
+ 4:52.60 Read 58 gyp files in parallel contributing 0.00s to total wall time
+ 4:52.60 Processed into 22415 build config descriptors in 2.04s
+ 4:52.60 RecursiveMake backend executed in 2.91s
+ 4:52.60   6107 total backend files; 6107 created; 0 updated; 0 unchanged; 0 deleted; 12 -> 2280 Makefile
+ 4:52.60 FasterMake backend executed in 0.16s
+ 4:52.60   97 total backend files; 97 created; 0 updated; 0 unchanged; 0 deleted
+ 4:52.60 Clangd backend executed in 1.82s
+ 4:52.60   1375 total backend files; 3 created; 2 updated; 1370 unchanged; 0 deleted
+ 4:52.60 Total wall time: 9.29s; CPU time: 8.90s; Efficiency: 96%; Untracked: 0.41s
+ 4:54.66 Configure complete!
+ 4:54.66 Be sure to run |mach build| to pick up any changes
+ 4:54.72 W Adding make options from /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/mozconfig
+    MOZ_OBJDIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+    OBJDIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+    FOUND_MOZCONFIG=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/mozconfig
+    export FOUND_MOZCONFIG
+ 4:54.72 /usr/bin/make -f client.mk -j2 -s
+ 4:55.18 Elapsed: 0.29s; From dist/include: Kept 3120 existing; Added/updated 5489; Removed 0 files and 0 directories.
+ 4:55.18 Elapsed: 0.05s; From dist/xpi-stage: Kept 171 existing; Added/updated 845; Removed 0 files and 0 directories.
+ 4:55.40 Elapsed: 0.10s; From _tests: Kept 30 existing; Added/updated 1500; Removed 0 files and 0 directories.
+ 4:55.48 Elapsed: 0.17s; From dist/bin: Kept 180 existing; Added/updated 3119; Removed 0 files and 0 directories.
+ 4:55.62 ./mozilla-config.h.stub
+ 4:55.62 ./buildid.h.stub
+ 4:55.62 ./source-repo.h.stub
+ 4:55.79 ./RelationType.h.stub
+ 4:55.85 ./Role.h.stub
+ 4:55.94 ./stl.sentinel.stub
+ 4:56.01 ./system-header.sentinel.stub
+ 4:56.18 ./xpcAccEvents.h.stub
+ 4:56.19 config
+ 4:56.37 ./buildconfig.rs.stub
+ 4:56.51 ./fficonfig.h.stub
+ 4:56.68 ./ffi.h.stub
+ 4:56.68 ./config.h.stub
+ 4:56.84 ./cbindgen-metadata.json.stub
+ 4:56.84 ./UseCounterList.h.stub
+ 4:57.01 ./UseCounterWorkerList.h.stub
+ 4:57.18 ./CSSStyleProperties.webidl.stub
+ 4:57.36 ./CSSPageDescriptors.webidl.stub
+ 4:57.59 ./CSSPositionTryDescriptors.webidl.stub
+ 4:57.81 ./CSSFontFaceDescriptors.webidl.stub
+ 4:58.04 ./CSSCounterStyleRule.webidl.stub
+ 4:58.26 ./SpeechRecognitionModels.h.stub
+ 4:58.48 ./BaseChars.h.stub
+ 4:58.64 ./IsCombiningDiacritic.h.stub
+ 4:59.19 ./js-confdefs.h.stub
+ 4:59.55 ./js-config.h.stub
+ 4:59.69 ./PrefsGenerated.h.stub
+ 4:59.84 ./ProfilingCategoryList.h.stub
+ 5:00.66 ./ReservedWordsGenerated.h.stub
+ 5:00.84 ./StatsPhasesGenerated.h.stub
+ 5:01.00 ./ABIFunctionTypeGenerated.h.stub
+ 5:01.00 ./MIROpsGenerated.h.stub
+ 5:01.15 ./LIROpsGenerated.h.stub
+ 5:01.20 ./CacheIROpsGenerated.h.stub
+ 5:01.54 ./AtomicOperationsGenerated.h.stub
+ 5:01.75 ./WasmBuiltinModuleGenerated.h.stub
+ 5:01.90 ./FrameIdList.h.stub
+ 5:01.91 ./FrameTypeList.h.stub
+ 5:02.06 ./NonCustomCSSPropertyId.h.stub
+ 5:02.09 ./ServoCSSPropList.h.stub
+ 5:02.21 ./PseudoStyleTypeList.h.stub
+ 5:02.30 ./CompositorAnimatableProperties.h.stub
+ 5:02.43 ./CountedUnknownProperties.h.stub
+ 5:02.45 ./ExampleStylesheet.h.stub
+ 5:02.64 ./StaticPrefListAll.h.stub
+ 5:02.66 ./angle_commit.h.stub
+ 5:02.79 ./ANGLEShaderProgramVersion.h.rsp.stub
+ 5:02.98 ./registered_field_trials.h.stub
+ 5:03.13 ./GeckoTraceEvents.h.stub
+ 5:03.33 ./glean_adapter.rs.stub
+ 5:03.50 ./TestGeckoTraceEvents.h.stub
+ 5:03.60 ./metrics_yamls.cached.stub
+ 5:03.76 ./pings_yamls.cached.stub
+ 5:03.87 ./NimbusFeatureManifest.h.stub
+ 5:04.17 ./TelemetryHistogramEnums.h.stub
+ 5:04.67 ./TelemetryHistogramNameMap.h.stub
+ 5:04.85 ./TelemetryScalarData.h.stub
+ 5:05.04 ./TelemetryScalarEnums.h.stub
+ 5:05.41 ./TelemetryEventData.h.stub
+ 5:05.76 ./TelemetryEventEnums.h.stub
+ 5:06.02 ./TelemetryProcessEnums.h.stub
+ 5:06.27 ./TelemetryProcessData.h.stub
+ 5:06.44 ./TelemetryUserInteractionData.h.stub
+ 5:06.61 ./TelemetryUserInteractionNameMap.h.stub
+ 5:06.78 ./validated.yaml.stub
+ 5:07.23 ./dep1Cert.h.stub
+ 5:07.53 ./dep2Cert.h.stub
+ 5:07.66 ./primaryCert.h.stub
+ 5:07.80 ./secondaryCert.h.stub
+ 5:07.94 ./xpcshellCert.h.stub
+ 5:08.06 ./profiling_categories.rs.stub
+ 5:08.19 ./ErrorList.h.stub
+ 5:08.35 ./ErrorNamesInternal.h.stub
+ 5:08.36 ./error_list.rs.stub
+ 5:08.50 ./extra_xpc_msg.h.stub
+ 5:08.51 ./Components.h.stub
+ 5:08.64 ./static_atoms.rs.stub
+ 5:08.65 ./StaticAtomList.h.stub
+ 5:08.81 ./StaticAtoms.h.stub
+ 5:08.94 ./xpidl.stub.stub
+ 5:09.16 ./application.ini.stub
+ 5:09.17 config/nsinstall_real
+ 5:09.18 ./GeneratedElementDocumentState.h.stub
+ 5:09.24 ./speculationrules_ffi_generated.h.stub
+ 5:09.33 ./fragmentdirectives_ffi_generated.h.stub
+ 5:09.42 ./data_encoding_ffi_generated.h.stub
+ 5:09.52 ./mime_guess_ffi_generated.h.stub
+ 5:09.59 ./audioipc2_client_ffi_generated.h.stub
+ 5:09.69 ./audioipc2_server_ffi_generated.h.stub
+ 5:09.78 ./RsdparsaSdpInc.h.stub
+ 5:09.89 ./midir_impl_ffi_generated.h.stub
+ 5:09.96 ./origin_trials_ffi_generated.h.stub
+ 5:10.08 ./dom_push_rust_generated.h.stub
+ 5:10.14 ./webrender_ffi_generated.h.stub
+ 5:10.26 ./wgpu_ffi_generated.h.stub
+ 5:10.31 ./jxl_decoder_ffi.h.stub
+ 5:10.60 ./unicode_bidi_ffi_generated.h.stub
+ 5:10.78 ./mapped_hyph.h.stub
+ 5:10.99 ./fluent_ffi_generated.h.stub
+ 5:11.02 ./l10nregistry_ffi_generated.h.stub
+ 5:11.18 ./localization_ffi_generated.h.stub
+ 5:11.23 ./fluent_langneg_ffi_generated.h.stub
+ 5:11.39 ./locale_service_glue_generated.h.stub
+ 5:11.43 ./oxilangtag_ffi_generated.h.stub
+ 5:11.56 ./unic_langid_ffi_generated.h.stub
+ 5:11.61 ./selfhosted.out.h.stub
+ 5:11.74 ./collator_glue.h.stub
+ 5:11.93 ./Locale.h.stub
+ 5:11.93 ./normalizer_glue.h.stub
+ 5:12.10 ./properties_glue.h.stub
+ 5:12.13 ./ServoStyleConsts.h.stub
+ 5:12.29 ./mp4parse_ffi_generated.h.stub
+ 5:12.30 ./http_sfv_ffi_generated.h.stub
+ 5:12.51 ./idna_glue.h.stub
+ 5:12.71 ./MozURL_ffi.h.stub
+ 5:12.90 ./rust_helper.h.stub
+ 5:13.08 ./uritemplate_glue.h.stub
+ 5:13.10 ./urlpattern_glue.h.stub
+ 5:13.26 ./happy_eyeballs_glue.h.stub
+ 5:13.26 ./neqo_glue_ffi_generated.h.stub
+ 5:13.44 ./signature_cache_ffi.h.stub
+ 5:13.45 ./lockstore_ffi_generated.h.stub
+ 5:13.64 ./mozilla_abridged_certs_generated.h.stub
+ 5:13.64 ./pdf_trust_anchors_ffi_generated.h.stub
+ 5:13.84 ./qwac_trust_anchors_ffi_generated.h.stub
+ 5:13.90 ./mls_gk_ffi_generated.h.stub
+ 5:14.03 ./ANGLEShaderProgramVersion.h.stub
+ 5:14.08 ./content_classifier_ffi.h.stub
+ 5:14.21 ./dap_ffi_generated.h.stub
+ 5:14.39 ./fog_ffi_generated.h.stub
+ 5:14.41 ./jog_ffi_generated.h.stub
+ 5:14.58 ./GleanMetrics.h.stub
+ 5:14.63 ./GleanJSMetricsLookup.cpp.stub
+ 5:14.77 ./metrics.rs.stub
+ 5:15.23 ./GleanPings.h.stub
+ 5:16.14 ./factory.rs.stub
+ 5:16.49 ./CrashAnnotations.h.stub
+ 5:16.60 ./crash_helper_client_ffi_generated.h.stub
+ 5:16.82 ./crash_helper_ffi_generated.h.stub
+ 5:16.85 ./generated_metrics.yaml.stub
+ 5:17.02 ./conversions.rs.stub
+ 5:17.05 ./mozannotation_client_ffi_generated.h.stub
+ 5:17.26 ./rust_minidump_writer_linux_ffi_generated.h.stub
+ 5:17.28 ./profiler_ffi_generated.h.stub
+ 5:17.44 ./gk_rust_utils_ffi_generated.h.stub
+ 5:17.61 ./application.ini.h.stub
+ 5:17.69 WARNING: mkdir -dot- requested by /usr/bin/make -C /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/config/makefiles/xpidl export
+ 5:17.69 config/makefiles/xpidl/Bits.xpt
+ 5:17.69 config/makefiles/xpidl/SiteCategories.xpt
+ 5:17.76 config/makefiles/xpidl/accessibility.xpt
+ 5:17.88 config/makefiles/xpidl/alerts.xpt
+ 5:17.94 config/makefiles/xpidl/appshell.xpt
+ 5:18.13 config/makefiles/xpidl/appstartup.xpt
+ 5:18.27 config/makefiles/xpidl/autocomplete.xpt
+ 5:18.45 config/makefiles/xpidl/autoplay.xpt
+ 5:18.67 config/makefiles/xpidl/backgroundhangmonitor.xpt
+ 5:18.85 config/makefiles/xpidl/browsercompsbase.xpt
+ 5:19.04 config/makefiles/xpidl/caps.xpt
+ 5:19.22 config/makefiles/xpidl/captivedetect.xpt
+ 5:19.48 config/makefiles/xpidl/cascade_bindings.xpt
+ 5:19.65 config/makefiles/xpidl/chrome.xpt
+ 5:19.81 config/makefiles/xpidl/commandhandler.xpt
+ 5:20.00 config/makefiles/xpidl/commandlines.xpt
+ 5:20.19 config/makefiles/xpidl/composer.xpt
+ 5:20.40 config/makefiles/xpidl/content-classifier.xpt
+ 5:20.58 config/makefiles/xpidl/content_events.xpt
+ 5:20.75 config/makefiles/xpidl/content_geckomediaplugins.xpt
+ 5:20.92 config/makefiles/xpidl/contextualidentity.xpt
+ 5:21.10 config/makefiles/xpidl/crashreporter-test-utils.xpt
+ 5:21.26 config/makefiles/xpidl/dap.xpt
+ 5:21.42 config/makefiles/xpidl/docshell.xpt
+ 5:21.58 config/makefiles/xpidl/dom.xpt
+ 5:21.91 config/makefiles/xpidl/dom_audiochannel.xpt
+ 5:22.21 config/makefiles/xpidl/dom_base.xpt
+ 5:22.40 config/makefiles/xpidl/dom_bindings.xpt
+ 5:22.75 config/makefiles/xpidl/dom_events.xpt
+ 5:22.92 config/makefiles/xpidl/dom_geolocation.xpt
+ 5:23.08 config/makefiles/xpidl/dom_identitycredential.xpt
+ 5:23.27 config/makefiles/xpidl/dom_indexeddb.xpt
+ 5:23.46 config/makefiles/xpidl/dom_localstorage.xpt
+ 5:23.65 config/makefiles/xpidl/dom_media.xpt
+ 5:23.82 config/makefiles/xpidl/dom_modelcontext.xpt
+ 5:24.00 config/makefiles/xpidl/dom_network.xpt
+ 5:24.17 config/makefiles/xpidl/dom_notification.xpt
+ 5:24.34 config/makefiles/xpidl/dom_payments.xpt
+ 5:24.51 config/makefiles/xpidl/dom_permission.xpt
+ 5:24.80 config/makefiles/xpidl/dom_power.xpt
+ 5:24.98 config/makefiles/xpidl/dom_push.xpt
+ 5:25.17 config/makefiles/xpidl/dom_quota.xpt
+ 5:25.36 config/makefiles/xpidl/dom_security.xpt
+ 5:25.58 config/makefiles/xpidl/dom_serializers.xpt
+ 5:25.80 config/makefiles/xpidl/dom_sidebar.xpt
+ 5:25.98 config/makefiles/xpidl/dom_simpledb.xpt
+ 5:26.14 config/makefiles/xpidl/dom_storage.xpt
+ 5:26.33 config/makefiles/xpidl/dom_system.xpt
+ 5:26.55 config/makefiles/xpidl/dom_webauthn.xpt
+ 5:26.74 config/makefiles/xpidl/dom_webspeechsynth.xpt
+ 5:26.99 config/makefiles/xpidl/dom_workers.xpt
+ 5:27.19 config/makefiles/xpidl/dom_xslt.xpt
+ 5:27.41 config/makefiles/xpidl/dom_xul.xpt
+ 5:27.62 config/makefiles/xpidl/downloads.xpt
+ 5:27.86 config/makefiles/xpidl/editor.xpt
+ 5:28.04 config/makefiles/xpidl/enterprisepolicies.xpt
+ 5:28.33 config/makefiles/xpidl/extensions.xpt
+ 5:28.54 config/makefiles/xpidl/exthandler.xpt
+ 5:28.70 config/makefiles/xpidl/fastfind.xpt
+ 5:28.92 config/makefiles/xpidl/fog.xpt
+ 5:29.09 config/makefiles/xpidl/gfx.xpt
+ 5:29.26 config/makefiles/xpidl/html5.xpt
+ 5:29.44 config/makefiles/xpidl/htmlparser.xpt
+ 5:29.60 config/makefiles/xpidl/http-sfv.xpt
+ 5:29.78 config/makefiles/xpidl/imglib2.xpt
+ 5:29.98 config/makefiles/xpidl/inspector.xpt
+ 5:30.23 config/makefiles/xpidl/intl.xpt
+ 5:30.41 config/makefiles/xpidl/jar.xpt
+ 5:30.58 config/makefiles/xpidl/jsdevtools.xpt
+ 5:30.81 config/makefiles/xpidl/kvstore.xpt
+ 5:31.00 config/makefiles/xpidl/layout_base.xpt
+ 5:31.19 config/makefiles/xpidl/layout_style.xpt
+ 5:31.37 config/makefiles/xpidl/layout_xul_tree.xpt
+ 5:31.54 config/makefiles/xpidl/locale.xpt
+ 5:31.74 config/makefiles/xpidl/lockstore.xpt
+ 5:31.92 config/makefiles/xpidl/loginmgr.xpt
+ 5:32.11 config/makefiles/xpidl/migration.xpt
+ 5:32.31 config/makefiles/xpidl/mimetype.xpt
+ 5:32.48 config/makefiles/xpidl/ml.xpt
+ 5:32.68 config/makefiles/xpidl/mozfind.xpt
+ 5:32.88 config/makefiles/xpidl/mozintl.xpt
+ 5:33.16 config/makefiles/xpidl/necko.xpt
+ 5:33.49 config/makefiles/xpidl/necko_about.xpt
+ 5:34.48 config/makefiles/xpidl/necko_cache2.xpt
+ 5:34.67 config/makefiles/xpidl/necko_cookie.xpt
+ 5:34.73 config/makefiles/xpidl/necko_dns.xpt
+ 5:34.90 config/makefiles/xpidl/necko_file.xpt
+ 5:34.98 config/makefiles/xpidl/necko_http.xpt
+ 5:35.16 config/makefiles/xpidl/necko_res.xpt
+ 5:35.18 config/makefiles/xpidl/necko_socket.xpt
+ 5:35.39 config/makefiles/xpidl/necko_strconv.xpt
+ 5:35.56 config/makefiles/xpidl/necko_viewsource.xpt
+ 5:35.62 config/makefiles/xpidl/necko_websocket.xpt
+ 5:35.79 config/makefiles/xpidl/necko_webtransport.xpt
+ 5:35.84 config/makefiles/xpidl/necko_wifi.xpt
+ 5:36.02 config/makefiles/xpidl/parentalcontrols.xpt
+ 5:36.05 config/makefiles/xpidl/peerconnection.xpt
+ 5:36.23 config/makefiles/xpidl/permissions.xpt
+ 5:36.24 config/makefiles/xpidl/pipnss.xpt
+ 5:36.41 config/makefiles/xpidl/places.xpt
+ 5:36.44 config/makefiles/xpidl/pref.xpt
+ 5:36.70 config/makefiles/xpidl/prefetch.xpt
+ 5:36.78 config/makefiles/xpidl/profiler.xpt
+ 5:36.95 config/makefiles/xpidl/rdd_process_xpcom_test.xpt
+ 5:36.98 config/makefiles/xpidl/remote.xpt
+ 5:37.15 config/makefiles/xpidl/reputationservice.xpt
+ 5:37.16 config/makefiles/xpidl/sandbox.xpt
+ 5:37.32 config/makefiles/xpidl/satchel.xpt
+ 5:37.34 config/makefiles/xpidl/services.xpt
+ 5:37.52 config/makefiles/xpidl/sessionstore.xpt
+ 5:37.55 config/makefiles/xpidl/shellservice.xpt
+ 5:37.72 config/makefiles/xpidl/shistory.xpt
+ 5:37.73 config/makefiles/xpidl/spellchecker.xpt
+ 5:37.92 config/makefiles/xpidl/startupcache.xpt
+ 5:37.92 config/makefiles/xpidl/storage.xpt
+ 5:38.09 config/makefiles/xpidl/telemetry.xpt
+ 5:38.38 config/makefiles/xpidl/test_necko.xpt
+ 5:38.58 config/makefiles/xpidl/thumbnails.xpt
+ 5:38.77 config/makefiles/xpidl/toolkit_antitracking.xpt
+ 5:38.95 config/makefiles/xpidl/toolkit_asyncshutdown.xpt
+ 5:39.27 config/makefiles/xpidl/toolkit_backgroundtasks.xpt
+ 5:39.45 config/makefiles/xpidl/toolkit_cleardata.xpt
+ 5:39.63 config/makefiles/xpidl/toolkit_contentanalysis.xpt
+ 5:39.82 config/makefiles/xpidl/toolkit_crashservice.xpt
+ 5:40.02 config/makefiles/xpidl/toolkit_finalizationwitness.xpt
+ 5:40.21 config/makefiles/xpidl/toolkit_geolocation.xpt
+ 5:40.39 config/makefiles/xpidl/toolkit_media.xpt
+ 5:40.57 config/makefiles/xpidl/toolkit_modules.xpt
+ 5:40.74 config/makefiles/xpidl/toolkit_processtools.xpt
+ 5:40.93 config/makefiles/xpidl/toolkit_resistfingerprinting.xpt
+ 5:41.08 config/makefiles/xpidl/toolkit_shell.xpt
+ 5:41.28 config/makefiles/xpidl/toolkit_terminator.xpt
+ 5:41.46 config/makefiles/xpidl/toolkit_xulstore.xpt
+ 5:41.64 config/makefiles/xpidl/toolkitprofile.xpt
+ 5:41.83 config/makefiles/xpidl/toolkitremote.xpt
+ 5:42.02 config/makefiles/xpidl/txmgr.xpt
+ 5:42.18 config/makefiles/xpidl/txtsvc.xpt
+ 5:42.36 config/makefiles/xpidl/uconv.xpt
+ 5:42.54 config/makefiles/xpidl/update.xpt
+ 5:42.73 config/makefiles/xpidl/uriloader.xpt
+ 5:42.93 config/makefiles/xpidl/url-classifier.xpt
+ 5:43.16 config/makefiles/xpidl/urlformatter.xpt
+ 5:43.46 config/makefiles/xpidl/utility_process_xpcom_test.xpt
+ 5:43.65 config/makefiles/xpidl/webBrowser_core.xpt
+ 5:43.84 config/makefiles/xpidl/webbrowserpersist.xpt
+ 5:44.07 config/makefiles/xpidl/webextensions.xpt
+ 5:44.28 config/makefiles/xpidl/webvtt.xpt
+ 5:44.48 config/makefiles/xpidl/widget.xpt
+ 5:44.67 config/makefiles/xpidl/windowcreator.xpt
+ 5:45.19 config/makefiles/xpidl/windowwatcher.xpt
+ 5:45.46 config/makefiles/xpidl/xpcom_base.xpt
+ 5:45.84 config/makefiles/xpidl/xpcom_components.xpt
+ 5:46.21 config/makefiles/xpidl/xpcom_ds.xpt
+ 5:46.52 config/makefiles/xpidl/xpcom_io.xpt
+ 5:46.84 config/makefiles/xpidl/xpcom_system.xpt
+ 5:47.25 config/makefiles/xpidl/xpcom_threads.xpt
+ 5:47.47 config/makefiles/xpidl/xpcomtest.xpt
+ 5:47.73 config/makefiles/xpidl/xpconnect.xpt
+ 5:47.82 config/makefiles/xpidl/xpctest.xpt
+ 5:47.94 config/makefiles/xpidl/xul.xpt
+ 5:48.03 config/makefiles/xpidl/xulapp.xpt
+ 5:48.15 config/makefiles/xpidl/zipwriter.xpt
+ 5:48.41 config/makefiles/xpidl/xptdata.stub
+ 5:49.19 ./glean_metrics.rs.stub
+ 5:49.68 xpcom/build/GeckoProcessTypes.inc.stub
+ 5:49.95 config/external/sqlite/libmozsqlite3.so.symbols.stub
+ 5:50.11 build/unix/elfhack
+ 5:51.80 build/unix/elfhack/inject/x86_64.c.stub
+ 5:51.95 third_party/sqlite3/ext
+ 5:55.52 W 1 warning generated.
+ 5:57.01 W 9 warnings generated.
+ 5:57.02 third_party/sqlite3/src
+ 5:59.88    Compiling proc-macro2 v1.0.101
+ 6:00.25    Compiling unicode-ident v1.0.12
+ 6:01.97    Compiling quote v1.0.40
+ 6:02.40    Compiling syn v2.0.106
+ 6:07.85    Compiling serde_derive v1.0.228
+ 6:10.66    Compiling serde_core v1.0.228
+ 6:12.75    Compiling serde v1.0.228
+ 6:13.65    Compiling cfg-if v1.0.0
+ 6:13.82    Compiling libc v0.2.186
+ 6:17.94    Compiling bitflags v2.10.0
+ 6:18.36    Compiling autocfg v1.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/autocfg)
+ 6:18.83    Compiling thiserror v2.0.12
+ 6:19.12 W 4 warnings generated.
+ 6:19.12    Compiling thiserror-impl v2.0.12
+ 6:20.32    Compiling synstructure v0.13.1
+ 6:21.32    Compiling memchr v2.7.4
+ 6:21.53    Compiling log v0.4.29
+ 6:21.81    Compiling mozbuild v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/mozbuild)
+ 6:22.01    Compiling smallvec v1.15.2
+ 6:22.07    Compiling allocator-api2 v0.2.21 (https://github.com/glandium/allocator-api2?rev=ad5f3d56a5a4519eff52af4ff85293431466ef5c#ad5f3d56)
+ 6:22.30    Compiling scopeguard v1.2.0
+ 6:22.49    Compiling equivalent v1.0.1
+ 6:22.51    Compiling foldhash v0.2.0
+ 6:22.77    Compiling hashbrown v0.17.1
+ 6:22.87    Compiling zerofrom-derive v0.1.3
+ 6:24.20    Compiling yoke-derive v0.8.0
+ 6:24.90    Compiling shlex v2.0.1
+ 6:25.54    Compiling zerovec-derive v0.11.1
+ 6:25.60    Compiling displaydoc v0.2.4
+ 6:26.71    Compiling stable_deref_trait v1.2.0
+ 6:26.93    Compiling rustversion v1.0.19
+ 6:27.21    Compiling zmij v1.0.20
+ 6:28.12    Compiling zerofrom v0.1.4
+ 6:28.32    Compiling yoke v0.8.0
+ 6:28.50    Compiling minimal-lexical v0.2.1
+ 6:28.59    Compiling zerovec v0.11.4
+ 6:28.86    Compiling nom v7.1.3
+ 6:29.48    Compiling indexmap v2.14.1
+ 6:30.17    Compiling glob v0.3.3
+ 6:30.22    Compiling itoa v1.0.15
+ 6:30.42    Compiling winnow v1.0.3
+ 6:30.63    Compiling rustc-hash v2.1.1
+ 6:30.86    Compiling tinystr v0.8.1
+ 6:31.10    Compiling target-features v0.1.6
+ 6:31.42    Compiling toml_parser v1.1.3+spec-1.1.0
+ 6:31.57    Compiling toml_datetime v1.1.1+spec-1.1.0
+ 6:31.95    Compiling serde_spanned v1.1.1
+ 6:32.01    Compiling toml_writer v1.1.2+spec-1.1.0
+ 6:32.18    Compiling getrandom v0.3.3
+ 6:32.29    Compiling toml v1.1.5+spec-1.1.0
+ 6:32.88    Compiling multiversion-macros v0.8.0
+ 6:33.86    Compiling heck v0.5.0
+ 6:34.39    Compiling multiversion_no_op v1.0.0
+ 6:34.43    Compiling once_cell v1.21.4
+ 6:34.68    Compiling serde_json v1.0.149
+ 6:34.92    Compiling libm v0.2.6
+ 6:35.16    Compiling writeable v0.6.2
+ 6:35.61    Compiling fastrand v2.1.1
+ 6:36.28    Compiling jobserver v0.1.33
+ 6:36.54    Compiling siphasher v1.0.1
+ 6:36.80    Compiling anyhow v1.0.103
+ 6:37.19    Compiling find-msvc-tools v0.1.12
+ 6:37.52    Compiling cc v1.4.5 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/cc)
+ 6:37.80    Compiling potential_utf v0.1.4
+ 6:38.04    Compiling encoding_rs v0.8.40
+ 6:38.27    Compiling icu_collections v2.1.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/icu_collections)
+ 6:39.08    Compiling multiversion v0.8.0
+ 6:39.30    Compiling pkg-config v0.3.34
+ 6:39.76    Compiling core_detect v1.0.0
+ 6:40.01    Compiling litemap v0.8.0
+ 6:40.03    Compiling simdutf8 v0.1.5 (https://github.com/hsivonen/simdutf8?rev=9c38ac5d3761ebf53578a92bd90a76cdc08c162b#9c38ac5d)
+ 6:40.29    Compiling icu_locale_core v2.1.1
+ 6:41.64    Compiling zerotrie v0.2.2
+ 6:42.30    Compiling icu_provider v2.1.1
+ 6:42.79    Compiling num-traits v0.2.19
+ 6:43.58    Compiling icu_properties_data v2.1.2 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/icu_properties_data)
+ 6:43.79    Compiling camino v1.2.3
+ 6:44.18    Compiling icu_normalizer_data v2.1.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/icu_normalizer_data)
+ 6:44.41    Compiling rustix v1.1.4
+ 6:45.03    Compiling aho-corasick v1.1.0
+ 6:45.52    Compiling linux-raw-sys v0.12.1
+ 6:45.92    Compiling regex-syntax v0.8.5
+ 6:48.34    Compiling regex-automata v0.4.14
+ 6:48.90    Compiling uniffi_internal_macros v0.32.2
+ 6:50.42    Compiling nsstring v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/xpcom/rust/nsstring)
+ 6:51.26    Compiling tempfile v3.27.0
+ 6:51.43    Compiling regex v1.12.3
+ 6:51.68    Compiling uniffi_pipeline v0.32.2
+ 6:51.97    Compiling fs-err v3.3.1
+ 6:52.05    Compiling harfbuzz-traits v0.6.0 (https://github.com/hsivonen/rust-harfbuzz?rev=9d58a23a98772a197291d04af93f7041b7093d95#9d58a23a)
+ 6:52.24    Compiling uniffi_meta v0.32.2
+ 6:52.72    Compiling utf8_iter v1.0.4 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/utf8_iter)
+ 6:53.02    Compiling scroll_derive v0.12.0
+ 6:53.53    Compiling clang-sys v1.7.0
+ 6:53.76    Compiling static_assertions v1.1.0
+ 6:53.86    Compiling lazy_static v1.4.0
+ 6:54.09    Compiling unicode-bidi v0.3.15 (https://github.com/servo/unicode-bidi?rev=ca612daf1c08c53abe07327cb3e6ef6e0a760f0c#ca612daf)
+ 6:54.49    Compiling libloading v0.8.6
+ 6:54.70    Compiling icu_properties v2.1.2 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/icu_properties)
+ 6:54.77    Compiling thin-vec v0.2.20
+ 6:55.15    Compiling bindgen v0.73.1
+ 6:56.01    Compiling uniffi_macros v0.32.2
+ 6:59.30    Compiling utf16_iter v1.0.5 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/utf16_iter)
+ 6:59.56    Compiling getrandom v0.2.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/getrandom)
+ 6:59.74    Compiling cexpr v0.6.0
+ 7:00.37    Compiling write16 v1.0.0
+ 7:00.61    Compiling icu_normalizer v2.1.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/icu_normalizer)
+ 7:02.54    Compiling semver v1.0.28
+ 7:03.21    Compiling bytes v1.11.1
+ 7:05.68    Compiling idna_adapter v1.2.1
+ 7:05.74    Compiling percent-encoding v2.3.2
+ 7:06.04    Compiling idna v1.1.0
+ 7:07.39    Compiling askama_parser v0.16.0
+ 7:09.50    Compiling basic-toml v0.1.2
+ 7:11.83    Compiling askama_derive v0.16.0
+ 7:12.43    Compiling scroll v0.12.0
+ 7:12.74    Compiling plain v0.2.3
+ 7:12.93    Compiling smawk v0.3.2
+ 7:13.13    Compiling version_check v0.9.4
+ 7:13.55    Compiling textwrap v0.16.1
+ 7:14.19    Compiling goblin v0.9.2
+ 7:16.19    Compiling askama_macros v0.16.0
+ 7:16.52    Compiling form_urlencoded v1.2.2
+ 7:16.89    Compiling nserror v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/xpcom/rust/nserror)
+ 7:17.12    Compiling weedle2 v5.0.0
+ 7:18.40    Compiling goblin v0.8.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/goblin)
+ 7:18.58    Compiling url v2.5.7
+ 7:19.74    Compiling uniffi_udl v0.32.2
+ 7:19.85    Compiling askama v0.16.0
+ 7:21.05    Compiling uniffi_bindgen v0.32.2
+ 7:22.08    Compiling hashbrown v0.16.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/hashbrown)
+ 7:22.26    Compiling cargo-platform v0.3.2
+ 7:22.66    Compiling lock_api v0.4.9
+ 7:22.90    Compiling parking_lot_core v0.9.10
+ 7:23.91    Compiling uniffi_core v0.32.2
+ 7:24.41    Compiling cargo_metadata v0.23.1
+ 7:27.16    Compiling byteorder v1.5.0
+ 7:27.99    Compiling typenum v1.16.0
+ 7:32.62    Compiling uniffi v0.32.2
+ 7:32.84    Compiling parking_lot v0.12.3
+ 7:33.48    Compiling cstr v0.2.11
+ 7:33.89    Compiling pin-project-lite v0.2.14
+ 7:34.08    Compiling xpcom_macros v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/xpcom/rust/xpcom/xpcom_macros)
+ 7:36.54    Compiling threadbound v0.1.5
+ 7:36.78    Compiling xpcom v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/xpcom/rust/xpcom)
+ 7:44.30    Compiling termcolor v1.4.1
+ 7:44.83    Compiling vcpkg v0.2.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/vcpkg)
+ 7:45.06    Compiling libsqlite3-sys v0.35.0
+ 7:45.40    Compiling env_logger v0.10.0
+ 7:46.15    Compiling crossbeam-utils v0.8.21
+ 7:46.82    Compiling generic-array v0.14.6
+ 7:47.52    Compiling fnv v1.0.7
+ 7:47.76    Compiling strsim v0.11.1
+ 7:48.19    Compiling ident_case v1.0.1
+ 7:48.43    Compiling darling_core v0.20.10
+ 7:51.03    Compiling euclid v0.22.13
+ 7:52.15    Compiling hex v0.4.3
+ 7:52.56    Compiling darling_macro v0.20.10
+ 7:53.11    Compiling uuid v1.3.0
+ 7:53.63    Compiling darling v0.20.10
+ 7:53.93    Compiling cfg_aliases v0.2.2
+ 7:55.59    Compiling bincode v1.3.3
+ 7:56.02    Compiling hashlink v0.11.0
+ 7:56.38    Compiling app_units v0.7.8
+ 7:56.59    Compiling bindgen v0.72.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/bindgen)
+ 7:56.77    Compiling tracing-core v0.1.33
+ 7:57.32    Compiling base64 v0.22.1
+ 7:57.73    Compiling hashlink v0.10.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/hashlink)
+ 7:57.90    Compiling sharded-slab v0.1.7
+ 7:58.41    Compiling thread_local v1.1.8
+ 8:01.42    Compiling tracing-attributes v0.1.28
+ 8:05.47    Compiling fallible-iterator v0.3.0
+ 8:05.85    Compiling fallible-streaming-iterator v0.1.9
+ 8:06.11    Compiling rusqlite v0.37.0
+ 8:10.59    Compiling tracing v0.1.41
+ 8:10.95    Compiling tracing-subscriber v0.3.20
+ 8:12.60    Compiling tracing-support v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/support/tracing)
+ 8:14.11    Compiling error-support-macros v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/support/error/macros)
+ 8:14.60    Compiling error-support v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/support/error)
+ 8:15.12    Compiling crypto-common v0.1.6
+ 8:15.33    Compiling block-buffer v0.10.3
+ 8:15.54    Compiling derive_more-impl v2.0.1
+ 8:17.61    Compiling derive_more v2.0.1
+ 8:17.82    Compiling digest v0.10.7
+ 8:18.10    Compiling rand_core v0.6.4
+ 8:18.39    Compiling ordered-float v3.4.0
+ 8:18.69    Compiling malloc_size_of_derive v0.1.3 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/xpcom/rust/malloc_size_of_derive)
+ 8:19.19    Compiling iana-time-zone v0.1.64
+ 8:19.50    Compiling chrono v0.4.42
+ 8:20.93    Compiling wr_malloc_size_of v0.2.2 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/gfx/wr/wr_malloc_size_of)
+ 8:21.27    Compiling slab v0.4.8
+ 8:21.85    Compiling either v1.8.1
+ 8:22.40    Compiling ppv-lite86 v0.2.17
+ 8:22.98    Compiling rand_chacha v0.3.1
+ 8:24.01    Compiling rand v0.8.6
+ 8:24.75    Compiling base64 v0.21.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/base64)
+ 8:24.93    Compiling async-trait v0.1.89
+ 8:28.01    Compiling zeroize_derive v1.4.2
+ 8:28.92    Compiling arrayref v0.3.6
+ 8:29.15    Compiling zeroize v1.8.1
+ 8:29.43    Compiling arrayvec v0.7.6
+ 8:30.02    Compiling id-arena v2.2.1
+ 8:30.71    Compiling futures-core v0.3.31
+ 8:31.49    Compiling futures-sink v0.3.31
+ 8:32.20    Compiling futures-channel v0.3.31
+ 8:32.75    Compiling rkv v0.20.0
+ 8:34.15    Compiling strum_macros v0.27.1
+ 8:36.05    Compiling toml v0.5.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/toml-0.5)
+ 8:36.24    Compiling num_cpus v1.16.0
+ 8:36.82    Compiling serde_bytes v0.11.9
+ 8:37.14    Compiling cpufeatures v0.2.8
+ 8:37.41    Compiling strum v0.27.1
+ 8:37.67    Compiling futures-macro v0.3.31
+ 8:38.52    Compiling futures-task v0.3.31
+ 8:38.74    Compiling pin-utils v0.1.0
+ 8:38.95    Compiling futures-io v0.3.31
+ 8:39.18    Compiling futures-util v0.3.31
+ 8:41.39    Compiling uniffi_build v0.32.2
+ 8:41.51    Compiling sha2 v0.10.8
+ 8:41.84    Compiling itertools v0.15.0
+ 8:42.21    Compiling gecko-profiler v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/tools/profiler/rust-api)
+ 8:42.85    Compiling enum-map-derive v0.17.0
+ 8:43.39    Compiling icu_locale_data v2.1.1
+ 8:43.40    Compiling adler2 v2.0.1
+ 8:43.63    Compiling simd-adler32 v0.3.7
+ 8:43.90    Compiling enum-map v2.7.3
+ 8:44.11    Compiling itertools v0.14.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/itertools)
+ 8:44.41    Compiling miniz_oxide v0.8.9
+ 8:45.20    Compiling interrupt-support v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/support/interrupt)
+ 8:45.54    Compiling rustc-hash v1.999.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/rustc-hash)
+ 8:45.71    Compiling static_prefs v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/modules/libpref/init/static_prefs)
+ 8:45.88    Compiling toml v0.9.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/toml)
+ 8:46.05    Compiling thiserror v1.999.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/thiserror)
+ 8:46.22    Compiling crc32fast v1.4.2
+ 8:46.49    Compiling profiler-macros v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/tools/profiler/rust-api/macros)
+ 8:46.94    Compiling flate2 v1.1.4
+ 8:47.44    Compiling nss-rs v0.16.1 (https://github.com/mozilla/nss-rs#ba8a3f6a)
+ 8:47.81    Compiling glean-core v70.2.1
+ 8:48.15    Compiling futures-executor v0.3.28
+ 8:48.20    Compiling crossbeam-channel v0.5.15
+ 8:48.63    Compiling rmp v0.8.15
+ 8:48.75    Compiling whatsys v0.3.2
+ 8:49.01    Compiling phf_shared v0.14.0
+ 8:49.02    Compiling zeitstempel v0.2.1
+ 8:49.25    Compiling unic-langid-impl v0.9.6
+ 8:49.38    Compiling phf_generator v0.14.0
+ 8:49.77    Compiling rmp-serde v1.3.1
+ 8:50.38    Compiling futures v0.3.28
+ 8:50.83    Compiling unic-langid v0.9.6
+ 8:51.05    Compiling icu_locale v2.1.1
+ 8:52.14    Compiling ohttp v0.7.2 (https://github.com/martinthomson/ohttp?rev=600931b5a1e947776cbaad931ed78f1e89005352#600931b5)
+ 8:52.72    Compiling async-task v4.3.0
+ 8:52.98    Compiling moz_task v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/xpcom/rust/moz_task)
+ 8:55.07    Compiling phf_macros v0.14.0
+ 8:56.23    Compiling inherent v1.0.7
+ 8:56.80    Compiling phf v0.14.0
+ 8:57.59    Compiling sql-support v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/support/sql)
+ 8:58.63    Compiling ffi-support v0.4.4
+ 8:59.19    Compiling nss_build_common v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/support/rc_crypto/nss/nss_build_common)
+ 8:59.61    Compiling bhttp v0.7.2
+ 8:59.95    Compiling crossbeam-epoch v0.9.20
+ 9:00.22    Compiling cmake v0.1.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/cmake)
+ 9:00.35    Compiling glean v70.2.1
+ 9:00.40    Compiling smallbitvec v2.5.1
+ 9:00.87    Compiling dtoa v0.4.8
+ 9:00.97    Compiling firefox-on-glean v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/glean/api)
+ 9:01.09    Compiling dtoa-short v0.3.3
+ 9:01.36    Compiling cubeb-sys v0.34.1
+ 9:01.59    Compiling nss_sys v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/support/rc_crypto/nss/nss_sys)
+ 9:02.06    Compiling mls-rs-codec-derive v0.2.0
+ 9:02.78    Compiling half v2.5.0
+ 9:03.20    Compiling cssparser-macros v0.7.1 (https://github.com/servo/rust-cssparser?rev=3a1d1c7a2980ab59d4e5fed7fe666dcbe265d132#3a1d1c7a)
+ 9:04.13    Compiling rayon-core v1.12.1
+ 9:04.79    Compiling precomputed-hash v0.1.1
+ 9:04.96    Compiling pollster v0.3.0
+ 9:05.17    Compiling viaduct v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/viaduct)
+ 9:10.27    Compiling cssparser v0.38.0 (https://github.com/servo/rust-cssparser?rev=3a1d1c7a2980ab59d4e5fed7fe666dcbe265d132#3a1d1c7a)
+ 9:10.97    Compiling mls-rs-codec v0.7.0
+ 9:11.89    Compiling fluent-langneg v0.13.0
+ 9:12.19    Compiling naga-types v30.0.0 (https://github.com/gfx-rs/wgpu?rev=db0782e398f7ba6f4f3f071d75deacec64ff84b0#db0782e3)
+ 9:12.98    Compiling type-map v0.5.1
+ 9:13.36    Compiling hashbrown v0.15.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/hashbrown-0.15)
+ 9:13.53    Compiling rustc_version v0.4.0
+ 9:13.90    Compiling servo_arc v0.4.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/servo/components/servo_arc)
+ 9:14.13    Compiling bitflags v1.999.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/bitflags)
+ 9:14.30    Compiling memmap2 v0.9.11
+ 9:14.62    Compiling num-derive v0.4.2
+ 9:15.67    Compiling bytemuck_derive v1.9.3
+ 9:16.98    Compiling maybe-async v0.2.10
+ 9:18.23    Compiling khronos_api v3.1.0 (https://github.com/jamienicol/gl-rs?rev=71c792dbfe0ec5caeb242fc90937e19098386342#71c792db)
+ 9:18.50    Compiling pastey v0.2.3
+ 9:19.04    Compiling macro_rules_attribute-proc_macro v0.2.3
+ 9:19.42    Compiling macro_rules_attribute v0.2.3
+ 9:19.63    Compiling mls-rs-core v0.27.0
+ 9:20.54    Compiling bytemuck v1.22.0
+ 9:20.84    Compiling to_shmem v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/servo/components/to_shmem)
+ 9:21.72    Compiling intl-memoizer v0.5.3
+ 9:22.91    Compiling crossbeam-deque v0.8.2
+ 9:23.37    Compiling intl_pluralrules v7.0.2
+ 9:23.85    Compiling naga v30.0.0 (https://github.com/gfx-rs/wgpu?rev=db0782e398f7ba6f4f3f071d75deacec64ff84b0#db0782e3)
+ 9:24.26    Compiling serde_with_macros v3.12.0
+ 9:25.45    Compiling to_shmem_derive v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/servo/components/to_shmem_derive)
+ 9:26.04    Compiling unicase v2.6.0
+ 9:26.27    Compiling pkcs11-bindings v0.1.8
+ 9:26.67    Compiling libdbus-sys v0.2.7 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/libdbus-sys)
+ 9:26.92    Compiling cubeb-core v0.34.1
+ 9:27.34    Compiling core_maths v0.1.0
+ 9:27.74    Compiling fluent-syntax v0.12.0
+ 9:28.18    Compiling memoffset v0.9.0
+ 9:28.42    Compiling self_cell v1.2.0
+ 9:28.89    Compiling bit-vec v0.10.1
+ 9:29.22    Compiling ash v0.38.0+1.3.281
+ 9:29.46    Compiling new_debug_unreachable v1.0.4
+ 9:29.63    Compiling unicode-width v0.2.0
+ 9:30.03    Compiling raw-window-handle v0.6.2
+ 9:30.41    Compiling typeid v1.0.3
+ 9:30.82    Compiling wgpu-types v30.0.0 (https://github.com/gfx-rs/wgpu?rev=db0782e398f7ba6f4f3f071d75deacec64ff84b0#db0782e3)
+ 9:36.71    Compiling codespan-reporting v0.13.1
+ 9:37.69    Compiling selectors v0.26.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/servo/components/selectors)
+ 9:39.09    Compiling bit-set v0.11.1
+ 9:39.42    Compiling rsclientcerts-util v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/rsclientcerts-util)
+ 9:39.85    Compiling fluent-bundle v0.16.0
+ 9:43.47    Compiling serde_with v3.12.0
+ 9:44.50    Compiling nss-as v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/support/rc_crypto/nss)
+ 9:46.77    Compiling lalrpop-util v0.19.12
+ 9:47.07    Compiling webrender_build v0.0.2 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/gfx/wr/webrender_build)
+ 9:47.87    Compiling spirv v0.4.0+sdk-1.4.341.0
+ 9:49.99    Compiling serde_path_to_error v0.1.11
+ 9:50.40    Compiling void v1.0.2
+ 9:51.47    Compiling icu_casemap_data v2.1.1
+ 9:51.92    Compiling xml-rs v0.8.4
+ 9:52.78    Compiling neqo-common v0.32.0 (https://github.com/mozilla/neqo?tag=v0.32.0#28cacc8e)
+ 9:53.02    Compiling gl_generator v0.14.0 (https://github.com/jamienicol/gl-rs?rev=71c792dbfe0ec5caeb242fc90937e19098386342#71c792db)
+ 9:53.67    Compiling trust-anchor-build-util v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/trust-anchor-build-util)
+ 9:54.00    Compiling malloc_size_of v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/servo/components/malloc_size_of)
+10:06.10    Compiling jexl-parser v0.4.0
+10:07.19    Compiling rayon v1.10.0
+10:08.10    Compiling qlog v0.16.0
+10:12.32    Compiling sync-guid v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/support/guid)
+10:12.64    Compiling wgpu-hal v30.0.0 (https://github.com/gfx-rs/wgpu?rev=db0782e398f7ba6f4f3f071d75deacec64ff84b0#db0782e3)
+10:12.75    Compiling mtu v0.4.1 (https://github.com/mozilla/neqo?tag=v0.32.0#28cacc8e)
+10:13.07    Compiling storage_variant v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/storage/variant)
+10:13.33    Compiling glslopt v0.1.14
+10:13.35    Compiling payload-support v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/support/payload)
+10:13.60    Compiling glsl v6.0.2
+10:13.62    Compiling presser v0.3.1
+10:13.83    Compiling ref-cast v1.0.24
+10:14.15    Compiling atomic_refcell v0.1.9
+10:14.35    Compiling icu_calendar_data v2.1.1
+10:14.58    Compiling arraydeque v0.5.1
+10:14.83    Compiling icu_collator_data v2.1.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/icu_collator_data)
+10:15.08    Compiling yaml-rust2 v0.10.3
+10:16.15    Compiling glsl-to-cxx v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/gfx/wr/glsl-to-cxx)
+10:16.16    Compiling gpu-allocator v0.28.0
+10:18.22    Compiling sync15 v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/sync15)
+10:20.10    Compiling ron v0.12.0
+10:21.73    Compiling dbus v0.9.12
+10:24.57    Compiling jexl-eval v0.4.0
+10:25.10    Compiling wgpu-naga-bridge v30.0.0 (https://github.com/gfx-rs/wgpu?rev=db0782e398f7ba6f4f3f071d75deacec64ff84b0#db0782e3)
+10:25.52    Compiling gleam v0.16.0
+10:26.21    Compiling rc_crypto v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/support/rc_crypto)
+10:27.08    Compiling db-crypto v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/support/db-crypto)
+10:27.39    Compiling fluent-pseudo v0.3.3
+10:27.77    Compiling nix v0.30.1
+10:28.45    Compiling enumset_derive v0.8.1
+10:29.37    Compiling debugid v0.8.0
+10:29.70    Compiling wgpu-sync v30.0.0 (https://github.com/gfx-rs/wgpu?rev=db0782e398f7ba6f4f3f071d75deacec64ff84b0#db0782e3)
+10:29.90    Compiling range-map v0.2.0
+10:30.19    Compiling alsa-sys v0.3.1
+10:30.43    Compiling firefox-versioning v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/support/firefox-versioning)
+10:30.76    Compiling peek-poke-derive v0.3.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/gfx/wr/peek-poke/peek-poke-derive)
+10:31.84    Compiling process-reader v0.1.0 (https://github.com/rust-minidump/minidump-writer.git?rev=6744feee58804a78730d176cdcc31bb4f3021107#6744feee)
+10:32.24    Compiling ref-cast-impl v1.0.24
+10:32.93    Compiling smart-default v0.7.1
+10:33.40    Compiling crossbeam-queue v0.3.8
+10:33.68    Compiling profiling v1.0.7
+10:33.85    Compiling subtle v2.6.1
+10:34.08    Compiling icu_segmenter_data v2.1.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/intl/icu_segmenter_data)
+10:34.93    Compiling linked-hash-map v0.5.6
+10:35.17    Compiling minidump-writer v0.13.0 (https://github.com/rust-minidump/minidump-writer.git?rev=6744feee58804a78730d176cdcc31bb4f3021107#6744feee)
+10:35.64    Compiling same-file v1.0.6
+10:35.86    Compiling walkdir v2.3.2
+10:37.02    Compiling crash_helper_common v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/crashreporter/crash_helper_common)
+10:39.10    Compiling icu_segmenter v2.1.2
+10:44.30    Compiling minidump-common v0.26.1
+10:48.69    Compiling process-backend v0.1.0 (https://github.com/rust-minidump/minidump-writer.git?rev=6744feee58804a78730d176cdcc31bb4f3021107#6744feee)
+10:49.23    Compiling build-parallel v0.1.2
+10:49.49    Compiling peek-poke v0.3.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/gfx/wr/peek-poke)
+10:49.75    Compiling remote_settings v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/remote_settings)
+10:52.26    Compiling enumset v1.1.2
+10:52.57    Compiling fluent v0.17.0
+10:53.30    Compiling jwcrypto v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/support/jwcrypto)
+10:54.68    Compiling icu_casemap v2.1.1
+10:55.63    Compiling swgl v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/gfx/wr/swgl)
+10:56.70    Compiling process_reader v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/crashreporter/process_reader)
+10:57.10    Compiling calendrical_calculations v0.2.3
+10:57.68    Compiling mls-rs-crypto-traits v0.22.0
+10:57.94    Compiling flatbuffers v25.12.19
+10:58.20    Compiling hashbrown v0.13.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/hashbrown-0.13)
+10:58.38    Compiling md-5 v0.10.5
+10:58.60    Compiling types v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/support/types)
+10:58.82    Compiling quinn-udp v0.6.3
+10:59.34    Compiling wgpu-core v30.0.0 (https://github.com/gfx-rs/wgpu?rev=db0782e398f7ba6f4f3f071d75deacec64ff84b0#db0782e3)
+11:00.07    Compiling procfs-core v0.18.0
+11:05.56    Compiling crash-context v0.8.0 (https://github.com/rust-minidump/minidump-writer.git?rev=6744feee58804a78730d176cdcc31bb4f3021107#6744feee)
+11:05.80    Compiling socket2 v0.6.3
+11:06.27    Compiling error-graph v0.1.1
+11:06.49    Compiling strck v1.0.0
+11:06.75    Compiling litrs v0.4.1
+11:07.21    Compiling time-core v0.1.8
+11:07.43    Compiling mozannotation_client v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/crashreporter/mozannotation_client)
+11:07.70    Compiling chunky-vec v0.1.0
+11:07.90    Compiling num-conv v0.2.0
+11:08.12    Compiling ixdtf v0.6.4
+11:08.46    Compiling failspot v0.2.0
+11:08.88    Compiling powerfmt v0.2.0
+11:09.16    Compiling pin-cell v0.2.0
+11:09.35    Compiling fluent-fallback v0.7.2
+11:09.74    Compiling deranged v0.5.8
+11:13.06    Compiling icu_calendar v2.1.1
+11:14.33    Compiling time-macros v0.2.27
+11:15.61    Compiling mozannotation_server v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/crashreporter/mozannotation_server)
+11:16.04    Compiling document-features v0.2.11
+11:16.72    Compiling diplomat_core v0.14.0
+11:18.90    Compiling mls-rs-crypto-hpke v0.21.0
+11:19.31    Compiling icu_collator v2.1.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/icu_collator)
+11:24.41    Compiling webrender v0.62.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/gfx/wr/webrender)
+11:25.01    Compiling neqo-transport v0.32.0 (https://github.com/mozilla/neqo?tag=v0.32.0#28cacc8e)
+11:32.53    Compiling mime_guess v2.0.4
+11:35.05    Compiling webrender_api v0.62.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/gfx/wr/webrender_api)
+11:40.26    Compiling sfv v0.14.0
+11:41.06    Compiling wgpu-core-deps-linux-android-bsd v30.0.0 (https://github.com/gfx-rs/wgpu?rev=db0782e398f7ba6f4f3f071d75deacec64ff84b0#db0782e3)
+11:42.43    Compiling style v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/servo/components/style)
+11:43.44    Compiling audio_thread_priority v0.38.0
+11:44.00    Compiling cubeb v0.34.1
+11:44.25    Compiling mls-rs-identity-x509 v0.21.0
+11:44.53    Compiling mozglue-static v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/mozglue/static/rust)
+11:44.83    Compiling hashbrown v0.14.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/hashbrown-0.14)
+11:45.00    Compiling skv v0.0.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/skv)
+11:46.25    Compiling tabs v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/tabs)
+11:46.56    Compiling autofill v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/autofill)
+11:46.86    Compiling webext-storage v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/webext-storage)
+11:47.16    Compiling logins v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/logins)
+11:47.47    Compiling arraystring v0.3.0
+11:48.60    Compiling neqo-udp v0.32.0 (https://github.com/mozilla/neqo?tag=v0.32.0#28cacc8e)
+11:49.28    Compiling libudev-sys v0.1.3 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/webauthn/libudev-sys)
+11:49.81    Compiling num-integer v0.1.46
+11:50.25    Compiling debug_tree v0.4.0
+11:50.66    Compiling lockstore_rs v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/lockstore/lockstore_rs)
+11:50.88    Compiling jxl_simd v0.7.4 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/jxl_simd)
+11:51.42    Compiling mio v1.2.0
+11:51.88    Compiling iovec v0.1.4
+11:52.12    Compiling freetype v0.7.0
+11:52.37    Compiling svg_fmt v0.4.1
+11:52.99    Compiling encoding_c_mem v0.2.6
+11:53.28    Compiling authenticator v0.6.1 (https://github.com/mozilla/authenticator-rs?tag=v0.6.1#67c5db64)
+11:53.55    Compiling spin v0.10.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/spin)
+11:53.72    Compiling tracy-rs v0.1.2
+11:53.94    Compiling keccak v0.1.6
+11:54.46    Compiling cose v0.1.4 (https://github.com/franziskuskiefer/cose-rust?rev=43c22248d136c8b38fe42ea709d08da6355cf04b#43c22248)
+11:54.68    Compiling replace_with v0.1.8
+11:54.86    Compiling encoding_c v0.9.8
+11:55.10    Compiling l10nregistry v0.3.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/intl/l10n/rust/l10nregistry-rs)
+11:55.98    Compiling time v0.3.47
+11:58.15    Compiling sha3 v0.10.8
+11:58.56    Compiling wr_glyph_rasterizer v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/gfx/wr/wr_glyph_rasterizer)
+11:59.61    Compiling mls-rs v0.56.0
+12:07.79    Compiling etagere v0.2.13
+12:08.35    Compiling audioipc2 v0.6.0 (https://github.com/mozilla/audioipc?rev=ef46a7bd05032d1577208ff048d444cc7412c7b8#ef46a7bd)
+12:09.29    Compiling jxl_transforms v0.7.4
+12:13.39    Compiling libudev v0.2.0
+12:13.70    Compiling rsclientcerts v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/rsclientcerts)
+12:14.14    Compiling kvstore v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/kvstore)
+12:16.75    Compiling fallible_collections v0.5.1
+12:23.80 W warning: swgl@0.1.0: clang++: warning: overriding '-ffast-math' option with '-ffp-contract=off' [-Woverriding-option]
+12:24.90    Compiling url-macro v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/support/url-macro)
+12:25.27    Compiling prost-derive v0.13.5
+12:27.56    Compiling alsa v0.9.1
+12:28.67    Compiling neqo-qpack v0.32.0 (https://github.com/mozilla/neqo?tag=v0.32.0#28cacc8e)
+12:29.42    Compiling mls-rs-crypto-nss v0.2.2 (https://github.com/mozilla/mls-platform-api?tag=0.42.1#154b0e9e)
+12:30.72    Compiling diplomat v0.14.0
+12:31.84    Compiling icu_time v2.1.1
+12:32.62    Compiling trust-anchors v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/trust_anchors)
+12:33.83    Compiling fluent-ffi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/intl/l10n/rust/fluent-ffi)
+12:34.45    Compiling cubeb-backend v0.34.1
+12:34.69    Compiling style_traits v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/servo/components/style_traits)
+12:35.14    Compiling dom v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/base/rust)
+12:35.61    Compiling qwac-trust-anchors v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/qwac_trust_anchors)
+12:35.98    Compiling pdf-trust-anchors v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/pdf_trust_anchors)
+12:36.44    Compiling wgpu-core-remote-types v30.0.0 (https://github.com/gfx-rs/wgpu?rev=db0782e398f7ba6f4f3f071d75deacec64ff84b0#db0782e3)
+12:38.39    Compiling mls-rs-provider-sqlite v0.23.0 (https://github.com/mozilla/mls-platform-api?tag=0.42.1#154b0e9e)
+12:39.52    Compiling context_id v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/context_id)
+12:40.41    Compiling serde_cbor_2 v0.13.0
+12:41.13    Compiling icu_provider_adapters v2.1.1
+12:41.41    Compiling itertools v0.13.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/itertools-0.13)
+12:41.64    Compiling uluru v3.0.0
+12:41.84    Compiling rand_distr v0.4.3
+12:42.94    Compiling urlpattern v0.6.0
+12:43.80    Compiling style_derive v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/servo/components/style_derive)
+12:45.30    Compiling plane-split v0.18.0
+12:45.39    Compiling http v1.4.0
+12:45.71    Compiling noise v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/noise)
+12:45.94    Compiling object v0.36.4
+12:46.33    Compiling pulse-ffi v0.1.0 (https://github.com/mozilla/cubeb-pulse-rs?rev=88194f91c8778fa608a19af7b91306094525595d#88194f91)
+12:46.63    Compiling dirs-sys v0.3.7
+12:46.97    Compiling bitreader v0.3.6
+12:47.27    Compiling clubcard v0.3.3
+12:47.53    Compiling jxl_macros v0.7.4
+12:48.47    Compiling extend v1.2.0
+12:48.50    Compiling runloop v0.1.0
+12:48.77    Compiling zerocopy v0.8.27
+12:49.32    Compiling diplomat-runtime v0.14.0
+12:49.53    Compiling cache-padded v1.2.0
+12:49.58    Compiling seahash v4.1.0
+12:49.76    Compiling quick-error v1.2.3
+12:49.86    Compiling harfbuzz-sys v0.6.1 (https://github.com/hsivonen/rust-harfbuzz?rev=9d58a23a98772a197291d04af93f7041b7093d95#9d58a23a)
+12:49.95    Compiling moz_cbor v0.1.2
+12:50.10    Compiling zlib-rs v0.6.3 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/zlib-rs)
+12:50.29    Compiling array-init v2.1.0
+12:50.48    Compiling mime v0.3.16
+12:50.82    Compiling murmurhash3 v0.0.5
+12:51.07    Compiling rust_cascade v1.5.0
+12:51.95    Compiling jxl v0.7.4
+12:52.94    Compiling harfbuzz v0.6.0 (https://github.com/hsivonen/rust-harfbuzz?rev=9d58a23a98772a197291d04af93f7041b7093d95#9d58a23a)
+12:53.20    Compiling dns-parser v0.8.0
+12:53.64    Compiling etp_engine v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/content-classifier/etp_engine)
+12:56.66    Compiling ringbuf v0.2.8
+12:56.98    Compiling icu_capi v2.1.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/intl/icu_capi)
+12:58.19    Compiling suggest v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/suggest)
+13:04.89    Compiling clubcard-crlite v0.4.0
+13:05.54    Compiling mp4parse v0.17.0 (https://github.com/mozilla/mp4parse-rust?rev=f0c80783227a1fb46f34cb04e10607045eac4297#f0c80783)
+13:06.76    Compiling dirs v4.0.0
+13:07.02    Compiling pulse v0.3.0 (https://github.com/mozilla/cubeb-pulse-rs?rev=88194f91c8778fa608a19af7b91306094525595d#88194f91)
+13:08.12    Compiling neqo-http3 v0.32.0 (https://github.com/mozilla/neqo?tag=v0.32.0#28cacc8e)
+13:10.50    Compiling wgpu-core-remote v30.0.0 (https://github.com/gfx-rs/wgpu?rev=db0782e398f7ba6f4f3f071d75deacec64ff84b0#db0782e3)
+13:14.00    Compiling relevancy v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/relevancy)
+13:15.55    Compiling ads-client v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/ads-client)
+13:17.65    Compiling buildid_reader v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/library/buildid_reader)
+13:17.96    Compiling mls-platform-api v0.42.0 (https://github.com/mozilla/mls-platform-api?tag=0.42.1#154b0e9e)
+13:19.65    Compiling l10nregistry-ffi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/intl/l10n/rust/l10nregistry-ffi)
+13:21.91    Compiling midir v0.10.3 (https://github.com/mozilla/midir.git?rev=54759f681f3b523e120d047adec2bb1a97152017#54759f68)
+13:22.36    Compiling prost v0.13.5
+13:22.89    Compiling rust_minidump_writer_linux v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/crashreporter/rust_minidump_writer_linux)
+13:35.67    Compiling prio v0.16.2
+13:37.03    Compiling collator_glue v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/js/src/builtin/intl/collator_glue)
+13:37.52    Compiling filter_adult v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/filter_adult)
+13:38.10    Compiling properties_glue v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/js/src/irregexp/properties_glue)
+13:38.38    Compiling search v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/search)
+13:40.72    Compiling storage v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/storage/rust)
+13:41.02    Compiling mozurl v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/base/mozurl)
+13:41.42    Compiling init_rust_components v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/init_rust_components)
+13:41.92    Compiling dogear v0.5.0
+13:42.92    Compiling breach-alerts v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/breach-alerts)
+13:43.65    Compiling locale_glue v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/js/src/builtin/intl/locale_glue)
+13:43.92    Compiling unic-langid-ffi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/intl/locale/rust/unic-langid-ffi)
+13:44.16    Compiling sha1 v0.10.5
+13:44.58    Compiling fxcontainers v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/application-services/components/fxcontainers)
+13:46.02    Compiling uritemplate-next v0.2.0
+13:46.66    Compiling ipdl_utils v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/ipc/rust/ipdl_utils)
+13:46.84    Compiling happy-eyeballs v1.0.0 (https://github.com/mozilla/happy-eyeballs?tag=v1.0.0#2e1a2d7a)
+13:47.77    Compiling webrtc-sdp v0.3.14
+13:49.92    Compiling normalizer_glue v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/js/src/builtin/normalizer_glue)
+13:50.43    Compiling unicode-bidi-ffi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/intl/bidi/rust/unicode-bidi-ffi)
+13:50.95    Compiling xmldecl v0.2.0
+13:51.29    Compiling chardetng v1.0.0
+13:52.41    Compiling origin-trial-token v0.1.1
+13:53.30    Compiling data-encoding v2.3.3
+13:57.06    Compiling rustc-demangle v0.1.21
+13:58.10    Compiling oxilangtag v0.1.3
+13:58.73    Compiling typed-arena-nomut v0.1.0
+13:59.06    Compiling wpf-gpu-raster v0.1.0 (https://github.com/FirefoxGraphics/wpf-gpu-raster?rev=99979da091fd58fba8477e7fcdf5ec0727102916#99979da0)
+13:59.93    Compiling oxilangtag-ffi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/intl/locale/rust/oxilangtag-ffi)
+14:00.42    Compiling profiler_helper v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/tools/profiler/rust-helper)
+14:00.96    Compiling data-encoding-ffi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/fs/parent/rust/data-encoding-ffi)
+14:01.25    Compiling origin-trials-ffi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/origin-trials/ffi)
+14:01.49    Compiling chardetng_c v1.0.0
+14:01.75    Compiling encoding_glue v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/intl/encoding_glue)
+14:02.03    Compiling jsrust_shared v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/js/src/rust/shared)
+14:02.28    Compiling rsdparsa_capi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/media/webrtc/sdp/rsdparsa_capi)
+14:03.04    Compiling happy_eyeballs_glue v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/protocol/http/happy_eyeballs_glue)
+14:03.75    Compiling uritemplate_glue v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/base/uritemplate_glue)
+14:04.10    Compiling gkrust-uniffi-components v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/uniffi-bindgen-gecko-js/components)
+14:05.46    Compiling geckoservo v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/servo/ports/geckolib)
+14:05.84    Compiling crypto_hash v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/crypto_hash)
+14:06.45    Compiling fluent-langneg-ffi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/intl/locale/rust/fluent-langneg-ffi)
+14:06.84    Compiling bookmark_sync v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/places/bookmark_sync)
+14:07.84    Compiling urlpattern_glue v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/base/urlpattern_glue)
+14:08.95    Compiling dap_ffi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/dap/ffi)
+14:09.79    Compiling lockstore_ffi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/lockstore/lockstore_ffi)
+14:10.59    Compiling crash_helper_client v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/crashreporter/crash_helper_client)
+14:11.31    Compiling gecko-trace v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/gecko-trace)
+14:13.25    Compiling midir_impl v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/midi/midir_impl)
+14:13.93    Compiling neqo_glue v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/socket/neqo_glue)
+14:16.26    Compiling localization-ffi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/intl/l10n/rust/localization-ffi)
+14:17.31    Compiling mls_gk v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/mls/mls_gk)
+14:17.39    Compiling buildid_reader_ffi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/library/buildid_reader/ffi)
+14:17.67    Compiling authrs_bridge v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/webauthn/authrs_bridge)
+14:17.97    Compiling wgpu_bindings v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/gfx/wgpu_bindings)
+14:21.56    Compiling cubeb-pulse v0.5.0 (https://github.com/mozilla/cubeb-pulse-rs?rev=88194f91c8778fa608a19af7b91306094525595d#88194f91)
+14:21.79    Compiling mp4parse_capi v0.17.0 (https://github.com/mozilla/mp4parse-rust?rev=f0c80783227a1fb46f34cb04e10607045eac4297#f0c80783)
+14:22.20    Compiling cert_storage v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/cert_storage)
+14:23.56    Compiling jxl_decoder v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/image/rust/jxl)
+14:25.35    Compiling content_classifier_engine v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/content-classifier/content_classifier_engine)
+14:25.51    Compiling mdns_service v0.1.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/media/webrtc/transport/mdns_service)
+14:25.73    Compiling harfbuzz_glue v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/gfx/harfbuzz_glue)
+14:25.97    Compiling cose-c v0.1.5
+14:26.14    Compiling libz-rs-sys v0.6.3
+14:26.26    Compiling mime-guess-ffi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/fs/parent/rust/mime-guess-ffi)
+14:26.43    Compiling cascade_bloom_filter v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/cascade_bloom_filter)
+14:26.51    Compiling dom_speculationrules v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/base/speculationrules)
+14:26.71    Compiling audioipc2-client v0.6.0 (https://github.com/mozilla/audioipc?rev=ef46a7bd05032d1577208ff048d444cc7412c7b8#ef46a7bd)
+14:27.55    Compiling remotecerts v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/remotecerts)
+14:27.89    Compiling ipcclientcerts v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/ipcclientcerts)
+14:28.75    Compiling audioipc2-server v0.6.0 (https://github.com/mozilla/audioipc?rev=ef46a7bd05032d1577208ff048d444cc7412c7b8#ef46a7bd)
+14:29.04    Compiling idna_glue v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/base/idna_glue)
+14:29.43    Compiling http_sfv v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/base/http-sfv)
+14:29.56    Compiling app_collator_glue v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/intl/app_collator_glue)
+14:29.80    Compiling xdg_alerts v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/system/gnome/rust)
+14:30.27    Compiling dom_fragmentdirectives v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/base/fragmentdirectives)
+14:30.46    Compiling data_storage v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/data_storage)
+14:30.62    Compiling jog v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/glean/bindings/jog)
+14:31.35    Compiling fog_control v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/glean)
+14:32.02    Compiling mapped_hyph v0.4.3 (https://github.com/jfkthame/mapped_hyph.git?rev=eff105f6ad7ec9b79816cfc1985a28e5340ad14b#eff105f6)
+14:32.56    Compiling viaduct-necko v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/services/application-services/components/viaduct-necko)
+14:32.75    Compiling binary_http v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/protocol/http/binary_http)
+14:32.95    Compiling oblivious_http v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/protocol/http/oblivious_http)
+14:33.20    Compiling locale_service_glue v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/intl/locale/rust/locale_service_glue)
+14:33.42    Compiling sitecategories v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/sitecategories)
+14:33.57    Compiling abridged_certs v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/abridged_certs)
+14:33.90    Compiling gecko_tracing v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/xpcom/rust/gecko_tracing)
+14:34.07    Compiling rure v0.2.2 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/rure)
+14:34.33    Compiling signature_cache v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/certverifier/signature_cache)
+14:34.70    Compiling aa-stroke v0.1.0 (https://github.com/FirefoxGraphics/aa-stroke?rev=5776bdfc8ad664a1503db668fab397d818a5f98a#5776bdfc)
+14:34.72    Compiling gecko_logger v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/xpcom/rust/gecko_logger)
+14:35.10    Compiling processtools v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/processtools)
+14:35.15    Compiling gkrust_utils v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/xpcom/rust/gkrust_utils)
+14:35.37    Compiling dom_push v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/push/rust)
+14:35.38    Compiling netwerk_helper v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/base/rust-helper)
+14:35.79    Compiling moz_asserts v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/mozglue/static/rust/moz_asserts)
+14:36.06    Compiling qcms v0.3.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/gfx/qcms)
+14:36.21    Compiling prefs_parser v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/modules/libpref/parser)
+14:37.29 security/nss/lib/nss/out.nss.def.stub
+14:37.46 config/external/nspr/ds
+14:37.86    Compiling mozilla-central-workspace-hack v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/workspace-hack)
+14:38.00 config/external/nspr/pr
+14:38.07 config/external/nspr/libc
+14:38.50 W 1 warning generated.
+14:39.30 W 9 warnings generated.
+14:39.58 security/nss/lib/base
+14:39.99 W 5 warnings generated.
+14:41.20 W 50 warnings generated.
+14:41.26 security/nss/lib/certdb
+14:41.32 security/nss/lib/certhigh
+14:43.68 security/nss/lib/cryptohi
+14:44.59 security/nss/lib/dev
+14:45.06 security/nss/lib/nss
+14:45.78 security/nss/lib/pk11wrap
+14:46.27 security/nss/lib/pki
+14:48.62 security/nss/lib/util/out.nssutil.def.stub
+14:49.02 security/nss/lib/util
+14:52.76 security/nss/lib/smime/out.smime.def.stub
+14:53.09 security/nss/lib/pkcs12
+14:54.44 security/nss/lib/pkcs7
+14:55.03 security/nss/lib/smime
+14:56.16 security/nss/lib/ssl/out.ssl.def.stub
+14:56.31 security/nss/lib/freebl
+14:56.82 security/nss/lib/ssl
+15:00.05 browser/app
+15:01.84 build/pure_virtual
+15:02.18 memory/build
+15:05.54 memory/mozalloc
+15:06.34 memory/replace/dmd
+15:06.99 memory/replace/logalloc
+15:07.25 mfbt
+15:08.85 mozglue/baseprofiler
+15:09.20 mozglue/build
+15:09.29 mozglue/interposers
+15:10.99 mozglue/misc
+15:16.71 third_party/fmt
+15:19.49 xpcom/glue/standalone
+15:21.82 config/external/mozinference/libmozinference.so.symbols.stub
+15:22.00 third_party/llama.cpp
+15:23.30 third_party/parakeet.cpp
+15:29.36 W 3 warnings generated.
+15:32.04 W 6 warnings generated.
+15:35.08 W 2 warnings generated.
+15:42.52 W 1 warning generated.
+15:44.46 config/external/wasm2c_sandbox_compiler
+16:49.72 dom/bindings/test
+17:33.07 dom/media/fake-cdm
+17:35.39 dom/media/gmp-plugin-openh264
+17:35.90 ipc/app
+17:36.68 toolkit/library/build/libxul.so.symbols.stub
+17:37.22 accessible/aom
+17:43.66 accessible/atk
+18:21.23 W 2 warnings generated.
+19:12.28 accessible/base
+19:40.67 accessible/basetypes
+19:46.75 accessible/generic
+19:53.15 accessible/html
+20:05.03 accessible/ipc
+20:09.73 accessible/pdf
+20:24.08 accessible/xpcom
+20:26.54 accessible/xul
+20:39.90 browser/components/about
+20:41.12 browser/components/shell
+20:51.35 caps
+20:56.47 W 1 warning generated.
+20:59.92 chrome
+21:13.17 config/external/gkcodecs/libgkcodecs.so.symbols.stub
+21:13.38 media/libaom
+21:46.05    Compiling webrender_bindings v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/gfx/webrender_bindings)
+21:49.04    Compiling gkrust-shared v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/library/rust/shared)
+21:49.41    Compiling gkrust v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/library/rust)
+21:57.42     Finished `release` profile [optimized] target(s) in 16m 07s
+21:58.17 toolkit/library/rust/libgkrust.a
+21:59.61 media/libogg
+22:00.63 media/libopus
+22:00.89 W 1 warning generated.
+22:07.30 W 1 warning generated.
+22:11.12 media/libvorbis
+22:11.75 W 1 warning generated.
+22:16.25 media/libvpx
+22:23.04 W 2 warnings generated.
+22:38.85 W 1 warning generated.
+22:39.12 W 4 warnings generated.
+22:44.96 W 4 warnings generated.
+22:58.98 W 1 warning generated.
+23:31.60 config/external/icu/common
+23:33.98 W 1 warning generated.
+23:46.18 W 1 warning generated.
+24:18.01 W 2 warnings generated.
+24:27.81 config/external/icu/data/icu_data.o
+24:28.62 config/external/icu/i18n
+25:08.65 config/external/rlbox
+25:10.75 config/external/rlbox_wasm2c_sandbox
+25:12.89 devtools/platform
+25:18.43 devtools/shared/heapsnapshot
+26:13.01 W 1 warning generated.
+26:14.40 docshell/base
+26:49.72 docshell/build
+26:54.90 docshell/shistory
+26:54.98 dom/abort
+27:02.51 dom/animation
+27:20.49 dom/audiochannel
+27:23.22 dom/base/UseCounterMetrics.cpp.stub
+27:23.45 dom/battery
+27:25.51 dom/bindings
+27:51.25 dom/broadcastchannel
+28:08.30 dom/cache
+29:10.64 dom/canvas
+33:24.36 dom/clients/api
+34:14.91 dom/clients/manager
+35:09.60 dom/closewatcher
+35:23.91 dom/commandhandler
+35:45.02 dom/compression
+36:10.63 dom/console
+36:28.90 dom/cookiestore
+36:42.37 dom/credentialmanagement/digital
+36:46.97 dom/credentialmanagement/identity
+36:51.76 dom/credentialmanagement
+36:59.17 dom/crypto
+37:04.25 dom/debugger
+37:07.81 dom/documentpip
+37:09.35 dom/encoding
+37:13.32 dom/events
+37:39.99 dom/fetch
+38:12.55 dom/file/ipc
+38:25.54 dom/file
+38:31.04 dom/file/uri
+38:37.45 dom/filesystem/compat
+38:41.95 dom/filesystem
+38:43.13 dom/flex
+38:47.49 dom/fs/api
+38:54.95 dom/fs/child
+39:01.76 dom/fs/parent/datamodel
+39:10.25 dom/fs/parent
+39:18.78 dom/fs/shared
+39:25.73 dom/gamepad
+39:37.77 dom/geolocation
+39:42.55 dom/grid
+39:49.75 dom/html/input
+40:01.59 dom/html
+40:22.52 dom/indexedDB
+41:38.63 dom/ipc/jsactor
+41:58.83 dom/ipc
+42:29.28 dom/jsurl
+43:41.43 dom/l10n
+43:59.51 dom/localstorage
+44:30.43 dom/locks
+44:35.93 dom/mathml
+44:42.51 dom/media/autoplay
+44:43.05 dom/media/bridge
+44:50.01 dom/media/doctor
+44:51.88 dom/media/driftcontrol
+44:54.90 dom/media/eme
+44:58.33 dom/media/encoder
+45:09.05 dom/media/flac
+45:12.27 dom/media/gmp
+45:40.38 dom/media/gmp/widevine-adapter
+45:43.81 dom/media/imagecapture
+45:47.70 dom/media/ipc
+45:59.33 dom/media/mediacapabilities
+46:25.83 dom/media/mediacontrol
+46:44.18 dom/media/mediaelement
+47:14.56 dom/media/mediasession
+47:25.30 dom/media/mediasource
+47:50.01 dom/media/mp3
+48:00.83 dom/media/mp4
+48:19.25 dom/media/platforms/agnostic/bytestreams
+48:25.74 dom/media/platforms/agnostic/eme
+48:35.96 dom/media/platforms/agnostic/gmp
+48:39.51 dom/media/platforms/ffmpeg/ffmpeg57
+48:43.83 dom/media/platforms/ffmpeg/ffmpeg58
+48:50.13 dom/media/platforms/ffmpeg/ffmpeg59
+48:56.54 dom/media/platforms/ffmpeg/ffmpeg60
+49:02.77 dom/media/platforms/ffmpeg/ffmpeg61
+49:10.22 dom/media/platforms/ffmpeg/ffmpeg62
+49:16.80 dom/media/platforms/ffmpeg/ffmpeg63
+49:24.67 dom/media/platforms/ffmpeg/ffvpx
+49:31.01 dom/media/platforms/ffmpeg/libav53
+49:40.74 dom/media/platforms/ffmpeg/libav54
+49:43.41 dom/media/platforms/ffmpeg/libav55
+49:51.13 dom/media/platforms/ffmpeg
+49:53.88 dom/media/platforms/omx
+49:56.86 dom/media/platforms
+50:11.93 dom/media/systemservices
+50:17.97 dom/media/test/rdd_process_xpcom
+50:39.25 dom/media/utils
+50:43.87 dom/media/wave
+50:47.71 dom/media/webaudio/blink
+50:49.41 dom/media/webaudio
+50:57.45 dom/media/webcodecs
+51:29.70 dom/media/webm
+51:33.07 dom/media/webrtc/common
+51:37.81 dom/media/webrtc/jsapi
+52:09.65 W 2 warnings generated.
+52:09.66 dom/media/webrtc/jsep
+52:14.60 W 2 warnings generated.
+52:15.23 dom/media/webrtc/libwebrtc_overrides
+52:16.04 dom/media/webrtc/libwebrtcglue
+52:22.50 dom/media/webrtc/sdp
+52:42.92 dom/media/webrtc
+52:43.43 W 1 warning generated.
+52:48.68 dom/media/webrtc/transport/build
+53:15.96 W 2 warnings generated.
+53:17.49 dom/media/webrtc/transport/ipc
+53:31.75 dom/media/webrtc/transport/third_party/nICEr
+53:41.75 dom/media/webrtc/transport/third_party/nrappkit
+53:43.44 dom/media/webrtc/transportbridge
+53:50.11 dom/media/webspeech/recognition
+54:03.00 dom/media/webspeech/synth/speechd
+54:06.31 dom/media/webspeech/synth
+54:12.88 dom/media/webvtt
+54:19.99 dom/messagechannel
+54:21.65 dom/midi
+54:34.51 dom/mls
+54:46.39 dom/modelcontext
+54:52.58 dom/navigation
+54:55.61 dom/network
+55:12.33 dom/notification
+55:13.96 dom/onnx
+55:28.26 dom/origin-trials/keys.inc.stub
+55:28.49 dom/payments/ipc
+55:30.08 dom/payments
+55:38.92 dom/performance
+55:52.37 dom/permission
+55:55.03 dom/power
+56:06.32 dom/promise
+56:06.46 dom/prototype
+56:14.42 dom/push
+56:19.01 dom/quota
+56:30.27 dom/reporting
+56:47.49 dom/script
+57:20.56 dom/security/permissionspolicy
+57:23.94 dom/security/sanitizer
+57:29.59 dom/security
+57:42.38 dom/security/trusted-types
+57:50.54 dom/serializers
+57:51.14 dom/serviceworkers
+58:27.41 dom/simpledb
+58:40.73 dom/smil
+58:50.40 dom/storage
+59:06.20 dom/streams
+59:16.11 dom/svg
+59:34.64 dom/system/linux
+59:46.71 dom/system
+60:00.05 dom/url
+60:08.96 dom/urlpattern
+60:14.56 dom/view-transitions
+60:22.36 dom/vr
+60:33.70 dom/webauthn
+60:40.22 dom/webbrowserpersist
+60:59.22 dom/webgpu
+61:16.82 dom/webscheduling
+61:25.51 dom/webserial
+61:33.95 dom/websocket
+61:43.23 dom/webtransport/api
+61:44.21 dom/webtransport/child
+61:48.57 dom/webtransport/parent
+61:58.45 dom/webtransport/shared
+62:01.66 dom/workers/loader
+62:07.28 dom/workers/remoteworkers
+62:24.70 dom/workers/sharedworkers
+62:35.41 dom/workers
+62:49.16 dom/worklet/loader
+62:54.25 dom/worklet
+63:02.18 dom/xhr
+63:04.01 dom/xml
+63:16.38 dom/xslt/base
+63:17.98 dom/xslt/xml
+63:21.59 dom/xslt/xpath
+63:24.98 dom/xslt/xslt
+63:45.72 dom/xul
+64:00.44 editor/composer
+64:04.12 editor/libeditor
+64:24.96 editor/spellchecker
+64:38.66 editor/txmgr
+64:53.37 extensions/auth
+65:04.34 extensions/permissions
+65:06.75 extensions/pref/autoconfig/src
+65:12.02 extensions/spellcheck/ipc
+65:20.93 extensions/spellcheck/src
+65:26.95 gfx/2d
+65:43.10 gfx/cairo/cairo/src
+66:06.61 gfx/config
+66:10.49 gfx/gl
+66:28.19 gfx/harfbuzz/src
+66:35.12 gfx/ipc
+67:28.87 gfx/layers
+67:34.37 gfx/pixman/pixman/pixman
+68:20.87 gfx/skia
+69:10.63 W 1 warning generated.
+71:13.08 gfx/src
+71:26.11 gfx/vr/service/openvr
+71:30.40 gfx/vr/service
+71:42.91 gfx/vr
+72:10.57 gfx/webrender_bindings
+72:17.98 gfx/ycbcr
+72:34.18 hal
+72:45.04 image/build
+72:49.91 image/decoders/icon/gtk
+72:50.23 image/decoders/icon
+72:53.62 image/decoders
+73:01.09 image/encoders/bmp
+73:02.68 image/encoders/ico
+73:04.16 image/encoders/jpeg
+73:05.52 image/encoders/png
+73:08.63 image/encoders/webp
+73:09.94 image/remote
+73:10.70 image
+73:36.58 intl/components/src/calendar
+73:37.94 intl/components
+73:45.31 intl/hyphenation/glue
+73:46.72 intl/l10n
+73:56.39 intl/locale/gtk
+73:58.00 intl/locale
+73:59.61 intl/lwbrk
+74:01.94 intl/strres
+74:02.27 intl/uconv
+74:04.55 intl/unicharutil/util
+74:09.85 ipc/chromium/src/third_party
+74:11.15 ipc/chromium
+74:21.97 ipc/glue
+74:32.46 ipc/glue/test/utility_process_xpcom
+75:08.65 ipc/ipdl
+75:20.97 ipc/testshell
+75:30.01 js/loader
+75:37.83 config/external/ffi
+75:38.52 js/src/builtin/intl
+75:38.93 config/external/ffi/unix64.o
+75:39.09 config/external/ffi/win64.o
+75:47.50 js/src/builtin
+76:19.01 js/src/builtin/temporal
+76:33.76 js/src/ctypes
+76:40.42 js/src/debugger
+76:50.99 js/src/ds
+76:52.79 js/src/frontend
+77:09.20 js/src/gc/StatsPhasesGenerated.inc.stub
+77:09.76 js/src/intgemm
+77:25.87 js/src/irregexp
+78:08.50 js/src/jit
+78:31.86 js/src/proxy
+78:45.70 js/src
+79:10.30 js/src/threading
+79:42.39 js/src/util
+80:11.46 js/src/vm
+80:44.71 js/src/vtune
+80:58.17 js/src/wasm
+82:36.97 js/src/xsum
+82:37.60 modules/fdlibm/src
+82:45.84 mozglue/static
+82:51.07 js/xpconnect/loader
+83:00.55 js/xpconnect/src
+83:17.22 js/xpconnect/tests/components/native
+83:21.15 js/xpconnect/wrappers
+83:28.41 layout/base
+84:03.16 layout/forms
+84:18.36 layout/generic
+85:13.32 layout/inspector
+85:28.66 layout/ipc
+85:35.50 layout/mathml
+85:43.53 layout/painting
+85:47.86 layout/printing
+86:06.45 layout/style/nsComputedDOMStyleGenerated.inc.stub
+86:06.45 layout/style/nsCSSPropsGenerated.inc.stub
+86:07.12 layout/style/typedom
+86:19.95 layout/svg
+86:38.02 layout/tables
+86:43.07 layout
+86:54.40 layout/xul
+86:55.85 layout/xul/tree
+87:09.42 media/libcubeb/src
+87:12.81 media/libdav1d/asm
+87:13.49 media/libdav1d/16bd_cdef_apply_tmpl.c.stub
+87:13.49 media/libdav1d/8bd_cdef_apply_tmpl.c.stub
+87:13.67 media/libdav1d/16bd_cdef_tmpl.c.stub
+87:13.83 media/libdav1d/8bd_cdef_tmpl.c.stub
+87:13.99 media/libdav1d/16bd_fg_apply_tmpl.c.stub
+87:14.13 media/libdav1d/8bd_fg_apply_tmpl.c.stub
+87:14.26 media/libdav1d/16bd_filmgrain_tmpl.c.stub
+87:14.40 media/libdav1d/8bd_filmgrain_tmpl.c.stub
+87:14.53 media/libdav1d/16bd_ipred_prepare_tmpl.c.stub
+87:14.67 media/libdav1d/8bd_ipred_prepare_tmpl.c.stub
+87:14.80 media/libdav1d/16bd_ipred_tmpl.c.stub
+87:14.94 media/libdav1d/8bd_ipred_tmpl.c.stub
+87:15.07 media/libdav1d/16bd_itx_tmpl.c.stub
+87:15.21 media/libdav1d/8bd_itx_tmpl.c.stub
+87:15.34 media/libdav1d/16bd_lf_apply_tmpl.c.stub
+87:15.48 media/libdav1d/8bd_lf_apply_tmpl.c.stub
+87:15.61 media/libdav1d/16bd_loopfilter_tmpl.c.stub
+87:15.75 media/libdav1d/8bd_loopfilter_tmpl.c.stub
+87:15.89 media/libdav1d/16bd_looprestoration_tmpl.c.stub
+87:16.02 media/libdav1d/8bd_looprestoration_tmpl.c.stub
+87:16.16 media/libdav1d/16bd_lr_apply_tmpl.c.stub
+87:16.29 media/libdav1d/8bd_lr_apply_tmpl.c.stub
+87:16.43 media/libdav1d/16bd_mc_tmpl.c.stub
+87:16.56 media/libdav1d/8bd_mc_tmpl.c.stub
+87:16.70 media/libdav1d/16bd_recon_tmpl.c.stub
+87:16.84 media/libdav1d/8bd_recon_tmpl.c.stub
+87:17.19 media/libjpeg/src/wrapper
+87:36.95 media/libjpeg
+87:53.18 media/libmkv
+87:53.34 W 1 warning generated.
+88:00.78 media/libnestegg/src
+88:01.42 W 1 warning generated.
+88:01.64 media/libpng
+88:02.69 W 1 warning generated.
+88:04.97 W 15 warnings generated.
+88:08.47 media/libspeex_resampler/src
+88:09.93 media/libwebp/sharpyuv
+88:11.94 media/libwebp/src/dec
+88:15.40 media/libwebp/src/demux
+88:16.75 media/libwebp/src/dsp
+88:32.07 media/libwebp/src/enc
+88:39.12 media/libwebp/src/moz
+88:39.50 media/libwebp/src/utils
+88:42.09 media/libyuv/libyuv
+88:43.87 media/mozva
+88:45.89 media/psshparser
+88:47.22 modules/brotli
+88:51.87 modules/libjar
+88:55.58 modules/libjar/zipwriter
+88:58.74 modules/libpref
+88:59.29 netwerk/base/http-sfv
+89:01.59 netwerk/base/mozurl
+89:03.65 netwerk/base/ascii_pac_utils.inc.stub
+89:03.82 netwerk/base/urlpattern_glue
+89:07.41 netwerk/dns/etld_data.inc.stub
+89:07.91 netwerk/cache2
+89:28.98 netwerk/cookie
+89:48.06 netwerk/dns
+89:52.99 netwerk/ipc
+90:56.78 netwerk/mime
+90:58.52 netwerk/protocol/about
+91:02.89 netwerk/protocol/data
+91:03.81 netwerk/protocol/file
+91:14.27 netwerk/protocol/http/happy_eyeballs_glue
+91:15.52 netwerk/protocol/http
+91:31.00 netwerk/protocol/res
+92:38.47 netwerk/protocol/viewsource
+92:47.51 netwerk/protocol/websocket
+93:00.78 netwerk/protocol/webtransport
+93:04.65 netwerk/sctp/datachannel
+93:17.45 netwerk/sctp/src
+93:17.76 W 10 warnings generated.
+93:24.28 netwerk/socket/neqo_glue
+93:24.36 netwerk/socket
+93:24.66 netwerk/streamconv/converters
+93:27.51 netwerk/streamconv
+93:29.64 netwerk/system/linux
+93:30.70 netwerk/system/netlink
+93:32.37 netwerk/system
+93:33.06 netwerk/url-classifier
+93:40.82 netwerk/wifi
+93:43.99 other-licenses/snappy
+93:45.21 parser/html
+93:56.59 parser/htmlaccel
+94:02.31 parser/prototype
+94:07.14 security/certverifier
+94:09.02 security/ct
+94:12.54 security/lockstore
+94:15.49 security/manager/pki
+94:17.47 security/manager/ssl/nsSTSPreloadListGenerated.inc.stub
+94:17.47 security/manager/ssl/xpcshell.inc.stub
+94:17.59 security/manager/ssl/addons-public.inc.stub
+94:17.76 security/nss/lib/mozpkix
+94:24.01 security/manager/ssl/addons-public-intermediate.inc.stub
+94:24.18 security/manager/ssl/addons-stage.inc.stub
+94:24.34 security/manager/ssl/addons-stage-intermediate.inc.stub
+94:24.49 security/manager/ssl/content-signature-prod.inc.stub
+94:24.65 security/manager/ssl/content-signature-stage.inc.stub
+94:24.79 security/manager/ssl/content-signature-dev.inc.stub
+94:24.95 security/manager/ssl/content-signature-local.inc.stub
+94:25.81 security/sandbox/common
+94:25.87 security/sandbox/linux/broker
+94:29.34 security/sandbox/linux/glue
+94:36.71 security/sandbox/linux/launch
+94:43.80 security/sandbox/linux/reporter
+94:46.76 security/sandbox/linux
+94:49.03 services/application-services/components/viaduct-necko
+94:52.34 startupcache
+94:58.87 storage
+95:15.12 third_party/abseil-cpp/absl/base/base_gn
+95:16.01 third_party/abseil-cpp/absl/base/cpu_detect_gn
+95:16.40 third_party/abseil-cpp/absl/base/log_severity_gn
+95:16.86 third_party/abseil-cpp/absl/base/malloc_internal_gn
+95:17.66 third_party/abseil-cpp/absl/base/raw_logging_internal_gn
+95:18.15 third_party/abseil-cpp/absl/base/spinlock_wait_gn
+95:18.18 third_party/abseil-cpp/absl/base/strerror_gn
+95:18.57 third_party/abseil-cpp/absl/base/throw_delegate_gn
+95:18.57 third_party/abseil-cpp/absl/base/tracing_internal_gn
+95:18.66 third_party/abseil-cpp/absl/container/hashtablez_sampler_gn
+95:19.16 third_party/abseil-cpp/absl/container/raw_hash_set_gn
+95:19.53 third_party/abseil-cpp/absl/crc/crc32c_gn
+95:20.84 third_party/abseil-cpp/absl/crc/crc_cord_state_gn
+95:21.09 third_party/abseil-cpp/absl/crc/crc_internal_gn
+95:21.83 third_party/abseil-cpp/absl/debugging/debugging_internal_gn
+95:21.99 third_party/abseil-cpp/absl/debugging/decode_rust_punycode_gn
+95:22.37 third_party/abseil-cpp/absl/debugging/demangle_internal_gn
+95:22.68 third_party/abseil-cpp/absl/debugging/demangle_rust_gn
+95:23.02 third_party/abseil-cpp/absl/debugging/examine_stack_gn
+95:23.52 third_party/abseil-cpp/absl/debugging/failure_signal_handler_gn
+95:23.70 third_party/abseil-cpp/absl/debugging/leak_check_gn
+95:23.79 third_party/abseil-cpp/absl/debugging/stacktrace_gn
+95:24.17 third_party/abseil-cpp/absl/debugging/symbolize_gn
+95:24.47 third_party/abseil-cpp/absl/debugging/utf8_for_code_point_gn
+95:24.56 third_party/abseil-cpp/absl/hash/city_gn
+95:25.18 third_party/abseil-cpp/absl/hash/hash_gn
+95:25.29 third_party/abseil-cpp/absl/log/die_if_null_gn
+95:26.25 third_party/abseil-cpp/absl/log/globals_gn
+95:26.30 third_party/abseil-cpp/absl/log/initialize_gn
+95:27.16 third_party/abseil-cpp/absl/log/internal/check_op_gn
+95:27.44 third_party/abseil-cpp/absl/log/internal/conditions_gn
+95:27.85 third_party/abseil-cpp/absl/log/internal/fnmatch_gn
+95:28.27 third_party/abseil-cpp/absl/log/internal/format_gn
+95:28.40 third_party/abseil-cpp/absl/log/internal/globals_gn
+95:29.20 third_party/abseil-cpp/absl/log/internal/log_message_gn
+95:29.27 third_party/abseil-cpp/absl/log/internal/log_sink_set_gn
+95:30.31 third_party/abseil-cpp/absl/log/internal/nullguard_gn
+95:30.48 third_party/abseil-cpp/absl/log/internal/proto_gn
+95:30.57 third_party/abseil-cpp/absl/log/internal/structured_proto_gn
+95:31.22 third_party/abseil-cpp/absl/log/internal/vlog_config_gn
+95:31.38 third_party/abseil-cpp/absl/log/log_entry_gn
+95:32.58 third_party/abseil-cpp/absl/log/log_sink_gn
+95:32.59 third_party/abseil-cpp/absl/numeric/int128_gn
+95:33.37 third_party/abseil-cpp/absl/profiling/exponential_biased_gn
+95:33.41 third_party/abseil-cpp/absl/random/distributions_gn
+95:34.00 third_party/abseil-cpp/absl/random/internal/entropy_pool_gn
+95:34.18 third_party/abseil-cpp/absl/random/internal/platform_gn
+95:34.26 third_party/abseil-cpp/absl/random/internal/randen_gn
+95:34.35 third_party/abseil-cpp/absl/random/internal/randen_hwaes_gn
+95:34.51 third_party/abseil-cpp/absl/random/internal/randen_hwaes_impl_gn
+95:34.87 third_party/abseil-cpp/absl/random/internal/randen_slow_gn
+95:35.12 third_party/abseil-cpp/absl/random/internal/seed_material_gn
+95:35.59 third_party/abseil-cpp/absl/random/seed_gen_exception_gn
+95:36.02 third_party/abseil-cpp/absl/random/seed_sequences_gn
+95:36.03 third_party/abseil-cpp/absl/status/status_builder_gn
+95:36.90 third_party/abseil-cpp/absl/status/status_gn
+95:37.49 third_party/abseil-cpp/absl/status/statusor_gn
+95:38.74 third_party/abseil-cpp/absl/strings/cord_gn
+95:38.92 third_party/abseil-cpp/absl/strings/cord_internal_gn
+95:40.67 third_party/abseil-cpp/absl/strings/cordz_functions_gn
+95:41.19 third_party/abseil-cpp/absl/strings/cordz_handle_gn
+95:41.30 third_party/abseil-cpp/absl/strings/cordz_info_gn
+95:41.97 third_party/abseil-cpp/absl/strings/internal_gn
+95:42.56 third_party/abseil-cpp/absl/strings/str_format_internal_gn
+95:42.61 third_party/abseil-cpp/absl/strings/strings_gn
+95:45.12 third_party/abseil-cpp/absl/synchronization/graphcycles_internal_gn
+95:46.02 third_party/abseil-cpp/absl/synchronization/kernel_timeout_internal_gn
+95:46.04 third_party/abseil-cpp/absl/synchronization/synchronization_gn
+95:46.83 third_party/abseil-cpp/absl/time/clock_interface_gn
+95:47.62 third_party/abseil-cpp/absl/time/internal/cctz/civil_time_gn
+95:48.00 third_party/abseil-cpp/absl/time/internal/cctz/time_zone_gn
+95:48.40 third_party/abseil-cpp/absl/time/time_gn
+95:50.15 third_party/abseil-cpp/absl/types/source_location_gn
+95:50.25 third_party/angle/angle_common_gn
+95:52.35 third_party/angle/xxhash_gn
+95:52.54 third_party/angle/angle_common_shader_state_gn
+95:52.93 third_party/angle/angle_version_info_gn
+95:53.46 third_party/angle/preprocessor_gn
+95:54.45 third_party/angle/translator_gn
+96:08.12 W 7 warnings generated.
+96:09.76 third_party/drm/libdrm
+96:13.32 third_party/gbm/libgbm
+96:13.40 third_party/libepoxy
+96:13.79 W 1 warning generated.
+96:14.13 third_party/libsrtp/src
+96:15.23 third_party/libwebrtc/api/adaptation/resource_adaptation_api_gn
+96:16.01 third_party/libwebrtc/api/audio/aec3_config_gn
+96:16.87 third_party/libwebrtc/api/audio/aec3_factory_gn
+96:18.04 third_party/libwebrtc/api/audio/audio_frame_api_gn
+96:18.21 third_party/libwebrtc/api/audio/audio_processing_gn
+96:19.22 third_party/libwebrtc/api/audio/audio_processing_statistics_gn
+96:19.23 third_party/libwebrtc/api/audio/builtin_audio_processing_builder_gn
+96:19.44 third_party/libwebrtc/api/audio_codecs/L16/audio_decoder_L16_gn
+96:20.59 third_party/libwebrtc/api/audio_codecs/audio_codecs_api_gn
+96:20.59 third_party/libwebrtc/api/audio_codecs/L16/audio_encoder_L16_gn
+96:22.01 third_party/libwebrtc/api/audio_codecs/builtin_audio_decoder_factory_gn
+96:22.44 third_party/libwebrtc/api/audio_codecs/builtin_audio_encoder_factory_gn
+96:23.43 third_party/libwebrtc/api/audio_codecs/g711/audio_decoder_g711_gn
+96:23.95 third_party/libwebrtc/api/audio_codecs/g711/audio_encoder_g711_gn
+96:24.64 third_party/libwebrtc/api/audio_codecs/g722/audio_decoder_g722_gn
+96:25.15 third_party/libwebrtc/api/audio_codecs/g722/audio_encoder_g722_gn
+96:25.78 third_party/libwebrtc/api/audio_codecs/opus/audio_decoder_multiopus_gn
+96:26.35 third_party/libwebrtc/api/audio_codecs/opus/audio_decoder_opus_gn
+96:26.94 third_party/libwebrtc/api/audio_codecs/opus/audio_encoder_multiopus_gn
+96:27.55 third_party/libwebrtc/api/audio_codecs/opus/audio_encoder_opus_config_gn
+96:28.42 third_party/libwebrtc/api/audio_codecs/opus/audio_encoder_opus_gn
+96:29.05 third_party/libwebrtc/api/audio_codecs/opus_audio_decoder_factory_gn
+96:29.92 third_party/libwebrtc/api/audio_options_api_gn
+96:30.48 third_party/libwebrtc/api/crypto/options_gn
+96:30.60 third_party/libwebrtc/api/environment/deprecated_global_field_trials_gn
+96:31.70 third_party/libwebrtc/api/environment/environment_factory_gn
+96:31.82 third_party/libwebrtc/api/environment/force_test_environment_gn
+96:32.27 third_party/libwebrtc/api/field_trials_registry_gn
+96:32.87 third_party/libwebrtc/api/frame_transformer_factory_gn
+96:33.33 third_party/libwebrtc/api/frame_transformer_interface_gn
+96:34.27 third_party/libwebrtc/api/media_stream_interface_gn
+96:34.28 third_party/libwebrtc/api/neteq/default_neteq_controller_factory_gn
+96:35.45 third_party/libwebrtc/api/neteq/default_neteq_factory_gn
+96:35.66 third_party/libwebrtc/api/neteq/neteq_api_gn
+96:36.78 third_party/libwebrtc/api/neteq/tick_timer_gn
+96:36.88 third_party/libwebrtc/api/priority_gn
+96:37.56 third_party/libwebrtc/api/rtc_error_gn
+96:37.64 third_party/libwebrtc/api/rtc_event_log/rtc_event_log_gn
+96:38.43 third_party/libwebrtc/api/rtp_headers_gn
+96:38.44 third_party/libwebrtc/api/rtp_packet_info_gn
+96:39.25 third_party/libwebrtc/api/rtp_parameters_gn
+96:39.75 third_party/libwebrtc/api/rtp_sender_setparameters_callback_gn
+96:40.65 third_party/libwebrtc/api/task_queue/pending_task_safety_flag_gn
+96:41.13 third_party/libwebrtc/api/task_queue/task_queue_gn
+96:41.51 third_party/libwebrtc/api/transport/bitrate_settings_gn
+96:41.70 third_party/libwebrtc/api/transport/goog_cc_gn
+96:42.06 third_party/libwebrtc/api/transport/network_control_gn
+96:43.14 third_party/libwebrtc/api/transport/rtp/corruption_detection_message_gn
+96:43.24 W 1 warning generated.
+96:43.26 third_party/libwebrtc/api/transport/rtp/dependency_descriptor_gn
+96:44.26 third_party/libwebrtc/api/transport_api_gn
+96:44.34 third_party/libwebrtc/api/units/data_rate_gn
+96:44.48 third_party/libwebrtc/api/units/data_size_gn
+96:45.16 third_party/libwebrtc/api/units/frequency_gn
+96:45.28 third_party/libwebrtc/api/units/time_delta_gn
+96:46.00 third_party/libwebrtc/api/units/timestamp_gn
+96:46.14 third_party/libwebrtc/api/video/adapted_video_track_source_gn
+96:46.89 third_party/libwebrtc/api/video/builtin_video_bitrate_allocator_factory_gn
+96:47.39 third_party/libwebrtc/api/video/corruption_detection/corruption_detection_settings_generator_gn
+96:48.32 third_party/libwebrtc/api/video/corruption_detection/frame_instrumentation_data_gn
+96:48.38 third_party/libwebrtc/api/video/corruption_detection/frame_instrumentation_data_reader_gn
+96:48.74 third_party/libwebrtc/api/video/corruption_detection/frame_instrumentation_evaluation_gn
+96:49.51 third_party/libwebrtc/api/video/corruption_detection/frame_instrumentation_generator_factory_gn
+96:50.14 third_party/libwebrtc/api/video/encoded_frame_gn
+96:51.15 third_party/libwebrtc/api/video/encoded_image_gn
+96:51.71 third_party/libwebrtc/api/video/frame_buffer_gn
+96:52.30 third_party/libwebrtc/api/video/video_adaptation_gn
+96:53.07 third_party/libwebrtc/api/video/video_adapter_gn
+96:53.63 third_party/libwebrtc/api/video/video_bitrate_allocation_gn
+96:54.14 third_party/libwebrtc/api/video/video_bitrate_allocator_gn
+96:54.51 third_party/libwebrtc/api/video/video_broadcaster_gn
+96:54.94 third_party/libwebrtc/api/video/video_common_gn
+96:55.51 third_party/libwebrtc/api/video/video_frame_gn
+96:56.38 third_party/libwebrtc/api/video/video_frame_i010_gn
+96:58.10 third_party/libwebrtc/api/video/video_frame_metadata_gn
+96:58.51 third_party/libwebrtc/api/video/video_rtp_headers_gn
+96:59.30 third_party/libwebrtc/api/video_codecs/builtin_video_decoder_factory_gn
+96:59.47 third_party/libwebrtc/api/video_codecs/encoder_speed_controller_factory_gn
+97:00.30 third_party/libwebrtc/api/video_codecs/rtc_software_fallback_wrappers_gn
+97:00.65 third_party/libwebrtc/api/video_codecs/scalability_mode_gn
+97:01.43 third_party/libwebrtc/api/video_codecs/scalability_mode_helper_gn
+97:02.26 third_party/libwebrtc/api/video_codecs/video_codecs_api_gn
+97:02.67 third_party/libwebrtc/api/video_codecs/vp8_temporal_layers_factory_gn
+97:04.48 third_party/libwebrtc/audio/audio_gn
+97:05.82 third_party/libwebrtc/audio/utility/audio_frame_operations_gn
+97:06.94 third_party/libwebrtc/call/adaptation/resource_adaptation_gn
+97:09.51 W 1 warning generated.
+97:09.52 third_party/libwebrtc/call/bitrate_allocator_gn
+97:11.01 W 1 warning generated.
+97:11.03 third_party/libwebrtc/call/bitrate_configurator_gn
+97:11.22 third_party/libwebrtc/call/call_gn
+97:11.99 third_party/libwebrtc/call/call_interfaces_gn
+97:14.23 third_party/libwebrtc/call/payload_type_picker_gn
+97:16.26 W 2 warnings generated.
+97:16.28 third_party/libwebrtc/call/rtp_interfaces_gn
+97:16.58 third_party/libwebrtc/call/rtp_receiver_gn
+97:17.69 third_party/libwebrtc/call/rtp_sender_gn
+97:19.76 W 1 warning generated.
+97:19.77 third_party/libwebrtc/call/version_gn
+97:19.85 third_party/libwebrtc/call/video_receive_stream_api_gn
+97:21.65 third_party/libwebrtc/call/video_send_stream_api_gn
+97:23.00 third_party/libwebrtc/common_audio/common_audio_avx2_gn
+97:23.61 third_party/libwebrtc/common_audio/common_audio_c_gn
+97:24.32 third_party/libwebrtc/common_audio/common_audio_cc_gn
+97:24.64 third_party/libwebrtc/common_audio/common_audio_gn
+97:25.13 third_party/libwebrtc/common_audio/common_audio_sse2_gn
+97:25.96 third_party/libwebrtc/common_audio/third_party/ooura/fft_size_128_gn
+97:26.26 third_party/libwebrtc/common_audio/third_party/ooura/fft_size_256_gn
+97:26.73 W 1 warning generated.
+97:26.75 third_party/libwebrtc/common_audio/third_party/spl_sqrt_floor/spl_sqrt_floor_gn
+97:26.78 third_party/libwebrtc/common_video/common_video_gn
+97:26.83 third_party/libwebrtc/common_video/generic_frame_descriptor/generic_frame_descriptor_gn
+97:27.65 third_party/libwebrtc/logging/rtc_event_audio_gn
+97:29.22 third_party/libwebrtc/logging/rtc_event_bwe_gn
+97:29.46 third_party/libwebrtc/logging/rtc_event_bwe_update_scream_gn
+97:30.38 third_party/libwebrtc/logging/rtc_event_field_gn
+97:31.53 third_party/libwebrtc/logging/rtc_event_number_encodings_gn
+97:31.64 third_party/libwebrtc/logging/rtc_event_pacing_gn
+97:32.35 third_party/libwebrtc/logging/rtc_event_rtp_rtcp_gn
+97:32.75 third_party/libwebrtc/logging/rtc_event_video_gn
+97:33.74 third_party/libwebrtc/logging/rtc_stream_config_gn
+97:33.86 third_party/libwebrtc/media/codec_gn
+97:34.85 third_party/libwebrtc/media/media_constants_gn
+97:35.38 third_party/libwebrtc/media/rid_description_gn
+97:35.96 third_party/libwebrtc/media/rtc_audio_video_gn
+97:36.59 third_party/libwebrtc/media/rtc_internal_video_codecs_gn
+97:37.41 third_party/libwebrtc/media/rtc_sdp_video_format_utils_gn
+97:38.13 third_party/libwebrtc/media/rtc_simulcast_encoder_adapter_gn
+97:38.62 third_party/libwebrtc/modules/async_audio_processing/async_audio_processing_gn
+97:39.64 third_party/libwebrtc/modules/audio_coding/audio_coding_gn
+97:40.80 third_party/libwebrtc/modules/audio_coding/audio_coding_opus_common_gn
+97:41.04 third_party/libwebrtc/modules/audio_coding/audio_encoder_cng_gn
+97:41.96 third_party/libwebrtc/modules/audio_coding/audio_network_adaptor_config_gn
+97:42.09 third_party/libwebrtc/modules/audio_coding/audio_network_adaptor_gn
+97:42.18 third_party/libwebrtc/modules/audio_coding/g711_c_gn
+97:42.29 third_party/libwebrtc/modules/audio_coding/g711_gn
+97:43.25 third_party/libwebrtc/modules/audio_coding/g722_c_gn
+97:43.34 third_party/libwebrtc/modules/audio_coding/g722_gn
+97:43.73 third_party/libwebrtc/modules/audio_coding/isac_vad_gn
+97:44.12 third_party/libwebrtc/modules/audio_coding/legacy_encoded_audio_frame_gn
+97:44.35 third_party/libwebrtc/modules/audio_coding/neteq_gn
+97:47.75 third_party/libwebrtc/modules/audio_coding/pcm16b_c_gn
+97:47.84 third_party/libwebrtc/modules/audio_coding/pcm16b_gn
+97:49.02 third_party/libwebrtc/modules/audio_coding/red_gn
+97:49.26 third_party/libwebrtc/modules/audio_coding/webrtc_cng_gn
+97:50.14 third_party/libwebrtc/modules/audio_coding/webrtc_multiopus_gn
+97:50.15 third_party/libwebrtc/modules/audio_coding/webrtc_opus_gn
+97:51.82 third_party/libwebrtc/modules/audio_coding/webrtc_opus_wrapper_gn
+97:52.15 third_party/libwebrtc/modules/audio_mixer/audio_frame_manipulator_gn
+97:52.66 third_party/libwebrtc/modules/audio_mixer/audio_mixer_impl_gn
+97:53.06 third_party/libwebrtc/modules/audio_processing/aec3/aec3_avx2_gn
+97:54.31 third_party/libwebrtc/modules/audio_processing/aec3/aec3_gn
+97:58.19 third_party/libwebrtc/modules/audio_processing/aec_dump/null_aec_dump_factory_gn
+97:59.78 third_party/libwebrtc/modules/audio_processing/aec_dump_interface_gn
+98:00.72 third_party/libwebrtc/modules/audio_processing/agc/agc_gn
+98:01.71 third_party/libwebrtc/modules/audio_processing/agc/legacy_agc_gn
+98:02.25 third_party/libwebrtc/modules/audio_processing/agc/level_estimation_gn
+98:02.70 third_party/libwebrtc/modules/audio_processing/agc2/adaptive_digital_gain_controller_gn
+98:03.13 third_party/libwebrtc/modules/audio_processing/agc2/biquad_filter_gn
+98:03.86 third_party/libwebrtc/modules/audio_processing/agc2/clipping_predictor_gn
+98:03.92 third_party/libwebrtc/modules/audio_processing/agc2/cpu_features_gn
+98:04.47 third_party/libwebrtc/modules/audio_processing/agc2/fixed_digital_gn
+98:05.13 third_party/libwebrtc/modules/audio_processing/agc2/gain_applier_gn
+98:05.72 third_party/libwebrtc/modules/audio_processing/agc2/input_volume_controller_gn
+98:05.98 third_party/libwebrtc/modules/audio_processing/agc2/input_volume_stats_reporter_gn
+98:06.94 third_party/libwebrtc/modules/audio_processing/agc2/noise_level_estimator_gn
+98:07.00 third_party/libwebrtc/modules/audio_processing/agc2/rnn_vad/rnn_vad_auto_correlation_gn
+98:07.84 third_party/libwebrtc/modules/audio_processing/agc2/rnn_vad/rnn_vad_gn
+98:07.97 third_party/libwebrtc/modules/audio_processing/agc2/rnn_vad/rnn_vad_layers_gn
+98:08.82 third_party/libwebrtc/modules/audio_processing/agc2/rnn_vad/rnn_vad_lp_residual_gn
+98:09.02 third_party/libwebrtc/modules/audio_processing/agc2/rnn_vad/rnn_vad_pitch_gn
+98:09.74 third_party/libwebrtc/modules/audio_processing/agc2/rnn_vad/rnn_vad_spectral_features_gn
+98:10.08 third_party/libwebrtc/modules/audio_processing/agc2/rnn_vad/vector_math_avx2_gn
+98:10.79 third_party/libwebrtc/modules/audio_processing/agc2/saturation_protector_gn
+98:11.27 third_party/libwebrtc/modules/audio_processing/agc2/speech_level_estimator_gn
+98:12.35 third_party/libwebrtc/modules/audio_processing/agc2/vad_wrapper_gn
+98:12.97 third_party/libwebrtc/modules/audio_processing/apm_logging_gn
+98:13.39 third_party/libwebrtc/modules/audio_processing/audio_buffer_gn
+98:14.07 third_party/libwebrtc/modules/audio_processing/audio_frame_proxies_gn
+98:14.94 third_party/libwebrtc/modules/audio_processing/audio_processing_gn
+98:16.36 third_party/libwebrtc/modules/audio_processing/capture_levels_adjuster/capture_levels_adjuster_gn
+98:17.40 third_party/libwebrtc/modules/audio_processing/capture_mixer/capture_mixer_gn
+98:17.80 third_party/libwebrtc/modules/audio_processing/gain_controller2_gn
+98:18.43 third_party/libwebrtc/modules/audio_processing/high_pass_filter_gn
+98:19.28 third_party/libwebrtc/modules/audio_processing/ns/ns_gn
+98:19.55 third_party/libwebrtc/modules/audio_processing/post_filter_gn
+98:20.61 third_party/libwebrtc/modules/audio_processing/rms_level_gn
+98:20.81 third_party/libwebrtc/modules/audio_processing/utility/cascaded_biquad_filter_gn
+98:21.47 third_party/libwebrtc/modules/audio_processing/utility/pffft_wrapper_gn
+98:21.64 third_party/libwebrtc/modules/audio_processing/vad/vad_gn
+98:22.41 third_party/libwebrtc/modules/congestion_controller/congestion_controller_gn
+98:22.91 third_party/libwebrtc/modules/congestion_controller/ect1_policy_gn
+98:23.99 third_party/libwebrtc/modules/congestion_controller/goog_cc/alr_detector_gn
+98:24.38 third_party/libwebrtc/modules/congestion_controller/goog_cc/delay_based_bwe_gn
+98:25.30 third_party/libwebrtc/modules/congestion_controller/goog_cc/estimators_gn
+98:25.90 third_party/libwebrtc/modules/congestion_controller/goog_cc/goog_cc_gn
+98:27.01 third_party/libwebrtc/modules/congestion_controller/goog_cc/link_capacity_estimator_gn
+98:27.49 third_party/libwebrtc/modules/congestion_controller/goog_cc/loss_based_bwe_v2_gn
+98:27.94 third_party/libwebrtc/modules/congestion_controller/goog_cc/probe_controller_gn
+98:29.60 third_party/libwebrtc/modules/congestion_controller/goog_cc/pushback_controller_gn
+98:29.64 third_party/libwebrtc/modules/congestion_controller/goog_cc/send_side_bwe_gn
+98:30.56 third_party/libwebrtc/modules/congestion_controller/rtp/control_handler_gn
+98:31.29 third_party/libwebrtc/modules/congestion_controller/rtp/transport_feedback_gn
+98:32.37 third_party/libwebrtc/modules/congestion_controller/scream/delay_based_congestion_control_gn
+98:33.52 third_party/libwebrtc/modules/congestion_controller/scream/loss_estimator_gn
+98:33.65 third_party/libwebrtc/modules/congestion_controller/scream/scream_feedback_gn
+98:34.46 third_party/libwebrtc/modules/congestion_controller/scream/scream_network_controller_gn
+98:34.62 third_party/libwebrtc/modules/congestion_controller/scream/scream_v2_gn
+98:35.68 third_party/libwebrtc/modules/congestion_controller/scream/scream_v2_parameters_gn
+98:35.99 third_party/libwebrtc/modules/desktop_capture/desktop_capture_differ_sse2_gn
+98:36.13 third_party/libwebrtc/modules/desktop_capture/desktop_capture_gn
+98:40.97 third_party/libwebrtc/modules/desktop_capture/primitives_gn
+98:42.82 third_party/libwebrtc/modules/pacing/interval_budget_gn
+98:43.31 third_party/libwebrtc/modules/pacing/pacing_gn
+98:45.37 third_party/libwebrtc/modules/portal/portal_gn
+98:46.78 third_party/libwebrtc/modules/remote_bitrate_estimator/congestion_control_feedback_generator_gn
+98:46.88 third_party/libwebrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_gn
+98:48.95 third_party/libwebrtc/modules/remote_bitrate_estimator/transport_sequence_number_feedback_generator_gn
+98:50.83 third_party/libwebrtc/modules/rtp_rtcp/leb128_gn
+98:50.92 third_party/libwebrtc/modules/rtp_rtcp/ntp_time_util_gn
+98:51.03 third_party/libwebrtc/modules/rtp_rtcp/rtp_rtcp_format_gn
+98:52.85 third_party/libwebrtc/modules/rtp_rtcp/rtp_rtcp_gn
+99:01.79 W 1 warning generated.
+99:03.34 third_party/libwebrtc/modules/rtp_rtcp/rtp_video_header_gn
+99:12.05 third_party/libwebrtc/modules/third_party/fft/fft_gn
+99:14.63 third_party/libwebrtc/modules/third_party/g711/g711_3p_gn
+99:14.72 third_party/libwebrtc/modules/third_party/g722/g722_3p_gn
+99:15.13 third_party/libwebrtc/modules/video_capture/video_capture_internal_impl_gn
+99:17.17 third_party/libwebrtc/modules/video_capture/video_capture_module_gn
+99:18.14 third_party/libwebrtc/modules/video_coding/chain_diff_calculator_gn
+99:18.43 third_party/libwebrtc/modules/video_coding/codecs/av1/av1_svc_config_gn
+99:19.35 third_party/libwebrtc/modules/video_coding/codecs/av1/dav1d_decoder_gn
+99:20.03 third_party/libwebrtc/modules/video_coding/codecs/av1/libaom_av1_encoder_gn
+99:20.88 third_party/libwebrtc/modules/video_coding/codecs/av1/libaom_speed_config_factory_gn
+99:22.38 third_party/libwebrtc/modules/video_coding/encoded_frame_gn
+99:23.57 third_party/libwebrtc/modules/video_coding/encoder_speed_controller_impl_gn
+99:24.18 third_party/libwebrtc/modules/video_coding/frame_dependencies_calculator_gn
+99:24.66 third_party/libwebrtc/modules/video_coding/frame_helpers_gn
+99:25.42 third_party/libwebrtc/modules/video_coding/frame_sampler_gn
+99:26.50 third_party/libwebrtc/modules/video_coding/h264_sprop_parameter_sets_gn
+99:26.61 third_party/libwebrtc/modules/video_coding/h26x_packet_buffer_gn
+99:27.62 third_party/libwebrtc/modules/video_coding/nack_requester_gn
+99:28.87 third_party/libwebrtc/modules/video_coding/packet_buffer_gn
+99:29.04 third_party/libwebrtc/modules/video_coding/svc/scalability_mode_util_gn
+99:30.42 third_party/libwebrtc/modules/video_coding/svc/scalability_structures_gn
+99:31.99 third_party/libwebrtc/modules/video_coding/svc/scalable_video_controller_gn
+99:33.44 third_party/libwebrtc/modules/video_coding/svc/simulcast_to_svc_converter_gn
+99:35.06 third_party/libwebrtc/modules/video_coding/svc/svc_rate_allocator_gn
+99:35.75 third_party/libwebrtc/modules/video_coding/timing/decode_time_percentile_filter_gn
+99:36.76 third_party/libwebrtc/modules/video_coding/timing/timing_module_gn
+99:36.86 third_party/libwebrtc/modules/video_coding/video_codec_interface_gn
+99:38.28 third_party/libwebrtc/modules/video_coding/video_coding_gn
+99:38.68 third_party/libwebrtc/modules/video_coding/video_coding_utility_gn
+99:41.86 third_party/libwebrtc/modules/video_coding/webrtc_h264_gn
+99:43.14 W 1 warning generated.
+99:43.16 third_party/libwebrtc/modules/video_coding/webrtc_libvpx_interface_gn
+99:43.54 third_party/libwebrtc/modules/video_coding/webrtc_vp8_gn
+99:44.02 third_party/libwebrtc/modules/video_coding/webrtc_vp8_scalability_gn
+99:44.57 third_party/libwebrtc/modules/video_coding/webrtc_vp8_temporal_layers_gn
+99:46.73 third_party/libwebrtc/modules/video_coding/webrtc_vp9_gn
+99:49.53 third_party/libwebrtc/modules/video_coding/webrtc_vp9_helpers_gn
+99:51.09 third_party/libwebrtc/net/dcsctp/packet/chunk_gn
+99:51.70 W 1 warning generated.
+99:52.72 third_party/libwebrtc/net/dcsctp/packet/chunk_validators_gn
+99:53.32 third_party/libwebrtc/net/dcsctp/packet/crc32c_gn
+99:54.05 third_party/libwebrtc/net/dcsctp/packet/error_cause_gn
+99:54.41 third_party/libwebrtc/net/dcsctp/packet/parameter_gn
+99:55.74 third_party/libwebrtc/net/dcsctp/packet/sctp_packet_gn
+99:55.92 third_party/libwebrtc/net/dcsctp/packet/tlv_trait_gn
+99:56.84 third_party/libwebrtc/net/dcsctp/public/factory_gn
+99:56.86 third_party/libwebrtc/net/dcsctp/public/socket_gn
+99:57.48 third_party/libwebrtc/net/dcsctp/rx/data_tracker_gn
+99:58.37 third_party/libwebrtc/net/dcsctp/rx/interleaved_reassembly_streams_gn
+99:58.98 third_party/libwebrtc/net/dcsctp/rx/reassembly_queue_gn
+100:00.18 third_party/libwebrtc/net/dcsctp/rx/traditional_reassembly_streams_gn
+100:00.93 third_party/libwebrtc/net/dcsctp/socket/dcsctp_socket_gn
+100:02.14 third_party/libwebrtc/net/dcsctp/socket/heartbeat_handler_gn
+100:03.40 third_party/libwebrtc/net/dcsctp/socket/packet_sender_gn
+100:04.08 third_party/libwebrtc/net/dcsctp/socket/stream_reset_handler_gn
+100:04.41 third_party/libwebrtc/net/dcsctp/socket/transmission_control_block_gn
+100:05.86 third_party/libwebrtc/net/dcsctp/timer/task_queue_timeout_gn
+100:06.28 third_party/libwebrtc/net/dcsctp/timer/timer_gn
+100:06.97 third_party/libwebrtc/net/dcsctp/tx/outstanding_data_gn
+100:07.41 third_party/libwebrtc/net/dcsctp/tx/retransmission_error_counter_gn
+100:08.32 third_party/libwebrtc/net/dcsctp/tx/retransmission_queue_gn
+100:09.02 third_party/libwebrtc/net/dcsctp/tx/retransmission_timeout_gn
+100:10.02 third_party/libwebrtc/net/dcsctp/tx/rr_send_queue_gn
+100:10.06 third_party/libwebrtc/net/dcsctp/tx/stream_scheduler_gn
+100:11.39 third_party/libwebrtc/rtc_base/async_dns_resolver_gn
+100:11.96 third_party/libwebrtc/rtc_base/base64_gn
+100:12.45 third_party/libwebrtc/rtc_base/bit_buffer_gn
+100:12.92 third_party/libwebrtc/rtc_base/bitrate_tracker_gn
+100:13.35 third_party/libwebrtc/rtc_base/bitstream_reader_gn
+100:13.83 third_party/libwebrtc/rtc_base/byte_buffer_gn
+100:14.21 third_party/libwebrtc/rtc_base/callback_list_gn
+100:14.81 third_party/libwebrtc/rtc_base/checks_gn
+100:15.14 third_party/libwebrtc/rtc_base/containers/flat_containers_internal_gn
+100:15.66 third_party/libwebrtc/rtc_base/copy_on_write_buffer_gn
+100:15.98 third_party/libwebrtc/rtc_base/cpu_info_gn
+100:16.62 third_party/libwebrtc/rtc_base/criticalsection_gn
+100:16.93 third_party/libwebrtc/rtc_base/denormal_disabler_gn
+100:17.44 third_party/libwebrtc/rtc_base/event_tracer_gn
+100:17.79 third_party/libwebrtc/rtc_base/experiments/alr_experiment_gn
+100:18.69 third_party/libwebrtc/rtc_base/experiments/balanced_degradation_settings_gn
+100:18.79 third_party/libwebrtc/rtc_base/experiments/corruption_detection_frame_selector_settings_gn
+100:19.83 third_party/libwebrtc/rtc_base/experiments/encoder_info_settings_gn
+100:20.86 third_party/libwebrtc/rtc_base/experiments/encoder_speed_experiment_gn
+100:21.79 third_party/libwebrtc/rtc_base/experiments/field_trial_parser_gn
+100:22.15 third_party/libwebrtc/rtc_base/experiments/keyframe_interval_settings_experiment_gn
+100:23.05 third_party/libwebrtc/rtc_base/experiments/min_video_bitrate_experiment_gn
+100:23.79 third_party/libwebrtc/rtc_base/experiments/normalize_simulcast_size_experiment_gn
+100:24.08 third_party/libwebrtc/rtc_base/experiments/quality_scaler_settings_gn
+100:24.76 third_party/libwebrtc/rtc_base/experiments/quality_scaling_experiment_gn
+100:25.10 third_party/libwebrtc/rtc_base/experiments/rate_control_settings_gn
+100:26.11 third_party/libwebrtc/rtc_base/frequency_tracker_gn
+100:26.34 third_party/libwebrtc/rtc_base/histogram_percentile_counter_gn
+100:27.00 third_party/libwebrtc/rtc_base/ip_address_gn
+100:27.27 third_party/libwebrtc/rtc_base/logging_gn
+100:27.96 third_party/libwebrtc/rtc_base/memory/aligned_malloc_gn
+100:28.64 third_party/libwebrtc/rtc_base/net_helpers_gn
+100:28.81 third_party/libwebrtc/rtc_base/network/sent_packet_gn
+100:28.98 third_party/libwebrtc/rtc_base/network_constants_gn
+100:29.21 third_party/libwebrtc/rtc_base/network_route_gn
+100:29.76 third_party/libwebrtc/rtc_base/null_socket_server_gn
+100:29.81 third_party/libwebrtc/rtc_base/platform_thread_gn
+100:30.65 third_party/libwebrtc/rtc_base/platform_thread_types_gn
+100:30.68 third_party/libwebrtc/rtc_base/race_checker_gn
+100:30.75 third_party/libwebrtc/rtc_base/random_gn
+100:31.48 third_party/libwebrtc/rtc_base/rate_limiter_gn
+100:31.58 third_party/libwebrtc/rtc_base/rate_statistics_gn
+100:32.35 third_party/libwebrtc/rtc_base/rate_tracker_gn
+100:32.55 third_party/libwebrtc/rtc_base/refcount_gn
+100:33.19 third_party/libwebrtc/rtc_base/rtc_event_gn
+100:33.37 third_party/libwebrtc/rtc_base/rtc_numerics_gn
+100:34.05 third_party/libwebrtc/rtc_base/rtp_to_ntp_estimator_gn
+100:34.23 third_party/libwebrtc/rtc_base/sample_counter_gn
+100:34.96 third_party/libwebrtc/rtc_base/socket_address_gn
+100:35.07 third_party/libwebrtc/rtc_base/socket_gn
+100:35.91 third_party/libwebrtc/rtc_base/stringutils_gn
+100:36.02 third_party/libwebrtc/rtc_base/synchronization/sequence_checker_internal_gn
+100:36.86 third_party/libwebrtc/rtc_base/synchronization/yield_policy_gn
+100:36.94 third_party/libwebrtc/rtc_base/system/file_wrapper_gn
+100:36.98 third_party/libwebrtc/rtc_base/system/system_time_gn
+100:37.76 third_party/libwebrtc/rtc_base/task_utils/repeating_task_gn
+100:37.78 third_party/libwebrtc/rtc_base/threading_gn
+100:38.63 third_party/libwebrtc/rtc_base/timeutils_gn
+100:39.45 third_party/libwebrtc/rtc_base/weak_ptr_gn
+100:39.90 third_party/libwebrtc/rtc_base/zero_memory_gn
+100:40.34 third_party/libwebrtc/system_wrappers/metrics_gn
+100:40.78 third_party/libwebrtc/system_wrappers/system_wrappers_gn
+100:41.53 W 1 warning generated.
+100:41.54 third_party/libwebrtc/third_party/pffft/pffft_gn
+100:41.65 third_party/libwebrtc/third_party/rnnoise/rnn_vad_gn
+100:41.80 third_party/libwebrtc/video/adaptation/video_adaptation_gn
+100:43.64 third_party/libwebrtc/video/config/encoder_config_gn
+100:44.84 third_party/libwebrtc/video/config/streams_config_gn
+100:45.35 third_party/libwebrtc/video/corruption_detection/corruption_classifier_gn
+100:46.46 third_party/libwebrtc/video/corruption_detection/frame_instrumentation_generator_impl_gn
+100:47.32 third_party/libwebrtc/video/corruption_detection/frame_selector_gn
+100:48.38 third_party/libwebrtc/video/corruption_detection/generic_mapping_functions_gn
+100:48.86 third_party/libwebrtc/video/corruption_detection/halton_frame_sampler_gn
+100:49.62 third_party/libwebrtc/video/corruption_detection/halton_sequence_gn
+100:50.08 third_party/libwebrtc/video/corruption_detection/utils_gn
+100:50.56 third_party/libwebrtc/video/corruption_detection/video_frame_sampler_gn
+100:51.22 third_party/libwebrtc/video/decode_synchronizer_gn
+100:51.71 third_party/libwebrtc/video/frame_cadence_adapter_gn
+100:52.50 third_party/libwebrtc/video/frame_decode_timing_gn
+100:53.48 third_party/libwebrtc/video/frame_dumping_decoder_gn
+100:53.64 third_party/libwebrtc/video/frame_dumping_encoder_gn
+100:54.58 third_party/libwebrtc/video/null_video_decoder_gn
+100:55.36 third_party/libwebrtc/video/render/incoming_video_stream_gn
+100:55.85 third_party/libwebrtc/video/render/video_render_frames_gn
+100:56.36 third_party/libwebrtc/video/task_queue_frame_decode_scheduler_gn
+100:56.93 third_party/libwebrtc/video/timing/default_video_jitter_timing_gn
+100:57.42 third_party/libwebrtc/video/timing/frame_delay_variation_kalman_filter_gn
+100:57.96 third_party/libwebrtc/video/timing/inter_frame_delay_variation_calculator_gn
+100:58.23 third_party/libwebrtc/video/timing/jitter_estimator_gn
+100:58.80 third_party/libwebrtc/video/timing/rtt_filter_gn
+100:59.54 third_party/libwebrtc/video/timing/timestamp_extrapolator_gn
+100:59.76 third_party/libwebrtc/video/unique_timestamp_counter_gn
+101:00.34 third_party/libwebrtc/video/video_gn
+101:04.59 W 2 warnings generated.
+101:04.61 third_party/libwebrtc/video/video_receive_stream_timeout_tracker_gn
+101:05.57 third_party/libwebrtc/video/video_stream_buffer_controller_gn
+101:07.61 third_party/libwebrtc/video/video_stream_encoder_impl_gn
+101:09.87 W 3 warnings generated.
+101:09.88 third_party/msgpack
+101:10.15 third_party/opentelemetry-cpp/exporters/memory
+101:12.48 third_party/opentelemetry-cpp/exporters/otlp
+101:13.87 W 1 warning generated.
+101:13.88 third_party/opentelemetry-cpp/sdk/src/common
+101:15.90 third_party/opentelemetry-cpp/sdk/src/resource
+101:16.61 third_party/opentelemetry-cpp/sdk/src/trace
+101:18.48 third_party/opentelemetry-cpp/sdk/src/version
+101:18.56 third_party/opentelemetry-cpp/third_party/opentelemetry-proto
+101:23.93 third_party/pipewire/libpipewire
+101:24.45 third_party/sipcc
+101:26.27 third_party/wayland-proxy
+101:27.46 third_party/zstd/huf_decompress_amd64.o
+101:27.46 third_party/zstd
+101:27.46 toolkit/components/alerts
+101:30.33 toolkit/components/antitracking/bouncetrackingprotection
+101:33.67 toolkit/components/antitracking/scopedprefs
+101:41.75 toolkit/components/antitracking
+101:46.84 toolkit/components/autocomplete
+101:51.42 toolkit/components/backgroundhangmonitor
+102:00.54 toolkit/components/backgroundtasks
+102:02.87 toolkit/components/browser
+102:04.93 toolkit/components/build
+102:07.50 toolkit/components/cascade_bloom_filter
+102:08.57 toolkit/components/clearsitedata
+102:13.65 toolkit/components/commandlines
+102:15.39 toolkit/components/content-classifier/content_classifier_engine
+102:16.32 toolkit/components/content-classifier
+102:18.94 toolkit/components/contentanalysis
+102:24.00 toolkit/components/credentialmanagement
+102:33.26 toolkit/components/ctypes
+102:35.44 toolkit/components/dap
+102:38.07 toolkit/components/downloads
+102:41.76 toolkit/components/extensions
+102:46.17 toolkit/components/extensions/webidl-api
+103:03.44 toolkit/components/extensions/webrequest
+103:04.74 toolkit/components/finalizationwitness
+103:06.75 toolkit/components/find
+103:16.79 toolkit/components/formautofill
+103:22.53 toolkit/components/gecko-trace
+103:25.52 toolkit/components/geolocation
+103:36.73 toolkit/components/glean/EventGIFFTMap.cpp.stub
+103:36.73 toolkit/components/glean/HistogramGIFFTMap.cpp.stub
+103:37.10 toolkit/components/glean/ScalarGIFFTMap.cpp.stub
+103:37.81 toolkit/components/glean/xpcom
+103:38.29 toolkit/components/jsoncpp/src/lib_json
+103:41.82 toolkit/components/mediasniffer
+103:41.92 toolkit/components/ml/backends/llama
+103:50.94 toolkit/components/ml/ipc
+103:56.43 toolkit/components/ml
+103:58.46 toolkit/components/ml/textgeneration
+104:04.49 toolkit/components/mozintl
+104:06.59 toolkit/components/nimbus
+104:09.69 toolkit/components/parentalcontrols
+104:10.62 toolkit/components/places
+104:11.71 toolkit/components/printingui/ipc
+104:15.59 toolkit/components/processtools
+104:21.06 toolkit/components/protobuf
+104:23.18 W 1 warning generated.
+104:31.72 W 1 warning generated.
+104:39.67 W 4 warnings generated.
+104:43.38 toolkit/components/reflect
+104:44.70 W 1 warning generated.
+104:46.42 toolkit/components/remote
+104:52.89 W 1 warning generated.
+104:58.70 toolkit/components/reputationservice
+105:09.40 toolkit/components/resistfingerprinting
+105:20.62 toolkit/components/satchel
+105:24.34 toolkit/components/sessionstore
+105:31.28 toolkit/components/startup
+105:35.24 toolkit/components/statusfilter
+105:36.73 toolkit/components/telemetry/TelemetryHistogramData.inc.stub
+105:36.94 toolkit/components/terminator
+105:39.36 toolkit/components/typeaheadfind
+105:44.53 toolkit/components/uniffi-js
+105:48.55 toolkit/components/url-classifier
+105:59.49 toolkit/components/windowwatcher
+106:13.97 toolkit/crashreporter/annotations
+106:15.29 toolkit/crashreporter/breakpad-client/linux
+106:17.26 toolkit/crashreporter/breakpad-client
+106:17.83 toolkit/crashreporter/google-breakpad/src/common/linux
+106:19.27 toolkit/crashreporter/google-breakpad/src/common
+106:19.75 toolkit/crashreporter
+106:24.55 toolkit/crashreporter/test/test_utils
+106:25.77 toolkit/library/buildid.cpp.stub
+106:25.97 toolkit/mozapps/extensions
+106:25.99 toolkit/profile
+106:31.40 toolkit/system/commonproxy
+106:33.43 toolkit/system/gnome
+106:37.89 toolkit/system/unixproxy
+106:38.66 toolkit/xre
+106:42.73 tools/performance
+107:11.78 tools/profiler
+107:38.04 uriloader/base
+107:45.37 uriloader/exthandler
+107:59.90 uriloader/prefetch
+108:05.66 uriloader/preload
+108:07.88 widget/gtk/mozgtk
+108:08.10 widget/gtk/mozwayland
+108:08.51 widget/gtk
+108:23.01 widget/gtk/wayland
+108:35.56 widget/headless
+109:03.93 widget
+109:50.70 widget/x11
+110:08.74 xpcom/base
+111:06.44 xpcom/components
+111:12.07 xpcom/ds
+111:21.65 xpcom/io
+111:33.39 xpcom/ioutils
+111:33.99 xpcom/reflect/xptcall/md/unix/xptcinvoke_asm_x86_64_unix.o
+111:34.07 xpcom/reflect/xptcall/md/unix
+111:37.88 xpcom/reflect/xptcall
+111:39.88 xpcom/reflect/xptinfo
+111:48.00 xpcom/string
+111:52.20 xpcom/threads
+112:08.41 xpfe/appshell
+112:16.11 js/xpconnect/shell
+112:17.82 media/ffvpx/libavcodec/libmozavcodec.so.symbols.stub
+112:17.97 media/ffvpx/libavcodec/bsf
+112:18.88 media/ffvpx/libavcodec
+112:23.78 media/ffvpx/libavcodec/x86
+112:24.90 W 1 warning generated.
+112:58.38 media/ffvpx/libavutil/libmozavutil.so.symbols.stub
+113:09.42 media/ffvpx/libavutil/x86
+113:13.43 dom/media/eme/clearkey
+113:15.98 media/gmp-clearkey/0.1
+113:17.02 memory/build/test
+113:17.79 memory/replace/dmd/test
+113:18.57 memory/replace/logalloc/replay
+113:22.42 mfbt/tests
+113:26.27 modules/libmar/src
+113:27.58 modules/libmar/tool
+113:29.31 modules/libmar/sign
+113:32.19 modules/libmar/verify
+113:32.94 mozglue/tests
+113:45.04 other-licenses/bsdiff
+113:45.87 security/manager/ssl/tests/unit/pkcs11testmodule/dynamic-library/libpkcs11testmodule.so.symbols.stub
+113:46.28 security/manager/ssl/tests/unit/test_trust_anchors/dynamic-library/libtest_trust_anchors.so.symbols.stub
+113:46.46 security/manager/ssl/tests/unit/tlsserver/cmd
+114:02.36 security/manager/ssl/tests/unit/tlsserver/lib
+114:07.79 security/nss/lib/softoken/out.softokn.def.stub
+114:07.96 security/nss/lib/softoken
+114:08.83 security/nss/cmd/certutil
+114:10.48 security/nss/cmd/lib
+114:12.74 security/nss/cmd/pk12util
+114:13.15 security/nss/lib/ckfw
+114:13.58 security/nss/lib/freebl/out.freebl_hash.def.stub
+114:14.77 security/nss/lib/freebl/out.freebl_hash_vector.def.stub
+114:27.48 security/nss/lib/freebl/intel-aes.o
+114:27.72 security/nss/lib/freebl/intel-gcm.o
+114:28.15 security/nss/lib/jar
+114:29.69 testing/mochitest/ssltunnel
+114:32.59 testing/tools/screenshot
+114:34.58 third_party/zucchini/executable
+114:36.91 security/nss/lib/freebl/mpi_amd64_common.o
+114:37.75 third_party/zucchini
+114:43.27 third_party/zucchini/tests/gtest
+115:53.99 toolkit/components/ctypes/tests
+115:56.07 modules/zlib/src
+115:58.79 toolkit/components/telemetry/pingsender
+115:59.50 toolkit/components/telemetry/tests
+115:59.58 toolkit/crashreporter/breakpad_wrapper
+115:59.61 toolkit/crashreporter/crash_helper
+116:00.03 toolkit/crashreporter/google-breakpad/src/processor
+116:00.38 toolkit/crashreporter/test
+116:06.94 toolkit/library/gtest/libxul_broken_buildid/xul_broken_buildid.c.stub
+116:07.07 toolkit/library/gtest/libxul_correct_buildid/xul_correct_buildid.c.stub
+116:07.21 toolkit/library/gtest/libxul_missing_buildid
+116:07.29 toolkit/components/jsoncpp
+116:07.36 toolkit/mozapps/update/common
+116:10.72 toolkit/mozapps/update/tests/gtest
+116:13.49 toolkit/mozapps/update/tests
+116:14.87 modules/xz-embedded
+116:15.23 toolkit/mozapps/update/updater/bspatch
+116:15.46 toolkit/mozapps/update/updater
+116:17.43 toolkit/mozapps/update/updater/updater-dep
+116:18.76 toolkit/mozapps/update/updater/updater-xpcshell
+116:20.09 toolkit/xre/gfxtest
+116:20.84 tools/power
+116:21.27 uriloader/exthandler/tests
+116:21.36 xpcom/tests
+116:22.67 build/unix/elfhack/ld.lld
+116:22.75 build/unix/elfhack/inject
+116:22.85 build/pure_virtual/libpure_virtual.a
+116:22.91 config/external/wasm2c_sandbox_compiler/wasm2c
+116:23.01 dom/media/fake-cdm/libfake.so
+116:23.23 dom/media/gmp-plugin-openh264/libfakeopenh264.so
+116:23.46 config/external/gkcodecs/libgkcodecs.so
+116:23.88 media/libsoundtouch/src
+116:25.36    Compiling serde_core v1.0.228
+116:27.42 media/libsoundtouch/src/rlboxsoundtouch.wasm.c.stub
+116:27.62    Compiling getrandom v0.3.3
+116:27.64    Compiling serde v1.0.228
+116:27.88    Compiling multiversion-macros v0.8.0
+116:28.19    Compiling getrandom v0.2.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/getrandom)
+116:28.42    Compiling uuid v1.3.0
+116:28.87    Compiling bitflags v2.10.0
+116:28.91    Compiling multiversion v0.8.0
+116:29.12    Compiling encoding_rs v0.8.40
+116:29.23    Compiling serde_json v1.0.149
+116:29.46    Compiling debugid v0.8.0
+116:29.79    Compiling process-reader v0.1.0 (https://github.com/rust-minidump/minidump-writer.git?rev=6744feee58804a78730d176cdcc31bb4f3021107#6744feee)
+116:30.18    Compiling memchr v2.7.4
+116:30.97    Compiling yaml-rust2 v0.10.3
+116:31.00    Compiling hex v0.4.3
+116:31.99    Compiling crash_helper_common v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/crashreporter/crash_helper_common)
+116:32.37    Compiling procfs-core v0.18.0
+116:32.43    Compiling minidump-common v0.26.1
+116:36.48    Compiling process-backend v0.1.0 (https://github.com/rust-minidump/minidump-writer.git?rev=6744feee58804a78730d176cdcc31bb4f3021107#6744feee)
+116:37.16    Compiling error-graph v0.1.1
+116:37.46    Compiling nix v0.30.1
+116:37.79    Compiling minidump-writer v0.13.0 (https://github.com/rust-minidump/minidump-writer.git?rev=6744feee58804a78730d176cdcc31bb4f3021107#6744feee)
+116:39.32    Compiling mozilla-central-workspace-hack v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/workspace-hack)
+116:39.50    Compiling env_logger v0.10.0
+116:39.99 security/rlbox
+116:40.01    Compiling rust_minidump_writer_linux v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/crashreporter/rust_minidump_writer_linux)
+116:40.67    Compiling crash_helper_server v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/crashreporter/crash_helper_server)
+116:41.63     Finished `release` profile [optimized] target(s) in 19.78s
+116:42.19 toolkit/crashreporter/crash_helper_server/libcrash_helper_server.a
+116:42.21 dom/base
+117:07.41 W 1 warning generated.
+117:08.36 W 1 warning generated.
+117:17.43 security/rlbox/rlbox.wasm.c.stub
+117:19.86 dom/media/mediasink
+117:37.02 dom/media/ogg
+118:04.31 dom/media

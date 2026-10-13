@@ -1,0 +1,1374 @@
+{
+  "tests": 86,
+  "failures": 19,
+  "disabled": 0,
+  "errors": 0,
+  "timestamp": "2026-10-12T20:51:39Z",
+  "time": "2.357s",
+  "name": "AllTests",
+  "testsuites": [
+    {
+      "name": "IPDLTest_CrossProcess",
+      "tests": 2,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-10-12T20:51:39Z",
+      "time": "0.245s",
+      "testsuite": [
+        {
+          "name": "TestGPUVideoReadbackIPCNormal",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/gfx\/tests\/gtest\/TestGPUVideoReadbackIPC.cpp",
+          "line": 193,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0.119s",
+          "classname": "IPDLTest_CrossProcess"
+        },
+        {
+          "name": "TestGPUVideoReadbackIPCAbnormal",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/gfx\/tests\/gtest\/TestGPUVideoReadbackIPC.cpp",
+          "line": 195,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0.126s",
+          "classname": "IPDLTest_CrossProcess"
+        }
+      ]
+    },
+    {
+      "name": "IPDLTest_CrossThread",
+      "tests": 2,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-10-12T20:51:39Z",
+      "time": "0.114s",
+      "testsuite": [
+        {
+          "name": "TestGPUVideoReadbackIPCNormal",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/gfx\/tests\/gtest\/TestGPUVideoReadbackIPC.cpp",
+          "line": 193,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0.056s",
+          "classname": "IPDLTest_CrossThread"
+        },
+        {
+          "name": "TestGPUVideoReadbackIPCAbnormal",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/gfx\/tests\/gtest\/TestGPUVideoReadbackIPC.cpp",
+          "line": 195,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0.057s",
+          "classname": "IPDLTest_CrossThread"
+        }
+      ]
+    },
+    {
+      "name": "GPUVideoReadback",
+      "tests": 27,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-10-12T20:51:39Z",
+      "time": "0.074s",
+      "testsuite": [
+        {
+          "name": "SameFrameAndSizeUsesOneReadback",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 169,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "DescriptorAvailabilityDoesNotReadBack",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 190,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "DescriptorAvailabilityRetainsOriginalManager",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 210,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "DifferentSizesAndImagesCannotReuseTheSurface",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 226,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FailureAndWrongSizeDoNotPoisonTheCache",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 247,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullReadbackDoesNotUseSizedCache",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 265,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "EmptySizedRequestsKeepExistingReadbackBehavior",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 278,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "CacheIsBoundedByActualStrideTimesHeight",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 288,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0.002s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "ReadbackDoesNotHoldCacheLock",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 306,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "ConcurrentReadsConvergeWithoutReplacingTheWinner",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 318,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "ImageDestructionReleasesItsCachedSurface",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 345,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullSizeReusesExactFrameBytes",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 357,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0.032s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullSizeDoesNotShareAcrossImagesOrSizedCache",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 379,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullSizeFailuresAndInvalidSurfacesDoNotPoisonCache",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 402,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullSizeBudgetIsSharedAndRecoversAfterRelease",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 425,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0.007s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullSizeBudgetUsesActualStride",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 445,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0.009s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullSizeReadbackDoesNotHoldCacheLock",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 459,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "ConcurrentFullSizeReadsConverge",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 471,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0.008s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullSizeDestructionReleasesSurfaceAndDescriptor",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 530,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullSizeDelayedMainThreadReleaseRetainsBudget",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 542,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0.012s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "OtherRemoteTypesKeepUncachedFullReads",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 569,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullCacheRejectsUnavailableManager",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 580,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "SizedCacheRejectsUnavailableManager",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 604,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "ReplacementManagerCannotReviveOldCache",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 631,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "ConcurrentCacheHitsRespectDisconnection",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 664,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "AvailabilityCheckDoesNotHoldCacheLock",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 693,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "RealManagerRejectsKnownChannelFailure",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 725,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        }
+      ]
+    },
+    {
+      "name": "CanvasSurfaceImport",
+      "tests": 4,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-10-12T20:51:39Z",
+      "time": "0.682s",
+      "testsuite": [
+        {
+          "name": "UnusableDescriptorDoesNotPublishSurface",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasSurfaceImport.cpp",
+          "line": 28,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:39Z",
+          "time": "0.607s",
+          "classname": "CanvasSurfaceImport"
+        },
+        {
+          "name": "RepeatedUnusableDescriptorsDoNotPublishSurfaces",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasSurfaceImport.cpp",
+          "line": 36,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.027s",
+          "classname": "CanvasSurfaceImport"
+        },
+        {
+          "name": "OversizedAllocationDoesNotPublishSurface",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasSurfaceImport.cpp",
+          "line": 46,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.024s",
+          "classname": "CanvasSurfaceImport"
+        },
+        {
+          "name": "DefaultDescriptorBehaviorIsUnchanged",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasSurfaceImport.cpp",
+          "line": 55,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.021s",
+          "classname": "CanvasSurfaceImport"
+        }
+      ]
+    },
+    {
+      "name": "CanvasVideoSurfaceCache",
+      "tests": 12,
+      "failures": 12,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-10-12T20:51:40Z",
+      "time": "0.226s",
+      "testsuite": [
+        {
+          "name": "BorrowedDescriptorKeepsIndependentOwningCopies",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 160,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.019s",
+          "classname": "CanvasVideoSurfaceCache",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "softwarePolicyRestored": "1",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:111\nExpected equality of these values:\n  aInput.host->GetFormat()\n    Which is: SurfaceFormat::R8G8B8A8\n  kFormat\n    Which is: SurfaceFormat::B8G8R8A8\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:62\nExpected: CreateInput(mRed, false) doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "LiveSurfaceReuseAndExactPixels",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 192,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.021s",
+          "classname": "CanvasVideoSurfaceCache",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "softwarePolicyRestored": "1",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:111\nExpected equality of these values:\n  aInput.host->GetFormat()\n    Which is: SurfaceFormat::R8G8B8A8\n  kFormat\n    Which is: SurfaceFormat::B8G8R8A8\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:62\nExpected: CreateInput(mRed, false) doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "GenericImportsAreDistinctAndInvalidate",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 203,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.021s",
+          "classname": "CanvasVideoSurfaceCache",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "softwarePolicyRestored": "1",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:111\nExpected equality of these values:\n  aInput.host->GetFormat()\n    Which is: SurfaceFormat::R8G8B8A8\n  kFormat\n    Which is: SurfaceFormat::B8G8R8A8\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:62\nExpected: CreateInput(mRed, false) doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "FrameAndHostIdentityCannotAlias",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 218,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.018s",
+          "classname": "CanvasVideoSurfaceCache",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "softwarePolicyRestored": "1",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:111\nExpected equality of these values:\n  aInput.host->GetFormat()\n    Which is: SurfaceFormat::R8G8B8A8\n  kFormat\n    Which is: SurfaceFormat::B8G8R8A8\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:62\nExpected: CreateInput(mRed, false) doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "ContentOwnershipCannotAlias",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 233,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.017s",
+          "classname": "CanvasVideoSurfaceCache",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "softwarePolicyRestored": "1",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:111\nExpected equality of these values:\n  aInput.host->GetFormat()\n    Which is: SurfaceFormat::R8G8B8A8\n  kFormat\n    Which is: SurfaceFormat::B8G8R8A8\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:62\nExpected: CreateInput(mRed, false) doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "MissingTargetNeverPublishes",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 246,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.021s",
+          "classname": "CanvasVideoSurfaceCache",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "softwarePolicyRestored": "1",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:111\nExpected equality of these values:\n  aInput.host->GetFormat()\n    Which is: SurfaceFormat::R8G8B8A8\n  kFormat\n    Which is: SurfaceFormat::B8G8R8A8\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:62\nExpected: CreateInput(mRed, false) doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "MissingIdentityNeverPublishes",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 261,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.019s",
+          "classname": "CanvasVideoSurfaceCache",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "softwarePolicyRestored": "1",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:111\nExpected equality of these values:\n  aInput.host->GetFormat()\n    Which is: SurfaceFormat::R8G8B8A8\n  kFormat\n    Which is: SurfaceFormat::B8G8R8A8\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:62\nExpected: CreateInput(mRed, false) doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "ReleasedOwnerReusesExistingHandle",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 278,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.019s",
+          "classname": "CanvasVideoSurfaceCache",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "softwarePolicyRestored": "1",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:111\nExpected equality of these values:\n  aInput.host->GetFormat()\n    Which is: SurfaceFormat::R8G8B8A8\n  kFormat\n    Which is: SurfaceFormat::B8G8R8A8\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:62\nExpected: CreateInput(mRed, false) doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "ReadbackPreventsStaleHandleReuse",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 293,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.016s",
+          "classname": "CanvasVideoSurfaceCache",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "softwarePolicyRestored": "1",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:111\nExpected equality of these values:\n  aInput.host->GetFormat()\n    Which is: SurfaceFormat::R8G8B8A8\n  kFormat\n    Which is: SurfaceFormat::B8G8R8A8\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:62\nExpected: CreateInput(mRed, false) doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "ExplicitClearAndMemoryPressureRecover",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 303,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.014s",
+          "classname": "CanvasVideoSurfaceCache",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "softwarePolicyRestored": "1",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:111\nExpected equality of these values:\n  aInput.host->GetFormat()\n    Which is: SurfaceFormat::R8G8B8A8\n  kFormat\n    Which is: SurfaceFormat::B8G8R8A8\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:62\nExpected: CreateInput(mRed, false) doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "FailedImportsDoNotPoisonRecovery",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 326,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.016s",
+          "classname": "CanvasVideoSurfaceCache",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "softwarePolicyRestored": "1",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:111\nExpected equality of these values:\n  aInput.host->GetFormat()\n    Which is: SurfaceFormat::R8G8B8A8\n  kFormat\n    Which is: SurfaceFormat::B8G8R8A8\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:62\nExpected: CreateInput(mRed, false) doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "ContextLossRejectsAndReplacementRecovers",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 346,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.018s",
+          "classname": "CanvasVideoSurfaceCache",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "softwarePolicyRestored": "1",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:111\nExpected equality of these values:\n  aInput.host->GetFormat()\n    Which is: SurfaceFormat::R8G8B8A8\n  kFormat\n    Which is: SurfaceFormat::B8G8R8A8\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:62\nExpected: CreateInput(mRed, false) doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DMABufProducerFence",
+      "tests": 7,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-10-12T20:51:40Z",
+      "time": "0.116s",
+      "testsuite": [
+        {
+          "name": "LocalWaitKeepsExportedDuplicatesAndPixels",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp",
+          "line": 220,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.012s",
+          "classname": "DMABufProducerFence",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "softwarePolicyRestored": "1"
+        },
+        {
+          "name": "ReplacementKeepsOldExportsAndAlternatingPixels",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp",
+          "line": 236,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.019s",
+          "classname": "DMABufProducerFence",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "softwarePolicyRestored": "1"
+        },
+        {
+          "name": "OwnerDestructionKeepsDescriptorAndDuplicate",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp",
+          "line": 254,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.01s",
+          "classname": "DMABufProducerFence",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "softwarePolicyRestored": "1"
+        },
+        {
+          "name": "SwapChainRecycleResizeAndClear",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp",
+          "line": 267,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.01s",
+          "classname": "DMABufProducerFence",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "softwarePolicyRestored": "1"
+        },
+        {
+          "name": "ContextReleaseKeepsFenceUntilOwnerDestruction",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp",
+          "line": 306,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.016s",
+          "classname": "DMABufProducerFence",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "softwarePolicyRestored": "1"
+        },
+        {
+          "name": "WebGLLossAndReplacementKeepExportedPixels",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp",
+          "line": 328,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.014s",
+          "classname": "DMABufProducerFence",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "softwarePolicyRestored": "1"
+        },
+        {
+          "name": "IdleOwnersReturnNativeFenceFDs",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp",
+          "line": 353,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.031s",
+          "classname": "DMABufProducerFence",
+          "vendor": "NVIDIA Corporation",
+          "renderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "originalSoftwarePolicy": "1",
+          "fenceFDsBefore": "0",
+          "fenceFDsHeld": "94",
+          "fenceFDsAfter": "0",
+          "softwarePolicyRestored": "1"
+        }
+      ]
+    },
+    {
+      "name": "DMABufReadback",
+      "tests": 23,
+      "failures": 7,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-10-12T20:51:40Z",
+      "time": "0.897s",
+      "testsuite": [
+        {
+          "name": "ConstantColorMatchesFullSizeThenScale",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 422,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.046s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "differentComponents": "0",
+          "maximumChannelDelta": "0"
+        },
+        {
+          "name": "SameSizeMatchesFullSize",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 426,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.04s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "differentComponents": "0",
+          "maximumChannelDelta": "0"
+        },
+        {
+          "name": "SaturatedLumaMatchesFullSizeThenScale",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 434,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.033s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "differentComponents": "0",
+          "maximumChannelDelta": "0"
+        },
+        {
+          "name": "ChromaEdgesMatchFullSizeThenScale",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 442,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.031s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "differentComponents": "0",
+          "maximumChannelDelta": "0"
+        },
+        {
+          "name": "NeutralLumaMatchesFullSizeThenScale",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 451,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.029s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "differentComponents": "0",
+          "maximumChannelDelta": "0"
+        },
+        {
+          "name": "OddSizeMatchesFullSizeThenScale",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 459,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.028s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "differentComponents": "0",
+          "maximumChannelDelta": "0"
+        },
+        {
+          "name": "EmptyDestinationRejectsWithoutPoisoningReadback",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 467,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.007s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2"
+        },
+        {
+          "name": "ScaledReadbackPreservesCallerState",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 478,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.008s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2"
+        },
+        {
+          "name": "FullSizeReadbackPreservesCallerState",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 482,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.007s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2"
+        },
+        {
+          "name": "SourceAllocationFailureRestoresStateAndRecovers",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 486,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.008s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2"
+        },
+        {
+          "name": "DestinationAllocationFailureRestoresStateAndRecovers",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 494,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.008s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2"
+        },
+        {
+          "name": "MissingPlaneRejectsAndRecovers",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 501,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.008s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2"
+        },
+        {
+          "name": "EmptySourceRejectsAndRecovers",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 505,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.008s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2"
+        },
+        {
+          "name": "BT601MatchesFullSizeThenScale",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 509,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.028s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "differentComponents": "0",
+          "maximumChannelDelta": "0"
+        },
+        {
+          "name": "BT2020MatchesFullSizeThenScale",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 517,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.027s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "differentComponents": "0",
+          "maximumChannelDelta": "0"
+        },
+        {
+          "name": "VideoLinearCompositionMatches",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 525,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:40Z",
+          "time": "0.103s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "sourceWidth": "1920",
+          "sourceHeight": "1080",
+          "destinationWidth": "320",
+          "destinationHeight": "180",
+          "halfAlpha": "0",
+          "softwareTarget": "0",
+          "differentComponents": "0",
+          "maximumChannelDelta": "0",
+          "stagedToReferenceDifferences": "0",
+          "stagedToReferenceMaximumDelta": "0",
+          "candidateToStagedDifferences": "0",
+          "candidateToStagedMaximumDelta": "0",
+          "rawReadbackToSourceDifferences": "0",
+          "rawReadbackToSourceMaximumDelta": "0"
+        },
+        {
+          "name": "VideoOddCompositionMatches",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 529,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:41Z",
+          "time": "0.13s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "sourceWidth": "1920",
+          "sourceHeight": "1080",
+          "destinationWidth": "321",
+          "destinationHeight": "181",
+          "halfAlpha": "0",
+          "softwareTarget": "0",
+          "differentComponents": "4023",
+          "maximumChannelDelta": "2",
+          "stagedToReferenceDifferences": "0",
+          "stagedToReferenceMaximumDelta": "0",
+          "candidateToStagedDifferences": "4023",
+          "candidateToStagedMaximumDelta": "2",
+          "rawReadbackToSourceDifferences": "2770",
+          "rawReadbackToSourceMaximumDelta": "1",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:359\nExpected equality of these values:\n  differences\n    Which is: 4023\n  0u\n    Which is: 0\nmaximum channel delta 2\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "VideoAlphaCompositionMatches",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 533,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:41Z",
+          "time": "0.124s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "sourceWidth": "1920",
+          "sourceHeight": "1080",
+          "destinationWidth": "320",
+          "destinationHeight": "180",
+          "halfAlpha": "1",
+          "softwareTarget": "0",
+          "differentComponents": "28139",
+          "maximumChannelDelta": "1",
+          "stagedToReferenceDifferences": "28139",
+          "stagedToReferenceMaximumDelta": "1",
+          "candidateToStagedDifferences": "0",
+          "candidateToStagedMaximumDelta": "0",
+          "rawReadbackToSourceDifferences": "0",
+          "rawReadbackToSourceMaximumDelta": "0",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:359\nExpected equality of these values:\n  differences\n    Which is: 28139\n  0u\n    Which is: 0\nmaximum channel delta 1\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "VideoSoftwareCompositionMatches",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 537,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:41Z",
+          "time": "0.046s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "sourceWidth": "1920",
+          "sourceHeight": "1080",
+          "destinationWidth": "320",
+          "destinationHeight": "180",
+          "halfAlpha": "0",
+          "softwareTarget": "1",
+          "differentComponents": "23638",
+          "maximumChannelDelta": "1",
+          "stagedToReferenceDifferences": "0",
+          "stagedToReferenceMaximumDelta": "0",
+          "candidateToStagedDifferences": "23638",
+          "candidateToStagedMaximumDelta": "1",
+          "rawReadbackToSourceDifferences": "35127",
+          "rawReadbackToSourceMaximumDelta": "1",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:359\nExpected equality of these values:\n  differences\n    Which is: 23638\n  0u\n    Which is: 0\nmaximum channel delta 1\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "VideoOddSoftwareCompositionMatches",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 541,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:41Z",
+          "time": "0.026s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "sourceWidth": "1920",
+          "sourceHeight": "1080",
+          "destinationWidth": "321",
+          "destinationHeight": "181",
+          "halfAlpha": "0",
+          "softwareTarget": "1",
+          "differentComponents": "159091",
+          "maximumChannelDelta": "27",
+          "stagedToReferenceDifferences": "0",
+          "stagedToReferenceMaximumDelta": "0",
+          "candidateToStagedDifferences": "159091",
+          "candidateToStagedMaximumDelta": "27",
+          "rawReadbackToSourceDifferences": "33211",
+          "rawReadbackToSourceMaximumDelta": "2",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:359\nExpected equality of these values:\n  differences\n    Which is: 159091\n  0u\n    Which is: 0\nmaximum channel delta 27\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "VideoAlphaSoftwareCompositionMatches",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 545,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:41Z",
+          "time": "0.028s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "sourceWidth": "1920",
+          "sourceHeight": "1080",
+          "destinationWidth": "320",
+          "destinationHeight": "180",
+          "halfAlpha": "1",
+          "softwareTarget": "1",
+          "differentComponents": "12486",
+          "maximumChannelDelta": "1",
+          "stagedToReferenceDifferences": "0",
+          "stagedToReferenceMaximumDelta": "0",
+          "candidateToStagedDifferences": "12486",
+          "candidateToStagedMaximumDelta": "1",
+          "rawReadbackToSourceDifferences": "35127",
+          "rawReadbackToSourceMaximumDelta": "1",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:359\nExpected equality of these values:\n  differences\n    Which is: 12486\n  0u\n    Which is: 0\nmaximum channel delta 1\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "SmallAlphaCompositionMatches",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 549,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:41Z",
+          "time": "0.104s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "sourceWidth": "8",
+          "sourceHeight": "4",
+          "destinationWidth": "4",
+          "destinationHeight": "2",
+          "halfAlpha": "1",
+          "softwareTarget": "0",
+          "differentComponents": "2",
+          "maximumChannelDelta": "1",
+          "stagedToReferenceDifferences": "2",
+          "stagedToReferenceMaximumDelta": "1",
+          "candidateToStagedDifferences": "0",
+          "candidateToStagedMaximumDelta": "0",
+          "rawReadbackToSourceDifferences": "0",
+          "rawReadbackToSourceMaximumDelta": "0",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:359\nExpected equality of these values:\n  differences\n    Which is: 2\n  0u\n    Which is: 0\nmaximum channel delta 1\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "SmallSoftwareCompositionMatches",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 553,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:41Z",
+          "time": "0.006s",
+          "classname": "DMABufReadback",
+          "glVendor": "NVIDIA Corporation",
+          "glRenderer": "NVIDIA GeForce RTX 2060\/PCIe\/SSE2",
+          "sourceWidth": "8",
+          "sourceHeight": "4",
+          "destinationWidth": "4",
+          "destinationHeight": "2",
+          "halfAlpha": "0",
+          "softwareTarget": "1",
+          "differentComponents": "4",
+          "maximumChannelDelta": "1",
+          "stagedToReferenceDifferences": "0",
+          "stagedToReferenceMaximumDelta": "0",
+          "candidateToStagedDifferences": "4",
+          "candidateToStagedMaximumDelta": "1",
+          "rawReadbackToSourceDifferences": "2",
+          "rawReadbackToSourceMaximumDelta": "1",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:359\nExpected equality of these values:\n  differences\n    Which is: 4\n  0u\n    Which is: 0\nmaximum channel delta 1\n",
+              "type": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TestRemoteImageHolder",
+      "tests": 9,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-10-12T20:51:41Z",
+      "time": "0s",
+      "testsuite": [
+        {
+          "name": "InvalidDescriptorValidation",
+          "file": ".\/..\/..\/..\/..\/source\/dom\/media\/gtest\/TestRemoteImageHolder.cpp",
+          "line": 118,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:41Z",
+          "time": "0s",
+          "classname": "TestRemoteImageHolder"
+        },
+        {
+          "name": "ValidDescriptorPassesValidation",
+          "file": ".\/..\/..\/..\/..\/source\/dom\/media\/gtest\/TestRemoteImageHolder.cpp",
+          "line": 130,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:41Z",
+          "time": "0s",
+          "classname": "TestRemoteImageHolder"
+        },
+        {
+          "name": "RejectsInvalidShmemDescriptor",
+          "file": ".\/..\/..\/..\/..\/source\/dom\/media\/gtest\/TestRemoteImageHolder.cpp",
+          "line": 142,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:41Z",
+          "time": "0s",
+          "classname": "TestRemoteImageHolder"
+        },
+        {
+          "name": "AcceptsValidShmemDescriptor",
+          "file": ".\/..\/..\/..\/..\/source\/dom\/media\/gtest\/TestRemoteImageHolder.cpp",
+          "line": 171,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:41Z",
+          "time": "0s",
+          "classname": "TestRemoteImageHolder"
+        },
+        {
+          "name": "PreservesShmemHDRMetadata",
+          "file": ".\/..\/..\/..\/..\/source\/dom\/media\/gtest\/TestRemoteImageHolder.cpp",
+          "line": 212,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:41Z",
+          "time": "0s",
+          "classname": "TestRemoteImageHolder"
+        },
+        {
+          "name": "PreservesShmemColorMetadata",
+          "file": ".\/..\/..\/..\/..\/source\/dom\/media\/gtest\/TestRemoteImageHolder.cpp",
+          "line": 239,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:41Z",
+          "time": "0s",
+          "classname": "TestRemoteImageHolder"
+        },
+        {
+          "name": "ForwardsTextureColorMetadata",
+          "file": ".\/..\/..\/..\/..\/source\/dom\/media\/gtest\/TestRemoteImageHolder.cpp",
+          "line": 270,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:41Z",
+          "time": "0s",
+          "classname": "TestRemoteImageHolder"
+        },
+        {
+          "name": "RejectsOversizedDisplayRect",
+          "file": ".\/..\/..\/..\/..\/source\/dom\/media\/gtest\/TestRemoteImageHolder.cpp",
+          "line": 292,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:41Z",
+          "time": "0s",
+          "classname": "TestRemoteImageHolder"
+        },
+        {
+          "name": "RejectsInvalidChromaDimensions",
+          "file": ".\/..\/..\/..\/..\/source\/dom\/media\/gtest\/TestRemoteImageHolder.cpp",
+          "line": 330,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:51:41Z",
+          "time": "0s",
+          "classname": "TestRemoteImageHolder"
+        }
+      ]
+    }
+  ]
+}

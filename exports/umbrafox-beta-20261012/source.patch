@@ -1,0 +1,37 @@
+diff --git i/dom/base/UmbrafoxUserlandMutation.cpp w/dom/base/UmbrafoxUserlandMutation.cpp
+index 06166f0fadb7..35b5932e70d6 100644
+--- i/dom/base/UmbrafoxUserlandMutation.cpp
++++ w/dom/base/UmbrafoxUserlandMutation.cpp
+@@ -4,6 +4,7 @@
+ 
+ #include "UmbrafoxUserlandMutation.h"
+ 
++#include "mozilla/Services.h"
+ #include "mozilla/dom/BrowsingContext.h"
+ #include "mozilla/dom/CharacterData.h"
+ #include "mozilla/dom/Document.h"
+diff --git i/dom/canvas/gtest/TestDMABufReadback.cpp w/dom/canvas/gtest/TestDMABufReadback.cpp
+index 3d894d7c18c4..cb4e9175f782 100644
+--- i/dom/canvas/gtest/TestDMABufReadback.cpp
++++ w/dom/canvas/gtest/TestDMABufReadback.cpp
+@@ -215,7 +215,8 @@ class DMABufReadback : public ::testing::Test {
+     ASSERT_TRUE(shared);
+     RefPtr<DrawTargetWebgl> target = new DrawTargetWebgl;
+     // Exercise drawing below the production minimum-size admission heuristic.
+-    ASSERT_TRUE(target->Init(aDestination, SurfaceFormat::B8G8R8A8, shared));
++    ASSERT_TRUE(target->Init(aDestination, SurfaceFormat::B8G8R8A8, shared,
++                             dom::ContentParentId(1)));
+     target->DrawSurface(source, Rect(Point(), Size(aDestination)),
+                         Rect(Point(), Size(mSize)),
+                         DrawSurfaceOptions(SamplingFilter::LINEAR),
+@@ -282,8 +283,8 @@ class DMABufReadback : public ::testing::Test {
+       shared = SharedContextWebgl::Create();
+       ASSERT_TRUE(shared);
+       RefPtr<DrawTargetWebgl> accelerated = new DrawTargetWebgl;
+-      ASSERT_TRUE(
+-          accelerated->Init(aDestination, SurfaceFormat::B8G8R8A8, shared));
++      ASSERT_TRUE(accelerated->Init(aDestination, SurfaceFormat::B8G8R8A8,
++                                    shared, dom::ContentParentId(1)));
+       target = accelerated;
+     }
+     ASSERT_TRUE(target);

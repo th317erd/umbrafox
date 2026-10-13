@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/install_beta.py", line 93, in <module>
+    install()
+    ~~~~~~~^^
+  File "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/install_beta.py", line 59, in install
+    inactive(target)
+    ~~~~~~~~^^^^^^^^
+  File "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/install_beta.py", line 27, in inactive
+    executable = os.readlink(entry / 'exe')
+PermissionError: [Errno 13] Permission denied: '/proc/1058/exe'

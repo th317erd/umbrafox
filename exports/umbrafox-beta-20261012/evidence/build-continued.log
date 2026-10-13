@@ -1,0 +1,34 @@
+ 0:00.25 W Warnings in third-party code are being suppressed from the terminal output. Use --show-all-warnings or --verbose to see them.
+ 0:00.25 W All warnings will still be dumped to /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/warnings_*.json at the end of the build.
+ 0:00.39 Clobber not needed.
+ 0:00.44 W Adding make options from /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/mozconfig
+    MOZ_OBJDIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+    OBJDIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+    FOUND_MOZCONFIG=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/mozconfig
+    export FOUND_MOZCONFIG
+ 0:00.44 /usr/bin/make -f client.mk -j2 -s
+ 0:01.54 ./buildid.h.stub
+ 0:01.54 ./source-repo.h.stub
+ 0:01.69 ./fog_ffi_generated.h.stub
+ 0:01.70 ./application.ini.stub
+ 0:01.85 ./application.ini.h.stub
+ 0:02.44 browser/app
+ 0:08.07 toolkit/library/buildid.cpp.stub
+ 0:08.81 dom/origin-trials
+ 0:08.88 dom/base
+ 1:15.10 js/src/gc
+ 1:36.94 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/base/UmbrafoxUserlandMutation.cpp:45:45: error: use of undeclared identifier 'services'
+ 1:36.94 E    45 |   nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
+ 1:36.94 E       |                                             ^
+ 1:36.94 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/base/UmbrafoxUserlandMutation.cpp:91:45: error: use of undeclared identifier 'services'
+ 1:36.94 E    91 |   nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
+ 1:36.94 E       |                                             ^
+ 1:36.94 E 2 errors generated.
+ 1:36.94 E make[4]: *** [/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/config/rules.mk:620: Unified_cpp_dom_base8.o] Error 1
+ 1:36.94 E make[3]: *** [/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/config/recurse.mk:79: dom/base/target-objects] Error 2
+ 1:36.94 E make[3]: *** Waiting for unfinished jobs....
+ 1:52.43 E make[2]: *** [/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/config/recurse.mk:34: compile] Error 2
+ 1:52.43 E make[1]: *** [/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/config/rules.mk:315: default] Error 2
+ 1:52.43 E make: *** [client.mk:58: build] Error 2
+ 1:52.53 W 0 compiler warnings present.
+Streaming resource usage profile to: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/profile_log_20261012_200801.json

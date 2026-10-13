@@ -1,0 +1,14 @@
+ 0:00.25 W Warnings in third-party code are being suppressed from the terminal output. Use --show-all-warnings or --verbose to see them.
+ 0:00.25 W All warnings will still be dumped to /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/warnings_*.json at the end of the build.
+ 0:00.39 Clobber not needed.
+ 0:00.44 /usr/bin/make -j2 -s binaries
+ 0:01.04 browser/app
+ 0:07.61 browser/app/umbrafox
+ 0:07.99 toolkit/library/build/libxul.so
+ 0:12.15 /usr/bin/make -j2 -s recurse_gtest
+ 0:19.00 W 0 compiler warnings present.
+ 0:19.02 W Overall system resources - Wall time: 19s; CPU: 22%; Read bytes: 45989888; Write bytes: 3417026560; Read time: 473; Write time: 412686
+ 0:19.02 W Swap in/out (MB): 0.13671875/0.0
+ 0:19.02 To view a profile of the build, run |mach resource-usage|.
+ 0:19.02 Your build was successful!
+Streaming resource usage profile to: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/profile_log_20261012_203605.json

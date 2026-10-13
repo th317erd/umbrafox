@@ -1,0 +1,3 @@
+mk_add_options MOZ_OBJDIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+ac_add_options --with-ccache=sccache
+ac_add_options --disable-umbra-perf-probes

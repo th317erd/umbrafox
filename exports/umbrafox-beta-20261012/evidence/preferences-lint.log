@@ -1,0 +1,16 @@
+(node:177344) ExperimentalWarning: Importing JSON modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+/home/wyatt/Projects/umbrafox-workspace/umbrafox/tools/umbrafox/beta/test/preferences-spec.mjs
+  23:14  error  'name' is already a global variable  no-shadow
+  38:15  error  'name' is already a global variable  no-shadow
+  43:37  error  Spaces are hard to count. Use {2}    no-regex-spaces
+  44:37  error  Spaces are hard to count. Use {2}    no-regex-spaces
+
+/home/wyatt/Projects/umbrafox-workspace/umbrafox/tools/umbrafox/beta/umbrafox-beta.js
+  5:1  error  'pref' is not defined  no-undef
+  6:1  error  'pref' is not defined  no-undef
+
+✖ 6 problems (6 errors, 0 warnings)
+  2 errors and 0 warnings potentially fixable with the `--fix` option.
+

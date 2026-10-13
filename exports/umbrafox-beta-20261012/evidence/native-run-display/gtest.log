@@ -1,0 +1,252 @@
+*** You are running in headless mode.
+Running GTest tests...
+{"action":"suite_start","source":"gtest","name":"gtest","tests":{}}
+{"action":"group_start","name":"IPDLTest_CrossProcess"}
+{"action":"test_start","test":"IPDLTest_CrossProcess.TestGPUVideoReadbackIPCNormal"}
+ReadbackIPC peer=909591 owner=909550
+{"action":"test_end","test":"IPDLTest_CrossProcess.TestGPUVideoReadbackIPCNormal","status":"PASS"}
+{"action":"test_start","test":"IPDLTest_CrossProcess.TestGPUVideoReadbackIPCAbnormal"}
+ReadbackIPC peer=909598 owner=909550
+{"action":"test_end","test":"IPDLTest_CrossProcess.TestGPUVideoReadbackIPCAbnormal","status":"PASS"}
+{"action":"group_end","name":"IPDLTest_CrossProcess"}
+{"action":"group_start","name":"IPDLTest_CrossThread"}
+{"action":"test_start","test":"IPDLTest_CrossThread.TestGPUVideoReadbackIPCNormal"}
+ReadbackIPC peer=909550 owner=909550
+{"action":"test_end","test":"IPDLTest_CrossThread.TestGPUVideoReadbackIPCNormal","status":"PASS"}
+{"action":"test_start","test":"IPDLTest_CrossThread.TestGPUVideoReadbackIPCAbnormal"}
+ReadbackIPC peer=909550 owner=909550
+{"action":"test_end","test":"IPDLTest_CrossThread.TestGPUVideoReadbackIPCAbnormal","status":"PASS"}
+{"action":"group_end","name":"IPDLTest_CrossThread"}
+{"action":"group_start","name":"GPUVideoReadback"}
+{"action":"test_start","test":"GPUVideoReadback.SameFrameAndSizeUsesOneReadback"}
+{"action":"test_end","test":"GPUVideoReadback.SameFrameAndSizeUsesOneReadback","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.DescriptorAvailabilityDoesNotReadBack"}
+{"action":"test_end","test":"GPUVideoReadback.DescriptorAvailabilityDoesNotReadBack","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.DescriptorAvailabilityRetainsOriginalManager"}
+{"action":"test_end","test":"GPUVideoReadback.DescriptorAvailabilityRetainsOriginalManager","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.DifferentSizesAndImagesCannotReuseTheSurface"}
+{"action":"test_end","test":"GPUVideoReadback.DifferentSizesAndImagesCannotReuseTheSurface","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.FailureAndWrongSizeDoNotPoisonTheCache"}
+{"action":"test_end","test":"GPUVideoReadback.FailureAndWrongSizeDoNotPoisonTheCache","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.FullReadbackDoesNotUseSizedCache"}
+{"action":"test_end","test":"GPUVideoReadback.FullReadbackDoesNotUseSizedCache","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.EmptySizedRequestsKeepExistingReadbackBehavior"}
+{"action":"test_end","test":"GPUVideoReadback.EmptySizedRequestsKeepExistingReadbackBehavior","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.CacheIsBoundedByActualStrideTimesHeight"}
+{"action":"test_end","test":"GPUVideoReadback.CacheIsBoundedByActualStrideTimesHeight","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.ReadbackDoesNotHoldCacheLock"}
+{"action":"test_end","test":"GPUVideoReadback.ReadbackDoesNotHoldCacheLock","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.ConcurrentReadsConvergeWithoutReplacingTheWinner"}
+{"action":"test_end","test":"GPUVideoReadback.ConcurrentReadsConvergeWithoutReplacingTheWinner","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.ImageDestructionReleasesItsCachedSurface"}
+{"action":"test_end","test":"GPUVideoReadback.ImageDestructionReleasesItsCachedSurface","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.FullSizeReusesExactFrameBytes"}
+{"action":"test_end","test":"GPUVideoReadback.FullSizeReusesExactFrameBytes","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.FullSizeDoesNotShareAcrossImagesOrSizedCache"}
+{"action":"test_end","test":"GPUVideoReadback.FullSizeDoesNotShareAcrossImagesOrSizedCache","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.FullSizeFailuresAndInvalidSurfacesDoNotPoisonCache"}
+{"action":"test_end","test":"GPUVideoReadback.FullSizeFailuresAndInvalidSurfacesDoNotPoisonCache","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.FullSizeBudgetIsSharedAndRecoversAfterRelease"}
+{"action":"test_end","test":"GPUVideoReadback.FullSizeBudgetIsSharedAndRecoversAfterRelease","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.FullSizeBudgetUsesActualStride"}
+{"action":"test_end","test":"GPUVideoReadback.FullSizeBudgetUsesActualStride","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.FullSizeReadbackDoesNotHoldCacheLock"}
+{"action":"test_end","test":"GPUVideoReadback.FullSizeReadbackDoesNotHoldCacheLock","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.ConcurrentFullSizeReadsConverge"}
+{"action":"test_end","test":"GPUVideoReadback.ConcurrentFullSizeReadsConverge","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.FullSizeDestructionReleasesSurfaceAndDescriptor"}
+{"action":"test_end","test":"GPUVideoReadback.FullSizeDestructionReleasesSurfaceAndDescriptor","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.FullSizeDelayedMainThreadReleaseRetainsBudget"}
+{"action":"test_end","test":"GPUVideoReadback.FullSizeDelayedMainThreadReleaseRetainsBudget","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.OtherRemoteTypesKeepUncachedFullReads"}
+{"action":"test_end","test":"GPUVideoReadback.OtherRemoteTypesKeepUncachedFullReads","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.FullCacheRejectsUnavailableManager"}
+{"action":"test_end","test":"GPUVideoReadback.FullCacheRejectsUnavailableManager","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.SizedCacheRejectsUnavailableManager"}
+{"action":"test_end","test":"GPUVideoReadback.SizedCacheRejectsUnavailableManager","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.ReplacementManagerCannotReviveOldCache"}
+{"action":"test_end","test":"GPUVideoReadback.ReplacementManagerCannotReviveOldCache","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.ConcurrentCacheHitsRespectDisconnection"}
+{"action":"test_end","test":"GPUVideoReadback.ConcurrentCacheHitsRespectDisconnection","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.AvailabilityCheckDoesNotHoldCacheLock"}
+{"action":"test_end","test":"GPUVideoReadback.AvailabilityCheckDoesNotHoldCacheLock","status":"PASS"}
+{"action":"test_start","test":"GPUVideoReadback.RealManagerRejectsKnownChannelFailure"}
+{"action":"test_end","test":"GPUVideoReadback.RealManagerRejectsKnownChannelFailure","status":"PASS"}
+{"action":"group_end","name":"GPUVideoReadback"}
+{"action":"group_start","name":"CanvasSurfaceImport"}
+{"action":"test_start","test":"CanvasSurfaceImport.UnusableDescriptorDoesNotPublishSurface"}
+[GFX1-]: BlitSdToFramebuffer failed for type 0
+[GFX1-]: TexUnpackSurface failed to create wrapping DataSourceSurface.
+{"action":"test_end","test":"CanvasSurfaceImport.UnusableDescriptorDoesNotPublishSurface","status":"PASS"}
+{"action":"test_start","test":"CanvasSurfaceImport.RepeatedUnusableDescriptorsDoNotPublishSurfaces"}
+[GFX1-]: BlitSdToFramebuffer failed for type 0
+[GFX1-]: TexUnpackSurface failed to create wrapping DataSourceSurface.
+[GFX1-]: BlitSdToFramebuffer failed for type 0
+[GFX1-]: TexUnpackSurface failed to create wrapping DataSourceSurface.
+[GFX1-]: BlitSdToFramebuffer failed for type 0
+[GFX1-]: TexUnpackSurface failed to create wrapping DataSourceSurface.
+[GFX1-]: BlitSdToFramebuffer failed for type 0
+[GFX1-]: TexUnpackSurface failed to create wrapping DataSourceSurface.
+[GFX1-]: BlitSdToFramebuffer failed for type 0
+[GFX1-]: TexUnpackSurface failed to create wrapping DataSourceSurface.
+[GFX1-]: BlitSdToFramebuffer failed for type 0
+[GFX1-]: TexUnpackSurface failed to create wrapping DataSourceSurface.
+[GFX1-]: BlitSdToFramebuffer failed for type 0
+[GFX1-]: TexUnpackSurface failed to create wrapping DataSourceSurface.
+[GFX1-]: BlitSdToFramebuffer failed for type 0
+[GFX1-]: TexUnpackSurface failed to create wrapping DataSourceSurface.
+[GFX1-]: BlitSdToFramebuffer failed for type 0
+[GFX1-]: TexUnpackSurface failed to create wrapping DataSourceSurface.
+[GFX1-]: BlitSdToFramebuffer failed for type 0
+[GFX1-]: TexUnpackSurface failed to create wrapping DataSourceSurface.
+[GFX1-]: BlitSdToFramebuffer failed for type 0
+[GFX1-]: TexUnpackSurface failed to create wrapping DataSourceSurface.
+[GFX1-]: BlitSdToFramebuffer failed for type 0
+[GFX1-]: TexUnpackSurface failed to create wrapping DataSourceSurface.
+[GFX1-]: BlitSdToFramebuffer failed for type 0
+[GFX1-]: TexUnpackSurface failed to create wrapping DataSourceSurface.
+[GFX1-]: BlitSdToFramebuffer failed for type 0
+[GFX1-]: TexUnpackSurface failed to create wrapping DataSourceSurface.
+[GFX1-]: BlitSdToFramebuffer failed for type 0
+[GFX1-]: TexUnpackSurface failed to create wrapping DataSourceSurface.
+[GFX1-]: BlitSdToFramebuffer failed for type 0
+[GFX1-]: TexUnpackSurface failed to create wrapping DataSourceSurface.
+{"action":"test_end","test":"CanvasSurfaceImport.RepeatedUnusableDescriptorsDoNotPublishSurfaces","status":"PASS"}
+{"action":"test_start","test":"CanvasSurfaceImport.OversizedAllocationDoesNotPublishSurface"}
+{"action":"test_end","test":"CanvasSurfaceImport.OversizedAllocationDoesNotPublishSurface","status":"PASS"}
+{"action":"test_start","test":"CanvasSurfaceImport.DefaultDescriptorBehaviorIsUnchanged"}
+[GFX1-]: BlitSdToFramebuffer failed for type 0
+{"action":"test_end","test":"CanvasSurfaceImport.DefaultDescriptorBehaviorIsUnchanged","status":"PASS"}
+{"action":"group_end","name":"CanvasSurfaceImport"}
+{"action":"group_start","name":"CanvasVideoSurfaceCache"}
+{"action":"test_start","test":"CanvasVideoSurfaceCache.BorrowedDescriptorKeepsIndependentOwningCopies"}
+{"action":"test_status","test":"CanvasVideoSurfaceCache.BorrowedDescriptorKeepsIndependentOwningCopies","subtest":"","status":"FAIL","expected":"PASS","message":"Value of: mTarget\n  Actual: false\nExpected: true\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp:63"}
+{"action":"test_end","test":"CanvasVideoSurfaceCache.BorrowedDescriptorKeepsIndependentOwningCopies","status":"FAIL","expected":"PASS"}
+{"action":"test_start","test":"CanvasVideoSurfaceCache.LiveSurfaceReuseAndExactPixels"}
+{"action":"test_status","test":"CanvasVideoSurfaceCache.LiveSurfaceReuseAndExactPixels","subtest":"","status":"FAIL","expected":"PASS","message":"Value of: mTarget\n  Actual: false\nExpected: true\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp:63"}
+{"action":"test_end","test":"CanvasVideoSurfaceCache.LiveSurfaceReuseAndExactPixels","status":"FAIL","expected":"PASS"}
+{"action":"test_start","test":"CanvasVideoSurfaceCache.GenericImportsAreDistinctAndInvalidate"}
+{"action":"test_status","test":"CanvasVideoSurfaceCache.GenericImportsAreDistinctAndInvalidate","subtest":"","status":"FAIL","expected":"PASS","message":"Value of: mTarget\n  Actual: false\nExpected: true\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp:63"}
+{"action":"test_end","test":"CanvasVideoSurfaceCache.GenericImportsAreDistinctAndInvalidate","status":"FAIL","expected":"PASS"}
+{"action":"test_start","test":"CanvasVideoSurfaceCache.FrameAndHostIdentityCannotAlias"}
+{"action":"test_status","test":"CanvasVideoSurfaceCache.FrameAndHostIdentityCannotAlias","subtest":"","status":"FAIL","expected":"PASS","message":"Value of: mTarget\n  Actual: false\nExpected: true\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp:63"}
+{"action":"test_end","test":"CanvasVideoSurfaceCache.FrameAndHostIdentityCannotAlias","status":"FAIL","expected":"PASS"}
+{"action":"test_start","test":"CanvasVideoSurfaceCache.ContentOwnershipCannotAlias"}
+{"action":"test_status","test":"CanvasVideoSurfaceCache.ContentOwnershipCannotAlias","subtest":"","status":"FAIL","expected":"PASS","message":"Value of: mTarget\n  Actual: false\nExpected: true\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp:63"}
+{"action":"test_end","test":"CanvasVideoSurfaceCache.ContentOwnershipCannotAlias","status":"FAIL","expected":"PASS"}
+{"action":"test_start","test":"CanvasVideoSurfaceCache.MissingTargetNeverPublishes"}
+{"action":"test_status","test":"CanvasVideoSurfaceCache.MissingTargetNeverPublishes","subtest":"","status":"FAIL","expected":"PASS","message":"Value of: mTarget\n  Actual: false\nExpected: true\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp:63"}
+{"action":"test_end","test":"CanvasVideoSurfaceCache.MissingTargetNeverPublishes","status":"FAIL","expected":"PASS"}
+{"action":"test_start","test":"CanvasVideoSurfaceCache.MissingIdentityNeverPublishes"}
+{"action":"test_status","test":"CanvasVideoSurfaceCache.MissingIdentityNeverPublishes","subtest":"","status":"FAIL","expected":"PASS","message":"Value of: mTarget\n  Actual: false\nExpected: true\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp:63"}
+{"action":"test_end","test":"CanvasVideoSurfaceCache.MissingIdentityNeverPublishes","status":"FAIL","expected":"PASS"}
+{"action":"test_start","test":"CanvasVideoSurfaceCache.ReleasedOwnerReusesExistingHandle"}
+{"action":"test_status","test":"CanvasVideoSurfaceCache.ReleasedOwnerReusesExistingHandle","subtest":"","status":"FAIL","expected":"PASS","message":"Value of: mTarget\n  Actual: false\nExpected: true\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp:63"}
+{"action":"test_end","test":"CanvasVideoSurfaceCache.ReleasedOwnerReusesExistingHandle","status":"FAIL","expected":"PASS"}
+{"action":"test_start","test":"CanvasVideoSurfaceCache.ReadbackPreventsStaleHandleReuse"}
+{"action":"test_status","test":"CanvasVideoSurfaceCache.ReadbackPreventsStaleHandleReuse","subtest":"","status":"FAIL","expected":"PASS","message":"Value of: mTarget\n  Actual: false\nExpected: true\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp:63"}
+{"action":"test_end","test":"CanvasVideoSurfaceCache.ReadbackPreventsStaleHandleReuse","status":"FAIL","expected":"PASS"}
+{"action":"test_start","test":"CanvasVideoSurfaceCache.ExplicitClearAndMemoryPressureRecover"}
+{"action":"test_status","test":"CanvasVideoSurfaceCache.ExplicitClearAndMemoryPressureRecover","subtest":"","status":"FAIL","expected":"PASS","message":"Value of: mTarget\n  Actual: false\nExpected: true\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp:63"}
+{"action":"test_end","test":"CanvasVideoSurfaceCache.ExplicitClearAndMemoryPressureRecover","status":"FAIL","expected":"PASS"}
+{"action":"test_start","test":"CanvasVideoSurfaceCache.FailedImportsDoNotPoisonRecovery"}
+{"action":"test_status","test":"CanvasVideoSurfaceCache.FailedImportsDoNotPoisonRecovery","subtest":"","status":"FAIL","expected":"PASS","message":"Value of: mTarget\n  Actual: false\nExpected: true\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp:63"}
+{"action":"test_end","test":"CanvasVideoSurfaceCache.FailedImportsDoNotPoisonRecovery","status":"FAIL","expected":"PASS"}
+{"action":"test_start","test":"CanvasVideoSurfaceCache.ContextLossRejectsAndReplacementRecovers"}
+{"action":"test_status","test":"CanvasVideoSurfaceCache.ContextLossRejectsAndReplacementRecovers","subtest":"","status":"FAIL","expected":"PASS","message":"Value of: mTarget\n  Actual: false\nExpected: true\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp:63"}
+{"action":"test_end","test":"CanvasVideoSurfaceCache.ContextLossRejectsAndReplacementRecovers","status":"FAIL","expected":"PASS"}
+{"action":"group_end","name":"CanvasVideoSurfaceCache"}
+{"action":"group_start","name":"DMABufProducerFence"}
+{"action":"test_start","test":"DMABufProducerFence.LocalWaitKeepsExportedDuplicatesAndPixels"}
+{"action":"test_end","test":"DMABufProducerFence.LocalWaitKeepsExportedDuplicatesAndPixels","status":"PASS"}
+{"action":"test_start","test":"DMABufProducerFence.ReplacementKeepsOldExportsAndAlternatingPixels"}
+{"action":"test_end","test":"DMABufProducerFence.ReplacementKeepsOldExportsAndAlternatingPixels","status":"PASS"}
+{"action":"test_start","test":"DMABufProducerFence.OwnerDestructionKeepsDescriptorAndDuplicate"}
+{"action":"test_end","test":"DMABufProducerFence.OwnerDestructionKeepsDescriptorAndDuplicate","status":"PASS"}
+{"action":"test_start","test":"DMABufProducerFence.SwapChainRecycleResizeAndClear"}
+{"action":"test_end","test":"DMABufProducerFence.SwapChainRecycleResizeAndClear","status":"PASS"}
+{"action":"test_start","test":"DMABufProducerFence.ContextReleaseKeepsFenceUntilOwnerDestruction"}
+{"action":"test_end","test":"DMABufProducerFence.ContextReleaseKeepsFenceUntilOwnerDestruction","status":"PASS"}
+{"action":"test_start","test":"DMABufProducerFence.WebGLLossAndReplacementKeepExportedPixels"}
+WebGL(7a7020e87700)::LoseContext(0)
+{"action":"test_end","test":"DMABufProducerFence.WebGLLossAndReplacementKeepExportedPixels","status":"PASS"}
+{"action":"test_start","test":"DMABufProducerFence.IdleOwnersReturnNativeFenceFDs"}
+{"action":"test_end","test":"DMABufProducerFence.IdleOwnersReturnNativeFenceFDs","status":"PASS"}
+{"action":"group_end","name":"DMABufProducerFence"}
+{"action":"group_start","name":"DMABufReadback"}
+{"action":"test_start","test":"DMABufReadback.ConstantColorMatchesFullSizeThenScale"}
+{"action":"test_end","test":"DMABufReadback.ConstantColorMatchesFullSizeThenScale","status":"PASS"}
+{"action":"test_start","test":"DMABufReadback.SameSizeMatchesFullSize"}
+{"action":"test_end","test":"DMABufReadback.SameSizeMatchesFullSize","status":"PASS"}
+{"action":"test_start","test":"DMABufReadback.SaturatedLumaMatchesFullSizeThenScale"}
+{"action":"test_end","test":"DMABufReadback.SaturatedLumaMatchesFullSizeThenScale","status":"PASS"}
+{"action":"test_start","test":"DMABufReadback.ChromaEdgesMatchFullSizeThenScale"}
+{"action":"test_end","test":"DMABufReadback.ChromaEdgesMatchFullSizeThenScale","status":"PASS"}
+{"action":"test_start","test":"DMABufReadback.NeutralLumaMatchesFullSizeThenScale"}
+{"action":"test_end","test":"DMABufReadback.NeutralLumaMatchesFullSizeThenScale","status":"PASS"}
+{"action":"test_start","test":"DMABufReadback.OddSizeMatchesFullSizeThenScale"}
+{"action":"test_end","test":"DMABufReadback.OddSizeMatchesFullSizeThenScale","status":"PASS"}
+{"action":"test_start","test":"DMABufReadback.EmptyDestinationRejectsWithoutPoisoningReadback"}
+{"action":"test_end","test":"DMABufReadback.EmptyDestinationRejectsWithoutPoisoningReadback","status":"PASS"}
+{"action":"test_start","test":"DMABufReadback.ScaledReadbackPreservesCallerState"}
+{"action":"test_end","test":"DMABufReadback.ScaledReadbackPreservesCallerState","status":"PASS"}
+{"action":"test_start","test":"DMABufReadback.FullSizeReadbackPreservesCallerState"}
+{"action":"test_end","test":"DMABufReadback.FullSizeReadbackPreservesCallerState","status":"PASS"}
+{"action":"test_start","test":"DMABufReadback.SourceAllocationFailureRestoresStateAndRecovers"}
+{"action":"test_end","test":"DMABufReadback.SourceAllocationFailureRestoresStateAndRecovers","status":"PASS"}
+{"action":"test_start","test":"DMABufReadback.DestinationAllocationFailureRestoresStateAndRecovers"}
+{"action":"test_end","test":"DMABufReadback.DestinationAllocationFailureRestoresStateAndRecovers","status":"PASS"}
+{"action":"test_start","test":"DMABufReadback.MissingPlaneRejectsAndRecovers"}
+{"action":"test_end","test":"DMABufReadback.MissingPlaneRejectsAndRecovers","status":"PASS"}
+{"action":"test_start","test":"DMABufReadback.EmptySourceRejectsAndRecovers"}
+{"action":"test_end","test":"DMABufReadback.EmptySourceRejectsAndRecovers","status":"PASS"}
+{"action":"test_start","test":"DMABufReadback.BT601MatchesFullSizeThenScale"}
+{"action":"test_end","test":"DMABufReadback.BT601MatchesFullSizeThenScale","status":"PASS"}
+{"action":"test_start","test":"DMABufReadback.BT2020MatchesFullSizeThenScale"}
+{"action":"test_end","test":"DMABufReadback.BT2020MatchesFullSizeThenScale","status":"PASS"}
+{"action":"test_start","test":"DMABufReadback.VideoLinearCompositionMatches"}
+{"action":"test_end","test":"DMABufReadback.VideoLinearCompositionMatches","status":"PASS"}
+{"action":"test_start","test":"DMABufReadback.VideoOddCompositionMatches"}
+{"action":"test_status","test":"DMABufReadback.VideoOddCompositionMatches","subtest":"","status":"FAIL","expected":"PASS","message":"Expected equality of these values:\n  differences\n    Which is: 4023\n  0u\n    Which is: 0\nmaximum channel delta 2\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestDMABufReadback.cpp:359"}
+{"action":"test_end","test":"DMABufReadback.VideoOddCompositionMatches","status":"FAIL","expected":"PASS"}
+{"action":"test_start","test":"DMABufReadback.VideoAlphaCompositionMatches"}
+{"action":"test_status","test":"DMABufReadback.VideoAlphaCompositionMatches","subtest":"","status":"FAIL","expected":"PASS","message":"Expected equality of these values:\n  differences\n    Which is: 28139\n  0u\n    Which is: 0\nmaximum channel delta 1\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestDMABufReadback.cpp:359"}
+{"action":"test_end","test":"DMABufReadback.VideoAlphaCompositionMatches","status":"FAIL","expected":"PASS"}
+{"action":"test_start","test":"DMABufReadback.VideoSoftwareCompositionMatches"}
+{"action":"test_status","test":"DMABufReadback.VideoSoftwareCompositionMatches","subtest":"","status":"FAIL","expected":"PASS","message":"Expected equality of these values:\n  differences\n    Which is: 23638\n  0u\n    Which is: 0\nmaximum channel delta 1\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestDMABufReadback.cpp:359"}
+{"action":"test_end","test":"DMABufReadback.VideoSoftwareCompositionMatches","status":"FAIL","expected":"PASS"}
+{"action":"test_start","test":"DMABufReadback.VideoOddSoftwareCompositionMatches"}
+{"action":"test_status","test":"DMABufReadback.VideoOddSoftwareCompositionMatches","subtest":"","status":"FAIL","expected":"PASS","message":"Expected equality of these values:\n  differences\n    Which is: 159091\n  0u\n    Which is: 0\nmaximum channel delta 27\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestDMABufReadback.cpp:359"}
+{"action":"test_end","test":"DMABufReadback.VideoOddSoftwareCompositionMatches","status":"FAIL","expected":"PASS"}
+{"action":"test_start","test":"DMABufReadback.VideoAlphaSoftwareCompositionMatches"}
+{"action":"test_status","test":"DMABufReadback.VideoAlphaSoftwareCompositionMatches","subtest":"","status":"FAIL","expected":"PASS","message":"Expected equality of these values:\n  differences\n    Which is: 12486\n  0u\n    Which is: 0\nmaximum channel delta 1\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestDMABufReadback.cpp:359"}
+{"action":"test_end","test":"DMABufReadback.VideoAlphaSoftwareCompositionMatches","status":"FAIL","expected":"PASS"}
+{"action":"test_start","test":"DMABufReadback.SmallAlphaCompositionMatches"}
+{"action":"test_status","test":"DMABufReadback.SmallAlphaCompositionMatches","subtest":"","status":"FAIL","expected":"PASS","message":"Expected equality of these values:\n  differences\n    Which is: 2\n  0u\n    Which is: 0\nmaximum channel delta 1\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestDMABufReadback.cpp:359"}
+{"action":"test_end","test":"DMABufReadback.SmallAlphaCompositionMatches","status":"FAIL","expected":"PASS"}
+{"action":"test_start","test":"DMABufReadback.SmallSoftwareCompositionMatches"}
+{"action":"test_status","test":"DMABufReadback.SmallSoftwareCompositionMatches","subtest":"","status":"FAIL","expected":"PASS","message":"Expected equality of these values:\n  differences\n    Which is: 4\n  0u\n    Which is: 0\nmaximum channel delta 1\n","stack":"/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestDMABufReadback.cpp:359"}
+{"action":"test_end","test":"DMABufReadback.SmallSoftwareCompositionMatches","status":"FAIL","expected":"PASS"}
+{"action":"group_end","name":"DMABufReadback"}
+{"action":"group_start","name":"TestRemoteImageHolder"}
+{"action":"test_start","test":"TestRemoteImageHolder.InvalidDescriptorValidation"}
+{"action":"test_end","test":"TestRemoteImageHolder.InvalidDescriptorValidation","status":"PASS"}
+{"action":"test_start","test":"TestRemoteImageHolder.ValidDescriptorPassesValidation"}
+{"action":"test_end","test":"TestRemoteImageHolder.ValidDescriptorPassesValidation","status":"PASS"}
+{"action":"test_start","test":"TestRemoteImageHolder.RejectsInvalidShmemDescriptor"}
+{"action":"test_end","test":"TestRemoteImageHolder.RejectsInvalidShmemDescriptor","status":"PASS"}
+{"action":"test_start","test":"TestRemoteImageHolder.AcceptsValidShmemDescriptor"}
+{"action":"test_end","test":"TestRemoteImageHolder.AcceptsValidShmemDescriptor","status":"PASS"}
+{"action":"test_start","test":"TestRemoteImageHolder.PreservesShmemHDRMetadata"}
+{"action":"test_end","test":"TestRemoteImageHolder.PreservesShmemHDRMetadata","status":"PASS"}
+{"action":"test_start","test":"TestRemoteImageHolder.PreservesShmemColorMetadata"}
+{"action":"test_end","test":"TestRemoteImageHolder.PreservesShmemColorMetadata","status":"PASS"}
+{"action":"test_start","test":"TestRemoteImageHolder.ForwardsTextureColorMetadata"}
+{"action":"test_end","test":"TestRemoteImageHolder.ForwardsTextureColorMetadata","status":"PASS"}
+{"action":"test_start","test":"TestRemoteImageHolder.RejectsOversizedDisplayRect"}
+{"action":"test_end","test":"TestRemoteImageHolder.RejectsOversizedDisplayRect","status":"PASS"}
+{"action":"test_start","test":"TestRemoteImageHolder.RejectsInvalidChromaDimensions"}
+{"action":"test_end","test":"TestRemoteImageHolder.RejectsInvalidChromaDimensions","status":"PASS"}
+{"action":"group_end","name":"TestRemoteImageHolder"}
+{"action":"suite_end","source":"gtest"}
+Finished running GTest tests.

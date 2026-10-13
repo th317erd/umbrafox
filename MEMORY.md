@@ -1,5 +1,61 @@
 # Umbrafox Working Memory and Resume Instructions
 
+## October 12: Opt-in Performance Beta Built And Installed Separately
+
+Build20261012202039 /160.0a1 prepared from d43214d67041 plus direct Services.h
+include and test ContentParentId compatibility fixes. Self-contained experimental
+archive exports/umbrafox-beta-20261012/umbrafox-beta-20261012202039-linux-x86_64.tar.xz,
+SHA75d03f82d3282c64eafbe3312087bbf2284613ef0aad3608892774ff82081e92.
+Exact two-pref overlay enables DMABuf drawImage + single-image opacity; normal
+defaults remain false. Optimized native build, probes compiled out, profiler off.
+Installed ~/Programs/umbrafox-nightly, .purgecaches and all47payload files verified;
+version command PASS. Prior nightly retained as nightly.before-beta-20261012-202039.
+Usual launcher still prioritizes active dated October1 install. NO owner-browser
+restart/profile/default-mapping/taskbar/launcher change. Do not suggest a normal
+restart selects beta; switching needs current-profile mapping verification.
+
+Tooling467PASS on Node24; archive5PASS; installer4PASS; isolated UmbraLink OFF/ON
+parity/startup/preferences/native roots and clean owned cleanup PASS. Native GPU
+86cases:79PASS/7FAIL/0skip. All63non-prescale regressions pass on NVIDIA RTX2060;
+7 known prescale characterization failures remain retained, no tolerance changes.
+Current canvas fallback no longer uses that sized CPU helper. Cache fixture
+separately repaired explicit small target Init and actual RGBA/BGRA input format;
+12cache cases PASS, exactpixels/loss/ownership assertions unchanged in intent.
+New test-only delta is not silently folded into sealed normal-package patch.
+Prior smoothness failures persist; no new YouTube/performance/universal parity claim.
+Report bot-docs/reports/performance/2026-10-12-opt-in-beta.md; build/evidence root
+/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/. Commands terminal.
+Unrelated old untracked upstream files remain untouched. Supersedes the historical
+in-progress note below; see git log for final own-file publication.
+
+## October 12: Historical Beta Build Checkpoint (Superseded)
+
+Wyatt explicitly requested enabling the experimental GPU video-to-canvas path
+and preparing a beta with our optimizations enabled. Package-only overlay in
+tools/umbrafox/beta/ enables DMABuf drawImage and single-image opacity; normal
+source defaults remain false. Two focused tests pass; scoped ESLint/Prettier pass.
+No profiling/logging, sandbox, user-agent, hardware-force or update-channel
+override is part of this opt-in. Prior smoothness failures remain unresolved.
+
+Build started in isolated detached worktree at d43214d67041:
+/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/.
+Object directory is its sibling obj; source/mozconfig uses sccache and explicitly
+disables umbra-perf-probes. Command: CARGO_BUILD_JOBS=2 nice -n10 timeout7200s
+./mach build -j2, with output in sibling build.log. First build hit its 7200s
+bound (exit124), with no compiler error; exact workspace compiler scan empty.
+Incremental continuation is active with the same command under timeout3600s,
+log build-continued.log, tool session79355. Optimized Rust compiled successfully;
+native C++/link work remains. Config is Firefox UA/160.0a1/optimized/probes off.
+No completed beta package/install/runtime result yet. Scratch package_beta.py
+and package_spec.py have5 passing archive-validation tests; native-contract
+checks3 PASS. run-native.mjs and beta-parity.mjs are prepared, NOT executed.
+Main checkout has older untracked files; leave them untouched. Build isolation
+avoids consuming them. Current desktop browser/profile/launcher stay untouched.
+Asked whether the usual launcher should select the beta or it should stay
+separate; response pending. Verify profile mapping before any launcher switch.
+Finish native build, package, overlay/hash, isolated tests and safe installation;
+do not describe this in-progress note as completion or stop at a running build.
+
 ## October 12: Upstream Source Integration
 
 Owner requested commit/push of existing work, then upstream merge before any

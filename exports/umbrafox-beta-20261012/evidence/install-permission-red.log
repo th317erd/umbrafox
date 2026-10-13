@@ -1,0 +1,19 @@
+...E
+======================================================================
+ERROR: test_permission_fallback_must_identify_executable (__main__.InstallTests.test_permission_fallback_must_identify_executable)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/install_spec.py", line 47, in test_permission_fallback_must_identify_executable
+    with patch('install_beta.subprocess.run', return_value=SimpleNamespace(stdout='/usr/lib/systemd/systemd\n')):
+         ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/unittest/mock.py", line 1494, in __enter__
+    self.target = self.getter()
+                  ~~~~~~~~~~~^^
+  File "/usr/lib/python3.14/pkgutil.py", line 473, in resolve_name
+    result = getattr(result, p)
+AttributeError: module 'install_beta' has no attribute 'subprocess'
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.005s
+
+FAILED (errors=1)

@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/install_spec.py", line 6, in <module>
+    from install_beta import inactive, directory_stamp, verify_tree
+ModuleNotFoundError: No module named 'install_beta'

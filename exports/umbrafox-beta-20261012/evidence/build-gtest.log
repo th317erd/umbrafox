@@ -1,0 +1,75 @@
+ 0:00.25 W Warnings in third-party code are being suppressed from the terminal output. Use --show-all-warnings or --verbose to see them.
+ 0:00.25 W All warnings will still be dumped to /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/warnings_*.json at the end of the build.
+ 0:00.38 Clobber not needed.
+ 0:00.43 /usr/bin/make -j2 -s recurse_gtest
+ 0:00.80 caps/tests/gtest
+ 0:04.85    Compiling skv v0.0.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/skv)
+ 0:06.02    Compiling kvstore v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/kvstore)
+ 0:06.38 W warning: swgl@0.1.0: clang++: warning: overriding '-ffast-math' option with '-ffp-contract=off' [-Woverriding-option]
+ 0:06.39    Compiling mozilla-central-workspace-hack v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/workspace-hack)
+ 0:06.56    Compiling bench-collections-gtest v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/xpcom/rust/gtest/bench-collections)
+ 0:06.86    Compiling fog-gtest v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/glean/tests/gtest)
+ 0:07.13    Compiling dap_ffi-gtest v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/dap/ffi-gtest)
+ 0:08.02    Compiling l10nregistry-ffi-gtest v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/intl/l10n/rust/gtest)
+ 0:08.30    Compiling moz_task-gtest v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/xpcom/rust/gtest/moz_task)
+ 0:08.51    Compiling lockstore_rs v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/lockstore/lockstore_rs)
+ 0:08.67    Compiling kvstore-gtest v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/kvstore/test/gtest)
+ 0:09.17    Compiling xpcom-gtest v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/xpcom/rust/gtest/xpcom)
+ 0:09.53    Compiling nsstring-gtest v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/xpcom/rust/gtest/nsstring)
+ 0:09.81    Compiling lockstore_ffi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/lockstore/lockstore_ffi)
+ 0:09.82    Compiling mp4parse-gtest v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/media/gtest)
+ 0:10.31    Compiling gkrust-shared v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/library/rust/shared)
+ 0:10.73    Compiling gkrust-gtest v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/library/gtest/rust)
+ 0:10.77 devtools/shared/heapsnapshot/tests/gtest
+ 0:19.43 docshell/base/test/gtest
+ 0:20.57     Finished `release` profile [optimized] target(s) in 20.00s
+ 0:21.37 toolkit/library/gtest/rust/libgkrust_gtest.a
+ 0:21.48 dom/base/test/gtest
+ 0:25.19 dom/canvas/gtest
+ 0:43.11 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestDMABufReadback.cpp:218:75: error: too few arguments to function call, expected 4, have 3
+ 0:43.11 E   218 |     ASSERT_TRUE(target->Init(aDestination, SurfaceFormat::B8G8R8A8, shared));
+ 0:43.11 E       |                 ~~~~~~~~~~~~                                              ^
+ 0:43.11 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/googletest/googletest/include/gtest/gtest.h:1844:50: note: expanded from macro 'ASSERT_TRUE'
+ 0:43.11 E  1844 | #define ASSERT_TRUE(condition) GTEST_ASSERT_TRUE(condition)
+ 0:43.11 E       |                                                  ^~~~~~~~~
+ 0:43.11 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/googletest/googletest/include/gtest/gtest.h:1827:23: note: expanded from macro 'GTEST_ASSERT_TRUE'
+ 0:43.11 E  1827 |   GTEST_TEST_BOOLEAN_(condition, #condition, false, true, GTEST_FATAL_FAILURE_)
+ 0:43.11 E       |                       ^~~~~~~~~
+ 0:43.11 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/googletest/googletest/include/gtest/internal/gtest-internal.h:1457:38: note: expanded from macro 'GTEST_TEST_BOOLEAN_'
+ 0:43.11 E  1457 |           ::testing::AssertionResult(expression))                     \
+ 0:43.11 E       |                                      ^~~~~~~~~~
+ 0:43.11 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/DrawTargetWebgl.h:633:8: note: 'Init' declared here
+ 0:43.11 E   633 |   bool Init(const IntSize& aSize, SurfaceFormat aFormat,
+ 0:43.11 E       |        ^    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 0:43.11 E   634 |             const RefPtr<SharedContextWebgl>& aSharedContext,
+ 0:43.11 E       |             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 0:43.11 E   635 |             const dom::ContentParentId& aContentId);
+ 0:43.11 E       |             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 0:43.11 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/gtest/TestDMABufReadback.cpp:286:74: error: too few arguments to function call, expected 4, have 3
+ 0:43.11 E   286 |           accelerated->Init(aDestination, SurfaceFormat::B8G8R8A8, shared));
+ 0:43.11 E       |           ~~~~~~~~~~~~~~~~~                                              ^
+ 0:43.11 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/googletest/googletest/include/gtest/gtest.h:1844:50: note: expanded from macro 'ASSERT_TRUE'
+ 0:43.11 E  1844 | #define ASSERT_TRUE(condition) GTEST_ASSERT_TRUE(condition)
+ 0:43.11 E       |                                                  ^~~~~~~~~
+ 0:43.11 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/googletest/googletest/include/gtest/gtest.h:1827:23: note: expanded from macro 'GTEST_ASSERT_TRUE'
+ 0:43.11 E  1827 |   GTEST_TEST_BOOLEAN_(condition, #condition, false, true, GTEST_FATAL_FAILURE_)
+ 0:43.11 E       |                       ^~~~~~~~~
+ 0:43.11 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/googletest/googletest/include/gtest/internal/gtest-internal.h:1457:38: note: expanded from macro 'GTEST_TEST_BOOLEAN_'
+ 0:43.11 E  1457 |           ::testing::AssertionResult(expression))                     \
+ 0:43.11 E       |                                      ^~~~~~~~~~
+ 0:43.11 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/canvas/DrawTargetWebgl.h:633:8: note: 'Init' declared here
+ 0:43.11 E   633 |   bool Init(const IntSize& aSize, SurfaceFormat aFormat,
+ 0:43.11 E       |        ^    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 0:43.11 E   634 |             const RefPtr<SharedContextWebgl>& aSharedContext,
+ 0:43.11 E       |             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 0:43.11 E   635 |             const dom::ContentParentId& aContentId);
+ 0:43.11 E       |             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 0:43.11 E 2 errors generated.
+ 0:43.11 E make[1]: *** [/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/config/rules.mk:620: TestDMABufReadback.o] Error 1
+ 0:43.11 E make[1]: *** Waiting for unfinished jobs....
+ 0:43.31 dom/cookiestore/test/gtest
+ 0:46.35 E make: *** [/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/config/recurse.mk:79: dom/canvas/gtest/target-objects] Error 2
+ 0:46.35 E make: *** Waiting for unfinished jobs....
+ 0:47.65 W 0 compiler warnings present.
+Streaming resource usage profile to: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/profile_log_20261012_202112.json
+Hey! Builds initiated with `mach build $A_SPECIFIC_TARGET` may not always work, even if the code being built is correct. Consider doing a bare `mach build` instead.

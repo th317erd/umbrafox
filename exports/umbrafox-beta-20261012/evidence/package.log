@@ -1,0 +1,35 @@
+ 0:00.43 Parallelism determined by memory: using 16 jobs for 16 cores based on 62.7 GiB RAM and estimated job size of 1.0 GiB
+ 0:00.43 /usr/bin/make -C . -j16 -s -w package
+ 0:00.48 make: Entering directory '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj'
+ 0:00.49 make[1]: Entering directory '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/browser/installer'
+ 0:00.51 make[2]: Entering directory '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/browser/installer'
+ 0:00.52 make[3]: Entering directory '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/browser/installer'
+ 0:00.52 BUILDSTATUS@browser/installer START_file_generate multilocale.txt
+ 0:00.52 BUILDSTATUS@browser/installer START_make_sourcestamp_file --output ../../dist//umbrafox-160.0a1.en-US.linux-x86_64.txt --buildid-header ../../buildid.h
+ 0:00.52 BUILDSTATUS@browser/installer START_locale_manifest --output locale-manifest.in --base-path @RESPATH@ --locales  en-US --locale-entries @RESPATH@/browser/chrome/ @RESPATH@/chrome/
+ 0:00.59 BUILDSTATUS@browser/installer END_locale_manifest --output locale-manifest.in --base-path @RESPATH@ --locales  en-US --locale-entries @RESPATH@/browser/chrome/ @RESPATH@/chrome/
+ 0:00.71 BUILDSTATUS@browser/installer END_file_generate multilocale.txt
+ 0:00.72 BUILDSTATUS@browser/installer END_make_sourcestamp_file --output ../../dist//umbrafox-160.0a1.en-US.linux-x86_64.txt --buildid-header ../../buildid.h
+ 0:05.72 Generating XPT artifacts archive (umbrafox-160.0a1.en-US.linux-x86_64.xpt_artifacts.zip)
+ 0:05.72 BUILDSTATUS@browser/installer START_zip umbrafox-160.0a1.en-US.linux-x86_64.xpt_artifacts.zip
+ 0:05.98 BUILDSTATUS@browser/installer END_zip umbrafox-160.0a1.en-US.linux-x86_64.xpt_artifacts.zip
+ 0:05.98 Compressing...
+ 0:05.98 BUILDSTATUS@browser/installer START_package XZ
+ 1:23.75 BUILDSTATUS@browser/installer END_package XZ
+ 1:23.75 make[3]: Leaving directory '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/browser/installer'
+ 1:23.76 make[3]: Entering directory '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/browser/locales'
+ 1:23.76 Making langpack
+ 1:23.77 make[4]: Entering directory '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/browser/locales'
+ 1:23.77 BUILDSTATUS@browser/locales START_l10n_stage --locale=en-US --manifest=../../l10n-manifest.json --merge-tree=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/browser/locales/merge-dir/en-US --dest=../../dist/xpi-stage/locale-en-US --topsrcdir=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source --topobjdir=../..
+ 1:23.96 BUILDSTATUS@browser/locales END_l10n_stage --locale=en-US --manifest=../../l10n-manifest.json --merge-tree=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/browser/locales/merge-dir/en-US --dest=../../dist/xpi-stage/locale-en-US --topsrcdir=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source --topobjdir=../..
+ 1:23.96 make[4]: Leaving directory '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/browser/locales'
+ 1:23.97 make[4]: Entering directory '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/browser/locales'
+ 1:23.97 BUILDSTATUS@browser/locales START_package_langpack --locale=en-US --xpi-stage=../../dist/xpi-stage/locale-en-US --metadata=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/browser/locales/en-US/langpack-metadata.ftl --output=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/linux-x86_64/xpi/umbrafox-160.0a1.en-US.langpack.xpi --eid=langpack-en-US@firefox.mozilla.org --app-version=160.0a1 --max-app-ver=160.0a1 --app-name=Umbrafox --l10n-basedir=/home/wyatt/.mozbuild/l10n-central --include=chrome --include=localization --include=browser --include=manifest.json
+ 1:24.23 BUILDSTATUS@browser/locales END_package_langpack --locale=en-US --xpi-stage=../../dist/xpi-stage/locale-en-US --metadata=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/browser/locales/en-US/langpack-metadata.ftl --output=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/linux-x86_64/xpi/umbrafox-160.0a1.en-US.langpack.xpi --eid=langpack-en-US@firefox.mozilla.org --app-version=160.0a1 --max-app-ver=160.0a1 --app-name=Umbrafox --l10n-basedir=/home/wyatt/.mozbuild/l10n-central --include=chrome --include=localization --include=browser --include=manifest.json
+ 1:24.23 make[4]: Leaving directory '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/browser/locales'
+ 1:24.23 make[3]: Leaving directory '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/browser/locales'
+ 1:24.23 make[2]: Leaving directory '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/browser/installer'
+ 1:24.24 make[1]: Leaving directory '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/browser/installer'
+ 1:24.24 make: Leaving directory '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj'
+ 1:24.34 /usr/bin/notify-send '--app-name=Mozilla Build System' 'Mozilla Build System' 'Packaging complete'
+ 1:24.35 Created package: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/umbrafox-160.0a1.en-US.linux-x86_64.tar.xz

@@ -1,0 +1,30 @@
+TAP version 13
+# Subtest: beta enables only the two opted-in graphics optimizations
+not ok 1 - beta enables only the two opted-in graphics optimizations
+  ---
+  duration_ms: 5.677296
+  location: 'file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/tools/umbrafox/beta/test/preferences-spec.mjs:15:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '/home/wyatt/Projects/umbrafox-workspace/umbrafox/tools/umbrafox/beta/umbrafox-beta.js'"
+  code: 'ENOENT'
+  stack: |-
+    async open (node:internal/fs/promises:637:25)
+    async readFile (node:internal/fs/promises:1246:14)
+    async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/tools/umbrafox/beta/test/preferences-spec.mjs:16:18)
+    async Test.run (node:internal/test_runner/test:640:9)
+    async startSubtest (node:internal/test_runner/harness:218:3)
+  ...
+# Subtest: normal builds retain default-off experimental graphics preferences
+ok 2 - normal builds retain default-off experimental graphics preferences
+  ---
+  duration_ms: 10.058774
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 65.567058

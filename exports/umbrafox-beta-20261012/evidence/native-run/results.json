@@ -1,0 +1,1224 @@
+{
+  "tests": 86,
+  "failures": 7,
+  "disabled": 0,
+  "errors": 0,
+  "timestamp": "2026-10-12T20:42:30Z",
+  "time": "0.447s",
+  "name": "AllTests",
+  "testsuites": [
+    {
+      "name": "IPDLTest_CrossProcess",
+      "tests": 2,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-10-12T20:42:30Z",
+      "time": "0.222s",
+      "testsuite": [
+        {
+          "name": "TestGPUVideoReadbackIPCNormal",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/gfx\/tests\/gtest\/TestGPUVideoReadbackIPC.cpp",
+          "line": 193,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:30Z",
+          "time": "0.112s",
+          "classname": "IPDLTest_CrossProcess"
+        },
+        {
+          "name": "TestGPUVideoReadbackIPCAbnormal",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/gfx\/tests\/gtest\/TestGPUVideoReadbackIPC.cpp",
+          "line": 195,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:30Z",
+          "time": "0.11s",
+          "classname": "IPDLTest_CrossProcess"
+        }
+      ]
+    },
+    {
+      "name": "IPDLTest_CrossThread",
+      "tests": 2,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-10-12T20:42:30Z",
+      "time": "0.109s",
+      "testsuite": [
+        {
+          "name": "TestGPUVideoReadbackIPCNormal",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/gfx\/tests\/gtest\/TestGPUVideoReadbackIPC.cpp",
+          "line": 193,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:30Z",
+          "time": "0.055s",
+          "classname": "IPDLTest_CrossThread"
+        },
+        {
+          "name": "TestGPUVideoReadbackIPCAbnormal",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/gfx\/tests\/gtest\/TestGPUVideoReadbackIPC.cpp",
+          "line": 195,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:30Z",
+          "time": "0.054s",
+          "classname": "IPDLTest_CrossThread"
+        }
+      ]
+    },
+    {
+      "name": "GPUVideoReadback",
+      "tests": 27,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-10-12T20:42:31Z",
+      "time": "0.069s",
+      "testsuite": [
+        {
+          "name": "SameFrameAndSizeUsesOneReadback",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 169,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "DescriptorAvailabilityDoesNotReadBack",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 190,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "DescriptorAvailabilityRetainsOriginalManager",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 210,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "DifferentSizesAndImagesCannotReuseTheSurface",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 226,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FailureAndWrongSizeDoNotPoisonTheCache",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 247,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullReadbackDoesNotUseSizedCache",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 265,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "EmptySizedRequestsKeepExistingReadbackBehavior",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 278,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "CacheIsBoundedByActualStrideTimesHeight",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 288,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0.002s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "ReadbackDoesNotHoldCacheLock",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 306,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "ConcurrentReadsConvergeWithoutReplacingTheWinner",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 318,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "ImageDestructionReleasesItsCachedSurface",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 345,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullSizeReusesExactFrameBytes",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 357,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0.031s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullSizeDoesNotShareAcrossImagesOrSizedCache",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 379,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullSizeFailuresAndInvalidSurfacesDoNotPoisonCache",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 402,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullSizeBudgetIsSharedAndRecoversAfterRelease",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 425,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0.007s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullSizeBudgetUsesActualStride",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 445,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0.009s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullSizeReadbackDoesNotHoldCacheLock",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 459,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "ConcurrentFullSizeReadsConverge",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 471,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0.004s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullSizeDestructionReleasesSurfaceAndDescriptor",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 530,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullSizeDelayedMainThreadReleaseRetainsBudget",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 542,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0.012s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "OtherRemoteTypesKeepUncachedFullReads",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 569,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "FullCacheRejectsUnavailableManager",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 580,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "SizedCacheRejectsUnavailableManager",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 604,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "ReplacementManagerCannotReviveOldCache",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 631,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "ConcurrentCacheHitsRespectDisconnection",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 664,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "AvailabilityCheckDoesNotHoldCacheLock",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 693,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        },
+        {
+          "name": "RealManagerRejectsKnownChannelFailure",
+          "file": ".\/..\/..\/..\/..\/source\/gfx\/tests\/gtest\/TestGPUVideoImage.cpp",
+          "line": 725,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "GPUVideoReadback"
+        }
+      ]
+    },
+    {
+      "name": "CanvasSurfaceImport",
+      "tests": 4,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-10-12T20:42:31Z",
+      "time": "0.045s",
+      "testsuite": [
+        {
+          "name": "UnusableDescriptorDoesNotPublishSurface",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasSurfaceImport.cpp",
+          "line": 28,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0.045s",
+          "classname": "CanvasSurfaceImport",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasSurfaceImport.cpp:22\nNo usable accelerated canvas context.\n"
+            }
+          ]
+        },
+        {
+          "name": "RepeatedUnusableDescriptorsDoNotPublishSurfaces",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasSurfaceImport.cpp",
+          "line": 36,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "CanvasSurfaceImport",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasSurfaceImport.cpp:22\nNo usable accelerated canvas context.\n"
+            }
+          ]
+        },
+        {
+          "name": "OversizedAllocationDoesNotPublishSurface",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasSurfaceImport.cpp",
+          "line": 46,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "CanvasSurfaceImport",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasSurfaceImport.cpp:22\nNo usable accelerated canvas context.\n"
+            }
+          ]
+        },
+        {
+          "name": "DefaultDescriptorBehaviorIsUnchanged",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasSurfaceImport.cpp",
+          "line": 55,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "CanvasSurfaceImport",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasSurfaceImport.cpp:22\nNo usable accelerated canvas context.\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CanvasVideoSurfaceCache",
+      "tests": 12,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-10-12T20:42:31Z",
+      "time": "0s",
+      "testsuite": [
+        {
+          "name": "BorrowedDescriptorKeepsIndependentOwningCopies",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 155,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "CanvasVideoSurfaceCache",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:42\nNo accelerated canvas context\n"
+            }
+          ]
+        },
+        {
+          "name": "LiveSurfaceReuseAndExactPixels",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 187,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "CanvasVideoSurfaceCache",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:42\nNo accelerated canvas context\n"
+            }
+          ]
+        },
+        {
+          "name": "GenericImportsAreDistinctAndInvalidate",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 198,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "CanvasVideoSurfaceCache",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:42\nNo accelerated canvas context\n"
+            }
+          ]
+        },
+        {
+          "name": "FrameAndHostIdentityCannotAlias",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 213,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "CanvasVideoSurfaceCache",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:42\nNo accelerated canvas context\n"
+            }
+          ]
+        },
+        {
+          "name": "ContentOwnershipCannotAlias",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 228,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "CanvasVideoSurfaceCache",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:42\nNo accelerated canvas context\n"
+            }
+          ]
+        },
+        {
+          "name": "MissingTargetNeverPublishes",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 243,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "CanvasVideoSurfaceCache",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:42\nNo accelerated canvas context\n"
+            }
+          ]
+        },
+        {
+          "name": "MissingIdentityNeverPublishes",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 258,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "CanvasVideoSurfaceCache",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:42\nNo accelerated canvas context\n"
+            }
+          ]
+        },
+        {
+          "name": "ReleasedOwnerReusesExistingHandle",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 275,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "CanvasVideoSurfaceCache",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:42\nNo accelerated canvas context\n"
+            }
+          ]
+        },
+        {
+          "name": "ReadbackPreventsStaleHandleReuse",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 290,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "CanvasVideoSurfaceCache",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:42\nNo accelerated canvas context\n"
+            }
+          ]
+        },
+        {
+          "name": "ExplicitClearAndMemoryPressureRecover",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 300,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "CanvasVideoSurfaceCache",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:42\nNo accelerated canvas context\n"
+            }
+          ]
+        },
+        {
+          "name": "FailedImportsDoNotPoisonRecovery",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 323,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "CanvasVideoSurfaceCache",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:42\nNo accelerated canvas context\n"
+            }
+          ]
+        },
+        {
+          "name": "ContextLossRejectsAndReplacementRecovers",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp",
+          "line": 343,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "CanvasVideoSurfaceCache",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestCanvasVideoSurfaceCache.cpp:42\nNo accelerated canvas context\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DMABufProducerFence",
+      "tests": 7,
+      "failures": 7,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-10-12T20:42:31Z",
+      "time": "0s",
+      "testsuite": [
+        {
+          "name": "LocalWaitKeepsExportedDuplicatesAndPixels",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp",
+          "line": 220,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufProducerFence",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp:48\nValue of: mWebgl\n  Actual: false\nExpected: true\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp:56\nExpected: CreateContext() doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "ReplacementKeepsOldExportsAndAlternatingPixels",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp",
+          "line": 236,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufProducerFence",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp:48\nValue of: mWebgl\n  Actual: false\nExpected: true\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp:56\nExpected: CreateContext() doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "OwnerDestructionKeepsDescriptorAndDuplicate",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp",
+          "line": 254,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufProducerFence",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp:48\nValue of: mWebgl\n  Actual: false\nExpected: true\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp:56\nExpected: CreateContext() doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "SwapChainRecycleResizeAndClear",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp",
+          "line": 267,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufProducerFence",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp:48\nValue of: mWebgl\n  Actual: false\nExpected: true\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp:56\nExpected: CreateContext() doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "ContextReleaseKeepsFenceUntilOwnerDestruction",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp",
+          "line": 306,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufProducerFence",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp:48\nValue of: mWebgl\n  Actual: false\nExpected: true\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp:56\nExpected: CreateContext() doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "WebGLLossAndReplacementKeepExportedPixels",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp",
+          "line": 328,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufProducerFence",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp:48\nValue of: mWebgl\n  Actual: false\nExpected: true\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp:56\nExpected: CreateContext() doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        },
+        {
+          "name": "IdleOwnersReturnNativeFenceFDs",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp",
+          "line": 353,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufProducerFence",
+          "failures": [
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp:48\nValue of: mWebgl\n  Actual: false\nExpected: true\n",
+              "type": ""
+            },
+            {
+              "failure": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufProducerFence.cpp:56\nExpected: CreateContext() doesn't generate new fatal failures in the current thread.\n  Actual: it does.\n",
+              "type": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DMABufReadback",
+      "tests": 23,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-10-12T20:42:31Z",
+      "time": "0s",
+      "testsuite": [
+        {
+          "name": "ConstantColorMatchesFullSizeThenScale",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 422,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "SameSizeMatchesFullSize",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 426,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "SaturatedLumaMatchesFullSizeThenScale",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 434,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "ChromaEdgesMatchFullSizeThenScale",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 442,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "NeutralLumaMatchesFullSizeThenScale",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 451,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "OddSizeMatchesFullSizeThenScale",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 459,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "EmptyDestinationRejectsWithoutPoisoningReadback",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 467,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "ScaledReadbackPreservesCallerState",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 478,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "FullSizeReadbackPreservesCallerState",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 482,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "SourceAllocationFailureRestoresStateAndRecovers",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 486,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "DestinationAllocationFailureRestoresStateAndRecovers",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 494,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "MissingPlaneRejectsAndRecovers",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 501,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "EmptySourceRejectsAndRecovers",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 505,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "BT601MatchesFullSizeThenScale",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 509,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "BT2020MatchesFullSizeThenScale",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 517,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "VideoLinearCompositionMatches",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 525,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "VideoOddCompositionMatches",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 529,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "VideoAlphaCompositionMatches",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 533,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "VideoSoftwareCompositionMatches",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 537,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "VideoOddSoftwareCompositionMatches",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 541,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "VideoAlphaSoftwareCompositionMatches",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 545,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "SmallAlphaCompositionMatches",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 549,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        },
+        {
+          "name": "SmallSoftwareCompositionMatches",
+          "file": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp",
+          "line": 553,
+          "status": "RUN",
+          "result": "SKIPPED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "DMABufReadback",
+          "skipped": [
+            {
+              "message": "\/home\/wyatt\/.cache\/codex\/umbrafox-beta-20261012-nYSBPOWS\/source\/dom\/canvas\/gtest\/TestDMABufReadback.cpp:178\nNo usable WebGL2 context.\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TestRemoteImageHolder",
+      "tests": 9,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-10-12T20:42:31Z",
+      "time": "0s",
+      "testsuite": [
+        {
+          "name": "InvalidDescriptorValidation",
+          "file": ".\/..\/..\/..\/..\/source\/dom\/media\/gtest\/TestRemoteImageHolder.cpp",
+          "line": 118,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "TestRemoteImageHolder"
+        },
+        {
+          "name": "ValidDescriptorPassesValidation",
+          "file": ".\/..\/..\/..\/..\/source\/dom\/media\/gtest\/TestRemoteImageHolder.cpp",
+          "line": 130,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "TestRemoteImageHolder"
+        },
+        {
+          "name": "RejectsInvalidShmemDescriptor",
+          "file": ".\/..\/..\/..\/..\/source\/dom\/media\/gtest\/TestRemoteImageHolder.cpp",
+          "line": 142,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "TestRemoteImageHolder"
+        },
+        {
+          "name": "AcceptsValidShmemDescriptor",
+          "file": ".\/..\/..\/..\/..\/source\/dom\/media\/gtest\/TestRemoteImageHolder.cpp",
+          "line": 171,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "TestRemoteImageHolder"
+        },
+        {
+          "name": "PreservesShmemHDRMetadata",
+          "file": ".\/..\/..\/..\/..\/source\/dom\/media\/gtest\/TestRemoteImageHolder.cpp",
+          "line": 212,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "TestRemoteImageHolder"
+        },
+        {
+          "name": "PreservesShmemColorMetadata",
+          "file": ".\/..\/..\/..\/..\/source\/dom\/media\/gtest\/TestRemoteImageHolder.cpp",
+          "line": 239,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "TestRemoteImageHolder"
+        },
+        {
+          "name": "ForwardsTextureColorMetadata",
+          "file": ".\/..\/..\/..\/..\/source\/dom\/media\/gtest\/TestRemoteImageHolder.cpp",
+          "line": 270,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "TestRemoteImageHolder"
+        },
+        {
+          "name": "RejectsOversizedDisplayRect",
+          "file": ".\/..\/..\/..\/..\/source\/dom\/media\/gtest\/TestRemoteImageHolder.cpp",
+          "line": 292,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "TestRemoteImageHolder"
+        },
+        {
+          "name": "RejectsInvalidChromaDimensions",
+          "file": ".\/..\/..\/..\/..\/source\/dom\/media\/gtest\/TestRemoteImageHolder.cpp",
+          "line": 330,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-10-12T20:42:31Z",
+          "time": "0s",
+          "classname": "TestRemoteImageHolder"
+        }
+      ]
+    }
+  ]
+}

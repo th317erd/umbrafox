@@ -1,0 +1,585 @@
+ 0:00.25 W Warnings in third-party code are being suppressed from the terminal output. Use --show-all-warnings or --verbose to see them.
+ 0:00.25 W All warnings will still be dumped to /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/warnings_*.json at the end of the build.
+ 0:00.38 Clobber not needed.
+ 0:00.43 W Adding make options from /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/mozconfig
+    MOZ_OBJDIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+    OBJDIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+    FOUND_MOZCONFIG=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/mozconfig
+    export FOUND_MOZCONFIG
+ 0:00.43 /usr/bin/make -f client.mk -j2 -s
+ 0:01.21 ./buildid.h.stub
+ 0:01.21 ./source-repo.h.stub
+ 0:01.36 ./application.ini.stub
+ 0:01.63 ./application.ini.h.stub
+ 0:01.99 browser/app
+ 0:07.41 toolkit/library/buildid.cpp.stub
+ 0:08.25 layout/style
+ 0:08.31 dom/base
+ 1:01.72 media/libdav1d
+ 1:02.23 W 1 warning generated.
+ 1:16.98 netwerk/base
+ 1:37.36 netwerk/build
+ 1:49.45 security/manager/ssl
+ 2:30.40 security/nss/lib/mozpkix/libmozpkix.a
+ 2:34.29 third_party/angle/angle_common_gn/libangle_common_gn.a
+ 2:34.31 third_party/angle/angle_common_shader_state_gn/libangle_common_shader_state_gn.a
+ 2:34.33 third_party/angle/preprocessor_gn/libpreprocessor_gn.a
+ 2:34.36 toolkit/components/glean
+ 2:41.36 toolkit/components/telemetry
+ 3:01.46 toolkit/library/buildid.cpp.stub
+ 3:01.62 toolkit/library
+ 3:01.69 widget/gtk/mozgtk/libmozgtk.so
+ 3:01.90 widget/gtk/mozwayland/libmozwayland.so
+ 3:02.11 xpcom/build
+ 3:07.61 media/ffvpx/libavutil
+ 3:09.92 W 3 warnings generated.
+ 3:10.92 W 2 warnings generated.
+ 3:15.20 memory/build/test/TestMozJemallocUtils
+ 3:15.46 memory/replace/dmd/test/SmokeDMD
+ 3:15.82 memory/replace/logalloc/replay/logalloc-replay
+ 3:16.43 W 1 warning generated.
+ 3:16.60 mfbt/tests/TestArray
+ 3:16.60 mfbt/tests/TestArrayUtils
+ 3:16.79 mfbt/tests/TestAtomicBitfields
+ 3:16.98 mfbt/tests/TestAtomics
+ 3:17.17 mfbt/tests/TestBinarySearch
+ 3:17.37 mfbt/tests/TestBitSet
+ 3:17.56 mfbt/tests/TestBloomFilter
+ 3:17.75 mfbt/tests/TestBufferList
+ 3:17.93 mfbt/tests/TestCasting
+ 3:18.12 mfbt/tests/TestCeilingFloor
+ 3:18.15 W 1 warning generated.
+ 3:18.32 mfbt/tests/TestCheckedInt
+ 3:18.51 mfbt/tests/TestCompactPair
+ 3:18.70 mfbt/tests/TestCumulativeAverage
+ 3:18.89 mfbt/tests/TestDefineEnum
+ 3:19.08 mfbt/tests/TestDoublyLinkedList
+ 3:19.28 mfbt/tests/TestEndian
+ 3:19.47 mfbt/tests/TestEnumeratedArray
+ 3:19.66 mfbt/tests/TestEnumSet
+ 3:19.86 mfbt/tests/TestEnumTypeTraits
+ 3:20.05 mfbt/tests/TestFastBernoulliTrial
+ 3:20.26 mfbt/tests/TestFloatingPoint
+ 3:20.45 mfbt/tests/TestFunctionRef
+ 3:20.64 mfbt/tests/TestFunctionTypeTraits
+ 3:20.84 mfbt/tests/TestHashTable
+ 3:21.03 mfbt/tests/TestIntegerRange
+ 3:21.23 mfbt/tests/TestJSONWriter
+ 3:21.42 mfbt/tests/TestLinkedList
+ 3:21.61 mfbt/tests/TestMacroArgs
+ 3:21.80 mfbt/tests/TestMacroForEach
+ 3:21.99 mfbt/tests/TestMathAlgorithms
+ 3:22.18 mfbt/tests/TestMaybe
+ 3:22.28 mfbt/tests/TestNonDereferenceable
+ 3:22.38 modules/libmar/tool/mar
+ 3:22.44 mfbt/tests/TestNotNull
+ 3:22.48 mozglue/tests/ShowSSEConfig
+ 3:22.48 mozglue/tests/TestBaseProfiler
+ 3:22.63 mfbt/tests/TestRandomNum
+ 3:22.67 mozglue/tests/TestIntegerPrintfMacros
+ 3:22.82 mfbt/tests/TestRange
+ 3:22.86 mozglue/tests/TestPrintf
+ 3:23.02 mfbt/tests/TestRefPtr
+ 3:23.21 mfbt/tests/TestResult
+ 3:23.29 mfbt/tests/TestRollingMean
+ 3:23.41 other-licenses/bsdiff/mbsdiff
+ 3:23.47 mfbt/tests/TestSaturate
+ 3:23.49 security/manager/ssl/tests/unit/pkcs11testmodule/dynamic-library
+ 3:23.57 mfbt/tests/TestScopeExit
+ 3:23.67 security/manager/ssl/tests/unit/test_trust_anchors/dynamic-library
+ 3:23.75 mfbt/tests/TestSegmentedVector
+ 3:23.77 mfbt/tests/TestSHA1
+ 3:23.95 security/nss/lib/freebl
+ 3:23.96 mfbt/tests/TestSIMD
+ 3:24.16 mfbt/tests/TestSmallPointerArray
+ 3:24.24 mfbt/tests/TestSplayTree
+ 3:24.37 mfbt/tests/TestTextUtils
+ 3:24.43 mfbt/tests/TestTiedFields
+ 3:24.57 testing/tools/screenshot/screentopng
+ 3:24.63 mfbt/tests/TestTypedEnum
+ 3:24.77 mfbt/tests/TestUniquePtr
+ 3:24.84 third_party/zucchini/executable/zucchini
+ 3:24.96 mfbt/tests/TestVariant
+ 3:25.04 mfbt/tests/TestVector
+ 3:25.21 third_party/zucchini/tests/gtest/zucchini-gtest
+ 3:25.23 mfbt/tests/TestWeakPtr
+ 3:25.42 mfbt/tests/TestWrappingOperations
+ 3:25.44 toolkit/components/ctypes/tests/libjsctypes-test.so
+ 3:25.62 mfbt/tests/TestXorShift128PlusRNG
+ 3:25.65 mfbt/tests/TestBoundedMPSCQueue
+ 3:25.82 toolkit/components/telemetry/pingsender/pingsender
+ 3:25.84 mfbt/tests/TestSPSCQueue
+ 3:26.01 mfbt/tests/TestThreadSafeWeakPtr
+ 3:26.04 toolkit/components/telemetry/tests/libmodules-test.so
+ 3:26.21 mfbt/tests/TestMozCrash
+ 3:26.24 mfbt/tests/TestUtf8
+ 3:26.41 toolkit/crashreporter/crash_helper/crashhelper
+ 3:26.44 mfbt/tests/TestPoisonArea
+ 3:26.65 toolkit/library/gtest/libxul_broken_buildid
+ 3:26.73 toolkit/library/gtest/libxul_correct_buildid
+ 3:26.80 toolkit/library/gtest/libxul_missing_buildid/libxul_missing_buildid.so
+ 3:27.01 toolkit/mozapps/update/tests/gtest/update-gtest
+ 3:27.21 toolkit/mozapps/update/tests/TestAUSHelper
+ 3:27.21 toolkit/mozapps/update/tests/TestAUSReadStrings
+ 3:27.41 toolkit/xre/gfxtest/gfxtest
+ 3:27.58 tools/power/rapl
+ 3:27.61 xpcom/tests/TestArguments
+ 3:27.61 xpcom/tests/TestBlockingProcess
+ 3:27.77 xpcom/tests/TestPRIntN
+ 3:27.97 xpcom/tests/TestQuickReturn
+ 3:28.16 xpcom/tests/TestUnicodeArguments
+ 3:28.35 xpcom/tests/TestMemoryPressureWatcherLinux
+ 3:28.77 config/external/sqlite/libmozsqlite3.so
+ 3:28.99 config/external/nspr/pr/libnspr4.so
+ 3:29.20 browser/app/umbrafox
+ 3:29.40 config/external/mozinference/libmozinference.so
+ 3:29.82 dom/media
+ 3:32.67    Compiling serde v1.0.228
+ 3:33.54    Compiling hashbrown v0.17.1
+ 3:34.17    Compiling smallvec v1.15.2
+ 3:34.45    Compiling writeable v0.6.2
+ 3:34.71    Compiling litemap v0.8.0
+ 3:34.95    Compiling icu_locale_core v2.1.1
+ 3:35.81    Compiling indexmap v2.14.1
+ 3:36.49    Compiling askama_parser v0.16.0
+ 3:40.09    Compiling basic-toml v0.1.2
+ 3:40.86    Compiling potential_utf v0.1.4
+ 3:41.09    Compiling zerotrie v0.2.2
+ 3:41.48    Compiling icu_provider v2.1.1
+ 3:41.85    Compiling icu_collections v2.1.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/icu_collections)
+ 3:42.37    Compiling askama_derive v0.16.0
+ 3:46.42    Compiling askama_macros v0.16.0
+ 3:46.73    Compiling unicode-bidi v0.3.15 (https://github.com/servo/unicode-bidi?rev=ca612daf1c08c53abe07327cb3e6ef6e0a760f0c#ca612daf)
+ 3:47.32    Compiling icu_properties v2.1.2 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/icu_properties)
+ 3:48.32    Compiling icu_normalizer v2.1.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/icu_normalizer)
+ 3:49.23    Compiling askama v0.16.0
+ 3:49.69    Compiling serde_json v1.0.149
+ 3:50.80    Compiling uniffi_macros v0.32.2
+ 3:53.27    Compiling rustix v1.1.4
+ 3:53.68    Compiling linux-raw-sys v0.12.1
+ 3:54.05    Compiling regex-syntax v0.8.5
+ 3:55.61    Compiling regex-automata v0.4.14
+ 3:59.37    Compiling uniffi_bindgen v0.32.2
+ 4:26.12    Compiling idna_adapter v1.2.1
+ 4:26.32    Compiling phf_shared v0.14.0
+ 4:26.70    Compiling utf8_iter v1.0.4 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/utf8_iter)
+ 4:26.94    Compiling tempfile v3.27.0
+ 4:27.36    Compiling idna v1.1.0
+ 4:28.23    Compiling tracing v0.1.41
+ 4:28.59    Compiling cargo_metadata v0.23.1
+ 4:30.41    Compiling phf_generator v0.14.0
+ 4:30.73    Compiling regex v1.12.3
+ 4:31.19    Compiling uniffi_pipeline v0.32.2
+ 4:33.59    Compiling bindgen v0.73.1
+ 4:38.49    Compiling url v2.5.7
+ 4:39.59    Compiling wr_malloc_size_of v0.2.2 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/gfx/wr/wr_malloc_size_of)
+ 4:39.81    Compiling zerocopy-derive v0.8.27
+ 4:41.45    Compiling rkv v0.20.0
+ 4:42.49    Compiling multiversion v0.8.0
+ 4:42.77    Compiling uniffi v0.32.2
+ 4:43.00    Compiling procfs-core v0.18.0
+ 4:45.47    Compiling encoding_rs v0.8.40
+ 4:45.47    Compiling tokio-macros v2.7.0
+ 4:46.27    Compiling httparse v1.10.1
+ 4:46.60    Compiling scopeguard v1.2.0
+ 4:46.83    Compiling minimal-lexical v0.2.1
+ 4:47.21    Compiling nom v7.1.3
+ 4:51.73    Compiling tokio v1.52.3
+ 4:53.98    Compiling procfs-core v0.17.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/procfs-core)
+ 4:54.20    Compiling prost v0.13.5
+ 4:54.65    Compiling pe-unwind-info v0.6.0
+ 4:55.89    Compiling macho-unwind-info v0.5.0
+ 4:57.20    Compiling http v1.4.0
+ 4:58.41    Compiling hashbrown v0.16.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/hashbrown)
+ 4:58.60    Compiling circular v0.3.0
+ 4:58.87    Compiling gimli v0.32.3
+ 5:00.94    Compiling cachemap2 v0.3.0
+ 5:01.14    Compiling zip v2.4.2 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/zip)
+ 5:01.37    Compiling fluent-bundle v0.16.0
+ 5:02.07    Compiling framehop v0.15.0
+ 5:02.63    Compiling breakpad-symbols v0.26.1
+ 5:04.10    Compiling minidump v0.26.1
+ 5:04.28    Compiling uniffi_build v0.32.2
+ 5:04.72    Compiling glean-core v70.2.1
+ 5:08.38    Compiling hashbrown v0.15.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/hashbrown-0.15)
+ 5:08.58    Compiling http-body v1.0.1
+ 5:09.63    Compiling gtkbind v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/crashreporter/client/gtkbind)
+ 5:10.21    Compiling phf_macros v0.14.0
+ 5:11.11    Compiling phf_codegen v0.14.0
+ 5:11.15    Compiling crashping v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/crashreporter/crashping)
+ 5:11.32    Compiling atomic-waker v1.1.2
+ 5:11.41    Compiling httpdate v1.0.2
+ 5:11.56    Compiling embed-manifest v1.4.0
+ 5:11.78    Compiling windows-link v0.2.1
+ 5:11.95    Compiling windows-sys v0.61.2
+ 5:11.97    Compiling crashreporter v1.0.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/crashreporter/client/app)
+ 5:12.44    Compiling hyper v1.9.0
+ 5:13.60    Compiling glean v70.2.1
+ 5:14.16    Compiling phf v0.14.0
+ 5:14.79    Compiling fluent v0.17.0
+ 5:15.05    Compiling hashbrown v0.13.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/hashbrown-0.13)
+ 5:15.27    Compiling minidump-unwind v0.26.1
+ 5:17.14    Compiling tokio-util v0.7.18
+ 5:17.37    Compiling mio v1.2.0
+ 5:17.69    Compiling minidump-analyzer v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/crashreporter/minidump-analyzer)
+ 5:17.78    Compiling mozilla-central-workspace-hack v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/workspace-hack)
+ 5:18.01    Compiling memtest v0.4.0 (https://github.com/mozilla/memtest?rev=ad681ba425beb0aeba95f03e671432b4be932174#ad681ba4)
+ 5:20.66    Compiling sys-locale v0.3.1
+ 5:20.68 extensions/spellcheck/hunspell/glue
+ 5:23.51     Finished `release` profile [optimized] target(s) in 1m 55s
+ 5:24.30 toolkit/crashreporter/client/app/crashreporter
+ 5:24.32 gfx/ots/src
+ 5:31.38 gfx/thebes
+ 5:36.09 layout/build
+ 5:52.14 parser/expat
+ 6:13.87 parser/htmlparser
+ 6:42.14 security/rlbox
+ 6:49.13 third_party/angle/translator_gn/libtranslator_gn.a
+ 6:50.54 toolkit/library/gtest/libxul_broken_buildid/libxul_broken_buildid.so
+ 6:51.90 toolkit/library/gtest/libxul_correct_buildid/libxul_correct_buildid.so
+ 6:55.94    Compiling allocator-api2 v0.2.21 (https://github.com/glandium/allocator-api2?rev=ad5f3d56a5a4519eff52af4ff85293431466ef5c#ad5f3d56)
+ 6:56.36    Compiling hashbrown v0.17.1
+ 6:56.97    Compiling indexmap v2.14.1
+ 6:57.62    Compiling smallvec v1.15.2
+ 6:57.90    Compiling icu_collections v2.1.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/icu_collections)
+ 6:58.42    Compiling errno v0.3.14
+ 6:58.64    Compiling signal-hook-registry v1.4.8
+ 6:58.99    Compiling tokio v1.52.3
+ 7:02.77    Compiling deranged v0.5.8
+ 7:03.68    Compiling tokio-util v0.7.18
+ 7:04.27    Compiling unicode-bidi v0.3.15 (https://github.com/servo/unicode-bidi?rev=ca612daf1c08c53abe07327cb3e6ef6e0a760f0c#ca612daf)
+ 7:04.81    Compiling hashbrown v0.16.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/hashbrown)
+ 7:04.99    Compiling bitflags v2.10.0
+ 7:05.38    Compiling h2 v0.4.16
+ 7:09.09    Compiling time v0.3.47
+ 7:10.83    Compiling icu_properties v2.1.2 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/icu_properties)
+ 7:11.84    Compiling icu_normalizer v2.1.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/icu_normalizer)
+ 7:12.75    Compiling rustix v1.1.4
+ 7:14.19    Compiling serde_json v1.0.149
+ 7:15.35    Compiling hyper v1.9.0
+ 7:16.64    Compiling idna_adapter v1.2.1
+ 7:16.84    Compiling tempfile v3.27.0
+ 7:17.24    Compiling idna v1.1.0
+ 7:18.05    Compiling headers-core v0.3.0
+ 7:18.28    Compiling cookie v0.16.2
+ 7:18.50    Compiling pin-project-internal v1.1.0
+ 7:19.92    Compiling ryu v1.0.12
+ 7:20.23    Compiling terminal_size v0.3.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/terminal_size)
+ 7:20.46    Compiling clap_lex v0.7.2
+ 7:20.80    Compiling anstyle v1.0.8
+ 7:21.10    Compiling tower-service v0.3.2
+ 7:21.32    Compiling hyper-util v0.1.20
+ 7:21.75    Compiling clap_builder v4.5.15
+ 7:22.54    Compiling clap_derive v4.5.13
+ 7:24.41    Compiling serde_urlencoded v0.7.1
+ 7:24.48    Compiling pin-project v1.1.0
+ 7:24.70    Compiling headers v0.4.1
+ 7:24.71    Compiling uuid v1.3.0
+ 7:25.06    Compiling icu_locale v2.1.1
+ 7:25.40    Compiling url v2.5.7
+ 7:25.87    Compiling hashlink v0.11.0
+ 7:26.23    Compiling hashbrown v0.15.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/hashbrown-0.15)
+ 7:26.40    Compiling http-body-util v0.1.3
+ 7:26.47    Compiling quick-xml v0.41.0
+ 7:26.69    Compiling semver v1.0.28
+ 7:27.07    Compiling unix_str v1.0.0
+ 7:27.34    Compiling same-file v1.0.6
+ 7:27.40    Compiling scoped-tls v1.0.1
+ 7:27.56    Compiling icu_segmenter v2.1.2
+ 7:27.63    Compiling warp v0.4.2
+ 7:28.50    Compiling walkdir v2.3.2
+ 7:28.85    Compiling chrono v0.4.42
+ 7:29.33    Compiling unix_path v1.0.1
+ 7:29.73    Compiling plist v1.10.0
+ 7:30.15    Compiling hashbrown v0.13.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/hashbrown-0.13)
+ 7:30.31    Compiling hashlink v0.10.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/hashlink)
+ 7:30.54    Compiling zip v2.4.2 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/zip)
+ 7:31.14    Compiling clap v4.5.16
+ 7:31.40    Compiling mozprofile v0.9.5 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/mozbase/rust/mozprofile)
+ 7:31.59    Compiling serde_repr v0.1.12
+ 7:32.17    Compiling geckodriver v0.37.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/geckodriver)
+ 7:32.18    Compiling arraydeque v0.5.1
+ 7:32.51    Compiling rust-ini v0.10.3
+ 7:32.59    Compiling mozilla-central-workspace-hack v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/workspace-hack)
+ 7:32.83    Compiling yaml-rust2 v0.10.3
+ 7:33.02    Compiling mozversion v0.5.4 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/mozbase/rust/mozversion)
+ 7:33.54    Compiling marionette v0.8.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/geckodriver/marionette)
+ 7:34.72    Compiling mozrunner v0.16.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/mozbase/rust/mozrunner)
+ 7:34.94    Compiling webdriver v0.54.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/webdriver)
+ 7:35.09    Compiling mozdevice v0.5.5 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/mozbase/rust/mozdevice)
+ 7:35.94 config/external/nspr/ds/libplds4.so
+ 7:36.14 config/external/nspr/libc/libplc4.so
+ 7:36.35 media/libsoundtouch/src
+ 7:41.02     Finished `release` profile [optimized] target(s) in 48.33s
+ 7:41.80 testing/geckodriver/geckodriver
+ 7:41.88 js/src/build/libjs_static.a
+ 7:42.77 security/sandbox/linux/libmozsandbox.so
+ 7:43.34 media/ffvpx/libavutil/libmozavutil.so
+ 7:43.58 security/nss/lib/freebl/libfreebl3.so
+ 7:44.23 security/nss/lib/freebl/libfreeblpriv3.so
+ 7:44.44 uriloader/exthandler/tests/WriteArgument
+ 7:46.48 security/nss/lib/util/libnssutil3.so
+ 7:46.69 config/external/lgpllibs/liblgpllibs.so
+ 7:46.93 media/ffvpx/libavcodec/libmozavcodec.so
+ 7:47.15 security/nss/lib/softoken/libsoftokn3.so
+ 7:47.35 security/nss/lib/nss/libnss3.so
+ 7:47.62 security/manager/ssl/tests/unit/tlsserver/cmd/BadCertAndPinningServer
+ 7:47.62 security/manager/ssl/tests/unit/tlsserver/cmd/DelegatedCredentialsServer
+ 7:47.86 security/manager/ssl/tests/unit/tlsserver/cmd/EncryptedClientHelloServer
+ 7:48.03    Compiling bitflags v2.10.0
+ 7:48.07 security/manager/ssl/tests/unit/tlsserver/cmd/GenerateOCSPResponse
+ 7:48.28 security/manager/ssl/tests/unit/tlsserver/cmd/OCSPStaplingServer
+ 7:48.35    Compiling bindgen v0.73.1
+ 7:48.49 security/manager/ssl/tests/unit/tlsserver/cmd/SanctionsTestServer
+ 7:48.69 security/manager/ssl/tests/unit/tlsserver/cmd/FaultyServer
+ 7:48.89 security/manager/ssl/tests/unit/tlsserver/cmd/ZeroRttAcceptServer
+ 7:49.34    Compiling aho-corasick v1.1.0
+ 7:51.32    Compiling regex-automata v0.4.14
+ 7:53.32    Compiling pkcs11-bindings v0.1.8
+ 7:53.73    Compiling test-trust-anchors-static v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/tests/unit/test_trust_anchors)
+ 7:54.54    Compiling regex v1.12.3
+ 7:55.06    Compiling mozilla-central-workspace-hack v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/workspace-hack)
+ 7:55.35 security/nss/lib/smime/libsmime3.so
+ 7:55.56 security/nss/lib/ssl/libssl3.so
+ 7:55.78 toolkit/library/build/libxul.so
+ 7:56.11     Finished `release` profile [optimized] target(s) in 11.38s
+ 7:56.62 security/manager/ssl/tests/unit/test_trust_anchors/libtest_trust_anchors_static.a
+ 7:56.64 media/gmp-clearkey/0.1/libclearkey.so
+ 7:56.85 modules/libmar/tool/signmar
+ 7:57.04 security/manager/ssl/tests/unit/test_trust_anchors/dynamic-library/libtest_trust_anchors.so
+ 7:57.23 security/nss/cmd/certutil/certutil
+ 7:57.42 security/nss/cmd/pk12util/pk12util
+ 7:57.60 testing/mochitest/ssltunnel/ssltunnel
+ 7:57.80 toolkit/mozapps/update/updater/updater
+ 7:58.01 toolkit/mozapps/update/updater/updater-dep/updater-dep
+ 7:58.21 toolkit/mozapps/update/updater/updater-xpcshell/updater-xpcshell
+ 8:01.50    Compiling getrandom v0.2.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/getrandom)
+ 8:01.69    Compiling memchr v2.7.4
+ 8:02.35    Compiling nom v7.1.3
+ 8:03.71    Compiling regex-automata v0.4.14
+ 8:05.35    Compiling rand_core v0.6.4
+ 8:05.65    Compiling rand_chacha v0.3.1
+ 8:06.31    Compiling regex v1.12.3
+ 8:06.80    Compiling cexpr v0.6.0
+ 8:07.40    Compiling bindgen v0.73.1
+ 8:09.30    Compiling num-traits v0.2.19
+ 8:09.53    Compiling rand v0.8.6
+ 8:10.32    Compiling libcrux-macros v0.0.3
+ 8:11.36    Compiling libcrux-hacl-rs v0.0.3
+ 8:12.38    Compiling pkcs11-bindings v0.1.8
+ 8:13.63    Compiling libcrux-traits v0.0.3 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/libcrux-traits)
+ 8:13.84    Compiling log v0.4.29
+ 8:14.10    Compiling env_logger v0.10.0
+ 8:14.60    Compiling num-integer v0.1.46
+ 8:15.32    Compiling rsclientcerts v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/rsclientcerts)
+ 8:15.74    Compiling num-bigint v0.4.6
+ 8:16.34    Compiling libcrux-sha2 v0.0.3
+ 8:17.06    Compiling mozilla-central-workspace-hack v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/workspace-hack)
+ 8:17.25 ipc/app/plugin-container
+ 8:17.46 js/xpconnect/shell/xpcshell
+ 8:17.66 toolkit/crashreporter/test/libtestcrasher.so
+ 8:17.79    Compiling libcrux-p256 v0.0.3
+ 8:25.78    Compiling pkcs11testmodule-static v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/tests/unit/pkcs11testmodule)
+ 8:27.06     Finished `release` profile [optimized] target(s) in 28.56s
+ 8:27.57 security/manager/ssl/tests/unit/pkcs11testmodule/libpkcs11testmodule_static.a
+ 8:27.58 security/manager/ssl/tests/unit/pkcs11testmodule/dynamic-library/libpkcs11testmodule.so
+ 8:31.51    Compiling serde_core v1.0.228
+ 8:31.51    Compiling winnow v1.0.3
+ 8:31.93    Compiling toml_parser v1.1.3+spec-1.1.0
+ 8:32.48    Compiling strum v0.27.1
+ 8:32.69    Compiling bindgen v0.72.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/bindgen)
+ 8:32.86    Compiling serde_with v3.12.0
+ 8:33.44    Compiling derive_more-impl v2.0.1
+ 8:33.46    Compiling toml_datetime v1.1.1+spec-1.1.0
+ 8:33.83    Compiling serde_spanned v1.1.1
+ 8:34.05    Compiling toml v1.1.5+spec-1.1.0
+ 8:35.07    Compiling serde v1.0.228
+ 8:35.36    Compiling toml v0.9.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/toml)
+ 8:35.53    Compiling zeroize v1.8.1
+ 8:35.63    Compiling nss-rs v0.16.1 (https://github.com/mozilla/nss-rs#ba8a3f6a)
+ 8:35.76    Compiling derive_more v2.0.1
+ 8:35.98    Compiling qlog v0.16.0
+ 8:37.78    Compiling tokio v1.52.3
+ 8:40.12    Compiling neqo-common v0.32.0 (https://github.com/mozilla/neqo?tag=v0.32.0#28cacc8e)
+ 8:41.48    Compiling icu_properties v2.1.2 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/icu_properties)
+ 8:42.11    Compiling icu_normalizer v2.1.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/third_party/rust/icu_normalizer)
+ 8:42.69    Compiling rustc-hash v2.1.1
+ 8:42.90    Compiling try-lock v0.2.4
+ 8:43.11    Compiling idna_adapter v1.2.1
+ 8:43.12    Compiling want v0.3.0
+ 8:43.36    Compiling neqo-transport v0.32.0 (https://github.com/mozilla/neqo?tag=v0.32.0#28cacc8e)
+ 8:43.40    Compiling dist-bin v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/dist-bin)
+ 8:43.64    Compiling hashbrown v0.16.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/hashbrown)
+ 8:43.81    Compiling hyper v1.9.0
+ 8:45.25    Compiling idna v1.1.0
+ 8:46.14    Compiling sfv v0.14.0
+ 8:47.10    Compiling hashbrown v0.15.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/hashbrown-0.15)
+ 8:47.32    Compiling neqo-bin v0.32.0 (https://github.com/mozilla/neqo?tag=v0.32.0#28cacc8e)
+ 8:47.65    Compiling hex v0.4.3
+ 8:47.67    Compiling neqo-qpack v0.32.0 (https://github.com/mozilla/neqo?tag=v0.32.0#28cacc8e)
+ 8:48.01    Compiling neqo-udp v0.32.0 (https://github.com/mozilla/neqo?tag=v0.32.0#28cacc8e)
+ 8:48.41    Compiling neqo-http3 v0.32.0 (https://github.com/mozilla/neqo?tag=v0.32.0#28cacc8e)
+ 8:48.54    Compiling hashbrown v0.13.999 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/rust/hashbrown-0.13)
+ 8:48.74    Compiling url v2.5.7
+ 8:49.83    Compiling clap-verbosity-flag v3.0.1
+ 8:50.11    Compiling test-fixture v0.1.0 (https://github.com/mozilla/nss-rs#ba8a3f6a)
+ 8:50.31    Compiling tokio-util v0.7.18
+ 8:50.39    Compiling arrayvec v0.7.6
+ 8:50.67    Compiling hyper-util v0.1.20
+ 8:50.77    Compiling mozilla-central-workspace-hack v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/workspace-hack)
+ 8:52.94    Compiling http3server v0.1.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/test/http3server)
+ 8:55.76     Finished `release` profile [optimized] target(s) in 28.08s
+ 8:56.49 netwerk/test/http3server/http3server
+ 8:56.59 ./channel-prefs.js.stub
+ 8:56.59 ./license.html.stub
+ 8:57.06 ./runtime-metrics-159.json.stub
+ 8:57.21 ./runtime-metrics-158.json.stub
+ 8:57.21 ./runtime-metrics-157.json.stub
+ 8:57.45 ./supported-locales.json.stub
+ 8:57.45 ./newtab-sources.stamp.stub
+ 8:57.77 ./run.js.stub
+ 8:57.82 ./run.js.stub
+ 8:58.23 ./manifest.json.stub
+ 8:58.24 browser/locales/updater.ini.stub
+ 8:58.31 ./manifest.json.stub
+ 8:58.44 ./manifest.json.stub
+ 8:58.84 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 36; Removed 0 files and 0 directories.
+ 8:58.86 ./node.stub.stub
+ 8:59.04 ./node.stub.stub
+ 8:59.05 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 5; Removed 0 files and 0 directories.
+ 8:59.34 ./node.stub.stub
+ 8:59.35 ./node.stub.stub
+ 8:59.64 ./node.stub.stub
+ 8:59.77 ./node.stub.stub
+ 9:00.03 ./node.stub.stub
+ 9:00.19 ./node.stub.stub
+ 9:00.43 ./node.stub.stub
+ 9:00.60 ./node.stub.stub
+ 9:00.73 ./node.stub.stub
+ 9:00.86 ./node.stub.stub
+ 9:01.09 ./node.stub.stub
+ 9:01.17 ./node.stub.stub
+ 9:01.43 ./node.stub.stub
+ 9:01.68 ./node.stub.stub
+ 9:01.85 ./node.stub.stub
+ 9:02.18 ./node.stub.stub
+ 9:02.20 ./node.stub.stub
+ 9:02.56 ./node.stub.stub
+ 9:02.67 ./node.stub.stub
+ 9:02.79 ./node.stub.stub
+ 9:02.97 ./node.stub.stub
+ 9:03.20 ./node.stub.stub
+ 9:03.23 ./node.stub.stub
+ 9:03.67 ./node.stub.stub
+ 9:03.69 ./node.stub.stub
+ 9:03.95 ./node.stub.stub
+ 9:04.15 ./node.stub.stub
+ 9:04.26 ./node.stub.stub
+ 9:04.47 ./node.stub.stub
+ 9:04.57 ./node.stub.stub
+ 9:04.83 ./node.stub.stub
+ 9:04.85 ./node.stub.stub
+ 9:05.07 ./node.stub.stub
+ 9:05.35 ./event-list.json.stub
+ 9:05.51 ./reserved-js-words.js.stub
+ 9:05.61 Successfully generated event list for DevTools
+ 9:05.78 ./SpeechRecognitionModelDisplayInfo.sys.mjs.stub
+ 9:06.24 ./css_properties.js.stub
+ 9:06.81 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 1; Removed 0 files and 0 directories.
+ 9:07.42 ./last_modified.json.stub
+ 9:07.61 ./aboutNetErrorCodes.js.stub
+ 9:07.61 ./CrashManager.sys.mjs.stub
+ 9:07.65 ./lib.gecko.glean.d.ts.stub
+ 9:07.78 ./FeatureManifest.sys.mjs.stub
+ 9:07.79 ./PromiseWorker.js.stub
+ 9:08.11 ./PromiseWorker.mjs.stub
+ 9:08.24 ./RFPTargetConstants.sys.mjs.stub
+ 9:08.38 ./ScalarArtifactDefinitions.json.stub
+ 9:08.52 ./EventArtifactDefinitions.json.stub
+ 9:08.53 ./license.html.stub
+ 9:08.77 ./dependentlibs.list.stub
+ 9:08.88 ./multilocale.txt.stub
+ 9:09.09 ./built_in_addons.json.stub
+ 9:09.14 ./buildid.h.stub
+ 9:09.14 ./source-repo.h.stub
+ 9:09.35 ./browser_dragdrop1.xpi.stub
+ 9:09.41 ./application.ini.stub
+ 9:09.60 ./application.ini.h.stub
+ 9:09.61 ./browser_dragdrop1.zip.stub
+ 9:09.79 ./browser_dragdrop1.1.xpi.stub
+ 9:09.97 ./browser_dragdrop1.1.zip.stub
+ 9:10.16 ./browser_dragdrop2.xpi.stub
+ 9:10.33 ./browser_dragdrop2.zip.stub
+ 9:10.35 ./browser_dragdrop_incompat.xpi.stub
+ 9:10.52 ./browser_dragdrop_incompat.zip.stub
+ 9:10.54 ./browser_installssl.xpi.stub
+ 9:10.70 ./browser_installssl.zip.stub
+ 9:10.73 ./browser_theme.xpi.stub
+ 9:10.88 ./browser_theme.zip.stub
+ 9:11.07 ./error_list.json.stub
+ 9:11.18 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 1; Removed 0 files and 0 directories.
+ 9:11.32 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 5; Removed 0 files and 0 directories.
+ 9:11.39 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 2; Removed 0 files and 0 directories.
+ 9:15.83 ./vendor.bundle.js.stub
+ 9:15.87 ./activity-stream.css.stub
+ 9:17.18 Elapsed: 0.01s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 163; Removed 0 files and 0 directories.
+ 9:17.75 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 1; Removed 0 files and 0 directories.
+ 9:18.14 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 1; Removed 0 files and 0 directories.
+ 9:18.54 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 1; Removed 0 files and 0 directories.
+ 9:18.65 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 1; Removed 0 files and 0 directories.
+ 9:19.32 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 1; Removed 0 files and 0 directories.
+ 9:19.57 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 3; Removed 0 files and 0 directories.
+ 9:19.59 toolkit/locales/default.locale.stub
+ 9:20.49 vendor:
+ 9:20.49   asset vendor.bundle.js 399 KiB [emitted] [minimized] (name: main)
+ 9:20.49   runtime modules 2.49 KiB 5 modules
+ 9:20.49   orphan modules 682 bytes [orphan] 1 module
+ 9:20.49   modules by path ../../../third_party/node/node_modules/ 1.14 MiB
+ 9:20.49     modules by path ../../../third_party/node/node_modules/react-transition-group/esm/ 54.2 KiB 9 modules
+ 9:20.49     modules by path ../../../third_party/node/node_modules/react-dom/ 1 MiB 7 modules
+ 9:20.49     modules by path ../../../third_party/node/node_modules/@babel/runtime/helpers/esm/*.js 1.23 KiB 5 modules
+ 9:20.49     modules by path ../../../third_party/node/node_modules/prop-types/ 2.58 KiB 3 modules
+ 9:20.49     modules by path ../../../third_party/node/node_modules/dom-helpers/esm/*.js 1.57 KiB 3 modules
+ 9:20.49     modules by path ../../../third_party/node/node_modules/react/ 17 KiB 2 modules
+ 9:20.49     modules by path ../../../third_party/node/node_modules/use-sync-external-store/ 2.81 KiB 2 modules
+ 9:20.49     modules by path ../../../third_party/node/node_modules/scheduler/ 10.1 KiB 2 modules
+ 9:20.49     ../../../third_party/node/node_modules/react-redux/dist/react-redux.mjs 36.6 KiB [built] [code generated]
+ 9:20.49     ../../../third_party/node/node_modules/redux/dist/redux.mjs 16.4 KiB [built] [code generated]
+ 9:20.49   ./content-src/vendor.mjs 1.62 KiB [built] [code generated]
+ 9:20.49   vendor (webpack 5.109.0) compiled successfully in 3927 ms
+ 9:20.49 activity-stream:
+ 9:20.49   asset activity-stream.bundle.js 1.28 MiB [emitted] (name: main)
+ 9:20.49   orphan modules 1.23 MiB [orphan] 164 modules
+ 9:20.49   runtime modules 1.55 KiB 5 modules
+ 9:20.49   ./content-src/activity-stream.jsx + 164 modules 1.24 MiB [not cacheable] [built] [code generated]
+ 9:20.49   activity-stream (webpack 5.109.0) compiled successfully in 3793 ms
+ 9:20.66 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 1; Removed 0 files and 0 directories.
+ 9:22.07 Elapsed: 0.01s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 163; Removed 0 files and 0 directories.
+ 9:23.55 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 1; Removed 0 files and 0 directories.
+ 9:23.67 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 2; Removed 0 files and 0 directories.
+ 9:24.84 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 2; Removed 0 files and 0 directories.
+ 9:25.02 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 1; Removed 0 files and 0 directories.
+ 9:25.29 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 2; Removed 0 files and 0 directories.
+ 9:25.86 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 12; Removed 0 files and 0 directories.
+ 9:25.99 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 2; Removed 0 files and 0 directories.
+ 9:26.12 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 8; Removed 0 files and 0 directories.
+ 9:26.48 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 1; Removed 0 files and 0 directories.
+ 9:26.57 Packaging long-fields.xpi...
+ 9:26.57 Packaging restartless.xpi...
+ 9:26.74 Packaging system.xpi...
+ 9:27.16 Elapsed: 0.00s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj: Kept 0 existing; Added/updated 1; Removed 0 files and 0 directories.
+ 9:27.30 Packaging specialpowers@mozilla.org.xpi...
+ 9:27.44 Packaging ipp-activator@mozilla.com.xpi...
+ 9:27.57 Packaging webcompat@mozilla.org.xpi...
+ 9:27.81 Packaging newtab@mozilla.org.xpi...
+ 9:28.25 Packaging mozscreenshots@mozilla.org.xpi...
+ 9:28.50 W 8 compiler warnings present.
+ 9:28.53 W Overall system resources - Wall time: 568s; CPU: 23%; Read bytes: 3676315648; Write bytes: 13773422592; Read time: 175930; Write time: 667271
+ 9:28.53 W Swap in/out (MB): 0.05859375/0.32421875
+ 9:28.53 W (suppressed 8 warnings in third-party code)
+ 9:28.53 /usr/bin/notify-send '--app-name=Mozilla Build System' 'Mozilla Build System' 'Build complete'
+ 9:28.56 To view a profile of the build, run |mach resource-usage|.
+ 9:28.56 Your build was successful!
+ 9:28.56 To take your build for a test drive, run: |mach run|
+ 9:28.56 For more information on what to do now, see https://firefox-source-docs.mozilla.org/setup/contributing_code.html
+Streaming resource usage profile to: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/profile_log_20261012_201130.json

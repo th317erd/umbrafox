@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/package_spec.py", line 7, in <module>
+    from package_beta import archive_files
+ModuleNotFoundError: No module named 'package_beta'

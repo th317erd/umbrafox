@@ -1,0 +1,8 @@
+Creating the 'lint' site at /home/wyatt/.mozbuild/srcdirs/umbrafox-a0680b76db69/_virtualenvs/lint
+Setting up artifact mozcheck.tar.zst
+Downloading artifact to local cache: /home/wyatt/.mozbuild/toolchains/d190e60c13b4e38e-public%2Fbuild%2Fmozcheck.tar.zst
+Downloading d190e60c13b4e38e-public%2Fbuild%2Fmozcheck.tar.zst... 0.0 %
+Downloading d190e60c13b4e38e-public%2Fbuild%2Fmozcheck.tar.zst... 100.0 %
+rm tree: /home/wyatt/.mozbuild/mozcheck
+untarring "/home/wyatt/.mozbuild/mozcheck.tar.zst"
+✖ 0 problems (0 errors, 0 warnings, 0 fixed)

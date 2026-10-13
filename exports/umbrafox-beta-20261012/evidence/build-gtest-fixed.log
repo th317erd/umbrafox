@@ -1,0 +1,142 @@
+ 0:00.25 W Warnings in third-party code are being suppressed from the terminal output. Use --show-all-warnings or --verbose to see them.
+ 0:00.25 W All warnings will still be dumped to /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/warnings_*.json at the end of the build.
+ 0:00.39 Clobber not needed.
+ 0:00.44 /usr/bin/make -j2 -s recurse_gtest
+ 0:01.06 dom/canvas/gtest
+ 0:01.53 dom/events/test/gtest
+ 0:07.91 dom/filesystem/tests/gtest
+ 0:08.92 dom/fs/test/gtest/api
+ 0:13.18 dom/fs/test/gtest/child
+ 0:17.69 dom/fs/test/gtest/parent/datamodel
+ 0:26.80 dom/fs/test/gtest/parent
+ 0:29.65 W 7 warnings generated.
+ 0:29.68 dom/fs/test/gtest/shared
+ 0:31.09 dom/fs/test/gtest
+ 0:36.95 dom/indexedDB/test/gtest
+ 0:39.79 dom/ipc/gtest
+ 0:48.03 dom/l10n/tests/gtest
+ 0:48.88 dom/localstorage/test/gtest
+ 0:52.95 dom/media/doctor/test/gtest
+ 0:52.96 dom/media/driftcontrol/gtest
+ 0:55.72 dom/media/eme/clearkey/gtest
+ 0:57.15 dom/media/gtest/mp4_demuxer
+ 0:59.11 dom/media/gtest
+ 2:23.29 dom/media/mediacontrol/tests/gtest
+ 2:29.49 dom/media/mediasession/test/gtest
+ 2:33.95 dom/media/mediasource/gtest
+ 2:37.30 W 2 warnings generated.
+ 2:37.36 dom/media/platforms/agnostic/bytestreams/gtest
+ 2:40.30 dom/media/utils/gtest
+ 2:42.34 dom/media/webcodecs/gtest
+ 2:43.64 dom/media/webrtc/transport/test
+ 3:18.76 dom/promise/gtest
+ 3:23.15 dom/quota/test/gtest
+ 3:55.32 dom/reporting/tests/gtest
+ 3:56.09 dom/security/permissionspolicy/test/gtest
+ 3:58.98 dom/security/test/gtest
+ 3:59.28 dom/serializers/gtest
+ 4:01.38 dom/serviceworkers/test/gtest
+ 4:06.17 dom/streams/gtest
+ 4:07.12 dom/system/linux/gtest
+ 4:09.38 dom/webauthn/tests/gtest
+ 4:09.98 dom/webserial/tests/gtest
+ 4:12.30 editor/libeditor/gtest
+ 4:15.54 editor/txmgr/tests
+ 4:18.99 extensions/permissions/test/gtest
+ 4:21.62 gfx/gl/gtest
+ 4:22.27 gfx/layers/apz/test/gtest/mvm
+ 4:25.85 gfx/layers/apz/test/gtest
+ 4:49.96 gfx/tests/gtest
+ 5:08.30 image/test/gtest
+ 5:28.68 intl/components/gtest
+ 5:33.39 intl/gtest
+ 5:35.38 intl/l10n/rust/gtest
+ 5:36.55 intl/l10n/test/gtest
+ 5:37.11 intl/locale/tests/gtest
+ 5:40.28 intl/lwbrk/gtest
+ 5:40.76 intl/uconv/tests/gtest
+ 5:42.60 ipc/chromium/gtest
+ 5:44.61 ipc/glue/test/gtest
+ 5:47.00 ipc/gtest
+ 5:57.99 ipc/ipdl/test/gtest
+ 6:49.08 layout/base/gtest
+ 6:49.84 layout/style/test/gtest
+ 6:53.70 media/libcubeb/gtest
+ 7:08.72 media/psshparser/gtest
+ 7:08.84 media/webrtc/signaling/gtest
+ 7:19.59 memory/build/test/gtest
+ 7:55.42 memory/gtest
+ 8:07.83 mfbt/tests/gtest
+ 8:25.12 modules/libjar/test/gtest
+ 8:27.47 modules/libpref/test/gtest
+ 8:31.78 mozglue/tests/gtest
+ 8:36.31 netwerk/test/gtest
+ 9:08.14 netwerk/wifi/gtest
+ 9:11.53 parser/htmlaccel/gtest
+ 9:12.91 security/ct/tests/gtest/valid-sth.inc.stub
+ 9:12.91 security/ct/tests/gtest/valid-with-extension-sth.inc.stub
+ 9:13.18 security/ct/tests/gtest/valid-secp521r1-sha512-sth.inc.stub
+ 9:13.37 security/ct/tests/gtest/signature-covers-log-id-sth.inc.stub
+ 9:13.60 security/ct/tests/gtest/wrong-spki-sth.inc.stub
+ 9:13.80 security/ct/tests/gtest/wrong-signing-key-sth.inc.stub
+ 9:14.01 security/ct/tests/gtest/missing-log-id-sth.inc.stub
+ 9:14.22 security/ct/tests/gtest/missing-timestamp-sth.inc.stub
+ 9:14.42 security/ct/tests/gtest/missing-tree-size-sth.inc.stub
+ 9:14.61 security/ct/tests/gtest/missing-root-hash-sth.inc.stub
+ 9:14.81 security/ct/tests/gtest/missing-extensions-sth.inc.stub
+ 9:15.01 security/ct/tests/gtest/truncated-log-id-sth.inc.stub
+ 9:15.20 security/ct/tests/gtest/truncated-timestamp-sth.inc.stub
+ 9:15.39 security/ct/tests/gtest/truncated-tree-size-sth.inc.stub
+ 9:15.58 security/ct/tests/gtest/truncated-root-hash-sth.inc.stub
+ 9:15.76 security/ct/tests/gtest/truncated-extension-sth.inc.stub
+ 9:15.94 security/ct/tests/gtest/rsa-signer-rsa-spki-sth.inc.stub
+ 9:16.13 security/ct/tests/gtest/rsa-signer-ec-spki-sth.inc.stub
+ 9:16.32 security/ct/tests/gtest/ec-signer-rsa-spki-sth.inc.stub
+ 9:16.75 security/lockstore/gtest
+ 9:18.72 security/lockstore/tests/gtest
+ 9:21.20 security/manager/ssl/tests/gtest
+ 9:37.81 security/sandbox/linux/gtest
+ 9:41.20 startupcache/test
+ 9:43.53 storage/test/gtest
+ 9:43.84 testing/gtest/benchmark
+ 9:43.92 testing/gtest/mozilla
+ 9:51.24 third_party/googletest
+ 9:58.18 toolkit/components/antitracking/test/gtest
+10:00.12 toolkit/components/contentanalysis/tests/gtest
+10:02.61 toolkit/components/dap/ffi-gtest
+10:02.89 toolkit/components/gecko-trace/tests/gtest
+10:04.10 toolkit/components/glean/tests/gtest
+10:08.13 toolkit/components/kvstore/test/gtest
+10:09.34 toolkit/components/ml/tests/gtest
+10:17.13 toolkit/components/nimbus/test/gtest
+10:18.63 toolkit/components/places/tests/gtest
+10:21.06 toolkit/components/reputationservice/test/gtest
+10:22.92 toolkit/components/resistfingerprinting/tests/gtest
+10:23.87 toolkit/components/telemetry/tests/gtest
+10:27.54 toolkit/components/url-classifier/tests/gtest
+10:36.52 toolkit/crashreporter/test/gtest
+10:37.07 toolkit/library/gtest
+10:39.23 toolkit/library/buildid.cpp.stub
+10:39.42 toolkit/profile/test/gtest
+10:39.81 toolkit/system/commonproxy/tests/gtest
+10:41.50 toolkit/tests/gtest
+10:41.73 toolkit/xre/test/gtest
+10:45.78 tools/profiler/tests/gtest
+10:46.26 uriloader/exthandler/tests/gtest
+10:49.24 uriloader/preload/gtest
+10:56.19 widget/tests/gtest
+11:09.44 xpcom/rust/gtest
+11:13.30 xpcom/tests/gtest/dafsa_test_1.inc.stub
+11:13.84 security/ct/tests/gtest
+11:18.01 toolkit/library
+11:18.12 xpcom/tests/gtest
+12:12.77 toolkit/library/gtest/libxul.so
+12:18.81 W 9 compiler warnings present.
+12:18.84 W Overall system resources - Wall time: 738s; CPU: 25%; Read bytes: 1296427520; Write bytes: 12194713600; Read time: 40249; Write time: 754935
+12:18.84 W Swap in/out (MB): 1.20703125/2095.81640625
+12:18.84 W (suppressed 7 warnings in dom/fs/test/gtest/child)
+12:18.84 W (suppressed 2 warnings in dom/media/gtest)
+12:18.84 /usr/bin/notify-send '--app-name=Mozilla Build System' 'Mozilla Build System' 'Build complete'
+12:18.87 To view a profile of the build, run |mach resource-usage|.
+12:18.87 Your build was successful!
+Streaming resource usage profile to: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/profile_log_20261012_202316.json

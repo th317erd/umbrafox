@@ -1,5 +1,60 @@
 # Umbrafox Codex Details
 
+## October 12 Opt-in Beta Installed Separately
+
+Build20261012202039/160.0a1 complete. Export exports/umbrafox-beta-20261012/:
+umbrafox-beta-20261012202039-linux-x86_64.tar.xz SHA75d03f82d3282c64eafbe3312087bbf2284613ef0aad3608892774ff82081e92.
+Normal base d43214d67041 + source.patch4e512d8f... (Services.h direct include,
+two gtest ContentParentId calls). Exact two-pref overlay4278e82f... enables
+DMABuf drawImage/WR single-image opacity; native defaults unchanged false.
+Probe feature compiled out. Built isolated ~/.cache/codex/umbrafox-beta-20261012-nYSBPOWS;
+all build/native/browser commands terminal. Later gtest-only patch corrects tiny
+target Init and NVIDIA RGBA-vs-IntelBGRA fixture assumptions, exactbytes retained.
+
+467toolingPASS using Node24.13.0 (ambient21fails retained), archive5/installer4PASS.
+Native86:79PASS/7FAIL/0skip, all63non-prescale PASS including12cache/7fence/4IPC;
+known seven prescale pixel failures remain failing. Current DrawImage no longer
+uses sized CPU route. Same-build UmbraLink OFF/ON public parity+commands PASS,
+actual native roots/build/prefs true/profileroff, owned clean SIGTERM. No new
+performance/playback/stockFirefox universal parity acceptance; two old smoothness
+failures remain. See bot-docs/reports/performance/2026-10-12-opt-in-beta.md.
+
+Installed ~/Programs/umbrafox-nightly self-contained47files+.purgecaches, exact
+inventory verified and --version PASS. Oldnightly retained at
+~/Programs/umbrafox-nightly.before-beta-20261012-202039/. No dailyowner restart,
+profile migration/mapping, launcher/desktop changes. Usual launcher36b8df60...
+still selects dated October1 tree ahead of nightly. A plain restart does NOT
+select beta. Verify working profile mapping before later switching; nightly and
+active dated installation currently have different default profiles. Keep all
+unrelated old untracked checkout files untouched. Supersedes next historical note.
+
+## October 12 Historical Beta Build Checkpoint (Superseded)
+
+Owner approved experimental GPU-import beta despite prior smoothness failures.
+tools/umbrafox/beta/ contains exact two-pref overlay plus tests/README; native
+default-off prefs stay unchanged. DMABuf video drawImage and single-image opacity
+are the opt-ins; request/DOM/readback/cache/fence changes already live in source.
+No profiling/logging or hardware-force/security/UA override. Tests2PASS, scoped
+ESLint/Prettier PASS; initial missing-overlay RED preserved (first draft also had
+a corrected test-path error, not counted as behavior). No package/runtime yet.
+
+Active build namespace:
+/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/.
+Detached source worktree at d43214d67041, sibling obj, two-job nice10 normal build
+bounded7200s, log build.log, explicit --disable-umbra-perf-probes + sccache.
+Clean checkout avoids newly observed older untracked main-checkout files;
+they were not removed or assumed owned. Initial build hit7200s (exit124), no
+compiler error; workspace compiler scan empty before resuming. Continuation
+timeout3600s uses same2jobs/nice10, build-continued.log, session79355. Rust
+optimized build passed; remaining C++/link is active. Config FirefoxUA/160.0a1.
+Scratch package archive tests5PASS/native inventory tests3PASS; beta-parity.mjs
+and run-native.mjs prepared but NOT run. No usable package/runtime result yet.
+No owner-browser process/profile/launcher change. Native build, package overlay,
+integrity/startup verification and installation still outstanding. Asked owner
+usual-launcher versus separate-beta preference; preserve current default profile
+and do not restart active browser. Existing nightly install is old; usual script
+prefers dated installs over nightly. Do not assume installing nightly selects it.
+
 ## October 12 Upstream Integration
 
 Owner authorized committing/pushing all work, then merging upstream before

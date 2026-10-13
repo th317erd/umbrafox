@@ -1,0 +1,687 @@
+{
+  "controllerPID": 907170,
+  "installation": "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/native-package/umbrafox",
+  "root": "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/native-run",
+  "applicationData": {
+    "root": "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/native-run",
+    "appData": "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/native-run/app-data",
+    "localAppData": "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/native-run/local-app-data",
+    "tempDir": "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/native-run/temp",
+    "creation": {
+      "root": {
+        "dev": 66316,
+        "ino": 108153035,
+        "uid": 1000,
+        "mode": 448
+      },
+      "appData": {
+        "dev": 66316,
+        "ino": 108153037,
+        "uid": 1000,
+        "mode": 448
+      },
+      "localAppData": {
+        "dev": 66316,
+        "ino": 108153038,
+        "uid": 1000,
+        "mode": 448
+      },
+      "tempDir": {
+        "dev": 66316,
+        "ino": 108153039,
+        "uid": 1000,
+        "mode": 448
+      }
+    }
+  },
+  "env": {
+    "PATH": "/home/wyatt/.codex-personal/tmp/arg0/codex-arg0QMZ2sl:/home/wyatt/.opencode/bin:/home/wyatt/Programs/emsdk:/home/wyatt/Programs/emsdk/upstream/emscripten:/home/wyatt/bin:/home/wyatt/Programs:/home/wyatt/Programs/android-sdk/tools:/home/wyatt/Programs/android-sdk/tools/bin:/home/wyatt/Programs/android-sdk/platform-tools:/home/wyatt/Programs/android-sdk/emulator:/home/wyatt/.ebcli-virtual-env/executables:/home/wyatt/.local/bin:/home/wyatt/Programs/go/bin:/home/wyatt/.opencode/bin:/home/wyatt/.config/nvm/versions/node/v21.7.3/bin:/home/wyatt/.local/share/mise/installs/codex/latest/bin:/home/wyatt/.local/share/mise/installs/node/26.8.2/bin:/home/wyatt/.local/share/mise/installs/pi/latest/pi:/home/wyatt/.local/share/mise/shims:/usr/share/omarchy/bin:/home/wyatt/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl",
+    "HOME": "/home/wyatt",
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "LC_CTYPE": "C.UTF-8",
+    "XDG_RUNTIME_DIR": "/run/user/1000",
+    "MOZ_APP_DATA": "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/native-run/app-data",
+    "MOZ_LOCAL_APP_DATA": "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/native-run/local-app-data",
+    "TMPDIR": "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/native-run/temp",
+    "TMP": "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/native-run/temp",
+    "TEMP": "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/native-run/temp",
+    "MOZ_RUN_GTEST": "True",
+    "MOZ_XRE_DIR": "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/native-package/umbrafox",
+    "MOZ_WEBRENDER": "0",
+    "MOZ_ENABLE_INC_ORIGIN_INIT": "0",
+    "MOZ_CRASHREPORTER_NO_REPORT": "1",
+    "MOZ_DISABLE_NONLOCAL_CONNECTIONS": "1",
+    "GTEST_FILTER": "DMABufProducerFence.*:DMABufReadback.*:CanvasVideoSurfaceCache.*:CanvasSurfaceImport.*:GPUVideoReadback.*:IPDLTest_CrossThread.TestGPUVideoReadbackIPC*:IPDLTest_CrossProcess.TestGPUVideoReadbackIPC*:TestRemoteImageHolder.*",
+    "GTEST_OUTPUT": "json:/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/native-run/results.json"
+  },
+  "pid": 907213,
+  "identity": {
+    "pid": 907213,
+    "state": "R",
+    "parent": 907170,
+    "group": 907213,
+    "session": 907213,
+    "start": "1581249"
+  },
+  "outcome": {
+    "code": 1,
+    "signal": null
+  },
+  "cleanup": {
+    "status": "clean",
+    "outcome": {
+      "code": 1,
+      "signal": null
+    }
+  },
+  "rootAbsent": true,
+  "logBytes": 28788,
+  "tests": {
+    "tests": 86,
+    "failures": 7,
+    "skipped": [
+      "CanvasSurfaceImport.UnusableDescriptorDoesNotPublishSurface",
+      "CanvasSurfaceImport.RepeatedUnusableDescriptorsDoNotPublishSurfaces",
+      "CanvasSurfaceImport.OversizedAllocationDoesNotPublishSurface",
+      "CanvasSurfaceImport.DefaultDescriptorBehaviorIsUnchanged",
+      "CanvasVideoSurfaceCache.BorrowedDescriptorKeepsIndependentOwningCopies",
+      "CanvasVideoSurfaceCache.LiveSurfaceReuseAndExactPixels",
+      "CanvasVideoSurfaceCache.GenericImportsAreDistinctAndInvalidate",
+      "CanvasVideoSurfaceCache.FrameAndHostIdentityCannotAlias",
+      "CanvasVideoSurfaceCache.ContentOwnershipCannotAlias",
+      "CanvasVideoSurfaceCache.MissingTargetNeverPublishes",
+      "CanvasVideoSurfaceCache.MissingIdentityNeverPublishes",
+      "CanvasVideoSurfaceCache.ReleasedOwnerReusesExistingHandle",
+      "CanvasVideoSurfaceCache.ReadbackPreventsStaleHandleReuse",
+      "CanvasVideoSurfaceCache.ExplicitClearAndMemoryPressureRecover",
+      "CanvasVideoSurfaceCache.FailedImportsDoNotPoisonRecovery",
+      "CanvasVideoSurfaceCache.ContextLossRejectsAndReplacementRecovers",
+      "DMABufReadback.ConstantColorMatchesFullSizeThenScale",
+      "DMABufReadback.SameSizeMatchesFullSize",
+      "DMABufReadback.SaturatedLumaMatchesFullSizeThenScale",
+      "DMABufReadback.ChromaEdgesMatchFullSizeThenScale",
+      "DMABufReadback.NeutralLumaMatchesFullSizeThenScale",
+      "DMABufReadback.OddSizeMatchesFullSizeThenScale",
+      "DMABufReadback.EmptyDestinationRejectsWithoutPoisoningReadback",
+      "DMABufReadback.ScaledReadbackPreservesCallerState",
+      "DMABufReadback.FullSizeReadbackPreservesCallerState",
+      "DMABufReadback.SourceAllocationFailureRestoresStateAndRecovers",
+      "DMABufReadback.DestinationAllocationFailureRestoresStateAndRecovers",
+      "DMABufReadback.MissingPlaneRejectsAndRecovers",
+      "DMABufReadback.EmptySourceRejectsAndRecovers",
+      "DMABufReadback.BT601MatchesFullSizeThenScale",
+      "DMABufReadback.BT2020MatchesFullSizeThenScale",
+      "DMABufReadback.VideoLinearCompositionMatches",
+      "DMABufReadback.VideoOddCompositionMatches",
+      "DMABufReadback.VideoAlphaCompositionMatches",
+      "DMABufReadback.VideoSoftwareCompositionMatches",
+      "DMABufReadback.VideoOddSoftwareCompositionMatches",
+      "DMABufReadback.VideoAlphaSoftwareCompositionMatches",
+      "DMABufReadback.SmallAlphaCompositionMatches",
+      "DMABufReadback.SmallSoftwareCompositionMatches"
+    ]
+  },
+  "installationPostcheck": {
+    "version": 1,
+    "status": "pass",
+    "root": "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/native-package/umbrafox",
+    "files": 49,
+    "bytes": 838994576,
+    "lock": null,
+    "observation": {
+      "root": {
+        "dev": 66316,
+        "ino": 108152954,
+        "uid": 1000,
+        "mode": 448,
+        "nlink": 8,
+        "kind": "directory"
+      },
+      "entries": {
+        "gtest": {
+          "dev": 66316,
+          "ino": 108153027,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 2,
+          "kind": "directory",
+          "size": 4096
+        },
+        "gtest/libxul.so": {
+          "dev": 66316,
+          "ino": 108153028,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 361265376
+        },
+        "libplds4.so": {
+          "dev": 66316,
+          "ino": 108152955,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 15568
+        },
+        "browser": {
+          "dev": 66316,
+          "ino": 108152956,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 3,
+          "kind": "directory",
+          "size": 4096
+        },
+        "browser/chrome": {
+          "dev": 66316,
+          "ino": 108152957,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 3,
+          "kind": "directory",
+          "size": 4096
+        },
+        "browser/chrome/icons": {
+          "dev": 66316,
+          "ino": 108152958,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 3,
+          "kind": "directory",
+          "size": 4096
+        },
+        "browser/chrome/icons/default": {
+          "dev": 66316,
+          "ino": 108152967,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 2,
+          "kind": "directory",
+          "size": 4096
+        },
+        "browser/chrome/icons/default/default64.png": {
+          "dev": 66316,
+          "ino": 108152968,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 2968
+        },
+        "browser/chrome/icons/default/default48.png": {
+          "dev": 66316,
+          "ino": 108152969,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 2197
+        },
+        "browser/chrome/icons/default/default32.png": {
+          "dev": 66316,
+          "ino": 108152970,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 1364
+        },
+        "browser/chrome/icons/default/default16.png": {
+          "dev": 66316,
+          "ino": 108152971,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 703
+        },
+        "browser/chrome/icons/default/default128.png": {
+          "dev": 66316,
+          "ino": 108152972,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 6972
+        },
+        "browser/omni.ja": {
+          "dev": 66316,
+          "ino": 108152980,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 55012110
+        },
+        "icons": {
+          "dev": 66316,
+          "ino": 108152981,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 2,
+          "kind": "directory",
+          "size": 4096
+        },
+        "icons/updater.png": {
+          "dev": 66316,
+          "ino": 108152982,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 2153
+        },
+        "libplc4.so": {
+          "dev": 66316,
+          "ino": 108152983,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 21856
+        },
+        "defaults": {
+          "dev": 66316,
+          "ino": 108152984,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 3,
+          "kind": "directory",
+          "size": 4096
+        },
+        "defaults/pref": {
+          "dev": 66316,
+          "ino": 108152985,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 2,
+          "kind": "directory",
+          "size": 4096
+        },
+        "defaults/pref/umbrafox-beta.js": {
+          "dev": 66316,
+          "ino": 108152986,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 348
+        },
+        "defaults/pref/channel-prefs.js": {
+          "dev": 66316,
+          "ino": 108152987,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 429
+        },
+        "dependentlibs.list": {
+          "dev": 66316,
+          "ino": 108152988,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 189
+        },
+        "precomplete": {
+          "dev": 66316,
+          "ino": 108152989,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 1423
+        },
+        "libssl3.so": {
+          "dev": 66316,
+          "ino": 108152990,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 542408
+        },
+        "fonts": {
+          "dev": 66316,
+          "ino": 108152991,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 2,
+          "kind": "directory",
+          "size": 4096
+        },
+        "fonts/TwemojiMozilla.ttf": {
+          "dev": 66316,
+          "ino": 108152992,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 1474284
+        },
+        "umbrafox": {
+          "dev": 66316,
+          "ino": 108152993,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 812400
+        },
+        "umbrafox-bin": {
+          "dev": 66316,
+          "ino": 108152994,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 812400
+        },
+        "libxul.so": {
+          "dev": 66316,
+          "ino": 108152995,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 310518248
+        },
+        "libmozgtk.so": {
+          "dev": 66316,
+          "ino": 108152996,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 5960
+        },
+        "dependentlibs.list.gtest": {
+          "dev": 66316,
+          "ino": 108153029,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 195
+        },
+        "gmp-clearkey": {
+          "dev": 66316,
+          "ino": 108152997,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 3,
+          "kind": "directory",
+          "size": 4096
+        },
+        "gmp-clearkey/0.1": {
+          "dev": 66316,
+          "ino": 108152998,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 2,
+          "kind": "directory",
+          "size": 4096
+        },
+        "gmp-clearkey/0.1/manifest.json": {
+          "dev": 66316,
+          "ino": 108152999,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 225
+        },
+        "gmp-clearkey/0.1/libclearkey.so": {
+          "dev": 66316,
+          "ino": 108153000,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 107768
+        },
+        "libmozavutil.so": {
+          "dev": 66316,
+          "ino": 108153001,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 873488
+        },
+        "libmozavcodec.so": {
+          "dev": 66316,
+          "ino": 108153002,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 5637048
+        },
+        "gfxtest": {
+          "dev": 66316,
+          "ino": 108153003,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 50488
+        },
+        "libsmime3.so": {
+          "dev": 66316,
+          "ino": 108153004,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 217488
+        },
+        "libnss3.so": {
+          "dev": 66316,
+          "ino": 108153005,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 871864
+        },
+        "removed-files": {
+          "dev": 66316,
+          "ino": 108153006,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 0
+        },
+        "libmozsqlite3.so": {
+          "dev": 66316,
+          "ino": 108153007,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 1665776
+        },
+        "crashreporter": {
+          "dev": 66316,
+          "ino": 108153008,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 6231768
+        },
+        "libmozsandbox.so": {
+          "dev": 66316,
+          "ino": 108153009,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 671848
+        },
+        "update-settings.ini": {
+          "dev": 66316,
+          "ino": 108153010,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 113
+        },
+        "libmozwayland.so": {
+          "dev": 66316,
+          "ino": 108153011,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 19720
+        },
+        "updater.ini": {
+          "dev": 66316,
+          "ino": 108153012,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 634
+        },
+        "omni.ja": {
+          "dev": 66316,
+          "ino": 108153013,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 52359924
+        },
+        "libgkcodecs.so": {
+          "dev": 66316,
+          "ino": 108153014,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 11044032
+        },
+        "libmozinference.so": {
+          "dev": 66316,
+          "ino": 108153015,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 4169536
+        },
+        "crashhelper": {
+          "dev": 66316,
+          "ino": 108153016,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 5256032
+        },
+        "libfreeblpriv3.so": {
+          "dev": 66316,
+          "ino": 108153017,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 1531984
+        },
+        "platform.ini": {
+          "dev": 66316,
+          "ino": 108153018,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 49
+        },
+        "application.ini": {
+          "dev": 66316,
+          "ino": 108153019,
+          "uid": 1000,
+          "mode": 420,
+          "nlink": 1,
+          "kind": "file",
+          "size": 792
+        },
+        "libnssutil3.so": {
+          "dev": 66316,
+          "ino": 108153020,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 221960
+        },
+        "updater": {
+          "dev": 66316,
+          "ino": 108153021,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 1106776
+        },
+        "libsoftokn3.so": {
+          "dev": 66316,
+          "ino": 108153022,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 449384
+        },
+        "libonnxruntime.so": {
+          "dev": 66316,
+          "ino": 108153023,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 14468128
+        },
+        "liblgpllibs.so": {
+          "dev": 66316,
+          "ino": 108153024,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 361168
+        },
+        "pingsender": {
+          "dev": 66316,
+          "ino": 108153025,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 908168
+        },
+        "libnspr4.so": {
+          "dev": 66316,
+          "ino": 108153026,
+          "uid": 1000,
+          "mode": 493,
+          "nlink": 1,
+          "kind": "file",
+          "size": 268864
+        }
+      }
+    },
+    "limitation": "Point-in-time package verification; caller must establish owned process cleanup. Not writer attribution or a filesystem/network sandbox."
+  },
+  "status": "not-accepted"
+}

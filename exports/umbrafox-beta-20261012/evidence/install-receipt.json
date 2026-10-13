@@ -1,0 +1,13 @@
+{
+  "status": "installed-separately",
+  "target": "/home/wyatt/Programs/umbrafox-nightly",
+  "backup": "/home/wyatt/Programs/umbrafox-nightly.before-beta-20261012-202039",
+  "stage": "/home/wyatt/Programs/.umbrafox-beta-stage-pdfary0s",
+  "archiveSHA256": "75d03f82d3282c64eafbe3312087bbf2284613ef0aad3608892774ff82081e92",
+  "buildID": "20261012202039",
+  "files": 48,
+  "purgeCaches": true,
+  "launcherUnchangedSHA256": "36b8df60cd05fea0f50fbb92ea0fe9433ddf0c9910c0df89d15cd3e07854c0cd",
+  "profileMappingChanged": false,
+  "ownerBrowserRestarted": false
+}

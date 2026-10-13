@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "buildID": "20261012202039",
+  "experimental": true,
+  "sourceRevision": "d43214d6704182dabefff44b772764db04e386f1",
+  "sourcePatchSHA256": "4e512d8f6a3a6f64c0b5a7ff1b99c5351723af09d79f93385dbf48f17cbc5938",
+  "configuration": {
+    "MOZ_APP_UA_NAME": "Firefox",
+    "MOZ_APP_VERSION": "160.0a1",
+    "MOZ_OPTIMIZE": "1",
+    "MOZ_OPTIMIZE_FLAGS": [
+      "-O2"
+    ],
+    "MOZ_DEBUG": null,
+    "MOZ_UMBRA_PERF_PROBES": null,
+    "MOZ_UPDATE_CHANNEL": "default",
+    "TARGET_CPU": "x86_64"
+  },
+  "mozconfigSHA256": "2ba70ee7f27e74d504ff7c7d83e827318cf8211e78ece86b8b1e0734489babc0",
+  "baseArchiveSHA256": "6ae9e9d2a0939936b9f7d3b8b804bfafb1569a032db753b152ed4f30aa95d6c8",
+  "archive": {
+    "name": "umbrafox-beta-20261012202039-linux-x86_64.tar.xz",
+    "size": 106613504,
+    "sha256": "75d03f82d3282c64eafbe3312087bbf2284613ef0aad3608892774ff82081e92"
+  },
+  "overlaySHA256": "4278e82f4538bf4058aefd3b488e77069be9c7edd1e36791456c194e79967eb2",
+  "iniBuildIDs": {
+    "application.ini": "20261012202039",
+    "platform.ini": "20261012202039"
+  },
+  "nativeBuildID": "20261012202039"
+}
