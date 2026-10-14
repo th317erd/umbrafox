@@ -1,5 +1,159 @@
 # Umbrafox Working Memory and Resume Instructions
 
+## October 14: Paused Audio Stream Reuse Bug Fixed And Verified
+
+Fix/report committed as d74c12c71fdf. Package provenance remains the recorded
+d43214 base plus frozen source.patch, not a claim it was built from that commit.
+
+Active request: continue until the post-seek stutter is found and fixed. Desktop
+daily browser remains untouched; isolated laptop runtime is authorized. Plan
+bot-docs/plans/seek-audio-reuse.md. New main changes are limited to AudioStream.h,
+AudioSink.h, AudioSinkWrapper.cpp, its gtest and two adjacent docs.
+
+Logged laptop XkWE68 (seek-audio-log namespace) caught actual stream stop/start,
+then rebase with play1163952/write1171312/carry0:7360frames=153.333ms at48kHz
+lost from mapping. Pulse stop corks without flushing. Wrapper incorrectly reused
+an already-stopped stream. Fix admits reuse only for keep-running+backend-started
++logical STOPPED; otherwise existing asynchronous recreation. Native38tests:
+RED35pass3expectedfail -> GREEN38pass0skip/cleanownedexit. Continuous reuse passes.
+No public interface/default change. Raw-position-query failure fallback remains
+a separate unobserved edge, not this receipt's cause.
+
+Durable build/tests: ~/.cache/codex/seek-audio-fix-20261014-5oJiex. Reuses isolated
+~/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source+obj; preserve existing3
+build repairs. Native diagnostic packages never installed. Normal candidate
+BuildID20261014043800: initial binaries-only retained oldBuildID and package
+validator rejected it, preserved package-rejected-stale-buildid. Full incremental
+build and native regeneration corrected it. Normal self-contained47file package
+now verified, manifest e097f7f7c0d8ff39146f173475731282c1e4574f1e3835e66e19861042d47d05.
+Archive398f90ee...b8d in exports/umbrafox-seek-audio-20261014. Same-build UmbraLink
+OFF/ON parity+native-root/build/pref receipts PASS, clean owned exits.
+Installed ~/Programs/umbrafox-nightly, exact47files+.purgecaches, versionexit0,
+PID2606827absent. Backupumbrafox-nightly.before-seek-audio-20261014-043800.
+Installer4testsPASS; active target refused. Launcher36b8df60... unchanged and
+stillprefers dated installs; ordinary restart does NOT select this beta.
+Do not change daily selection without verified existing profile mapping.
+
+Verified package exports/umbrafox-seek-audio-20261014, pinned beta12 baseline
+then candidate/loggingON then candidate/loggingOFF, same laptop130sUIseek workload
+(sequence now complete, no retries).
+New89file harness on laptop ~/.cache/codex/seek-audio-candidate-harness-Rnu5Rx,
+manifest54718252...b13f1, package pairseek-audio-package-pair-20261014-PlXFgB.
+BaselineHzI4G9 completed:27/1201 before,402/2674,583/2699,427/2502 recovery;
+actual stop/restart/rebase repeated cursor mismatch. Candidate-logfSoCso passed
+10/2677,9/2700,5/2499; logged stoppedstream destroyed/recreated, noRebaseLive.
+Candidate-offXHPfNx passed8/2677,5/2700,5/2498. Sixrecoverywindows below1% gatePASS.
+Each37samples/14recordedPIDsabsent/cleanSIGTERM/0logdrops.05:10:36UTC89inputs
+unchanged/no matching browser/compiler; allcommands terminal. Keep
+all prior failed/successful captures. Docs rendered but scoped Sphinx fails82
+global missing-toctree warnings; no AudioStream/AudioSinkWrapper page warning.
+Report bot-docs/reports/performance/2026-10-14-seek-audio-reuse.md; fixed reproduced
+case, not allYouTube/network/graphics issues. Main test differs compiledGREEN
+only comment/formatting, exactreconciliation recorded; productionhashesmatch.
+Candidateevidence59files2950599bytes sealed/verified; SHA256SUMS
+f00401af476262f1eeadd8ef9da4e86155d3684c3948949da23ea6da36a9fcb5.
+
+Prior ABBA A/B/C completed (recreate consistently low drops), fourth A stopped
+on unstable artifact scan, not performance evidence. Narrow logging reuse run
+then reproduced6.43/5.19/5.24% drops with the cursor mismatch above. No profiler.
+
+## October 13: Short Capture Retains Seek And Clock Plateaus
+
+Latest report bot-docs/reports/performance/2026-10-13-seek-transition.md;
+plan bot-docs/plans/seek-transition.md complete. Evidence namespace
+artifacts/umbralink-control/seek-transition/ sealed via SHA256SUMS/seal.json.
+Seal113files11861284B manifest8796fb596237895bb86ececd4d1c0a480ff9dd76522a3ea21a4809437de55fc7.
+No engine fix/build/default change or desktop/Pi/personalprofile action.
+
+One quiet-laptop OFF+ON using old Build20261006175655 (notbeta). All4 private
+anchors survive; origin36513.455811ms, parent3476678/content3476840,context11,
+doc10737418243. Firstsecondafterprivateafter-seek:61/103clockintervalsflat,
+11advances42.666-42.667ms. Jitter absmedian8.57/P9533.90ms;24drop events31frames
+allqueuedbeforepreviouscomposition,23priorunchanged. Renderer derivedmedian0.894ms,
+P951.473/max2.206. Later clockplateaus5/406 then0/381. No source/backend/query
+latency proof;42.667ms consistentwith2048frames@48kHz is notbackendidentification.
+Wholecapture36drop events46frames;35strictjoins(34queued,1notqueued),1unknown
+2frameeventdueIDgap3. Do notgeneralize priorallqueuedresult. Preseekbaseline6ms.
+
+OFF postseekdrops8.97/6.37/7.56%;ON24.51/32.27/28.06%, laterprofilerinactive.
+Observer/export effects andvariabilityunresolved. No claimedfixorcausalpenalty.
+ONuntimestampedVideoBridgeParentAbnormalShutdownwarningpreserved/unattributed.
+Both cleanSIGTERM14recordedPIDsabsent,37resources,0logdrops.74runtimeinputshashes
+unchanged21:42:35UTC/no matchingbrowser/compiler. No active tool sessions.
+130strict testsPASS;14manualfilelintPASS;savedreviews+analysisexactreplayPASS.
+CLIload/stoptextprefixfailurepreserved;secondofflineexport/cleanupsuccess,
+PID1813271+1813282/socketabsent. Rawgzip5927039B SHA
+cb66d81a1895c8f68aac7e699b75eef530d8fdc5a31b51a82ed08862b6d3bce1.
+
+Next: separately scoped native internal observation of existing selectedclock
+branch/pairedsystemtime/querybeginend/seekhold+callbackstate, withstableidentity
+andnoextraGetPositioncalls. No repeatofsamecapture, publicsurfacechange, guessed
+clockbias or synchronization removal. Priorsealedseek-markers evidenceunchanged.
+
+## October 13: Seek Drops Localized To Frame Timing/Selection
+
+Completed bounded laptop OFF/marker-ON wave with one deliberate ON recovery for
+our gzip-envelope adapter bug; old failure preserved. No Gecko fix/build/default
+change, desktop/Pi action or personal profile access. Build20261006175655, NOTbeta.
+OFF recovery drops1.53/.33/1.88%; correctedON5.30/9.86/7.89%. Profiler cost and
+run variability unresolved. Profile retained onlylate83-86s, notseektransition.
+
+448 explicit dropped frames were queued before the preceding composition under
+count/contiguous-ID validation;439 previous compositions repeatedoldframe.
+6091 same-frame timestamp revisions absP9511.42ms/max18.2ms. Renderer CLI-derived
+Composite median1.110ms/P991.907ms/max2.670ms. Strong clock-mapping/selection lead,
+NOT causal audio-backend/GPU proof. Native VideoSink recomputes targettimestamp
+from paired system/media clocks; AudioSinkWrapper can use audio/system/seekhold.
+Package-source hashes verified, runtime branch/querylatency still unobserved.
+
+Report bot-docs/reports/performance/2026-10-13-seek-marker-localization.md;
+plan bot-docs/plans/seek-marker-localization.md. New ignored evidence
+artifacts/umbralink-control/seek-markers/ sealed134files121149058B; manifest
+aada49b5de31f470006fd44f404c00cb243bdca5b7239a56698e5574e307ffe8.
+ProfileSHA3ad5cb83c6ec8e530e415a6b8e2c3890b12545a84c3519b017b9d67d9eadf6fc.
+109strict tests PASS/scopedlintPASS. Three runs cleanSIGTERM/14PIDsabsent each;
+two CLI+samply pairs stopped/absent. Final laptop18:34:34UTC postflight all71
+files/harness unchanged and no matchingbrowser/compiler. No active tool sessions.
+
+Next: short bounded transition capture resolving clocksource/pairedsystemtime/
+querylatency/frameidentity; existing observations first, private marker only if
+needed. Retain OFFcontrol, no bias/fence/threading workaround without causality.
+Full details/failures/commands/coverage limitations in report. Prior evidence intact.
+
+## October 12: Audio-on Seek Reproduces Sustained Drops
+
+Completed authorized quiet-laptop comparison, desktop untouched. New namespace
+artifacts/umbralink-control/audio-on-seek/; report
+bot-docs/reports/performance/2026-10-12-audio-on-seek.md and completed plan
+bot-docs/plans/audio-on-seek.md. NO native/product/default change or new fix.
+
+Existing laptop Build20261006175655 (NOT October12 beta), AV1 1080p60 public
+aqz-KE-bpKQ, normal menu/private iHD, X11 Intel. Four native audio endpoint reads
+only, no native audio/decoder read during timed interval. Advancing audio sink,
+volume0.05/unmuted; original state restored. Actual UI seek22.77s->45s and
+130007ms after seeked. Control48/9000 totaldrops; seek791/9078. Recovery windows
+control0.22/0.26/0.38%, seek10.42/10.49/9.04%. Final native drops control48
+compositor/0decoded/0sink; seek845compositor/0decoded/1sink. Different observation
+boundaries explain845vs791. One pair is not causal/repeatability proof; no visual
+black flash or complete recovery established. ffvpx label is not software proof;
+hardware flag cached. Frame-choice/timestamp/delivery versus render waits remains
+the next distinction. Source proof pins7 files to package base8924318+patchd1bf3bdf.
+
+First control dGBpso stopped before playback at artifact-scan ENOENT after3tries;
+evidence retained, clean2recordedPIDsabsent. Exactly one startup replacement
+ExSqOr completed; seekzWKDpm completed. Successful runs37samples/14recordedPIDs
+absent each, cleanSIGTERM0logdrops, 240/225/15s+256MiB limits unchanged.
+Remote harness /home/wyatt/.cache/codex/audio-seek-harness-PbcPcg; postflight
+2026-10-13T05:42:00UTC all67runtimeinputs unchanged/no matching browser/compiler.
+201 strict tests PASS; authored helpers/offline/tests lintPASS. All sessions ended.
+No profiler/build/Pi/desktop disruption/staging/commit; old evidence untouched.
+
+Next wave needs an explicit bounded observer-sensitivity/localization contract;
+existing source markers cover ImageComposite timestamp jitter/frame selection.
+Do not automatically repeat until rough playback appears, change clock bias, or
+infer costlyGPU work from the compositor counter. Owner's exact audio/stream/seek
+pattern still unanswered. Beta installation/launcher caveats below still apply.
+
 ## October 12: Opt-in Performance Beta Built And Installed Separately
 
 Build20261012202039 /160.0a1 prepared from d43214d67041 plus direct Services.h
@@ -634,3 +788,36 @@ startup burst the owner's prolonged post-seek failure. No current rendering
 fix has been established by this sampler work. The immediate deliverable is
 a verified bounded comparison and thread/clock evidence, followed by the
 smallest falsifiable next step. Broad optimization work remains active.
+# Active October 14: Seek Audio Reuse
+
+Latest owner requests continuing until seek stutter found/fixed. No native fix
+yet. Daily desktop browser untouched. Isolated laptop four-cell ABBA attempt:
+reuseA yrNkEJ pass (postseek20/2677,27/2700,6/2500); recreateB l8uMlS pass
+(5/2674,5/2700,5/2503); recreateC d7XiOr pass (8/2675,7/2700,8/2501).
+reuseD BPy8H5 failed artifact scan at40s, cleanSIGTERM14PIDsabsent; not a
+performance result. Failed initial receipt-order setup UXlvI6 also preserved.
+Artifacts umbralink-control/seek-reuse;136strict testsPASS. Runtime79files
+Hb2Quz postflight04:19UTC unchanged/no browser/compiler. Plan
+bot-docs/plans/seek-audio-reuse.md. No source/default changes.
+
+ONE narrow follow-up now running: existing native AudioStream:4,timestamp log,
+profilerOFF, same240s/256MiB/capture/cleanup boundaries. Remote83file harness
+~/.cache/codex/seek-audio-log-harness-ya9LXY, manifest
+bde7494cdfc53dae54edd30bae881f59b3249fb0828c6e20c6f68022038a94b4.
+Run laptop-seek-audio-log-reuse-20261014-XkWE68, exec31707; initiated04:20UTC.
+After TERMINAL export via new seek-audio-log/export.mjs then review-driver.mjs.
+Do not launch another cell automatically.137strict tests/scopedlintPASS.
+Goal: actual RebaseLive P/W/carry values, existing logs no extra raw query.
+
+Observed earlier rough audio endpoints: writtenFrames/rate-lastGoodPosition
+near0us vs smooth recreation143-180ms. Derived media gap, NOT rawcubeb proof.
+Definite source concern: RebaseLive sets raw=0 on queryfailure and keeps stream;
+docs incorrectly assume failedquery means dead. Official Pulse v17 stream.c
+pa_stream_get_time has READY but NODATA paths. Runtime branch unproven.
+Other leads: backend/history cursor mismatch, syncaudioIPC querylatency.
+Avoid speculative clock smoothing or calling the issue fixed.
+
+Reusable desktop build root ~/.cache/codex/umbrafox-beta-20261012-nYSBPOWS,
+source worktree carries3 existing changes (UserlandMutation,2canvasgtests),
+preserve them. Native test/package harness there available but graphics-only
+validator/filter must be adapted before audio tests. No native edits this wave.

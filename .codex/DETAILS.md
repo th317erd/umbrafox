@@ -1,5 +1,153 @@
 # Umbrafox Codex Details
 
+## October 14 Seek Audio Correction Accepted
+
+Fix/report commit d74c12c71fdf; package provenance remains recordedbase+patch.
+
+Report bot-docs/reports/performance/2026-10-14-seek-audio-reuse.md, completedplan
+bot-docs/plans/seek-audio-reuse.md. AudioStream/AudioSink internal CanReuseAfterSeek
+requires keep-running+backend-started+logicalSTOPPED; wrapperstashchecks it.
+Ordinarypausedstream formerlyrestarted/rebasedwithcarry0 despiteunknownretained
+queue. Actuallogsreproduce validcursor7360frame mismatch; Pulse stop corks,
+notflush. Existing asynchronousrecreation+clockholdnowusedforstoppedstreams.
+Continuousreuse preserved. No newpref/publicAPI/defaultchange. Separatelive
+rawqueryfailure-zeroanchor edgeunfixed/unobserved; notrootcauseofloggedcase.
+
+NativeRED35pass3expectedfail -> GREEN38pass0skip/cleanownedexit. Package
+Build20261014043800 base d43214 +patch25dc610f...; unchangedbetaoverlay4278e82f...
+andconfig.47files/no symlinks; manifest e097f7f7c0d8ff39146f173475731282c1e4574f1e3835e66e19861042d47d05.
+Archive398f90eebc88dbc9fc92161ded4abb05c7e2c8e03f8b7c29cd75747e2b874b8d,
+exports/umbrafox-seek-audio-20261014/. Native+INI BuildID verified. Samebuild
+UmbraLinkOFF/ON surface/native-root/beta-pref smokePASS, notuniversalparity.
+
+Matchedquietlaptop1080p60AV1/audio45sUIseek/130srecovery,profilerOFF:
+baselineHzI4G9 recovery402/2674,583/2699,427/2502 (15.03/21.60/17.07%);
+fixedloggedfSoCso10/2677,9/2700,5/2499 (.37/.33/.20%);
+fixedunloggedXHPfNx8/2677,5/2700,5/2498 (.30/.19/.20%). No retries.
+Actualcandidate logshowsoldstreamdestroy/newstreaminit,noRebaseLive.
+Everycandidatewindowbelow1% gatePASS. Each37samples/14recordedPIDsabsent,
+cleanSIGTERM/0logdrops.05:10:36UTC89runtimehashesunchanged,nobusyprocess.
+Newevidence artifacts/umbralink-control/seek-audio-candidate/; scratch
+~/.cache/codex/seek-audio-fix-20261014-5oJiex hasnative/build/package/parity/install.
+
+Installed ~/Programs/umbrafox-nightly exact47files+.purgecaches; backup
+umbrafox-nightly.before-seek-audio-20261014-043800. --version160.0a1 exit0,
+ownedPID2606827absent. Dailybrowser/profile/launcherunchanged, noPi.
+Launcher36b8df60... stillprefersdatedinstalls: ordinaryrestartwillNOTselectfix.
+Daily selection needs verified existing profile mapping, neverguessedprofile.
+Allownedcommands terminal.38native,96adjacent+1newadmission,archive5/installer4,
+scopedlintpass. Sphinxglobal82toctreewarningsremain, noeditedpagewarning;
+old7prescalepixelfailuresnotfixed. Main gtestcomment/whitespaceonlydiff from
+compiledGREENseparatelyhashreconciled; productionhashesmatchfrozenpackage.
+Candidateevidence59files2950599bytes sealed/verified; SHA256SUMS
+f00401af476262f1eeadd8ef9da4e86155d3684c3948949da23ea6da36a9fcb5.
+
+## October 13 Short Seek Transition Completed
+
+Report bot-docs/reports/performance/2026-10-13-seek-transition.md and completed
+plan bot-docs/plans/seek-transition.md. New private ignored namespace
+artifacts/umbralink-control/seek-transition/; SHA256SUMS/seal.json retain inventory.
+Seal113files11861284B manifest
+8796fb596237895bb86ececd4d1c0a480ff9dd76522a3ea21a4809437de55fc7 verified.
+One OFF Ls7jm5 + ON JxHH95, old laptop Build20261006175655 via UmbraLink.
+All4 anchors survive; raw origin36513.455811ms, parent3476678/content3476840,
+context11/doc10737418243. Profile5927039B SHA
+cb66d81a1895c8f68aac7e699b75eef530d8fdc5a31b51a82ed08862b6d3bce1.
+
+First second after after-seek:61/103 contained clock intervals flat,11 steps
+42.666-42.667ms; jitter abs median8.57/P9533.90ms.24drop events31frames allqueued,
+23priorunchanged; Renderer derivedmedian0.894/P951.473/max2.206ms. Later1-5s
+5/406flat,5s-end0/381. All36drop events46frames;35events strictlyjoin,34queued,
+1notqueued;1event2frames UNKNOWN (IDs1782->1786 gap3). No rawpair/GPU/audio-cause
+claim. Only6ms preseekbaseline. Exact source/querytime stillneedsprivateobservation.
+
+OFF postseek8.97/6.37/7.56% drops; ON24.51/32.27/28.06%, evenafterprofilerstop.
+Observer/export/runvariability unresolved. GFX AbnormalShutdown line lacks time,
+do not attribute toseek ordeclarecrash. CleanSIGTERM14PIDsabsent each,37resources,
+0logdrops. Runtime74inputmanifest2490e695...e1d8f5 unchanged21:42:35UTC/no busy.
+Remote harness ~/.cache/codex/seek-transition-harness-IQYZwm. No engine/default/
+desktop/Pi changes.130testsPASS/14manualfileslintPASS; priorsealstillverified.
+FirstCLIwrapperfailedopaque load/stopstdout parsing; stop0/socketabsent and exact
+processmatchabsence, historicalPIDnotretained. CorrectedCLI1813271/1813282 absent.
+Allsessionsfinished. Next narrownativeclockpair/query/source observation contract,
+notanotheridenticalcapture, biasadjustment or renderer rewrite.
+
+## October 13 Seek Marker Localization
+
+Completed laptop wave via UmbraLink. Report
+bot-docs/reports/performance/2026-10-13-seek-marker-localization.md; ignored
+artifacts/umbralink-control/seek-markers/ sealed134files121149058B, manifest
+aada49b5de31f470006fd44f404c00cb243bdca5b7239a56698e5574e307ffe8.
+No Gecko/default change or performance fix yet. Old Build20261006175655, notbeta.
+OFF eAfPT6 passed, ONlJaXtX playbackpassed/exportfailed (native gzip returnsobject
+with.profile, notbareArrayBuffer); v1archived, recovery45ODrT captured19.65MB.
+PostseekOFF1.53/.33/1.88% vsON5.30/9.86/7.89%; observercost/variabilityunresolved.
+
+Onlylate83-86s retained; endanchor joins parent3402846/context11/doc10737418243,
+content3403018. CorrectCLIoffset15569.433104ms; early/seekanchorslost.448explicit
+dropsallqueuedbeforepriorcompositionundercontiguousIDcheck;439priorunchanged.
+Same-frame timestamp absP9511.42ms/max18.2ms versus Renderer derivedmedian1.110ms.
+Clockmapping/selection lead, not audio-device/GPU causality or rawpair proof.
+Package-source AudioSinkWrapper/AudioSink/AudioStream/VideoSink/ImageComposite
+hashes verified. Query latency/system timestamp/sourcehandoff still unobserved.
+
+109strict tests/scopedlintPASS; all3runs cleanSIGTERM14recordedPIDsabsent each.
+CLI sessionsc1/d1 and ownedsamply exited, exactPID/socketabsence saved. Runtime
+harness9Xjh9O andFKmMVN71files each unchanged at18:34:34UTC/no busybrowser/compiler.
+Next shorttransition/clocksource capture needs explicitcontract beforeexecution;
+no desktop/Pi/personalbrowser/default changes. Source/exports/report pathsabove.
+
+## October 13 Node Defaults And Profiler Tool
+
+Owner requested Node 24 as the default on all hosts. Explicit `nvm alias default
+24` applied to desktop's two existing nvm roots and laptop/Mac nvm. Desktop mise
+global node changed from 26.8.2 to major24 (installed24.21.0); other tools unchanged.
+Desktop bashrc now loads nvm default before noninteractive early return. Mac
+zshenv loads it for noninteractive shells, zshrc explicitly selects default.
+Laptop shell files unchanged. Backups and verification script are under
+/home/wyatt/.cache/codex/node24-defaults-20261013 on affected hosts.
+
+Verified node/npm/npx major/path consistency in interactive, login and combined
+shells: desktop24.21.0 with XDG_CONFIG_HOME,24.13.0 without; laptop24.18.0;
+Mac24.20.0. Mac/laptop bare SSH passes. Desktop bare SSH skips startup and still
+uses system26.8.1; use `bash -lc` for nvm-based SSH commands there (verified24).
+No running processes restarted or old runtimes removed. Fresh shells pick up
+changes; existing terminals can run `nvm use default`.
+
+Installed profiler-cli0.11.0 side-by-side at
+/home/wyatt/.local/lib/umbrafox-tools/profiler-0.11.0; executable wrapper
+/home/wyatt/.local/bin/profiler-cli explicitly uses existing .nvm Node24.13.0.
+Version/complete guide verified; old0.10.0 retained. No daemon/profile load or
+browser run. UmbraLink remains the capture/control route, not Marionette.
+Next profiling wave still needs bounded observer-cost and marker/clock contract.
+
+## October 12 Audio-on Seek Reproduction
+
+Completed one successful control+one UI seek on quiet laptop, old verified
+Build20261006175655, NOT new beta. New ignored artifact namespace audio-on-seek
+under artifacts/umbralink-control; report
+bot-docs/reports/performance/2026-10-12-audio-on-seek.md. Control recovery windows
+drop0.22/0.26/0.38%; seek10.42/10.49/9.04% through130007ms after seeked. Endpoint
+native seek counts845compositor/0decoded/1sink versus control48/0/0. Segment
+totals791/9078 versus48/9000 use narrower windows. Audio sink advancing before/
+after, no native debug reads during interval, original playback/mute/volume
+restored. No black-flash/complete-recovery, causal effect or engine-fix claim.
+
+Failed startup control dGBpso preserved (artifact ENOENT,3tries exhausted, no
+playback); exactly one replacement ExSqOr then seekzWKDpm. New remote harness
+/home/wyatt/.cache/codex/audio-seek-harness-PbcPcg; successful run roots have prefix
+laptop-audio-seek-{control-1080,ui-forward-1080}-20261012-. CleanSIGTERM/14recorded
+PIDsabsent each,37resource samples,0logdrops, unchanged240s/256MiB limits. Postflight
+05:42UTC Oct13 all67runtimehashes same/no matching browser/build process. All tool
+sessions terminal.201 strict focused/adjacent tests PASS, authored scoped lintPASS.
+No native/product/default edits/build/profiler/Pi/ownerdesktop/staging/commit.
+
+Pinned source says compositor counter counts skipped eligible queued frame choices,
+not GPU duration. Existing ImageComposite frame/jitter markers are next boundaries;
+need separate observer-sensitivity/localization contract before another run.
+Owner exact stream/audio pattern unanswered. Preserve endpoint-only evidence,
+source proofs and old reports; no speculative bias/timing or renderer rewrite.
+
 ## October 12 Opt-in Beta Installed Separately
 
 Build20261012202039/160.0a1 complete. Export exports/umbrafox-beta-20261012/:

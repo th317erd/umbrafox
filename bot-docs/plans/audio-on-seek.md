@@ -2,6 +2,17 @@
 
 ## Status And Boundary
 
+October12 execution complete: one no-seek control and one actual forward UI seek
+passed capture/admission/cleanup. Sustained elevated drop counters were reproduced
+after seeking (10.42%,10.49%,9.04% in recovery windows versus0.22%,0.26%,0.38%
+control). Root cause is unproved; no engine fix or new-beta acceptance follows.
+See [the result](../reports/performance/2026-10-12-audio-on-seek.md).
+201 focused/adjacent tests pass. All runtime commands have exited; no further
+playback belongs to this completed two-cell wave. Preserve its endpoint-only
+evidence and define observer/localization coverage before a new experiment.
+
+The original contract below is retained for scope and verification history.
+
 Phase3 audio-path admission completed on October7 local time; see
 [the result](../reports/performance/2026-10-07-audio-clock-admission.md).
 This is the next implementation contract, not a ready runtime driver or a
@@ -16,6 +27,17 @@ change, profiler, raw profile parser, delegation, staging or commit. Object
 directories have been cleaned; use the existing verified self-contained package.
 
 ## Question And Comparison
+
+October12 continuation: the new isolated audio-on adapter passes106 focused and
+adjacent tests. Its first control launch stopped in startup at05:27:58UTC Oct13,
+before streaming/playback, because all three existing artifact scans encountered
+descendant ENOENT under owned profile/storage. Clean SIGTERM/root absence recorded.
+Preserve this failed attempt. Permit one startup-only replacement control after
+complete export/recorded-PID absence and unchanged-input checks; no safety cap,
+retry policy, browser setting or observation criterion changes. This is not a
+retry of a measured playback result. If replacement also stops, do not launch
+seek or keep retrying. Review the monitor failure separately. Original scope and
+the control-before-seek gate below remain in force.
 
 Can a real progress-bar seek reproduce prolonged stutter with an observed
 progressing audio sink, versus the same audio-on playback without seeking?
