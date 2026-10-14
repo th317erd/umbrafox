@@ -1,5 +1,29 @@
 # Umbrafox Working Memory and Resume Instructions
 
+## October 14: ARM Build Requested
+
+Owner now requests commit/push all work, then ARM build; l8ros coordinates.
+Verified desktop websocket target01a0cb3e-4c2f-7653-8e3e-3d8dd7fe1aff in
+l8ros-workspace/l8ros received initial ACK/handoff. Need coordinator contract/DB.
+Own isolated build/package/provenance only; no Pi deployment or desktop restart.
+Old ARM object tree removed; existing cross toolchain/sysroot/Rust target remain.
+Source fix d74c12c71fdf and prior handoff f977a5f9e337 already remote. Remaining
+continuity and small x86 package provenance are being published. Unrelated
+untracked upstream remnants and generated binary archives must not be staged.
+
+## October 14: Daily Nightly Switch Prepared
+
+Newest request: select fixed nightly for daily use and check Pi access. Pi SSH
+works (l8ros@192.168.1.138, Pi4, 15days uptime); no Pi changes. Desktop browser
+PID2370894 still runs dated20261001 with cjmrhtcu.default-default-2. Nightly key
+301410E7660F9C94 maps to older kvm20oct in both INIs; must remap to current cj
+before changing launcher, otherwise owner gets an old profile again. No data copy.
+Asked permission to close/reopen, awaiting reply; live browser/settings untouched.
+Prepared tested6/6 nightly-only launcher and backups in
+~/.cache/codex/nightly-switch-20261014-8LupEmR5/. Installed47files hash/mode/size
+verified Build20261014043800; desktop/HTTP/HTTPS associations correct. See newest
+.codex/DETAILS.md section for exact paths and next steps. Do not claim switched.
+
 ## October 14: Paused Audio Stream Reuse Bug Fixed And Verified
 
 Fix/report committed as d74c12c71fdf. Package provenance remains the recorded

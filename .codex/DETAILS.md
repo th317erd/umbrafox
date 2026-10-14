@@ -1,5 +1,48 @@
 # Umbrafox Codex Details
 
+## October 14 ARM Build Coordination Started
+
+Owner redirected next work to commit/push all ours and build ARM, with l8ros as
+coordinator. Sent initial ACK/handoff via desktop ws://127.0.0.1:14522 to verified
+thread01a0cb3e-4c2f-7653-8e3e-3d8dd7fe1aff, cwd
+/home/wyatt/Projects/l8ros-workspace/l8ros. Await coordinator DB/bus/runtime
+contract; own source publication and isolated aarch64 build/package, not Pi
+deployment or desktop restart. Explicit Node24 executable works with websocket
+helper; bare node in this tool shell lacked WebSocket (do not infer host defaults).
+Existing mozconfig.aarch64, bootstrap LLVM/sysroot and Rust aarch64 target present;
+old obj-aarch64-linux-gnu absent after cleanup. Do not build from untracked-remnant
+working tree. Pin a new isolated source snapshot after publication. The pending
+daily profile/launcher switch below is still NOT applied.
+
+## October 14 Daily Nightly Switch Prepared, Awaiting Browser Close
+
+Owner authorized switching to the fixed nightly and checking Pi reachability.
+Current daily PID2370894 still runs dated 20261001; readlink and open places.sqlite
+path confirm active profile ~/.config/umbrafox/umbrafox/cjmrhtcu.default-default-2.
+Do not copy/move profile data. Nightly install key301410E7660F9C94 currently maps
+to old kvm20oct.default-default-1 in BOTH profiles.ini and installs.ini. Change
+only those two Default values to cjmrhtcu.default-default-2 once browser is closed.
+Dated key197AAA31A9321E77 already maps there; preserve other mappings.
+Asked owner permission to close/reopen; no reply yet. Browser, launcher and live
+INIs remain unchanged. Revalidate process/profile/INI state before resuming.
+
+Prepared scratch ~/.cache/codex/nightly-switch-20261014-8LupEmR5 contains original
+launcher/profiles.ini/installs.ini/desktop backups, launcher-candidate and
+launcher-spec.mjs. Existing launcher fails all6 intended checks, candidate passes6;
+candidate directly execs ~/Programs/umbrafox-nightly/umbrafox with unchanged args,
+no --profile and no outdated/staging fallback. Missing/nonexecutable target fails.
+All47 installed nightly manifest files/modes/hashes reverified, Build20261014043800,
+.purgecaches present. bash syntax and desktop-file-validate pass. KDE default and
+HTTP/HTTPS remain umbrafox.desktop, which calls normal launcher without --profile.
+No source/runtime changes or restart in this preparation turn.
+
+Pi read-only SSH succeeded: l8ros@192.168.1.138, hostname l8ros-pi, Raspberry Pi4
+Model B Rev1.5, uptime15days1h24m at remote18:54:08. Existing desktop private key
+~/.cache/codex/l8ros/vm-amd64/id_ed25519 and pinned known-hosts file
+~/.cache/codex/l8ros/pi-build/pi-known-hosts; BatchMode/IdentitiesOnly/StrictHostKeyChecking
+enabled. Do not print key contents. Exact-name pgrep umbrafox returned no match;
+this is NOT proof no browser under another name. No Pi modification/restart/build.
+
 ## October 14 Seek Audio Correction Accepted
 
 Fix/report commit d74c12c71fdf; package provenance remains recordedbase+patch.
