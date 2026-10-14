@@ -1,0 +1,153 @@
+{
+  "buildExit": 0,
+  "packageExit": 0,
+  "normalVerificationExit": 0,
+  "betaVerificationExit": 0,
+  "tests": {
+    "armAndOverlay": 9,
+    "archiveSafety": 5,
+    "betaPreferences": 2
+  },
+  "files": [
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/mozconfig",
+      "bytes": 242,
+      "sha256": "fd5548984f9a536bb34ddc0a61aa9d2c2b402ecd09a20988061961763ec3a254"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/configuration.json",
+      "bytes": 752,
+      "sha256": "6737858b7def39a5188f62e784fb41259f376f1942077482c7ae89d6eddc49ab"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/configure.log",
+      "bytes": 22342,
+      "sha256": "e3b5db42c55e1b4195e5e592c656ff83b728009b72b4a1bc9cb95a0e48c691ee"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/build.log",
+      "bytes": 68859,
+      "sha256": "29c1d1fb378d30e4ba6910a1a195c513b8ba73dc41ce90623b1bd044cd90ed57"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/build-j2-stop.json",
+      "bytes": 1621,
+      "sha256": "9c2a62d7ab21e1d15544ca0ddade0d2b6f0b14e7a05196695804094231eefd04"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/build-j2-exit.json",
+      "bytes": 150,
+      "sha256": "9740308a626885b50693d6417408c4679efd9f80d0899e909e5ece509134025c"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/build-j6.log",
+      "bytes": 76831,
+      "sha256": "e56cab0142e0b8ac5f621bdb56acc06943ad8827d9e9cda24f09a8b513bd5373"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/build-j6-stop.json",
+      "bytes": 2301,
+      "sha256": "f0e5589eb6f78e1c05fb524293a40f8aa0eb4dfe51ce62d29a375d3466e41816"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/build-j6-exit.json",
+      "bytes": 165,
+      "sha256": "6b324e0173c9de297f649e18969f5aa84423336e60e62ffaa613fcf9f175d708"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/build-final-j2.log",
+      "bytes": 17521,
+      "sha256": "948a7f9b22b4e1a6be565d6a1c69ad98886b81b1a7f7f58ca3fe152173afb15d"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/build-final-exit.json",
+      "bytes": 148,
+      "sha256": "3e138dc272405fb8236eb73588fd353aca06a13638e46fcdead9ab6c0a1120a3"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/package.log",
+      "bytes": 5192,
+      "sha256": "4e54b879de36436f1222fac96e37a27776eb80c8a6372fea7cdbd1c29f2a3aaa"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/package-exit.json",
+      "bytes": 110,
+      "sha256": "fb8a9b7a4a108f90337e034658fa56c173f9aae8a104fde5c2a9227cf0de5b52"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/verify_arm.py",
+      "bytes": 7197,
+      "sha256": "f08239785c5b5f53911630d51465e3dab92d4eed59ecde4d738e599d20cffeb5"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/verify_spec.py",
+      "bytes": 2551,
+      "sha256": "ba361d6e9080520729c077fca28630db6ac8e3b6bb979e834869c10be0e676f3"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/beta_package.py",
+      "bytes": 5380,
+      "sha256": "9b51047dc10b7977a1fcfb158d835ed3feb3641777a989a6f91c9e96cad3de45"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/beta_spec.py",
+      "bytes": 1921,
+      "sha256": "b7e2e5a2c214ad599107aff84314022fc31e8dff029d395699a13871b2c95780"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/verify-red.log",
+      "bytes": 267,
+      "sha256": "e2a1b7568a692363a44fa4c1a3f4d8bb343a8b1d194cb16b4f5e167994294024"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/verify-green.log",
+      "bytes": 102,
+      "sha256": "feabb4add9e2ca3374e538560634d1ec97dc4f4ce89aab12f3d726e36ea9b2f6"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/beta-red.log",
+      "bytes": 262,
+      "sha256": "77101b5128ad76a66c23ae3bf68af7856f847c91f0dda9f7189c2fe9b4390bf5"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/verify-beta-green.log",
+      "bytes": 107,
+      "sha256": "d9d734ee1c2de67b748aeef1c4126433aa438ad8375ca953916f12b1df11414d"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/archive-regressions.log",
+      "bytes": 103,
+      "sha256": "821b8b41e3acd2b621d9cfe84b03c30cbfa24e9857eb74084e48ad8284fc8b7e"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/beta-pref-tests.log",
+      "bytes": 272,
+      "sha256": "8e5e42396a2d987c9660c4b2540558c2c387f8e7dbb5f44725e98403ee18e8ed"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/normal-verification.log",
+      "bytes": 2323,
+      "sha256": "adefc0e7b0420156c0b373dab2e65d9d03fc6f2c67286c1c6a4e76b0e813f218"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/beta-verification.log",
+      "bytes": 2692,
+      "sha256": "d153419e8825cfca600bef310bb8c6e413c7364c0761c2344902762f79917871"
+    },
+    {
+      "path": "/home/wyatt/.cache/codex/seek-audio-fix-20261014-5oJiex/package_candidate.py",
+      "bytes": 7147,
+      "sha256": "d75e3ae653854b8d03bcefceeb506151d18da831a3ae4ed861d0b7113d1093ef"
+    },
+    {
+      "path": "/home/wyatt/Projects/umbrafox-workspace/umbrafox/artifacts/umbralink-control/request-artifact.py",
+      "bytes": 11194,
+      "sha256": "d3815b6262e06e6d2130d3974a24de7aafd8ca8623aa08b7c9d4ac58cb169a2b"
+    },
+    {
+      "path": "/home/wyatt/Projects/umbrafox-workspace/umbrafox/artifacts/umbralink-control/producer-fence-native/package_buildid.py",
+      "bytes": 1289,
+      "sha256": "c1da2a1f0b86c8816e2507b9580f6b18fd0705ad792f46dc6c61ee5a020463b5"
+    }
+  ]
+}

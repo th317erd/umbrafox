@@ -1,0 +1,27 @@
+{
+  "MOZ_APP_UA_NAME": "Firefox",
+  "MOZ_APP_VERSION": "160.0a1",
+  "MOZ_OPTIMIZE": "1",
+  "MOZ_DEBUG": null,
+  "MOZ_UMBRA_PERF_PROBES": null,
+  "TARGET_CPU": "aarch64",
+  "MOZ_BUILD_APP": "browser",
+  "MOZ_UPDATE_CHANNEL": "default",
+  "CC": [
+    "/home/wyatt/.mozbuild/sccache/sccache",
+    "/home/wyatt/.mozbuild/clang/bin/clang",
+    "--sysroot",
+    "/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu",
+    "--target=aarch64-linux-gnu"
+  ],
+  "CXX": [
+    "/home/wyatt/.mozbuild/sccache/sccache",
+    "/home/wyatt/.mozbuild/clang/bin/clang++",
+    "--sysroot",
+    "/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu",
+    "-std=gnu++20",
+    "--target=aarch64-linux-gnu"
+  ],
+  "RUST_TARGET": "aarch64-unknown-linux-gnu",
+  "RUSTC_BOOTSTRAP": null
+}

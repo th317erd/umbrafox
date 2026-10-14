@@ -1,0 +1,5 @@
+mk_add_options MOZ_OBJDIR=/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/obj
+ac_add_options --target=aarch64-linux-gnu
+ac_add_options --enable-bootstrap
+ac_add_options --with-ccache=sccache
+ac_add_options --disable-umbra-perf-probes

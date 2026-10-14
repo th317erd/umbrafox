@@ -1,15 +1,45 @@
 # Umbrafox Working Memory and Resume Instructions
 
-## October 14: ARM Build Requested
+## October 14: Read-Only Random Exit Triage
+
+Owner reports latestnightly randomcrashes. Actual active3651740 exe+libxul dated
+Oct1, INIs20261001103920, NOT installedfixed20261014043800. Launcher stillprefers
+dateddirs; no switch performed. stdout/stderr /dev/null. Two scopes ended14:32:27
+and15:05:18Arizona, no signal/status; no recentcore/OOM/segfault/minidump found.
+Currentprofile crashstore8records newestOct5. ThatOct5report isServiceWorker
+shutdowntimeout, notproof fortoday. Causeunresolved; askedincidenttimes/CrashReporter.
+Report bot-docs/reports/2026-10-14-desktop-crash-triage.md. Browser/profile/launcher
+untouched; anydebugger/restart/logginglaunch requiresseparateconsent. ARMcontinues.
+
+## October 14: ARM Packages Complete
+
+Final build48247/package24582/normalverify51226/betaverify89017 all exited0.
+Exports exports/umbrafox-arm-20261014/: bothBuild20261014135715 native+INI+header
+matching; normal99237048B SHAebc8f575843aac6e9e19d2e45f488422250892858f7c291516a01fbbdf70c059;
+beta110565684B SHAfc3ba2d3139fc1021fb2c1d20db2b041b9a34759270300f8e8984a992fec1436.
+28ARM64ELFs/46normalfiles; beta47only adds348B two-pref overlay4278e82f... .
+9validator+5archive+2pref testsPASS. Sourceclean c0e7f8a2be04/probesOFF/empty patch.
+No active buildneeded; l8ros owns deployment+Pi runtime. No desktop install.
 
 Owner now requests commit/push all work, then ARM build; l8ros coordinates.
-Verified desktop websocket target01a0cb3e-4c2f-7653-8e3e-3d8dd7fe1aff in
-l8ros-workspace/l8ros received initial ACK/handoff. Need coordinator contract/DB.
-Own isolated build/package/provenance only; no Pi deployment or desktop restart.
-Old ARM object tree removed; existing cross toolchain/sysroot/Rust target remain.
-Source fix d74c12c71fdf and prior handoff f977a5f9e337 already remote. Remaining
-continuity and small x86 package provenance are being published. Unrelated
-untracked upstream remnants and generated binary archives must not be staged.
+CORRECTION: coordinator is Pi agent tmux l8ros:1.1, NOT Codex thread01a0cb3e.
+Use authorized tmux injection after checking pane input, plus teamwork_events.
+DB /tmp/codex/teamwork/20261014T2105Z-l8ros-arm.sqlite, session same basename,
+task track-arm; bus /tmp/codex/l8ros-arm-bus.txt read after each command.
+ACK sent. Own isolated build/package/provenance only; NO Pi or desktop changes.
+Published clean pin c0e7f8a2be0460695c1f65ae8796b09c1082480c includes prior fixes.
+Build scratch ~/.cache/codex/umbrafox-arm-20261014-gZmxuBOR. Original session10437
+ended143 by approved own-group TERM; group absence proved. Session10757 resumed
+C++6 but later host geckodriver inherited6make tokens despite CARGO_BUILD_JOBS2.
+After libxul link50:54, stopped own group3551980/exit143, absence proved. Final
+session48247 SAME obj make2/Cargo2/nice10/3600s, build-final-j2.log. Both earlier
+logs/stop/exit receipts retained. No source/config change.
+MOZ_BUILD_DATE retains20261014135715; config/header hashes unchanged. Memory
+guard: below8GiB reduce4/below5GiB reduce2. Full build and packaging now PASS.
+Normal mach package + exact two-pref beta overlay explicitly requested, probes
+OFF for both. Handoff archive/size/SHA/BuildIDs/overlay/source-patch/layout/export.
+No ARM native execution authorized; coordinator owns it. Preserve unrelated
+untracked upstream remnants and never stage generated binary archives.
 
 ## October 14: Daily Nightly Switch Prepared
 

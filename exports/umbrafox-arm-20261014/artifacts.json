@@ -1,0 +1,55 @@
+{
+  "sourceRevision": "c0e7f8a2be0460695c1f65ae8796b09c1082480c",
+  "createdAt": "2026-10-14T22:34:13.434Z",
+  "buildRoot": "/home/wyatt/.cache/codex/umbrafox-arm-20261014-gZmxuBOR",
+  "probesEnabled": false,
+  "hardwareExecuted": false,
+  "installed": false,
+  "variants": [
+    {
+      "variant": "normal",
+      "exportPath": "/home/wyatt/Projects/umbrafox-workspace/umbrafox/exports/umbrafox-arm-20261014/normal",
+      "archive": {
+        "name": "umbrafox-20261014135715-linux-aarch64.tar.xz",
+        "size": 99237048,
+        "sha256": "ebc8f575843aac6e9e19d2e45f488422250892858f7c291516a01fbbdf70c059"
+      },
+      "buildID": "20261014135715",
+      "nativeBuildID": "20261014135715",
+      "iniBuildIDs": {
+        "application.ini": "20261014135715",
+        "platform.ini": "20261014135715"
+      },
+      "sourcePatchSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "archiveTopLevel": "umbrafox/",
+      "overlay": null,
+      "fileCount": 46,
+      "elfCount": 28
+    },
+    {
+      "variant": "beta",
+      "exportPath": "/home/wyatt/Projects/umbrafox-workspace/umbrafox/exports/umbrafox-arm-20261014/beta",
+      "archive": {
+        "name": "umbrafox-beta-20261014135715-linux-aarch64.tar.xz",
+        "size": 110565684,
+        "sha256": "fc3ba2d3139fc1021fb2c1d20db2b041b9a34759270300f8e8984a992fec1436"
+      },
+      "buildID": "20261014135715",
+      "nativeBuildID": "20261014135715",
+      "iniBuildIDs": {
+        "application.ini": "20261014135715",
+        "platform.ini": "20261014135715"
+      },
+      "sourcePatchSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "archiveTopLevel": "umbrafox/",
+      "overlay": {
+        "path": "defaults/pref/umbrafox-beta.js",
+        "size": 348,
+        "sha256": "4278e82f4538bf4058aefd3b488e77069be9c7edd1e36791456c194e79967eb2",
+        "mode": 420
+      },
+      "fileCount": 47,
+      "elfCount": 28
+    }
+  ]
+}

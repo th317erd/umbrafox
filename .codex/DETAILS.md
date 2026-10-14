@@ -1,23 +1,65 @@
 # Umbrafox Codex Details
 
-## October 14 ARM Build Coordination Started
+## October 14 Random Desktop Exit Triage
+
+Owner authorized read-only crash-log inspection during ARM compile. Current
+parent3651740 started15:05:30Arizona runs dated20261001 executable AND mapped
+libxul, INIs20261001103920; not installed fixednightly20261014043800. Launcher
+still intentionally prioritizes dated dirs; no daily switch applied. Current
+profilecjmrhtcu verified from openpaths; stdout/stderr /dev/null. No browser/
+profile/launcher changes. Journals scopes ended14:32:27 and15:05:18, no exit
+signal/status. No matching systemcore/OOM/segfault or new normal-path minidump.
+Crashstore8records newestOct5, corruptDatenull. Oct5extra7f328388 reports1worker
+AsyncShutdown profile-change-teardown timeout, NOT evidence for today. Asked
+owner whether timesmatch andCrashReporter appeared; cause unresolved. Report
+bot-docs/reports/2026-10-14-desktop-crash-triage.md. No upload/debugger/runtimeRPC.
+
+## October 14 ARM Build And Packages Complete
+
+Build finalsession48247 exit0 in4m22; package24582 exit0 in1m58. Normal verifier
+51226 exit0; beta repacker89017 exit0. No active build/package session remains.
+Export exports/umbrafox-arm-20261014/ has normal+beta Build20261014135715 with
+matching header/native/bothINI IDs. Normal99237048B SHAebc8f575843aac6e9e19d2e45f488422250892858f7c291516a01fbbdf70c059;
+beta110565684B SHAfc3ba2d3139fc1021fb2c1d20db2b041b9a34759270300f8e8984a992fec1436.
+46originalfiles unchanged; beta adds348Bpref4278e82f...;28ELFs AArch64. Empty
+sourcepatch e3b0c442...; cleanpin c0e7f8a2be04. 9validator+5archive+2pref testsPASS.
+Coordinator owns transfer/native startup/perf/deployment; no Pi or desktop install.
 
 Owner redirected next work to commit/push all ours and build ARM, with l8ros as
-coordinator. Sent initial ACK/handoff via desktop ws://127.0.0.1:14522 to verified
-thread01a0cb3e-4c2f-7653-8e3e-3d8dd7fe1aff, cwd
-/home/wyatt/Projects/l8ros-workspace/l8ros. Await coordinator DB/bus/runtime
-contract; own source publication and isolated aarch64 build/package, not Pi
-deployment or desktop restart. Explicit Node24 executable works with websocket
-helper; bare node in this tool shell lacked WebSocket (do not infer host defaults).
-Existing mozconfig.aarch64, bootstrap LLVM/sysroot and Rust aarch64 target present;
-old obj-aarch64-linux-gnu absent after cleanup. Do not build from untracked-remnant
-working tree. Pin a new isolated source snapshot after publication. The pending
-daily profile/launcher switch below is still NOT applied.
+coordinator. CORRECTED ROUTE: l8ros is a Pi agent in tmux pane l8ros:1.1, NOT
+Codex thread01a0cb3e-4c2f-7653-8e3e-3d8dd7fe1aff. Do not message that thread.
+Coordinator cwd /home/wyatt/Projects/l8ros-workspace/l8ros. Capture pane and
+preserve any owner draft before authorized tmux load-buffer/paste-buffer/Enter.
+DB /tmp/codex/teamwork/20261014T2105Z-l8ros-arm.sqlite;
+session20261014T2105Z-l8ros-arm/task track-arm;
+bus /tmp/codex/l8ros-arm-bus.txt, read after each command, HALT stops/SKIP honors.
+ACK delivered by tmux+DB. We own browser source/build/artifacts only; no Pi writes,
+deployment, runtime or owner desktop/browser changes.
+
+Published c0e7f8a2be0460695c1f65ae8796b09c1082480c; origin/main independently
+matched. Isolated clean detached source and obj under
+~/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/. Optimized aarch64 configure PASS,
+probes OFF/Firefox UA. Initial session10437 ended143 by coordinator-authorized
+SIGTERM of verified own group3433181; group/cwd absence verified before resume.
+First build.log retained. Session10757 reached libxul link50:54 and then ended143
+by own-group3551980 TERM: remaining host geckodriver inherited make-j6 jobserver
+despite CARGO_BUILD_JOBS2, so independent Rust cap was not assured. Both logs and
+exit/stop receipts retained, group/buildroot cwd absence verified. Final
+session48247 resumed SAME obj with make2/Cargo2/nice10/3600s TERM; build-final-j2.log.
+MOZ_BUILD_DATE=20261014135715 preserves
+original BuildID via supported build/variables.py input. mozconfig/config.status/
+buildid.h SHA unchanged after resume. If MemAvailable<8GiB reduce4; <5GiB reduce2.
+No source change. Full build/package now complete. Do not duplicate.
+Coordinator authorized TWO artifacts from same clean pin: unchanged mach package
+and exact tools/umbrafox/beta/umbrafox-beta.js overlay in defaults/pref/ (two true
+experimental defaults, user-overridable). No source-default change. Coordinator
+owns baseline profile override and Pi acceptance. Packaging verification passed.
+The pending daily profile/launcher switch below is still NOT applied.
 
 ## October 14 Daily Nightly Switch Prepared, Awaiting Browser Close
 
 Owner authorized switching to the fixed nightly and checking Pi reachability.
-Current daily PID2370894 still runs dated 20261001; readlink and open places.sqlite
+At preparation, daily PID2370894 ran dated 20261001; readlink and open places.sqlite
 path confirm active profile ~/.config/umbrafox/umbrafox/cjmrhtcu.default-default-2.
 Do not copy/move profile data. Nightly install key301410E7660F9C94 currently maps
 to old kvm20oct.default-default-1 in BOTH profiles.ini and installs.ini. Change
