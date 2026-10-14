@@ -341,6 +341,10 @@ class AudioStream final {
   // the audio stream alive and reusable instead of tearing it down.
   void SetKeepRunningMode(bool aKeepRunning);
 
+  bool CanReuseAfterSeek() const {
+    return mKeepRunning && mCubebStarted && mState == STOPPED;
+  }
+
   // Rebase the clock of the reused stream so the reported time resumes from the
   // seek target. Does not touch the ended promise.
   void RebaseLive();
@@ -494,8 +498,8 @@ class AudioStream final {
   bool mCubebStarted = false;
 
   // Whether the last Resume() found the cubeb stream still running, so the
-  // frames handed over before the seek are still queued in the device. A
-  // restart discards them. Owner thread only.
+  // frames handed over before the seek are still queued in the device.
+  // A stopped stream is not eligible for reuse. Owner thread only.
   bool mResumeKeptCubebRunning = false;
 };
 

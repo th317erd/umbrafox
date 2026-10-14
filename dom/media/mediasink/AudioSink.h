@@ -87,6 +87,10 @@ class AudioSink : private AudioStream::DataSource {
 
   bool IsErrored() const { return mErrored; }
 
+  bool CanReuseAfterSeek() const {
+    return mAudioStream && mAudioStream->CanReuseAfterSeek();
+  }
+
   bool IsStreamDrained() const {
     return mAudioStream && mAudioStream->IsPlaybackCompleted();
   }

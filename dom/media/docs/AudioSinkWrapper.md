@@ -157,8 +157,14 @@ but clearly visible on Bluetooth.
 `media.audio.reuse-stream-on-seek` selects between the two seek-resume paths.
 When enabled, the audio stream is kept alive across the seek pause and reused on
 resume, avoiding a fresh cubeb stream initialisation; when disabled, the stream
-is torn down and a new one is created. Both paths reach the same seek-resume
-clock behaviour and differ only in whether a stream is created.
+is torn down and a new one is created. Reuse also requires that the backend
+remained physically running through the seek pause. If an ordinary pause
+already stopped it, recreate it asynchronously even when the preference is on.
+Backend stop/start does not guarantee that queued audio was discarded:
+PulseAudio corks and retains it. Rebasing that stream with an assumed empty
+queue loses the play/write-cursor alignment and can make the clock advance in
+callback-sized steps. Both accepted paths reach the same seek-resume clock
+behaviour and differ only in whether a stream is created.
 
 ### Silence while the sink is stopped for the seek
 

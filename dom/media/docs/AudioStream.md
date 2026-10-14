@@ -140,22 +140,25 @@ that will still be played:
 | Situation                             | Carried  |
 |---------------------------------------|----------|
 | Stream kept running across the seek   | `W - P`  |
-| Backend restarted, queue discarded    | nothing  |
+| Backend stopped before seek reuse     | recreate, do not reuse |
 | Position query failed, no `P`         | nothing  |
 | `P` reported above `W`                | nothing  |
 | Backend drained since the resume      | nothing  |
 
-Carrying nothing is how the clock behaved before the carry existed. On the rows
-where the anchor is still a real play cursor, the identity then holds against
-the frames the device will play rather than against the counter, which still
-counts the discarded ones.
+Stopping and restarting a backend does not imply that its queue was discarded.
+For example, PulseAudio corks the stream without flushing it. The wrapper only
+stashes a stream whose seek pause left cubeb physically running; an already
+stopped stream is recreated instead. The no-carry mapping remains an internal
+clock operation, not permission to reuse a restarted backend with an unknown
+queue.
 
 The failed-query row is weaker, and deliberately so. With no cursor to anchor
 at, the rebase anchors at zero, which is neither cursor, so the identity is left
 broken and the reported position degrades to the serviced total: it stops
-following the device between callbacks. That is tolerated because the query only
-fails on a stream that is already dead, after which the sink pins the position
-to the last good value and this mapping is never consulted.
+following the device between callbacks. A query failure does not by itself prove
+that the backend is dead: a live PulseAudio stream can lack valid timing data.
+This fallback remains a separate unresolved clock-mapping case; the stopped-
+stream eligibility check does not fix it.
 
 A rebase also has to neutralise callback information that has not reached the
 history yet. The reader counts the frames of every item it takes off the queue,

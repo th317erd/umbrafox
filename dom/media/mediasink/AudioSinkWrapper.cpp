@@ -723,7 +723,8 @@ void AudioSinkWrapper::Stop(StopReason aReason) {
   mClockPausedDuringSeek = false;
   if (mAudioSink) {
     if (aReason == StopReason::Seeking && mReuseStreamOnSeek &&
-        !mAudioSink->IsErrored() && !mAudioSink->IsStreamDrained()) {
+        !mAudioSink->IsErrored() && !mAudioSink->IsStreamDrained() &&
+        mAudioSink->CanReuseAfterSeek()) {
       // Keep the sink and its still-running audio stream alive so the next
       // start can reset and reuse them instead of paying for a destroy +
       // recreate.
