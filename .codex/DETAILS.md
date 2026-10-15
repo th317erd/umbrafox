@@ -1,5 +1,65 @@
 # Umbrafox Codex Details
 
+## October 15 Chrome Preset Implemented
+
+Owner approved a partial first pass; full Chrome parity is aspirational and
+non-equivalent features may be deferred. Explicit Linux about:keyboard preset
+implemented using CustomKeys: CtrlJ Downloads, CtrlE search, CtrlShiftN private,
+Ctrl1-9 tabs; clears conflicting undo-window chord. Replaces prior unconditional
+two-file patch, whose original files now match HEAD. Unrelated customizations
+preserved; conflicts reject before mutation; existing default reset/persistence.
+13 pure tests + full isolated browser suite350PASS/0FAIL/1expected, lint0. Tests
+include real reserved-key delivery difference, private window and persisted JSON.
+Report bot-docs/reports/2026-10-15-chrome-shortcut-preset.md; exact logs
+/tmp/codex/chrome-hotkeys-20261015. All recorded owned test PIDs absent. No owner
+browser/profile/launcher/install/Pi changes. Owner subsequently authorized
+commit/push of this milestone; origin/main matched the base before publication.
+Scratch frontend
+refresh only, no release package. Daily activation/build remains separate.
+Existing native scratch source now contains these exact frontend edits; native
+seek repairs preserved. Next bot must not reapply the superseded two-file patch.
+
+## October 15 Full Chrome Hotkey Audit
+
+Owner expanded the request to FULL Chrome hotkey parity and asked for web research.
+Planning only; no additional production edits or browser interaction. Draft:
+bot-docs/plans/chrome-hotkey-parity.md. Official Google/Mozilla docs plus Chromium
+accelerators and Searchfox reveal more than two remaps. Repository preprocessor
+and Fluent parser independently confirm pending patch duplicates Linux Ctrl+J
+between search2 and Downloads; numbered tabs still use alt. Existing source patch
+preserved. CustomKeys/about:keyboard is a possible reusable foundation, not a
+complete solution to command destinations and focus-dependent DevTools bindings.
+
+Reserved private-window keys affect webpage event delivery. Recommend explicit
+user-selected Chrome preset under rulebook customization allowance; no assumed
+permission to change default web-visible Firefox behavior. Scope/default decision
+and implementation approval remain open. Draft includes complete-inventory gate,
+platform/context roadmap, persistence/reset/collision tests and package acceptance;
+it does not claim full runtime parity or completed exhaustive enumeration.
+
+## October 15 Recovery And Pending Hotkeys
+
+Reloaded after owner-reported agent failure. HEAD remains ed5c2e1dea6e; two
+tracked local edits are explained by owner-supplied
+bot-docs/bug-reports/2026-10-15-chrome-parity-hotkeys.md. Actual diff matches:
+Downloads Ctrl+J, New Private Window Ctrl+Shift+N, removing the conflicting
+Undo Close Window accelerator. Preserve these edits; do not reapply. The report
+says unbuilt/uninstalled/runtime-unverified and requires owner request before
+committing/pushing this patch. It is separate from crash triage and seek fixes.
+
+Read-only process recheck: PID3651740 still started Oct14 15:05:30 and executable
+still resolves to dated20261001 installation. No browser/launcher/profile change.
+Owner clarified sudden exits occurred when submitting a chat answer and changing
+tabs, without Crash Reporter. Exact incident times remain unconfirmed; absent
+reporter is not proof of no crash. Exit status and bounded stderr capture remain
+proposed for an owner-approved next launch, not installed. Do not restart or
+terminate the working browser without consent.
+
+Coordinator DB event46 reports Pi beta20261014135715 deployed at
+/opt/l8ros/umbrafox-beta-20261014135715 with old install/profile backup retained.
+Events48-49 report HDMI audio repaired and owner-confirmed tone. These are l8ros
+reports, not independent Pi validation by this lane. No new ARM build is needed.
+
 ## October 14 Random Desktop Exit Triage
 
 Owner authorized read-only crash-log inspection during ARM compile. Current

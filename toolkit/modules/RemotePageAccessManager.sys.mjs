@@ -100,6 +100,8 @@ export let RemotePageAccessManager = {
       RPMGetFormatURLPref: ["app.support.baseURL"],
       RPMSendAsyncMessage: ["CustomKeys:CaptureKey"],
       RPMSendQuery: [
+        "CustomKeys:ApplyChromePreset",
+        "CustomKeys:CanApplyChromePreset",
         "CustomKeys:ChangeKey",
         "CustomKeys:ClearKey",
         "CustomKeys:Confirm",

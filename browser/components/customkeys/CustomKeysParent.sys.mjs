@@ -218,6 +218,13 @@ export class CustomKeysParent extends JSWindowActorParent {
 
   async receiveMessage(message) {
     switch (message.name) {
+      case "CustomKeys:CanApplyChromePreset":
+        return AppConstants.platform == "linux";
+      case "CustomKeys:ApplyChromePreset":
+        this.getKeys();
+        return CustomKeys.applyChromePreset(
+          this.browsingContext.topChromeWindow
+        );
       case "CustomKeys:CaptureKey": {
         if (message.data) {
           this.browsingContext.embedderElement.addEventListener(

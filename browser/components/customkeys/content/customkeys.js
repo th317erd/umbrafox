@@ -370,6 +370,10 @@ async function onResetAll() {
     return; // user cancels
   }
   await RPMSendQuery("CustomKeys:ResetAll");
+  await refreshKeys();
+}
+
+async function refreshKeys() {
   const keysByCat = await RPMSendQuery("CustomKeys:GetKeys");
   const keysById = {};
   for (const category in keysByCat) {
@@ -387,6 +391,45 @@ async function onResetAll() {
   notifyUpdate();
 }
 
+async function onChromePreset() {
+  const button = document.getElementById("chromePreset");
+  button.disabled = true;
+  try {
+    const [title, body, buttonCancel, buttonConfirm] =
+      await document.l10n.formatValues([
+        { id: "customkeys-chrome-preset-title" },
+        { id: "customkeys-chrome-preset-body" },
+        { id: "customkeys-conflict-confirm-button-cancel" },
+        { id: "customkeys-chrome-preset-button" },
+      ]);
+    if (
+      !(await RPMSendQuery("CustomKeys:Confirm", {
+        title,
+        body,
+        buttonCancel,
+        buttonConfirm,
+      }))
+    ) {
+      return;
+    }
+    const result = await RPMSendQuery("CustomKeys:ApplyChromePreset");
+    if (!result.applied) {
+      const [errorTitle, errorBody] = await document.l10n.formatValues([
+        { id: "customkeys-chrome-preset-failed-title" },
+        { id: "customkeys-chrome-preset-failed-body" },
+      ]);
+      await RPMSendQuery("CustomKeys:Confirm", {
+        title: errorTitle,
+        body: errorBody,
+      });
+      return;
+    }
+    await refreshKeys();
+  } finally {
+    button.disabled = false;
+  }
+}
+
 buildTable();
 table.addEventListener("click", onAction);
 RPMAddMessageListener("CustomKeys:CapturedKey", onKey);
@@ -395,5 +438,8 @@ customElements.whenDefined("customkeys-sidebar").then(async () => {
   await document.querySelector("customkeys-sidebar").updateComplete;
   document.getElementById("search").addEventListener("input", onSearchInput);
   document.getElementById("resetAll").addEventListener("click", onResetAll);
+  const preset = document.getElementById("chromePreset");
+  preset.hidden = !(await RPMSendQuery("CustomKeys:CanApplyChromePreset"));
+  preset.addEventListener("click", onChromePreset);
 });
 Glean.browserCustomkeys.opened.add();

@@ -48,6 +48,11 @@ class CustomkeysSidebar extends MozLitElement {
             inputlayout="block"
           ></moz-input-search>
           <moz-button
+            id="chromePreset"
+            data-l10n-id="customkeys-chrome-preset-button"
+            hidden
+          ></moz-button>
+          <moz-button
             id="resetAll"
             data-l10n-id="customkeys-reset-all-button"
             iconsrc="chrome://global/skin/icons/arrow-counterclockwise-16.svg"

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { JSONFile } from "resource://gre/modules/JSONFile.sys.mjs";
+import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
 // All the attributes for a <key> element that might specify the key to press.
 // We include data-l10n-id because keys are often specified using Fluent. Note
@@ -30,6 +31,47 @@ const windows = new Map();
 const config = new JSONFile({
   path: PathUtils.join(PathUtils.profileDir, "customKeys.json"),
 });
+
+function getChromePreset() {
+  const preset = {
+    key_openDownloads: { key: "J", modifiers: "accel" },
+    key_search2: { key: "E", modifiers: "accel" },
+    key_privatebrowsing: { key: "N", modifiers: "accel,shift" },
+    key_undoCloseWindow: {},
+  };
+  for (let i = 1; i <= 9; i++) {
+    const id = i == 9 ? "key_selectLastTab" : `key_selectTab${i}`;
+    preset[id] = { key: String(i), modifiers: "accel" };
+  }
+  return preset;
+}
+
+function conflictsWithChromePreset(data, bindings) {
+  const key =
+    data.key?.toUpperCase() || data.keycode?.toUpperCase().replace(/^VK_/, "");
+  const modifiers = new Set(
+    (data.modifiers || "")
+      .split(/[,\s]+/)
+      .filter(Boolean)
+      .map(modifier => (modifier == "accel" ? "control" : modifier))
+  );
+  return bindings.some(binding => {
+    if (!binding.key || key != binding.key) {
+      return false;
+    }
+    // Do not guess about wildcard or platform-configurable access modifiers.
+    if (modifiers.has("any") || modifiers.has("access")) {
+      return true;
+    }
+    const expected = binding.modifiers
+      .split(",")
+      .map(modifier => (modifier == "accel" ? "control" : modifier));
+    return (
+      modifiers.size == expected.length &&
+      expected.every(modifier => modifiers.has(modifier))
+    );
+  });
+}
 
 function applyToKeyEl(window, keyId, keysets) {
   const keyEl = window.document.getElementById(keyId);
@@ -142,6 +184,64 @@ function observe(window) {
 }
 
 export const CustomKeys = {
+  async applyChromePreset(window) {
+    if (AppConstants.platform != "linux") {
+      return { applied: false, reason: "unsupported" };
+    }
+    await config.load();
+    if (!windows.has(window)) {
+      return { applied: false, reason: "unavailable" };
+    }
+    const preset = getChromePreset();
+    const bindings = Object.values(preset);
+    for (const id of Object.keys(preset)) {
+      const key = window.document.getElementById(id);
+      if (
+        !key ||
+        key.tagName != "key" ||
+        key.getAttribute("internal") == "true"
+      ) {
+        return { applied: false, reason: "unavailable" };
+      }
+    }
+    for (const current of windows.keys()) {
+      for (const key of current.document.querySelectorAll("key")) {
+        if (Object.hasOwn(preset, key.id)) {
+          continue;
+        }
+        const data =
+          config.data[key.id] ??
+          Object.fromEntries(
+            ["key", "keycode", "modifiers"].map(attr => [
+              attr,
+              key.getAttribute(attr),
+            ])
+          );
+        if (conflictsWithChromePreset(data, bindings)) {
+          return { applied: false, reason: "conflict", keyID: key.id };
+        }
+      }
+    }
+    for (const [id, data] of Object.entries(config.data)) {
+      if (
+        !Object.hasOwn(preset, id) &&
+        conflictsWithChromePreset(data, bindings)
+      ) {
+        return { applied: false, reason: "conflict", keyID: id };
+      }
+    }
+    Object.assign(config.data, preset);
+    for (const current of windows.keys()) {
+      const keysets = new Set();
+      for (const id of Object.keys(preset)) {
+        applyToKeyEl(current, id, keysets);
+      }
+      refreshKeysets(current, keysets);
+    }
+    config.saveSoon();
+    return { applied: true };
+  },
+
   /**
    * Customize a keyboard shortcut.
    *

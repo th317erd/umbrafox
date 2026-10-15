@@ -17,6 +17,7 @@ customkeys-search-input =
 customkeys-description = Control how you move around and interact with { -brand-short-name }.
 customkeys-support-link-text = Learn more
 customkeys-reset-all-button = Restore defaults
+customkeys-chrome-preset-button = Use Chrome shortcuts
 
 ## Shortcut actions
 
@@ -42,6 +43,11 @@ customkeys-key-reset =
   .tooltiptext = Restore
 
 ## Confirmation dialogs
+
+customkeys-chrome-preset-title = Use Chrome-style shortcuts on Linux?
+customkeys-chrome-preset-body = Replace Downloads, alternate search, private window, and numbered-tab shortcuts? The reopen-window shortcut will be unassigned. Other custom shortcuts are kept. This is a partial preset; Firefox commands remain unchanged. Websites may observe different keyboard behavior. Restoring defaults removes custom assignments, including earlier overrides.
+customkeys-chrome-preset-failed-title = Shortcuts were not changed
+customkeys-chrome-preset-failed-body = A required command is unavailable or another shortcut conflicts with this preset. Review your custom assignments before trying again.
 
 customkeys-conflict-confirm-title = Remove another shortcut?
 # Variables

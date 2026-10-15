@@ -1,6 +1,8 @@
 [DEFAULT]
 support-files = ["head.js"]
 
+["browser_ChromePreset.js"]
+
 ["browser_CustomKeys.js"]
 
 ["browser_aboutKeyboard.js"]

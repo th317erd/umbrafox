@@ -1,5 +1,49 @@
 # Umbrafox Working Memory and Resume Instructions
 
+## October 15: Chrome Preset First Pass Verified
+
+Owner accepts partial/non-one-to-one parity and approved implementation. Explicit
+Linux preset added to about:keyboard: CtrlJ, CtrlE, CtrlShiftN, Ctrl1-9; conflicting
+undo-window shortcut cleared, command retained. Earlier unconditional two-file
+edit superseded; Firefox defaults restored in source. CustomKeys store/reset used,
+unrelated customizations retained and conflicts rejected before changes.
+Pure13PASS; full isolated browser350PASS/0FAIL/1expected; lint0. Report:
+bot-docs/reports/2026-10-15-chrome-shortcut-preset.md. Logs
+/tmp/codex/chrome-hotkeys-20261015. No owner browser/profile/install/launcher or Pi
+changes. Owner subsequently authorized commit/push; not packaged or activated
+in daily profile. Other
+platforms, DevTools and destination/focus differences explicitly deferred.
+
+## October 15: Full Chrome Shortcut Research
+
+Owner wants FULL hotkey parity, not just two edits. Research/draft only:
+bot-docs/plans/chrome-hotkey-parity.md. Official browser/DevTools documentation and
+source audit found command/context/platform gaps. Pure repository preprocessing
+and Fluent parsing confirmed duplicate Ctrl+J (search2 vs Downloads) in the pending
+patch. Two production files remain untouched by this audit. Reuse CustomKeys where
+possible, but it cannot itself change command destinations or toolbox semantics.
+Reserved-key remapping can change page-event visibility; recommend explicit user
+opt-in, preserving Firefox defaults. Owner ruling and implementation authorization
+remain pending; no browser/profile/launcher modifications or new runtime tests.
+
+## October 15: Recovery And Hotkey Handoff
+
+HEAD ed5c2e1dea6e. Two uncommitted tracked edits match the owner-supplied report
+bot-docs/bug-reports/2026-10-15-chrome-parity-hotkeys.md: Downloads Ctrl+J and
+New Private Window Ctrl+Shift+N, with conflicting Undo Close Window shortcut
+removed. Preserve, do not reapply; unbuilt/uninstalled/runtime-unverified. Report
+requires owner request before committing/pushing this separate patch.
+
+Read-only recheck still finds PID3651740 (Oct14 15:05:30 start) executing dated
+Oct1 build, not installed fixed nightly. No browser/profile/launcher changes.
+Owner clarified abrupt exits while submitting chat/changing tabs, no reporter;
+cause and exact incident times remain unresolved. Logging wrapper is proposed,
+not installed. No restart/termination/debugger without consent.
+
+ARM build is COMPLETE, not ongoing. Coordinator DB event46 reports Pi beta
+20261014135715 deployed; events48-49 report HDMI audio fix/owner-confirmed tone.
+Pi runtime belongs to l8ros; these are attributed reports, not our fresh checks.
+
 ## October 14: Read-Only Random Exit Triage
 
 Owner reports latestnightly randomcrashes. Actual active3651740 exe+libxul dated
