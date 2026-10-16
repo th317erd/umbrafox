@@ -1,0 +1,58 @@
+....F..
+======================================================================
+FAIL: test_supplement_bytes_must_match_frozen_source_hashes (__main__.SourceInputsTests.test_supplement_bytes_must_match_frozen_source_hashes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/wyatt/Projects/umbrafox-workspace/umbrafox/exports/umbrafox-clipboard-20261015/evidence/package_spec.py", line 95, in test_supplement_bytes_must_match_frozen_source_hashes
+    ), self.assertRaises(ValueError):
+       ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.019s
+
+FAILED (failures=1)
+{
+  "version": 1,
+  "buildID": "20261015235226",
+  "experimental": true,
+  "sourceRevision": "d43214d6704182dabefff44b772764db04e386f1",
+  "sourceInputs": {
+    "base": "d43214d6704182dabefff44b772764db04e386f1",
+    "trackedChanges": [
+      "existing.cpp"
+    ],
+    "newFiles": [
+      "new.cpp"
+    ],
+    "fileSHA256": {
+      "existing.cpp": "1a3a3de749db4361ea7ba4030a6e6dc88629bdc2fadfe0a5e4cbeb8cc31dea54",
+      "new.cpp": "040202f366ca8469f70ff1987cb47ce0e2406eb55ec9d4b1764cac361e9ad44e"
+    }
+  },
+  "sourcePatchSHA256": "a4895eb44afc336fecbba6e520cd67e178dace0276655d102fceffa8e5f70570",
+  "sourceSupplementSHA256": "1556f93736a5b0f743f2b6a74fc705f93cc5e615d58f417d3bce542051d32e51",
+  "configuration": {
+    "MOZ_APP_UA_NAME": "Firefox",
+    "MOZ_APP_VERSION": null,
+    "MOZ_OPTIMIZE": "1",
+    "MOZ_OPTIMIZE_FLAGS": null,
+    "MOZ_DEBUG": null,
+    "MOZ_UMBRA_PERF_PROBES": null,
+    "MOZ_UPDATE_CHANNEL": null,
+    "TARGET_CPU": "x86_64"
+  },
+  "mozconfigSHA256": "0026ab15b63efac9fe1189a05bc003de6583256ac00bab9fe54c11b76d60596f",
+  "baseArchiveSHA256": "00d6cb80549aac3a16cd2d4af9017179f66cf789433645f9c31c3bc9adc46c2d",
+  "archive": {
+    "name": "umbrafox-clipboard-20261015235226-linux-x86_64.tar.xz",
+    "size": 444,
+    "sha256": "bfd04571ce801be7c6a455b9d4950363e63a45c3ab8cd093d153fb6d5ab74eb8"
+  },
+  "overlaySHA256": "582a64c0796f3dad547fe3bcf825cd2842d26829f3093a26ffa7a8964110eca7",
+  "iniBuildIDs": {
+    "application.ini": "20261015235226",
+    "platform.ini": "20261015235226"
+  },
+  "nativeBuildID": "20261015235226"
+}

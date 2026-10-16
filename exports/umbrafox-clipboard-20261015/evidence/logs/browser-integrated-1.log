@@ -1,0 +1,895 @@
+Skipping test file installation (up to date). Run with --force to force reinstallation.
+Streaming resource usage profile to: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/test/profile_log_20261015_180941.json
+ 0:00.32 INFO These variables are available in the mozinfo environment and can be used to skip tests conditionally:
+ 0:00.32 INFO     a11y_checks: False
+ 0:00.32 INFO     android: False
+ 0:00.32 INFO     apple_catalina: False
+ 0:00.32 INFO     apple_silicon: False
+ 0:00.32 INFO     appname: umbrafox
+ 0:00.32 INFO     arch: x86_64
+ 0:00.32 INFO     artifact: False
+ 0:00.32 INFO     asan: False
+ 0:00.32 INFO     automation: False
+ 0:00.32 INFO     bin_suffix: 
+ 0:00.32 INFO     bits: 64
+ 0:00.32 INFO     buildapp: browser
+ 0:00.32 INFO     buildtype: opt
+ 0:00.32 INFO     buildtype_guess: opt
+ 0:00.32 INFO     cc_type: clang
+ 0:00.32 INFO     ccov: False
+ 0:00.32 INFO     condprof: False
+ 0:00.32 INFO     coverage: False
+ 0:00.32 INFO     crashreporter: True
+ 0:00.32 INFO     datareporting: True
+ 0:00.32 INFO     dbus_enabled: True
+ 0:00.32 INFO     debug: False
+ 0:00.32 INFO     devedition: False
+ 0:00.32 INFO     display: wayland
+ 0:00.32 INFO     e10s: True
+ 0:00.32 INFO     early_beta_or_earlier: True
+ 0:00.32 INFO     enterprise: False
+ 0:00.32 INFO     fission: True
+ 0:00.32 INFO     has_sandbox: True
+ 0:00.32 INFO     headless: True
+ 0:00.32 INFO     healthreport: True
+ 0:00.32 INFO     http2: False
+ 0:00.32 INFO     http3: False
+ 0:00.32 INFO     inc_origin_init: False
+ 0:00.32 INFO     is_emulator: False
+ 0:00.32 INFO     is_ubuntu: False
+ 0:00.32 INFO     isolated_process: False
+ 0:00.32 INFO     linux_distro: Omarchy
+ 0:00.32 INFO     macos_vm: False
+ 0:00.32 INFO     mda_gpu: False
+ 0:00.32 INFO     mingw: False
+ 0:00.32 INFO     mozconfig: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozconfig
+ 0:00.32 INFO     msix: False
+ 0:00.32 INFO     nightly_build: True
+ 0:00.32 INFO     nogpu: False
+ 0:00.32 INFO     normandy: True
+ 0:00.32 INFO     nova: True
+ 0:00.32 INFO     official: False
+ 0:00.32 INFO     opt: True
+ 0:00.32 INFO     os: linux
+ 0:00.32 INFO     os_version: 4.0.4
+ 0:00.32 INFO     pgo: False
+ 0:00.32 INFO     platform_guess: linux64
+ 0:00.32 INFO     processor: x86_64
+ 0:00.32 INFO     release_or_beta: False
+ 0:00.32 INFO     require_signing: False
+ 0:00.32 INFO     sessionHistoryInParent: True
+ 0:00.32 INFO     socketprocess_e10s: False
+ 0:00.32 INFO     socketprocess_networking: False
+ 0:00.32 INFO     standalone: False
+ 0:00.32 INFO     stylo: True
+ 0:00.32 INFO     swgl: False
+ 0:00.32 INFO     sync: True
+ 0:00.32 INFO     telemetry: False
+ 0:00.32 INFO     tests_enabled: True
+ 0:00.32 INFO     toolkit: gtk
+ 0:00.32 INFO     topobjdir: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+ 0:00.32 INFO     topsrcdir: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source
+ 0:00.32 INFO     tsan: False
+ 0:00.32 INFO     ubsan: False
+ 0:00.32 INFO     updater: True
+ 0:00.32 INFO     verify: False
+ 0:00.32 INFO     verify_fission: False
+ 0:00.32 INFO     version: Omarchy 4.0.4
+ 0:00.32 INFO     vertical_tab: False
+ 0:00.32 INFO     win10_2009: False
+ 0:00.32 INFO     win11_2009: False
+ 0:00.32 INFO     wmfme: 0
+ 0:00.32 INFO     xorigin: False
+ 0:00.32 INFO Checking for ssltunnel processes...
+ 0:00.39 INFO Checking for xpcshell processes...
+ 0:00.43 SUITE_START: mochitest-browser - running 4 tests
+ 0:00.43 INFO Running manifest: browser/modules/test/browser/browser.toml
+ 0:00.43 INFO The following extra prefs will be set:
+  sidebar.revamp=false
+  telemetry.number_of_site_origin.min_interval=0
+ 0:00.50 pid:1082844 Full command: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/pk12util -i /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/pgo/certs/mochitest.client -w /tmp/tmpkvnujlht.mozrunner/.crtdbpw -d /tmp/tmpkvnujlht.mozrunner
+pid:1082844 pk12util: PKCS12 IMPORT SUCCESSFUL
+
+ 0:00.60 INFO MochitestServer : launching ['/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/xpcshell', '-g', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin', '-e', "const _PROFILE_PATH = '/tmp/tmpkvnujlht.mozrunner'; const _SERVER_PORT = '8888'; const _SERVER_ADDR = '127.0.0.1'; const _TEST_PREFIX = undefined; const _DISPLAY_RESULTS = false; const _HTTPD_PATH = '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/components'; ", '-f', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/testing/mochitest/server.js']
+ 0:00.60 INFO runtests.py | Server pid: 1082855
+ 0:00.60 INFO runtests.py | Websocket server pid: 1082856
+ 0:00.61 INFO runtests.py | SSL tunnel pid: 1082857
+ 0:00.71 INFO use http3 server: False
+ 0:00.71 INFO Use build node at /home/wyatt/.mozbuild/node/bin/node
+ 0:00.71 INFO mozserve | Found moz-http2 server path: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/testing/mochitest/xpcshell/moz-http2/moz-http2.js
+ 0:00.71 INFO Found node at /home/wyatt/.mozbuild/node/bin/node
+ 0:00.81 INFO mozserve | moz-http2 server msg: HTTP2 server listening on ports 43315,37195
+
+ 0:00.81 INFO moz-http2 server started on ports 43315, 37195
+ 0:00.82 INFO runtests.py | Running with scheme: http
+ 0:00.82 INFO runtests.py | Running with e10s: True
+ 0:00.82 INFO runtests.py | Running with fission: True
+ 0:00.82 INFO runtests.py | Running with cross-origin iframes: False
+ 0:00.82 INFO runtests.py | Running with socketprocess_e10s: False
+ 0:00.82 INFO runtests.py | Running http tests: start.
+
+ 0:00.82 INFO node moz-http2 [stderr] (node:1082902) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+
+ 0:00.82 INFO node moz-http2 [stderr] (Use `node --trace-deprecation ...` to show where the warning was created)
+
+ 0:00.86 INFO Application command: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/umbrafox -marionette -foreground -profile /tmp/tmpkvnujlht.mozrunner
+ 0:00.88 INFO runtests.py | Application pid: 1082911
+ 0:00.88 Started process `GECKO(1082911)`
+ 0:00.92 GECKO(1082911) *** You are running in headless mode.
+ 0:01.05 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_socket_pid1082952.log
+ 0:01.46 GECKO(1082911) 1792112982833	Marionette	INFO	Marionette enabled
+ 0:01.46 GECKO(1082911) 1792112982835	Marionette	TRACE	Received observer notification final-ui-startup
+ 0:01.46 GECKO(1082911) 1792112982835	Marionette	DEBUG	Initializing Marionette
+ 0:01.56 GECKO(1082911) console.error: "Warning: unrecognized command line flag" "-foreground"
+ 0:01.58 GECKO(1082911) 1792112982959	Marionette	INFO	Listening on port 2828
+ 0:01.58 GECKO(1082911) 1792112982961	Marionette	DEBUG	Marionette is listening
+ 0:01.61 GECKO(1082911) 1792112982990	Marionette	DEBUG	Accepted connection 0 from 127.0.0.1:35644
+ 0:01.62 GECKO(1082911) 1792112983002	Marionette	DEBUG	Closed connection 0
+ 0:01.62 GECKO(1082911) 1792112983003	Marionette	DEBUG	Accepted connection 1 from 127.0.0.1:35656
+ 0:01.73 GECKO(1082911) 1792112983104	Marionette	DEBUG	1 -> [0,1,"WebDriver:NewSession",{"strictFileInteractability":true}]
+ 0:01.74 GECKO(1082911) 1792112983114	Marionette	DEBUG	Waiting for initial application window
+ 0:02.08 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083015.log
+ 0:02.08 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083015.log
+ 0:02.08 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_rdd_pid1083023.log
+ 0:02.09 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_rdd_pid1083023.log
+ 0:02.11 GECKO(1082911) [Parent 1082911: Main Thread]: I/SlowChromeEvent Please do not use mouseenter/leave events in chrome. They are slower than mouseover/out! chrome://browser/content/tabbrowser/tabs.mjs:61:10
+ 0:02.29 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083060.log
+ 0:02.29 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083060.log
+ 0:02.43 GECKO(1082911) [GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
+ 0:03.12 GECKO(1082911) console.error: services.settings:
+ 0:03.12 GECKO(1082911)   Message: EmptyDatabaseError: "main/nimbus-desktop-experiments" has not been synced yet
+ 0:03.12 GECKO(1082911)   Stack:
+ 0:03.12 GECKO(1082911)     EmptyDatabaseError@resource://services-settings/Database.sys.mjs:19:5
+ 0:03.12 GECKO(1082911) list@resource://services-settings/Database.sys.mjs:96:13
+ 0:03.12 GECKO(1082911) async*get@resource://services-settings/RemoteSettingsClient.sys.mjs:570:28
+ 0:03.12 GECKO(1082911) async*getRecipesFromCollection/recipes<@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:792:16
+ 0:03.12 GECKO(1082911) #raceShutdown@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:748:34
+ 0:03.12 GECKO(1082911) getRecipesFromCollection@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:791:41
+ 0:03.12 GECKO(1082911) getRecipesFromAllCollections@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:647:39
+ 0:03.12 GECKO(1082911) #updateImpl@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:517:33
+ 0:03.12 GECKO(1082911) async*updateRecipes/<@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:434:55
+ 0:03.12 GECKO(1082911) LockGrantedCallback*withUpdateLock@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:370:26
+ 0:03.12 GECKO(1082911) updateRecipes@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:434:18
+ 0:03.12 GECKO(1082911) enable@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:322:16
+ 0:03.12 GECKO(1082911) #init@resource://nimbus/ExperimentAPI.sys.mjs:325:28
+ 0:03.12 GECKO(1082911) async*init@resource://nimbus/ExperimentAPI.sys.mjs:264:49
+ 0:03.12 GECKO(1082911) finishInit@resource://normandy/Normandy.sys.mjs:80:30
+ 0:03.12 GECKO(1082911) init@resource://normandy/Normandy.sys.mjs:58:16
+ 0:03.12 GECKO(1082911) async*fn@resource://gre/modules/BrowserUtils.sys.mjs:83:33
+ 0:03.12 GECKO(1082911) callSingleListener@resource://gre/modules/BrowserUtils.sys.mjs:828:15
+ 0:03.12 GECKO(1082911) callModulesFromCategory@resource://gre/modules/BrowserUtils.sys.mjs:883:23
+ 0:03.12 GECKO(1082911) BG__beforeUIStartup@moz-src:///browser/components/BrowserGlue.sys.mjs:441:23
+ 0:03.12 GECKO(1082911) BG_observe@moz-src:///browser/components/BrowserGlue.sys.mjs:208:14
+ 0:03.33 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_utility_pid1083129.log
+ 0:03.33 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_utility_pid1083129.log
+ 0:03.37 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083143.log
+ 0:03.38 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083143.log
+ 0:03.38 GECKO(1082911) 1792112984758	Marionette	TRACE	Received observer notification browser-idle-startup-tasks-finished
+ 0:03.64 GECKO(1082911) 1792112985016	RemoteAgent	TRACE	[10] ProgressListener Start: expectNavigation=false resolveWhenStarted=false unloadTimeout=5000 waitForExplicitStart=false
+ 0:03.64 GECKO(1082911) 1792112985017	RemoteAgent	TRACE	[10] ProgressListener Setting unload timer (5000ms)
+ 0:03.64 GECKO(1082911) 1792112985017	RemoteAgent	TRACE	[10] Wait for initial navigation: isUncommittedInitial=false, isLoadingDocument=false
+ 0:03.64 GECKO(1082911) 1792112985017	RemoteAgent	TRACE	[10] Document already finished loading: about:blank
+ 0:03.64 GECKO(1082911) 1792112985017	RemoteAgent	TRACE	[10] ProgressListener Stop: has error=false url=about:blank
+ 0:03.66 GECKO(1082911) 1792112985036	Marionette	DEBUG	1 <- [1,1,null,{"sessionId":"be55c506-9b09-4191-9716-cbaa3f719e7b","capabilities":{"acceptInsecureCerts":false,"browserName":"umbrafox","browserVersion":"160.0a1","platformName":"linux","setWindowRect":true,"unhandledPromptBehavior":"dismiss and notify","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:160.0) Gecko/20100101 Firefox/160.0","moz:buildID":"20261015235226","moz:headless":true,"moz:platformVersion":"7.2.5-3-omarchy","moz:processID":1082911,"moz:profile":"/tmp/tmpkvnujlht.mozrunner","moz:shutdownTimeout":73000,"pageLoadStrategy":"normal","timeouts":{"implicit":0,"pageLoad":300000,"script":30000},"strictFileInteractability":true,"moz:accessibilityChecks":false,"moz:webdriverClick":true,"moz:windowless":false,"proxy":{}}}]
+ 0:03.70 GECKO(1082911) 1792112985078	Marionette	DEBUG	1 -> [0,2,"Addon:Install",{"temporary":false,"path":"/tmp/tmpvrtuo1mw.zip"}]
+ 0:03.74 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083188.log
+ 0:03.74 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083188.log
+ 0:03.75 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083198.log
+ 0:03.75 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083198.log
+ 0:03.75 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083203.log
+ 0:03.75 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083203.log
+ 0:03.85 GECKO(1082911) 1792112985226	Marionette	DEBUG	1 <- [1,2,null,{"value":"special-powers@mozilla.org"}]
+ 0:03.89 GECKO(1082911) 1792112985268	Marionette	DEBUG	1 -> [0,3,"Addon:Install",{"temporary":false,"path":"/tmp/tmpduhtg6iy.zip"}]
+ 0:03.91 GECKO(1082911) 1792112985287	Marionette	DEBUG	1 <- [1,3,null,{"value":"mochikit@mozilla.org"}]
+ 0:03.91 GECKO(1082911) 1792112985289	Marionette	DEBUG	1 -> [0,4,"Marionette:GetContext",{}]
+ 0:03.91 GECKO(1082911) 1792112985289	Marionette	DEBUG	1 <- [1,4,null,{"value":"content"}]
+ 0:03.91 GECKO(1082911) 1792112985289	Marionette	DEBUG	1 -> [0,5,"Marionette:SetContext",{"value":"chrome"}]
+ 0:03.91 GECKO(1082911) 1792112985290	Marionette	DEBUG	1 <- [1,5,null,{"value":null}]
+ 0:03.92 GECKO(1082911) 1792112985295	Marionette	DEBUG	1 -> [0,6,"WebDriver:ExecuteScript",{"script":"/* This Source Code Form is subject to the terms of the Mozilla Public\n * License, v. 2.0. If a copy of the MPL was not distr ... \n// the flavor and url to load.\nlet ev = new CustomEvent(\"mochitest-load\", { detail: [flavor, url] });\nwin.dispatchEvent(ev);","args":[{"flavor":"browser-chrome","testUrl":"about:blank"}],"newSandbox":true,"sandbox":"default","line":2381,"filename":"_tests/testing/mochitest/runtests.py"}]
+ 0:03.92 GECKO(1082911) 1792112985300	RemoteAgent	TRACE	WebDriverProcessData actor created for PID 1082911
+ 0:03.92 GECKO(1082911) 1792112985301	Marionette	TRACE	[1] MarionetteCommands actor created for window id 2
+ 0:03.95 GECKO(1082911) 1792112985330	Marionette	DEBUG	1 <- [1,6,null,{"value":null}]
+ 0:03.95 GECKO(1082911) 1792112985332	Marionette	DEBUG	1 -> [0,7,"Marionette:SetContext",{"value":"content"}]
+ 0:03.95 GECKO(1082911) 1792112985332	Marionette	DEBUG	1 <- [1,7,null,{"value":null}]
+ 0:04.00 GECKO(1082911) 1792112985376	Marionette	DEBUG	1 -> [0,8,"WebDriver:DeleteSession",{}]
+ 0:04.00 GECKO(1082911) 1792112985376	Marionette	TRACE	[1] MarionetteCommands actor destroyed for window id 2
+ 0:04.00 GECKO(1082911) 1792112985378	Marionette	DEBUG	1 <- [1,8,null,{"value":null}]
+ 0:04.00 INFO runtests.py | Waiting for browser...
+ 0:04.01 GECKO(1082911) 1792112985384	Marionette	DEBUG	Closed connection 1
+ 0:04.08 INFO *** Start BrowserChrome Test Results ***
+ 0:04.08 INFO checking for open sidebars
+ 0:04.08 INFO checking window state
+ 0:04.28 TEST_START: browser/modules/test/browser/browser_UmbrafoxClipboardProtection.js
+ 0:04.30 INFO Entering test test_unopened_indicator_and_removal_preserve_page_trace
+ 0:04.45 GECKO(1082911) must wait for focus in content
+ 0:04.66 INFO Leaving test test_unopened_indicator_and_removal_preserve_page_trace
+ 0:04.66 INFO Entering test test_unopened_indicator_preserves_content_keys
+ 0:04.73 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083310.log
+ 0:04.73 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083310.log
+ 0:04.73 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083314.log
+ 0:04.73 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083314.log
+ 0:04.75 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083323.log
+ 0:04.75 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083323.log
+ 0:04.78 GECKO(1082911) must wait for focus in content
+ 0:04.91 INFO Console message: [JavaScript Warning: "Key event not available on some keyboard layouts: key=“z” modifiers=“control,alt” id=“toggleSidebarKb”" {file: "chrome://mochikit/content/tests/SimpleTest/EventUtils.js" line: 1891}]
+ 0:04.91 INFO Console message: [JavaScript Warning: "Key event not available on some keyboard layouts: key=“u” modifiers=“accel,alt” id=“viewOpenTabsSidebarKb”" {file: "chrome://mochikit/content/tests/SimpleTest/EventUtils.js" line: 1891}]
+ 0:04.91 INFO Console message: [JavaScript Warning: "Key event not available on some keyboard layouts: key=“x” modifiers=“accel,alt” id=“viewGenaiChatSidebarKb”" {file: "chrome://mochikit/content/tests/SimpleTest/EventUtils.js" line: 1891}]
+ 0:04.91 INFO Console message: [JavaScript Warning: "Key event not available on some keyboard layouts: key=“r” modifiers=“accel,alt” id=“key_toggleReaderMode”" {file: "chrome://mochikit/content/tests/SimpleTest/EventUtils.js" line: 1891}]
+ 0:04.91 INFO Console message: [JavaScript Warning: "Key event not available on some keyboard layouts: key=“r” modifiers=“accel,alt” id=“key_quickRestart”" {file: "chrome://mochikit/content/tests/SimpleTest/EventUtils.js" line: 1891}]
+ 0:04.91 INFO Console message: [JavaScript Warning: "Key event not available on some keyboard layouts: key=“i” modifiers=“accel,alt,shift” id=“key_browserToolbox”" {file: "chrome://mochikit/content/tests/SimpleTest/EventUtils.js" line: 1891}]
+ 0:05.03 INFO Leaving test test_unopened_indicator_preserves_content_keys
+ 0:05.03 INFO Entering test test_unopened_indicator_removal_does_not_refocus_content
+ 0:05.09 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083414.log
+ 0:05.09 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083414.log
+ 0:05.16 GECKO(1082911) must wait for focus in content
+ 0:05.23 INFO Leaving test test_unopened_indicator_removal_does_not_refocus_content
+ 0:05.23 INFO Entering test test_explicitly_opened_notice_can_be_dismissed_without_allow
+ 0:05.34 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083450.log
+ 0:05.34 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083450.log
+ 0:05.35 GECKO(1082911) must wait for focus in content
+ 0:05.49 INFO Leaving test test_explicitly_opened_notice_can_be_dismissed_without_allow
+ 0:05.49 INFO Entering test test_unopened_indicator_does_not_prevent_or_release_pointer_lock
+ 0:05.62 GECKO(1082911) must wait for focus in content
+ 0:05.68 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083487.log
+ 0:05.68 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083487.log
+ 0:05.97 INFO Leaving test test_unopened_indicator_does_not_prevent_or_release_pointer_lock
+ 0:05.97 INFO Entering test test_no_button_never_allows_or_remembers
+ 0:06.06 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083523.log
+ 0:06.06 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083523.log
+ 0:06.07 GECKO(1082911) must wait for focus in content
+ 0:06.20 INFO Leaving test test_no_button_never_allows_or_remembers
+ 0:06.20 INFO Entering test test_yes_button_keeps_async_retry_alive_once
+ 0:06.24 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083560.log
+ 0:06.25 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083560.log
+ 0:06.29 GECKO(1082911) must wait for focus in content
+ 0:06.44 INFO Leaving test test_yes_button_keeps_async_retry_alive_once
+ 0:06.44 INFO Entering test test_always_waits_for_success_and_rejects_native_failure
+ 0:06.55 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083597.log
+ 0:06.55 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083597.log
+ 0:06.55 GECKO(1082911) must wait for focus in content
+ 0:09.91 GECKO(1082911) must wait for focus in content
+ 0:10.32 INFO Leaving test test_always_waits_for_success_and_rejects_native_failure
+ 0:10.32 INFO Entering test test_cross_origin_frame_grant_uses_its_own_revoke_row
+ 0:10.58 GECKO(1082911) must wait for focus in content
+ 0:11.34 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083692.log
+ 0:11.35 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083692.log
+ 0:11.35 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083698.log
+ 0:11.35 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083698.log
+ 0:11.36 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083706.log
+ 0:11.36 GECKO(1082911) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpkvnujlht.mozrunner/runtests_leaks_tab_pid1083706.log
+ 0:16.16 INFO Leaving test test_cross_origin_frame_grant_uses_its_own_revoke_row
+ 0:16.16 INFO Entering test test_container_grants_do_not_inherit_other_attributes
+ 0:16.27 GECKO(1082911) must wait for focus in content
+ 0:16.67 INFO Leaving test test_container_grants_do_not_inherit_other_attributes
+ 0:16.68 INFO checking for open popups
+ 0:16.95 GECKO(1082911) MEMORY STAT vsizeMaxContiguous not supported in this build configuration.
+ 0:16.95 GECKO(1082911) MEMORY STAT | vsize 19682MB | residentFast 476MB | heapAllocated 388MB
+ 0:16.95 INFO checking for open sidebars
+ 0:16.95 INFO checking window state
+ 0:16.95 TEST_END: Test FAIL, expected PASS. Subtests passed 128/130. Unexpected 1
+FAIL test_cross_origin_frame_grant_uses_its_own_revoke_row - Uncaught exception in test - Standard site permissions panel opens - timed out after 100 tries.FAIL browser/modules/test/browser/browser_UmbrafoxClipboardProtection.js - finished in 12658ms
+ 0:17.00 GECKO(1082911) Completed ShutdownLeaks collections in process 1082911
+ 0:17.00 INFO TEST-START | Shutdown
+ 0:17.00 INFO Browser Chrome Test Summary
+ 0:17.00 INFO Passed:  128
+ 0:17.00 INFO Failed:  1
+ 0:17.00 INFO Todo:    1
+ 0:17.00 INFO Mode:    e10s
+ 0:17.00 INFO *** End BrowserChrome Test Results ***
+ 0:17.06 GECKO(1082911) Exiting due to channel error.
+ 0:17.06 GECKO(1082911) Exiting due to channel error.
+ 0:17.06 GECKO(1082911) Exiting due to channel error.
+ 0:17.06 GECKO(1082911) Exiting due to channel error.
+ 0:17.06 GECKO(1082911) Exiting due to channel error.
+ 0:17.06 GECKO(1082911) Exiting due to channel error.
+ 0:17.08 Main app process: exit 0
+ 0:17.08 INFO runtests.py | Main app process exited normally
+ 0:17.08 INFO runtests.py | Application ran for: 0:00:16.221041
+ 0:17.08 INFO zombiecheck | Reading PID log: /tmp/tmpjwjoyxf2pidlog
+ 0:17.08 INFO ==> process 1082911 launched child process 1082952
+ 0:17.08 INFO ==> process 1082911 launched child process 1083010
+ 0:17.08 INFO zombiecheck | Checking for orphan process with PID: 1082952
+ 0:17.09 INFO zombiecheck | Checking for orphan process with PID: 1083010
+ 0:17.09 INFO runtests.py | Running http tests: end. status: 0
+ 0:17.09 INFO Stopping web server
+ 0:17.10 INFO Server shut down.
+ 0:17.10 INFO Web server killed.
+ 0:17.10 INFO Stopping web socket server
+ 0:17.10 INFO Stopping ssltunnel
+ 0:17.11 WARNING leakcheck | refcount logging is off, so leaks can't be detected!
+ 0:17.13 INFO Buffered messages finished
+ 0:17.13 INFO Running manifest: dom/events/test/clipboard/browser.toml
+ 0:17.20 pid:1083886 Full command: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/pk12util -i /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/pgo/certs/mochitest.client -w /tmp/tmp4rf1euil.mozrunner/.crtdbpw -d /tmp/tmp4rf1euil.mozrunner
+pid:1083886 pk12util: PKCS12 IMPORT SUCCESSFUL
+
+ 0:17.32 INFO MochitestServer : launching ['/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/xpcshell', '-g', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin', '-e', "const _PROFILE_PATH = '/tmp/tmp4rf1euil.mozrunner'; const _SERVER_PORT = '8888'; const _SERVER_ADDR = '127.0.0.1'; const _TEST_PREFIX = undefined; const _DISPLAY_RESULTS = false; const _HTTPD_PATH = '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/components'; ", '-f', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/testing/mochitest/server.js']
+ 0:17.32 INFO runtests.py | Server pid: 1083910
+ 0:17.32 INFO runtests.py | Websocket server pid: 1083913
+ 0:17.32 INFO runtests.py | SSL tunnel pid: 1083917
+ 0:17.43 INFO use http3 server: False
+ 0:17.43 INFO Use build node at /home/wyatt/.mozbuild/node/bin/node
+ 0:17.43 INFO mozserve | Found moz-http2 server path: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/testing/mochitest/xpcshell/moz-http2/moz-http2.js
+ 0:17.43 INFO Found node at /home/wyatt/.mozbuild/node/bin/node
+ 0:17.52 INFO mozserve | moz-http2 server msg: HTTP2 server listening on ports 39571,33201
+
+ 0:17.52 INFO moz-http2 server started on ports 39571, 33201
+ 0:17.52 INFO node moz-http2 [stderr] (node:1083978) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+
+ 0:17.52 INFO node moz-http2 [stderr] (Use `node --trace-deprecation ...` to show where the warning was created)
+
+ 0:17.53 INFO runtests.py | Running with scheme: http
+ 0:17.53 INFO runtests.py | Running with e10s: True
+ 0:17.53 INFO runtests.py | Running with fission: True
+ 0:17.53 INFO runtests.py | Running with cross-origin iframes: False
+ 0:17.53 INFO runtests.py | Running with socketprocess_e10s: False
+ 0:17.53 INFO runtests.py | Running http tests: start.
+
+ 0:17.57 INFO Application command: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/umbrafox -marionette -foreground -profile /tmp/tmp4rf1euil.mozrunner
+ 0:17.58 INFO runtests.py | Application pid: 1084000
+ 0:17.58 Started process `GECKO(1084000)`
+ 0:17.62 GECKO(1084000) *** You are running in headless mode.
+ 0:17.74 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_socket_pid1084047.log
+ 0:18.15 GECKO(1084000) 1792112999531	Marionette	INFO	Marionette enabled
+ 0:18.15 GECKO(1084000) 1792112999532	Marionette	TRACE	Received observer notification final-ui-startup
+ 0:18.15 GECKO(1084000) 1792112999532	Marionette	DEBUG	Initializing Marionette
+ 0:18.23 GECKO(1084000) console.error: "Warning: unrecognized command line flag" "-foreground"
+ 0:18.25 GECKO(1084000) 1792112999631	Marionette	INFO	Listening on port 2828
+ 0:18.25 GECKO(1084000) 1792112999632	Marionette	DEBUG	Marionette is listening
+ 0:18.27 GECKO(1084000) 1792112999651	Marionette	DEBUG	Accepted connection 0 from 127.0.0.1:37824
+ 0:18.28 GECKO(1084000) 1792112999662	Marionette	DEBUG	Accepted connection 1 from 127.0.0.1:37834
+ 0:18.28 GECKO(1084000) 1792112999662	Marionette	DEBUG	Closed connection 0
+ 0:18.38 GECKO(1084000) 1792112999756	Marionette	DEBUG	1 -> [0,1,"WebDriver:NewSession",{"strictFileInteractability":true}]
+ 0:18.38 GECKO(1084000) 1792112999763	Marionette	DEBUG	Waiting for initial application window
+ 0:18.60 GECKO(1084000) [Parent 1084000: Main Thread]: I/SlowChromeEvent Please do not use mouseenter/leave events in chrome. They are slower than mouseover/out! chrome://browser/content/tabbrowser/tabs.mjs:61:10
+ 0:18.75 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084167.log
+ 0:18.75 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084167.log
+ 0:18.76 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_rdd_pid1084177.log
+ 0:18.76 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_rdd_pid1084177.log
+ 0:18.85 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084210.log
+ 0:18.86 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084210.log
+ 0:18.92 GECKO(1084000) [GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
+ 0:19.41 GECKO(1084000) console.error: services.settings:
+ 0:19.41 GECKO(1084000)   Message: EmptyDatabaseError: "main/nimbus-desktop-experiments" has not been synced yet
+ 0:19.41 GECKO(1084000)   Stack:
+ 0:19.41 GECKO(1084000)     EmptyDatabaseError@resource://services-settings/Database.sys.mjs:19:5
+ 0:19.41 GECKO(1084000) list@resource://services-settings/Database.sys.mjs:96:13
+ 0:19.41 GECKO(1084000) async*get@resource://services-settings/RemoteSettingsClient.sys.mjs:570:28
+ 0:19.41 GECKO(1084000) async*getRecipesFromCollection/recipes<@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:792:16
+ 0:19.41 GECKO(1084000) #raceShutdown@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:748:34
+ 0:19.41 GECKO(1084000) getRecipesFromCollection@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:791:41
+ 0:19.41 GECKO(1084000) getRecipesFromAllCollections@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:647:39
+ 0:19.41 GECKO(1084000) #updateImpl@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:517:33
+ 0:19.41 GECKO(1084000) async*updateRecipes/<@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:434:55
+ 0:19.41 GECKO(1084000) LockGrantedCallback*withUpdateLock@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:370:26
+ 0:19.41 GECKO(1084000) updateRecipes@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:434:18
+ 0:19.41 GECKO(1084000) enable@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:322:16
+ 0:19.41 GECKO(1084000) #init@resource://nimbus/ExperimentAPI.sys.mjs:325:28
+ 0:19.41 GECKO(1084000) async*init@resource://nimbus/ExperimentAPI.sys.mjs:264:49
+ 0:19.41 GECKO(1084000) finishInit@resource://normandy/Normandy.sys.mjs:80:30
+ 0:19.41 GECKO(1084000) init@resource://normandy/Normandy.sys.mjs:58:16
+ 0:19.42 GECKO(1084000) async*fn@resource://gre/modules/BrowserUtils.sys.mjs:83:33
+ 0:19.42 GECKO(1084000) callSingleListener@resource://gre/modules/BrowserUtils.sys.mjs:828:15
+ 0:19.42 GECKO(1084000) callModulesFromCategory@resource://gre/modules/BrowserUtils.sys.mjs:883:23
+ 0:19.42 GECKO(1084000) BG__beforeUIStartup@moz-src:///browser/components/BrowserGlue.sys.mjs:441:23
+ 0:19.42 GECKO(1084000) BG_observe@moz-src:///browser/components/BrowserGlue.sys.mjs:208:14
+ 0:19.61 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_utility_pid1084273.log
+ 0:19.61 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_utility_pid1084273.log
+ 0:19.65 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084284.log
+ 0:19.65 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084284.log
+ 0:19.67 GECKO(1084000) 1792113001051	Marionette	TRACE	Received observer notification browser-idle-startup-tasks-finished
+ 0:19.87 GECKO(1084000) 1792113001248	RemoteAgent	TRACE	[4] ProgressListener Start: expectNavigation=false resolveWhenStarted=false unloadTimeout=5000 waitForExplicitStart=false
+ 0:19.87 GECKO(1084000) 1792113001248	RemoteAgent	TRACE	[4] ProgressListener Setting unload timer (5000ms)
+ 0:19.87 GECKO(1084000) 1792113001250	RemoteAgent	TRACE	[4] Wait for initial navigation: isUncommittedInitial=false, isLoadingDocument=false
+ 0:19.87 GECKO(1084000) 1792113001250	RemoteAgent	TRACE	[4] Document already finished loading: about:blank
+ 0:19.87 GECKO(1084000) 1792113001250	RemoteAgent	TRACE	[4] ProgressListener Stop: has error=false url=about:blank
+ 0:19.89 GECKO(1084000) 1792113001263	Marionette	DEBUG	1 <- [1,1,null,{"sessionId":"b1b4ffaf-57cd-4b38-9e4d-aec4e2891c05","capabilities":{"acceptInsecureCerts":false,"browserName":"umbrafox","browserVersion":"160.0a1","platformName":"linux","setWindowRect":true,"unhandledPromptBehavior":"dismiss and notify","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:160.0) Gecko/20100101 Firefox/160.0","moz:buildID":"20261015235226","moz:headless":true,"moz:platformVersion":"7.2.5-3-omarchy","moz:processID":1084000,"moz:profile":"/tmp/tmp4rf1euil.mozrunner","moz:shutdownTimeout":73000,"pageLoadStrategy":"normal","timeouts":{"implicit":0,"pageLoad":300000,"script":30000},"strictFileInteractability":true,"moz:accessibilityChecks":false,"moz:webdriverClick":true,"moz:windowless":false,"proxy":{}}}]
+ 0:19.90 GECKO(1084000) 1792113001274	Marionette	DEBUG	1 -> [0,2,"Addon:Install",{"temporary":false,"path":"/tmp/tmpprt45p7_.zip"}]
+ 0:19.90 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084330.log
+ 0:19.90 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084330.log
+ 0:19.90 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084335.log
+ 0:19.91 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084335.log
+ 0:19.91 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084344.log
+ 0:19.91 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084344.log
+ 0:19.98 GECKO(1084000) 1792113001353	Marionette	DEBUG	1 <- [1,2,null,{"value":"special-powers@mozilla.org"}]
+ 0:20.00 GECKO(1084000) 1792113001379	Marionette	DEBUG	1 -> [0,3,"Addon:Install",{"temporary":false,"path":"/tmp/tmp4ck5nyxe.zip"}]
+ 0:20.02 GECKO(1084000) 1792113001395	Marionette	DEBUG	1 <- [1,3,null,{"value":"mochikit@mozilla.org"}]
+ 0:20.02 GECKO(1084000) 1792113001397	Marionette	DEBUG	1 -> [0,4,"Marionette:GetContext",{}]
+ 0:20.02 GECKO(1084000) 1792113001397	Marionette	DEBUG	1 <- [1,4,null,{"value":"content"}]
+ 0:20.02 GECKO(1084000) 1792113001397	Marionette	DEBUG	1 -> [0,5,"Marionette:SetContext",{"value":"chrome"}]
+ 0:20.02 GECKO(1084000) 1792113001397	Marionette	DEBUG	1 <- [1,5,null,{"value":null}]
+ 0:20.02 GECKO(1084000) 1792113001398	Marionette	DEBUG	1 -> [0,6,"WebDriver:ExecuteScript",{"script":"/* This Source Code Form is subject to the terms of the Mozilla Public\n * License, v. 2.0. If a copy of the MPL was not distr ... \n// the flavor and url to load.\nlet ev = new CustomEvent(\"mochitest-load\", { detail: [flavor, url] });\nwin.dispatchEvent(ev);","args":[{"flavor":"browser-chrome","testUrl":"about:blank"}],"newSandbox":true,"sandbox":"default","line":2381,"filename":"_tests/testing/mochitest/runtests.py"}]
+ 0:20.02 GECKO(1084000) 1792113001402	RemoteAgent	TRACE	WebDriverProcessData actor created for PID 1084000
+ 0:20.02 GECKO(1084000) 1792113001403	Marionette	TRACE	[1] MarionetteCommands actor created for window id 2
+ 0:20.05 GECKO(1084000) 1792113001425	Marionette	DEBUG	1 <- [1,6,null,{"value":null}]
+ 0:20.05 GECKO(1084000) 1792113001428	Marionette	DEBUG	1 -> [0,7,"Marionette:SetContext",{"value":"content"}]
+ 0:20.05 GECKO(1084000) 1792113001428	Marionette	DEBUG	1 <- [1,7,null,{"value":null}]
+ 0:20.08 GECKO(1084000) 1792113001459	Marionette	DEBUG	1 -> [0,8,"WebDriver:DeleteSession",{}]
+ 0:20.08 GECKO(1084000) 1792113001460	Marionette	TRACE	[1] MarionetteCommands actor destroyed for window id 2
+ 0:20.08 GECKO(1084000) 1792113001461	Marionette	DEBUG	1 <- [1,8,null,{"value":null}]
+ 0:20.09 INFO runtests.py | Waiting for browser...
+ 0:20.09 GECKO(1084000) 1792113001467	Marionette	DEBUG	Closed connection 1
+ 0:20.14 INFO *** Start BrowserChrome Test Results ***
+ 0:20.14 INFO checking for open sidebars
+ 0:20.14 INFO checking window state
+ 0:20.31 TEST_START: dom/events/test/clipboard/browser_umbrafox_clipboard.js
+ 0:20.31 INFO Entering test test_private_clipboard_action_rejects_unknown_token
+ 0:20.47 INFO Leaving test test_private_clipboard_action_rejects_unknown_token
+ 0:20.47 INFO Entering test test_native_cancellation_notice
+ 0:20.69 INFO Leaving test test_native_cancellation_notice
+ 0:20.70 INFO checking for open popups
+ 0:20.89 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084446.log
+ 0:20.89 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084446.log
+ 0:20.90 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084452.log
+ 0:20.90 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084452.log
+ 0:20.91 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084459.log
+ 0:20.91 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084459.log
+ 0:21.03 GECKO(1084000) MEMORY STAT vsizeMaxContiguous not supported in this build configuration.
+ 0:21.03 GECKO(1084000) MEMORY STAT | vsize 11290MB | residentFast 404MB | heapAllocated 258MB
+ 0:21.03 INFO checking for open sidebars
+ 0:21.03 INFO checking window state
+ 0:21.03 TEST_END: Test PASS. Subtests passed 4/4. Unexpected 0
+ 0:21.12 TEST_START: dom/events/test/clipboard/browser_umbrafox_clipboard_override.js
+ 0:21.13 INFO Entering test test_real_actor_notice_and_yes_retry_copy_and_paste
+ 0:21.18 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084549.log
+ 0:21.18 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084549.log
+ 0:21.23 GECKO(1084000) must wait for focus in content
+ 0:21.52 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084589.log
+ 0:21.52 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084589.log
+ 0:21.57 GECKO(1084000) must wait for focus in content
+ 0:21.85 INFO Leaving test test_real_actor_notice_and_yes_retry_copy_and_paste
+ 0:21.85 INFO Entering test test_real_always_autoretry_and_standard_revocation
+ 0:21.93 GECKO(1084000) must wait for focus in content
+ 0:22.14 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084627.log
+ 0:22.14 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084627.log
+ 0:22.35 GECKO(1084000) must wait for focus in content
+ 0:22.48 GECKO(1084000) must wait for focus in content
+ 0:22.70 GECKO(1084000) must wait for focus in content
+ 0:22.86 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084681.log
+ 0:22.86 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084681.log
+ 0:23.17 GECKO(1084000) must wait for focus in content
+ 0:23.31 GECKO(1084000) must wait for focus in content
+ 0:23.45 INFO Leaving test test_real_always_autoretry_and_standard_revocation
+ 0:23.45 INFO Entering test test_real_stale_always_never_saves_copy_or_paste_grants
+ 0:23.52 GECKO(1084000) must wait for focus in content
+ 0:23.63 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084761.log
+ 0:23.64 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084761.log
+ 0:24.14 GECKO(1084000) must wait for focus in content
+ 0:24.46 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084812.log
+ 0:24.46 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084812.log
+ 0:24.70 INFO Leaving test test_real_stale_always_never_saves_copy_or_paste_grants
+ 0:24.70 INFO Entering test test_existing_snapshot_xpidl_methods_and_private_helper_shape
+ 0:24.81 INFO Leaving test test_existing_snapshot_xpidl_methods_and_private_helper_shape
+ 0:24.81 INFO Entering test test_native_copy_default_and_one_shot_retry
+ 0:24.89 GECKO(1084000) must wait for focus in content
+ 0:25.02 GECKO(1084000) must wait for focus in content
+ 0:25.07 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084865.log
+ 0:25.07 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084865.log
+ 0:25.08 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084871.log
+ 0:25.08 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084871.log
+ 0:25.09 INFO Leaving test test_native_copy_default_and_one_shot_retry
+ 0:25.09 INFO Entering test test_native_paste_and_beforeinput_default_and_retry
+ 0:25.12 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084909.log
+ 0:25.12 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084909.log
+ 0:25.14 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084920.log
+ 0:25.14 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1084920.log
+ 0:25.19 GECKO(1084000) must wait for focus in content
+ 0:25.36 GECKO(1084000) must wait for focus in content
+ 0:25.54 GECKO(1084000) must wait for focus in content
+ 0:25.63 INFO Leaving test test_native_paste_and_beforeinput_default_and_retry
+ 0:25.63 INFO Entering test test_stale_clipboard_rejects_paste_without_exposing_new_data
+ 0:25.70 GECKO(1084000) must wait for focus in content
+ 0:25.73 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085016.log
+ 0:25.73 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085016.log
+ 0:25.73 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085021.log
+ 0:25.73 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085021.log
+ 0:25.74 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085028.log
+ 0:25.74 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085028.log
+ 0:25.83 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085117.log
+ 0:25.83 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085117.log
+ 0:25.87 GECKO(1084000) must wait for focus in content
+ 0:25.96 INFO Leaving test test_stale_clipboard_rejects_paste_without_exposing_new_data
+ 0:25.96 INFO Entering test test_stale_clipboard_rejects_copy_before_page_dispatch
+ 0:26.03 GECKO(1084000) must wait for focus in content
+ 0:26.09 INFO Leaving test test_stale_clipboard_rejects_copy_before_page_dispatch
+ 0:26.09 INFO Entering test test_native_window_operation_and_discard_are_exact
+ 0:26.12 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085156.log
+ 0:26.12 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085156.log
+ 0:26.13 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085161.log
+ 0:26.13 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085161.log
+ 0:26.17 GECKO(1084000) must wait for focus in content
+ 0:26.23 INFO Leaving test test_native_window_operation_and_discard_are_exact
+ 0:26.24 INFO checking for open popups
+ 0:26.58 GECKO(1084000) MEMORY STAT | vsize 11521MB | residentFast 510MB | heapAllocated 407MB
+ 0:26.58 INFO checking for open sidebars
+ 0:26.58 INFO checking window state
+ 0:26.58 TEST_END: Test PASS. Subtests passed 170/171. Unexpected 0
+ 0:26.67 TEST_START: dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js
+ 0:26.67 INFO Entering test test_script_and_synthetic_events_have_no_native_authority
+ 0:26.71 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085228.log
+ 0:26.71 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085228.log
+ 0:26.75 GECKO(1084000) must wait for focus in content
+ 0:26.83 INFO Leaving test test_script_and_synthetic_events_have_no_native_authority
+ 0:26.84 INFO Entering test test_propagation_stopping_does_not_offer_override
+ 0:26.91 GECKO(1084000) must wait for focus in content
+ 0:26.97 INFO Leaving test test_propagation_stopping_does_not_offer_override
+ 0:26.97 INFO Entering test test_privileged_only_cancellation_is_not_content_cancellation
+ 0:27.01 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085269.log
+ 0:27.01 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085269.log
+ 0:27.01 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085275.log
+ 0:27.01 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085275.log
+ 0:27.05 GECKO(1084000) must wait for focus in content
+ 0:27.12 INFO Leaving test test_privileged_only_cancellation_is_not_content_cancellation
+ 0:27.12 INFO Entering test test_editing_hosts_preserve_page_cancellation_without_notice
+ 0:27.19 GECKO(1084000) must wait for focus in content
+ 0:27.27 INFO Leaving test test_editing_hosts_preserve_page_cancellation_without_notice
+ 0:27.27 INFO Entering test test_textarea_beforeinput_cancellation_is_notice_eligible
+ 0:27.34 GECKO(1084000) must wait for focus in content
+ 0:27.43 INFO Leaving test test_textarea_beforeinput_cancellation_is_notice_eligible
+ 0:27.43 INFO Entering test test_nested_page_execcommand_cannot_borrow_native_authority
+ 0:27.50 GECKO(1084000) must wait for focus in content
+ 0:27.57 INFO Leaving test test_nested_page_execcommand_cannot_borrow_native_authority
+ 0:27.57 INFO Entering test test_stale_retry_is_consumed_without_page_dispatch
+ 0:27.57 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085352.log
+ 0:27.57 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085352.log
+ 0:27.67 GECKO(1084000) must wait for focus in content
+ 0:27.70 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085389.log
+ 0:27.70 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085389.log
+ 0:27.71 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085394.log
+ 0:27.71 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085394.log
+ 0:27.71 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085400.log
+ 0:27.71 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085400.log
+ 0:27.75 INFO Leaving test test_stale_retry_is_consumed_without_page_dispatch
+ 0:27.75 INFO Entering test test_retry_beforeinput_cannot_make_control_unwritable
+ 0:27.82 GECKO(1084000) must wait for focus in content
+ 0:27.85 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085492.log
+ 0:27.86 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085492.log
+ 0:27.92 INFO Leaving test test_retry_beforeinput_cannot_make_control_unwritable
+ 0:27.92 INFO Entering test test_mismatched_actions_do_not_consume_or_replay
+ 0:27.99 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085527.log
+ 0:27.99 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085527.log
+ 0:28.00 GECKO(1084000) must wait for focus in content
+ 0:28.10 INFO Leaving test test_mismatched_actions_do_not_consume_or_replay
+ 0:28.10 INFO Entering test test_navigation_cannot_redirect_a_pending_paste
+ 0:28.13 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085564.log
+ 0:28.13 GECKO(1084000) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4rf1euil.mozrunner/runtests_leaks_tab_pid1085564.log
+ 0:28.17 GECKO(1084000) must wait for focus in content
+ 0:28.30 GECKO(1084000) must wait for focus in content
+ 0:28.34 INFO Leaving test test_navigation_cannot_redirect_a_pending_paste
+ 0:28.34 INFO checking for open popups
+ 0:28.67 GECKO(1084000) MEMORY STAT | vsize 19772MB | residentFast 539MB | heapAllocated 440MB
+ 0:28.67 INFO checking for open sidebars
+ 0:28.67 INFO checking window state
+ 0:28.67 TEST_END: Test FAIL, expected PASS. Subtests passed 117/128. Unexpected 11
+FAIL test_script_and_synthetic_events_have_no_native_authority - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+async*withNewTab@resource://testing-common/BrowserTestUtils.sys.mjs:175:22
+async*withSafetyFixture@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:257:26
+test_script_and_synthetic_events_have_no_native_authority@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:302:13
+handleTask@chrome://mochikit/content/browser-test.js:1580:26
+_runTaskBasedTest@chrome://mochikit/content/browser-test.js:1670:18
+Tester_execTest@chrome://mochikit/content/browser-test.js:1823:14
+nextTest/<@chrome://mochikit/content/browser-test.js:1560:14
+SimpleTest.waitForFocus/<@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1060:13
+promise callback*SimpleTest.waitForFocus@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1059:53
+nextTest@chrome://mochikit/content/browser-test.js:1498:21
+async*testScope/test_finish/<@chrome://mochikit/content/browser-test.js:2313:25
+run@chrome://mochikit/content/browser-test.js:2236:9
+FAIL test_propagation_stopping_does_not_offer_override - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+async*withNewTab@resource://testing-common/BrowserTestUtils.sys.mjs:175:22
+async*withSafetyFixture@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:257:26
+test_propagation_stopping_does_not_offer_override@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:358:13
+handleTask@chrome://mochikit/content/browser-test.js:1580:26
+_runTaskBasedTest@chrome://mochikit/content/browser-test.js:1670:18
+async*Tester_execTest@chrome://mochikit/content/browser-test.js:1823:14
+nextTest/<@chrome://mochikit/content/browser-test.js:1560:14
+SimpleTest.waitForFocus/<@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1060:13
+promise callback*SimpleTest.waitForFocus@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1059:53
+nextTest@chrome://mochikit/content/browser-test.js:1498:21
+async*testScope/test_finish/<@chrome://mochikit/content/browser-test.js:2313:25
+run@chrome://mochikit/content/browser-test.js:2236:9
+FAIL test_privileged_only_cancellation_is_not_content_cancellation - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+async*withNewTab@resource://testing-common/BrowserTestUtils.sys.mjs:175:22
+async*withSafetyFixture@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:257:26
+test_privileged_only_cancellation_is_not_content_cancellation@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:390:13
+handleTask@chrome://mochikit/content/browser-test.js:1580:26
+_runTaskBasedTest@chrome://mochikit/content/browser-test.js:1670:18
+async*Tester_execTest@chrome://mochikit/content/browser-test.js:1823:14
+nextTest/<@chrome://mochikit/content/browser-test.js:1560:14
+SimpleTest.waitForFocus/<@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1060:13
+promise callback*SimpleTest.waitForFocus@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1059:53
+nextTest@chrome://mochikit/content/browser-test.js:1498:21
+async*testScope/test_finish/<@chrome://mochikit/content/browser-test.js:2313:25
+run@chrome://mochikit/content/browser-test.js:2236:9
+FAIL test_editing_hosts_preserve_page_cancellation_without_notice - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+async*withNewTab@resource://testing-common/BrowserTestUtils.sys.mjs:175:22
+async*withSafetyFixture@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:257:26
+test_editing_hosts_preserve_page_cancellation_without_notice@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:417:15
+handleTask@chrome://mochikit/content/browser-test.js:1580:26
+_runTaskBasedTest@chrome://mochikit/content/browser-test.js:1670:18
+async*Tester_execTest@chrome://mochikit/content/browser-test.js:1823:14
+nextTest/<@chrome://mochikit/content/browser-test.js:1560:14
+SimpleTest.waitForFocus/<@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1060:13
+promise callback*SimpleTest.waitForFocus@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1059:53
+nextTest@chrome://mochikit/content/browser-test.js:1498:21
+async*testScope/test_finish/<@chrome://mochikit/content/browser-test.js:2313:25
+run@chrome://mochikit/content/browser-test.js:2236:9
+FAIL test_textarea_beforeinput_cancellation_is_notice_eligible - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+FAIL test_nested_page_execcommand_cannot_borrow_native_authority - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+async*withNewTab@resource://testing-common/BrowserTestUtils.sys.mjs:175:22
+async*withSafetyFixture@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:257:26
+test_nested_page_execcommand_cannot_borrow_native_authority@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:479:11
+handleTask@chrome://mochikit/content/browser-test.js:1580:26
+_runTaskBasedTest@chrome://mochikit/content/browser-test.js:1670:18
+async*Tester_execTest@chrome://mochikit/content/browser-test.js:1823:14
+nextTest/<@chrome://mochikit/content/browser-test.js:1560:14
+SimpleTest.waitForFocus/<@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1060:13
+promise callback*SimpleTest.waitForFocus@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1059:53
+nextTest@chrome://mochikit/content/browser-test.js:1498:21
+async*testScope/test_finish/<@chrome://mochikit/content/browser-test.js:2313:25
+run@chrome://mochikit/content/browser-test.js:2236:9
+FAIL test_stale_retry_is_consumed_without_page_dispatch - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+async*withNewTab@resource://testing-common/BrowserTestUtils.sys.mjs:175:22
+async*withSafetyFixture@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:257:26
+test_stale_retry_is_consumed_without_page_dispatch@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:510:13
+handleTask@chrome://mochikit/content/browser-test.js:1580:26
+_runTaskBasedTest@chrome://mochikit/content/browser-test.js:1670:18
+async*Tester_execTest@chrome://mochikit/content/browser-test.js:1823:14
+nextTest/<@chrome://mochikit/content/browser-test.js:1560:14
+SimpleTest.waitForFocus/<@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1060:13
+promise callback*SimpleTest.waitForFocus@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1059:53
+nextTest@chrome://mochikit/content/browser-test.js:1498:21
+async*testScope/test_finish/<@chrome://mochikit/content/browser-test.js:2313:25
+run@chrome://mochikit/content/browser-test.js:2236:9
+FAIL test_retry_beforeinput_cannot_make_control_unwritable - readOnly during replay must not report success - false == true
+chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:test_retry_beforeinput_cannot_make_control_unwritable/<:596
+async*chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:withSafetyFixture/<:262
+async*resource://testing-common/BrowserTestUtils.sys.mjs:withNewTab:175
+async*chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:withSafetyFixture:257
+chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:test_retry_beforeinput_cannot_make_control_unwritable:561
+chrome://mochikit/content/browser-test.js:handleTask:1580
+chrome://mochikit/content/browser-test.js:_runTaskBasedTest:1670
+async*chrome://mochikit/content/browser-test.js:Tester_execTest:1823
+chrome://mochikit/content/browser-test.js:nextTest/<:1560
+chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:SimpleTest.waitForFocus/<:1060
+promise callback*chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:SimpleTest.waitForFocus:1059
+chrome://mochikit/content/browser-test.js:nextTest:1498
+async*chrome://mochikit/content/browser-test.js:testScope/test_finish/<:2313
+chrome://mochikit/content/browser-test.js:run:2236
+FAIL test_retry_beforeinput_cannot_make_control_unwritable - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+async*withNewTab@resource://testing-common/BrowserTestUtils.sys.mjs:175:22
+async*withSafetyFixture@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:257:26
+test_retry_beforeinput_cannot_make_control_unwritable@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:561:13
+handleTask@chrome://mochikit/content/browser-test.js:1580:26
+_runTaskBasedTest@chrome://mochikit/content/browser-test.js:1670:18
+async*Tester_execTest@chrome://mochikit/content/browser-test.js:1823:14
+nextTest/<@chrome://mochikit/content/browser-test.js:1560:14
+SimpleTest.waitForFocus/<@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1060:13
+promise callback*SimpleTest.waitForFocus@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1059:53
+nextTest@chrome://mochikit/content/browser-test.js:1498:21
+async*testScope/test_finish/<@chrome://mochikit/content/browser-test.js:2313:25
+run@chrome://mochikit/content/browser-test.js:2236:9
+FAIL test_mismatched_actions_do_not_consume_or_replay - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+async*withNewTab@resource://testing-common/BrowserTestUtils.sys.mjs:175:22
+async*withSafetyFixture@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:257:26
+test_mismatched_actions_do_not_consume_or_replay@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:623:9
+handleTask@chrome://mochikit/content/browser-test.js:1580:26
+_runTaskBasedTest@chrome://mochikit/content/browser-test.js:1670:18
+FAIL test_navigation_cannot_redirect_a_pending_paste - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+async*withNewTab@resource://testing-common/BrowserTestUtils.sys.mjs:175:22
+async*withSafetyFixture@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:257:26
+test_navigation_cannot_redirect_a_pending_paste@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:669:9
+handleTask@chrome://mochikit/content/browser-test.js:1580:26
+_runTaskBasedTest@chrome://mochikit/content/browser-test.js:1670:18
+async*Tester_execTest@chrome://mochikit/content/browser-test.js:1823:14
+nextTest/<@chrome://mochikit/content/browser-test.js:1560:14
+SimpleTest.waitForFocus/<@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1060:13
+promise callback*SimpleTest.waitForFocus@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1059:53
+nextTest@chrome://mochikit/content/browser-test.js:1498:21
+async*testScope/test_finish/<@chrome://mochikit/content/browser-test.js:2313:25
+run@chrome://mochikit/content/browser-test.js:2236:9
+FAIL dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js - finished in 1996ms
+ 0:28.69 GECKO(1084000) Completed ShutdownLeaks collections in process 1084000
+ 0:28.69 INFO TEST-START | Shutdown
+ 0:28.69 INFO Browser Chrome Test Summary
+ 0:28.69 INFO Passed:  291
+ 0:28.69 INFO Failed:  11
+ 0:28.69 INFO Todo:    1
+ 0:28.69 INFO Mode:    e10s
+ 0:28.69 INFO *** End BrowserChrome Test Results ***
+ 0:28.73 GECKO(1084000) Exiting due to channel error.
+ 0:28.73 GECKO(1084000) Exiting due to channel error.
+ 0:28.73 GECKO(1084000) Exiting due to channel error.
+ 0:28.73 GECKO(1084000) Exiting due to channel error.
+ 0:28.73 GECKO(1084000) Exiting due to channel error.
+ 0:28.73 GECKO(1084000) Exiting due to channel error.
+ 0:28.73 GECKO(1084000) Exiting due to channel error.
+ 0:28.75 Main app process: exit 0
+ 0:28.75 INFO runtests.py | Main app process exited normally
+ 0:28.75 INFO runtests.py | Application ran for: 0:00:11.183711
+ 0:28.75 INFO zombiecheck | Reading PID log: /tmp/tmp4t9d__jjpidlog
+ 0:28.75 INFO ==> process 1084000 launched child process 1084047
+ 0:28.75 INFO ==> process 1084000 launched child process 1084164
+ 0:28.75 INFO zombiecheck | Checking for orphan process with PID: 1084164
+ 0:28.75 INFO zombiecheck | Checking for orphan process with PID: 1084047
+ 0:28.75 INFO runtests.py | Running http tests: end. status: 0
+ 0:28.75 INFO Stopping web server
+ 0:28.75 INFO Server shut down.
+ 0:28.75 INFO Web server killed.
+ 0:28.75 INFO Stopping web socket server
+ 0:28.75 INFO Stopping ssltunnel
+ 0:28.76 WARNING leakcheck | refcount logging is off, so leaks can't be detected!
+ 0:28.77 INFO Buffered messages finished
+TEST-INFO | checking window state
+Browser Chrome Test Summary
+	Passed: 419
+	Failed: 12
+	Todo: 2
+	Retried: 0
+	Mode: e10s
+*** End BrowserChrome Test Results ***
+ 0:28.77 INFO Buffered messages finished
+ 0:28.77 SUITE_END
+ 0:28.77 
+Overall Summary
+===============
+
+mochitest-browser
+~~~~~~~~~~~~~~~~~
+Ran 437 checks (433 subtests, 4 tests)
+Expected results: 423
+Unexpected results: 14
+  test: 2 (2 fail)
+  subtest: 12 (12 fail)
+
+Error Summary
+-------------
+browser/modules/test/browser/browser_UmbrafoxClipboardProtection.js
+  FAIL test_cross_origin_frame_grant_uses_its_own_revoke_row - Uncaught exception in test - Standard site permissions panel opens - timed out after 100 tries.
+  FAIL browser/modules/test/browser/browser_UmbrafoxClipboardProtection.js - finished in 12658ms
+dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js
+  FAIL test_script_and_synthetic_events_have_no_native_authority - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+async*withNewTab@resource://testing-common/BrowserTestUtils.sys.mjs:175:22
+async*withSafetyFixture@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:257:26
+test_script_and_synthetic_events_have_no_native_authority@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:302:13
+handleTask@chrome://mochikit/content/browser-test.js:1580:26
+_runTaskBasedTest@chrome://mochikit/content/browser-test.js:1670:18
+Tester_execTest@chrome://mochikit/content/browser-test.js:1823:14
+nextTest/<@chrome://mochikit/content/browser-test.js:1560:14
+SimpleTest.waitForFocus/<@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1060:13
+promise callback*SimpleTest.waitForFocus@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1059:53
+nextTest@chrome://mochikit/content/browser-test.js:1498:21
+async*testScope/test_finish/<@chrome://mochikit/content/browser-test.js:2313:25
+run@chrome://mochikit/content/browser-test.js:2236:9
+  FAIL test_propagation_stopping_does_not_offer_override - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+async*withNewTab@resource://testing-common/BrowserTestUtils.sys.mjs:175:22
+async*withSafetyFixture@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:257:26
+test_propagation_stopping_does_not_offer_override@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:358:13
+handleTask@chrome://mochikit/content/browser-test.js:1580:26
+_runTaskBasedTest@chrome://mochikit/content/browser-test.js:1670:18
+async*Tester_execTest@chrome://mochikit/content/browser-test.js:1823:14
+nextTest/<@chrome://mochikit/content/browser-test.js:1560:14
+SimpleTest.waitForFocus/<@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1060:13
+promise callback*SimpleTest.waitForFocus@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1059:53
+nextTest@chrome://mochikit/content/browser-test.js:1498:21
+async*testScope/test_finish/<@chrome://mochikit/content/browser-test.js:2313:25
+run@chrome://mochikit/content/browser-test.js:2236:9
+  FAIL test_privileged_only_cancellation_is_not_content_cancellation - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+async*withNewTab@resource://testing-common/BrowserTestUtils.sys.mjs:175:22
+async*withSafetyFixture@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:257:26
+test_privileged_only_cancellation_is_not_content_cancellation@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:390:13
+handleTask@chrome://mochikit/content/browser-test.js:1580:26
+_runTaskBasedTest@chrome://mochikit/content/browser-test.js:1670:18
+async*Tester_execTest@chrome://mochikit/content/browser-test.js:1823:14
+nextTest/<@chrome://mochikit/content/browser-test.js:1560:14
+SimpleTest.waitForFocus/<@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1060:13
+promise callback*SimpleTest.waitForFocus@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1059:53
+nextTest@chrome://mochikit/content/browser-test.js:1498:21
+async*testScope/test_finish/<@chrome://mochikit/content/browser-test.js:2313:25
+run@chrome://mochikit/content/browser-test.js:2236:9
+  FAIL test_editing_hosts_preserve_page_cancellation_without_notice - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+async*withNewTab@resource://testing-common/BrowserTestUtils.sys.mjs:175:22
+async*withSafetyFixture@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:257:26
+test_editing_hosts_preserve_page_cancellation_without_notice@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:417:15
+handleTask@chrome://mochikit/content/browser-test.js:1580:26
+_runTaskBasedTest@chrome://mochikit/content/browser-test.js:1670:18
+async*Tester_execTest@chrome://mochikit/content/browser-test.js:1823:14
+nextTest/<@chrome://mochikit/content/browser-test.js:1560:14
+SimpleTest.waitForFocus/<@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1060:13
+promise callback*SimpleTest.waitForFocus@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1059:53
+nextTest@chrome://mochikit/content/browser-test.js:1498:21
+async*testScope/test_finish/<@chrome://mochikit/content/browser-test.js:2313:25
+run@chrome://mochikit/content/browser-test.js:2236:9
+  FAIL test_textarea_beforeinput_cancellation_is_notice_eligible - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+  FAIL test_nested_page_execcommand_cannot_borrow_native_authority - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+async*withNewTab@resource://testing-common/BrowserTestUtils.sys.mjs:175:22
+async*withSafetyFixture@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:257:26
+test_nested_page_execcommand_cannot_borrow_native_authority@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:479:11
+handleTask@chrome://mochikit/content/browser-test.js:1580:26
+_runTaskBasedTest@chrome://mochikit/content/browser-test.js:1670:18
+async*Tester_execTest@chrome://mochikit/content/browser-test.js:1823:14
+nextTest/<@chrome://mochikit/content/browser-test.js:1560:14
+SimpleTest.waitForFocus/<@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1060:13
+promise callback*SimpleTest.waitForFocus@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1059:53
+nextTest@chrome://mochikit/content/browser-test.js:1498:21
+async*testScope/test_finish/<@chrome://mochikit/content/browser-test.js:2313:25
+run@chrome://mochikit/content/browser-test.js:2236:9
+  FAIL test_stale_retry_is_consumed_without_page_dispatch - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+async*withNewTab@resource://testing-common/BrowserTestUtils.sys.mjs:175:22
+async*withSafetyFixture@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:257:26
+test_stale_retry_is_consumed_without_page_dispatch@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:510:13
+handleTask@chrome://mochikit/content/browser-test.js:1580:26
+_runTaskBasedTest@chrome://mochikit/content/browser-test.js:1670:18
+async*Tester_execTest@chrome://mochikit/content/browser-test.js:1823:14
+nextTest/<@chrome://mochikit/content/browser-test.js:1560:14
+SimpleTest.waitForFocus/<@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1060:13
+promise callback*SimpleTest.waitForFocus@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1059:53
+nextTest@chrome://mochikit/content/browser-test.js:1498:21
+async*testScope/test_finish/<@chrome://mochikit/content/browser-test.js:2313:25
+run@chrome://mochikit/content/browser-test.js:2236:9
+  FAIL test_retry_beforeinput_cannot_make_control_unwritable - readOnly during replay must not report success - false == true
+chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:test_retry_beforeinput_cannot_make_control_unwritable/<:596
+async*chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:withSafetyFixture/<:262
+async*resource://testing-common/BrowserTestUtils.sys.mjs:withNewTab:175
+async*chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:withSafetyFixture:257
+chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:test_retry_beforeinput_cannot_make_control_unwritable:561
+chrome://mochikit/content/browser-test.js:handleTask:1580
+chrome://mochikit/content/browser-test.js:_runTaskBasedTest:1670
+async*chrome://mochikit/content/browser-test.js:Tester_execTest:1823
+chrome://mochikit/content/browser-test.js:nextTest/<:1560
+chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:SimpleTest.waitForFocus/<:1060
+promise callback*chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:SimpleTest.waitForFocus:1059
+chrome://mochikit/content/browser-test.js:nextTest:1498
+async*chrome://mochikit/content/browser-test.js:testScope/test_finish/<:2313
+chrome://mochikit/content/browser-test.js:run:2236
+  FAIL test_retry_beforeinput_cannot_make_control_unwritable - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+async*withNewTab@resource://testing-common/BrowserTestUtils.sys.mjs:175:22
+async*withSafetyFixture@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:257:26
+test_retry_beforeinput_cannot_make_control_unwritable@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:561:13
+handleTask@chrome://mochikit/content/browser-test.js:1580:26
+_runTaskBasedTest@chrome://mochikit/content/browser-test.js:1670:18
+async*Tester_execTest@chrome://mochikit/content/browser-test.js:1823:14
+nextTest/<@chrome://mochikit/content/browser-test.js:1560:14
+SimpleTest.waitForFocus/<@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1060:13
+promise callback*SimpleTest.waitForFocus@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1059:53
+nextTest@chrome://mochikit/content/browser-test.js:1498:21
+async*testScope/test_finish/<@chrome://mochikit/content/browser-test.js:2313:25
+run@chrome://mochikit/content/browser-test.js:2236:9
+  FAIL test_mismatched_actions_do_not_consume_or_replay - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+async*withNewTab@resource://testing-common/BrowserTestUtils.sys.mjs:175:22
+async*withSafetyFixture@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:257:26
+test_mismatched_actions_do_not_consume_or_replay@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:623:9
+handleTask@chrome://mochikit/content/browser-test.js:1580:26
+_runTaskBasedTest@chrome://mochikit/content/browser-test.js:1670:18
+  FAIL test_navigation_cannot_redirect_a_pending_paste - Uncaught exception in test - TypeError: can't access property "PopupNotifications", browser.ownerGlobal is undefined
+withSafetyFixture/<@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:277:24
+async*withNewTab@resource://testing-common/BrowserTestUtils.sys.mjs:175:22
+async*withSafetyFixture@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:257:26
+test_navigation_cannot_redirect_a_pending_paste@chrome://mochitests/content/browser/dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js:669:9
+handleTask@chrome://mochikit/content/browser-test.js:1580:26
+_runTaskBasedTest@chrome://mochikit/content/browser-test.js:1670:18
+async*Tester_execTest@chrome://mochikit/content/browser-test.js:1823:14
+nextTest/<@chrome://mochikit/content/browser-test.js:1560:14
+SimpleTest.waitForFocus/<@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1060:13
+promise callback*SimpleTest.waitForFocus@chrome://mochikit/content/tests/SimpleTest/SimpleTest.js:1059:53
+nextTest@chrome://mochikit/content/browser-test.js:1498:21
+async*testScope/test_finish/<@chrome://mochikit/content/browser-test.js:2313:25
+run@chrome://mochikit/content/browser-test.js:2236:9
+  FAIL dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js - finished in 1996ms

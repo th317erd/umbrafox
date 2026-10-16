@@ -1,0 +1,185 @@
+usage: mach [global arguments] xpcshell-test [command arguments]
+
+Run XPCOM Shell tests (API direct unit testing)
+
+Global Arguments:
+  -v, --verbose         Print verbose output.
+  -q, --quiet           Don't print as much output.
+  -l, --log-file FILENAME
+                        Filename to write log data to.
+  --log-interval        Prefix log line with interval from last message rather
+                        than relative time. Note that this is NOT execution
+                        time if there are parallel operations.
+  --no-interactive      Automatically selects the default option on any
+                        interactive prompts. If the output is not a terminal,
+                        then --no-interactive is assumed.
+  --log-no-times        Do not prefix log lines with times. By default, mach
+                        will prefix each output line with the time since
+                        command start.
+  -h, --help            Show this help message.
+  --debug-command       Start a Python debugger when command is dispatched.
+  --profile-command     Capture a Python profile of the mach process as
+                        command is dispatched.
+  --settings FILENAME   Path to settings file.
+
+Command Parameters:
+  testPaths             Paths of tests to run.
+
+Command Arguments:
+  -h, --help            show this help message and exit
+  --app-binary APP_BINARY
+                        path to application binary (eg: c:\program
+                        files\mozilla firefox\firefox.exe)
+  --app-path APPPATH    application directory (as opposed to XRE directory)
+  --msix-app-path MSIXAPPPATH
+                        application directory for msix mode (as opposed to XRE
+                        directory)
+  --msix-app-binary MSIX_APP_BINARY
+                        path to application binary for msix mode (eg:
+                        c:\program files\mozilla firefox\firefox.exe)
+  --interactive         don't automatically run tests, drop to an xpcshell
+                        prompt
+  --verbose             always print stdout and stderr from tests
+  --verbose-if-fails    Output the log if a test fails, even when run in
+                        parallel
+  --keep-going          continue running tests after test killed with
+                        control-C (SIGINT)
+  --logfiles            create log files (default, only used to override --no-
+                        logfiles)
+  --dump-tests DUMP_TESTS
+                        Specify path to a filename to dump all the tests that
+                        will be run
+  --manifest MANIFEST   Manifest of test directories to use
+  --no-logfiles         don't create log files
+  --sequential          Run all tests sequentially
+  --temp-dir TEMPDIR    Directory to use for temporary files
+  --testing-modules-dir TESTINGMODULESDIR
+                        Directory where testing modules are located.
+  --profile-name PROFILENAME
+                        name of application profile being tested
+  --build-info-json MOZINFO
+                        path to a mozinfo.json including information about the
+                        build configuration. defaults to looking for
+                        mozinfo.json next to the script.
+  --shuffle             Execute tests in random order
+  --xre-path XREPATH    absolute path to directory containing XRE (probably
+                        xulrunner)
+  --msix-xre-path MSIXXREPATH
+                        absolute path to directory containing XRE in msix mode
+                        (probably xulrunner)
+  --symbols-path SYMBOLSPATH
+                        absolute path to directory containing breakpad
+                        symbols, or the URL of a zip file containing symbols
+  --jscov-dir-prefix JSCOVDIR
+                        Directory to store per-test javascript line coverage
+                        data as json.
+  --debugger DEBUGGER   use the given debugger to launch the application
+  --debugger-args DEBUGGERARGS
+                        pass the given args to the debugger _before_ the
+                        application on the command line
+  --debugger-interactive
+                        prevents the test harness from redirecting stdout and
+                        stderr for interactive debuggers
+  --jsdebugger          Waits for a devtools JS debugger to connect before
+                        starting the test.
+  --jsdebugger-port JSDEBUGGERPORT
+                        The port to listen on for a debugger connection if
+                        --jsdebugger is specified.
+  --tag TEST_TAGS       filter out tests that don't have the given tag. Can be
+                        used multiple times in which case the test must
+                        contain at least one of the given tags.
+  --utility-path UTILITY_PATH
+                        Path to a directory containing utility programs, such
+                        as stack fixer scripts.
+  --xpcshell XPCSHELL   Path to xpcshell binary
+  --http3server HTTP3SERVER
+                        Path to http3server binary
+  --rerun-failures      Rerun failures from the previous run, if any
+  --failure-manifest FAILURE_MANIFEST
+                        Path to a manifest file from which to rerun failures
+                        (with --rerun-failure) or in which to record failed
+                        tests
+  --threads THREADCOUNT
+                        override the number of jobs (threads) when running
+                        tests in parallel, the default is CPU x 1.5 when
+                        running via mach and CPU x 4 when running in
+                        automation
+  --timeout-factor TIMEOUTFACTOR
+                        multiplier for test timeout values
+  --variant VARIANT     use specified variant for any harness level changes.
+  --setpref PREF=VALUE  Defines an extra user preference (can be passed
+                        multiple times.
+  --setenv NAME=VALUE   Set one or more environment variable before launching
+                        the test (can be passed multiple times).
+  --verify              Run tests in verification mode: Run many times in
+                        different ways, to see if there are intermittent
+                        failures.
+  --verify-max-time VERIFYMAXTIME
+                        Maximum time, in seconds, to run in --verify mode.
+  --headless            Enable headless mode by default for tests which don't
+                        specify whether to use headless mode
+  --conditioned-profile
+                        Run with conditioned profile instead of fresh blank
+                        profile
+  --self-test           Run self tests
+  --run-failures RUNFAILURES
+                        Run failures matching keyword
+  --timeout-as-pass     Harness level timeouts will be treated as passing
+  --crash-as-pass       Harness level crashes will be treated as passing
+  --disable-fission     disable fission mode (back to e10s || 1proc)
+  --repeat REPEAT       repeat the test X times, default [0]
+  --profiler            Run the Firefox Profiler and get a performance profile
+                        of the test. This is useful to find performance
+                        issues, and also to see what exactly the test is
+                        doing.
+  --force               Force reinstallation of test symlinks even if up to
+                        date.
+
+Output Logging:
+  Each option represents a possible logging format and takes a filename to
+  write that format to, or '-' to write to stdout. Some options are provided
+  by the mozlog utility; see https://firefox-source-
+  docs.mozilla.org/mozbase/mozlog.html for extended documentation.
+
+  --log-raw LOG_RAW     Raw structured log messages (provided by mozlog)
+  --log-unittest LOG_UNITTEST
+                        Unittest style output (provided by mozlog)
+  --log-xunit LOG_XUNIT
+                        xUnit compatible XML (provided by mozlog)
+  --log-html LOG_HTML   HTML report (provided by mozlog)
+  --log-mach LOG_MACH   Human-readable output (provided by mozlog)
+  --log-tbpl LOG_TBPL   TBPL style log format (provided by mozlog)
+  --log-grouped LOG_GROUPED
+                        Grouped summary of test results (provided by mozlog)
+  --log-raw-level LOG_RAW_LEVEL
+                        A least log level to subscribe to for the given
+                        formatter (debug, info, error, etc.)
+  --log-raw-unexpectedonly
+                        Suppress process output for tests with expected
+                        results.
+  --log-mach-verbose    Enables verbose mode for the given formatter.
+  --log-mach-level LOG_MACH_LEVEL
+                        A least log level to subscribe to for the given
+                        formatter (debug, info, error, etc.)
+  --log-mach-buffer LOG_MACH_BUFFER
+                        If specified, enables message buffering at the given
+                        buffer size limit.
+  --log-mach-screenshot
+                        Enable logging reftest-analyzer compatible screenshot
+                        data.
+  --log-mach-no-screenshot
+                        Disable logging reftest-analyzer compatible screenshot
+                        data.
+  --log-mach-unexpectedonly
+                        Suppress process output for tests with expected
+                        results.
+  --log-tbpl-compact    Enables compact mode for the given formatter.
+  --log-tbpl-level LOG_TBPL_LEVEL
+                        A least log level to subscribe to for the given
+                        formatter (debug, info, error, etc.)
+  --log-tbpl-buffer LOG_TBPL_BUFFER
+                        If specified, enables message buffering at the given
+                        buffer size limit.
+  --log-tbpl-unexpectedonly
+                        Suppress process output for tests with expected
+                        results.

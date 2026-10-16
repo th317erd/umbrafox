@@ -1,0 +1,1164 @@
+diff --git c/browser/components/customkeys/CustomKeys.sys.mjs w/browser/components/customkeys/CustomKeys.sys.mjs
+index 76f99381ab70..4525b9bf486b 100644
+--- c/browser/components/customkeys/CustomKeys.sys.mjs
++++ w/browser/components/customkeys/CustomKeys.sys.mjs
+@@ -3,6 +3,7 @@
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+ import { JSONFile } from "resource://gre/modules/JSONFile.sys.mjs";
++import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
+ 
+ // All the attributes for a <key> element that might specify the key to press.
+ // We include data-l10n-id because keys are often specified using Fluent. Note
+@@ -31,6 +32,47 @@ const config = new JSONFile({
+   path: PathUtils.join(PathUtils.profileDir, "customKeys.json"),
+ });
+ 
++function getChromePreset() {
++  const preset = {
++    key_openDownloads: { key: "J", modifiers: "accel" },
++    key_search2: { key: "E", modifiers: "accel" },
++    key_privatebrowsing: { key: "N", modifiers: "accel,shift" },
++    key_undoCloseWindow: {},
++  };
++  for (let i = 1; i <= 9; i++) {
++    const id = i == 9 ? "key_selectLastTab" : `key_selectTab${i}`;
++    preset[id] = { key: String(i), modifiers: "accel" };
++  }
++  return preset;
++}
++
++function conflictsWithChromePreset(data, bindings) {
++  const key =
++    data.key?.toUpperCase() || data.keycode?.toUpperCase().replace(/^VK_/, "");
++  const modifiers = new Set(
++    (data.modifiers || "")
++      .split(/[,\s]+/)
++      .filter(Boolean)
++      .map(modifier => (modifier == "accel" ? "control" : modifier))
++  );
++  return bindings.some(binding => {
++    if (!binding.key || key != binding.key) {
++      return false;
++    }
++    // Do not guess about wildcard or platform-configurable access modifiers.
++    if (modifiers.has("any") || modifiers.has("access")) {
++      return true;
++    }
++    const expected = binding.modifiers
++      .split(",")
++      .map(modifier => (modifier == "accel" ? "control" : modifier));
++    return (
++      modifiers.size == expected.length &&
++      expected.every(modifier => modifiers.has(modifier))
++    );
++  });
++}
++
+ function applyToKeyEl(window, keyId, keysets) {
+   const keyEl = window.document.getElementById(keyId);
+   if (!keyEl || keyEl.tagName != "key") {
+@@ -142,6 +184,64 @@ function observe(window) {
+ }
+ 
+ export const CustomKeys = {
++  async applyChromePreset(window) {
++    if (AppConstants.platform != "linux") {
++      return { applied: false, reason: "unsupported" };
++    }
++    await config.load();
++    if (!windows.has(window)) {
++      return { applied: false, reason: "unavailable" };
++    }
++    const preset = getChromePreset();
++    const bindings = Object.values(preset);
++    for (const id of Object.keys(preset)) {
++      const key = window.document.getElementById(id);
++      if (
++        !key ||
++        key.tagName != "key" ||
++        key.getAttribute("internal") == "true"
++      ) {
++        return { applied: false, reason: "unavailable" };
++      }
++    }
++    for (const current of windows.keys()) {
++      for (const key of current.document.querySelectorAll("key")) {
++        if (Object.hasOwn(preset, key.id)) {
++          continue;
++        }
++        const data =
++          config.data[key.id] ??
++          Object.fromEntries(
++            ["key", "keycode", "modifiers"].map(attr => [
++              attr,
++              key.getAttribute(attr),
++            ])
++          );
++        if (conflictsWithChromePreset(data, bindings)) {
++          return { applied: false, reason: "conflict", keyID: key.id };
++        }
++      }
++    }
++    for (const [id, data] of Object.entries(config.data)) {
++      if (
++        !Object.hasOwn(preset, id) &&
++        conflictsWithChromePreset(data, bindings)
++      ) {
++        return { applied: false, reason: "conflict", keyID: id };
++      }
++    }
++    Object.assign(config.data, preset);
++    for (const current of windows.keys()) {
++      const keysets = new Set();
++      for (const id of Object.keys(preset)) {
++        applyToKeyEl(current, id, keysets);
++      }
++      refreshKeysets(current, keysets);
++    }
++    config.saveSoon();
++    return { applied: true };
++  },
++
+   /**
+    * Customize a keyboard shortcut.
+    *
+diff --git c/browser/components/customkeys/CustomKeysParent.sys.mjs w/browser/components/customkeys/CustomKeysParent.sys.mjs
+index 3a3b05e5eecf..ebc9e4555e07 100644
+--- c/browser/components/customkeys/CustomKeysParent.sys.mjs
++++ w/browser/components/customkeys/CustomKeysParent.sys.mjs
+@@ -218,6 +218,13 @@ export class CustomKeysParent extends JSWindowActorParent {
+ 
+   async receiveMessage(message) {
+     switch (message.name) {
++      case "CustomKeys:CanApplyChromePreset":
++        return AppConstants.platform == "linux";
++      case "CustomKeys:ApplyChromePreset":
++        this.getKeys();
++        return CustomKeys.applyChromePreset(
++          this.browsingContext.topChromeWindow
++        );
+       case "CustomKeys:CaptureKey": {
+         if (message.data) {
+           this.browsingContext.embedderElement.addEventListener(
+diff --git c/browser/components/customkeys/content/customkeys-sidebar.mjs w/browser/components/customkeys/content/customkeys-sidebar.mjs
+index 567220ca15b7..2d8a02610733 100644
+--- c/browser/components/customkeys/content/customkeys-sidebar.mjs
++++ w/browser/components/customkeys/content/customkeys-sidebar.mjs
+@@ -47,6 +47,11 @@ class CustomkeysSidebar extends MozLitElement {
+             data-l10n-id="customkeys-search-input"
+             inputlayout="block"
+           ></moz-input-search>
++          <moz-button
++            id="chromePreset"
++            data-l10n-id="customkeys-chrome-preset-button"
++            hidden
++          ></moz-button>
+           <moz-button
+             id="resetAll"
+             data-l10n-id="customkeys-reset-all-button"
+diff --git c/browser/components/customkeys/content/customkeys.js w/browser/components/customkeys/content/customkeys.js
+index 0dff9a75e2ff..a9934833342f 100644
+--- c/browser/components/customkeys/content/customkeys.js
++++ w/browser/components/customkeys/content/customkeys.js
+@@ -370,6 +370,10 @@ async function onResetAll() {
+     return; // user cancels
+   }
+   await RPMSendQuery("CustomKeys:ResetAll");
++  await refreshKeys();
++}
++
++async function refreshKeys() {
+   const keysByCat = await RPMSendQuery("CustomKeys:GetKeys");
+   const keysById = {};
+   for (const category in keysByCat) {
+@@ -387,6 +391,45 @@ async function onResetAll() {
+   notifyUpdate();
+ }
+ 
++async function onChromePreset() {
++  const button = document.getElementById("chromePreset");
++  button.disabled = true;
++  try {
++    const [title, body, buttonCancel, buttonConfirm] =
++      await document.l10n.formatValues([
++        { id: "customkeys-chrome-preset-title" },
++        { id: "customkeys-chrome-preset-body" },
++        { id: "customkeys-conflict-confirm-button-cancel" },
++        { id: "customkeys-chrome-preset-button" },
++      ]);
++    if (
++      !(await RPMSendQuery("CustomKeys:Confirm", {
++        title,
++        body,
++        buttonCancel,
++        buttonConfirm,
++      }))
++    ) {
++      return;
++    }
++    const result = await RPMSendQuery("CustomKeys:ApplyChromePreset");
++    if (!result.applied) {
++      const [errorTitle, errorBody] = await document.l10n.formatValues([
++        { id: "customkeys-chrome-preset-failed-title" },
++        { id: "customkeys-chrome-preset-failed-body" },
++      ]);
++      await RPMSendQuery("CustomKeys:Confirm", {
++        title: errorTitle,
++        body: errorBody,
++      });
++      return;
++    }
++    await refreshKeys();
++  } finally {
++    button.disabled = false;
++  }
++}
++
+ buildTable();
+ table.addEventListener("click", onAction);
+ RPMAddMessageListener("CustomKeys:CapturedKey", onKey);
+@@ -395,5 +438,8 @@ customElements.whenDefined("customkeys-sidebar").then(async () => {
+   await document.querySelector("customkeys-sidebar").updateComplete;
+   document.getElementById("search").addEventListener("input", onSearchInput);
+   document.getElementById("resetAll").addEventListener("click", onResetAll);
++  const preset = document.getElementById("chromePreset");
++  preset.hidden = !(await RPMSendQuery("CustomKeys:CanApplyChromePreset"));
++  preset.addEventListener("click", onChromePreset);
+ });
+ Glean.browserCustomkeys.opened.add();
+diff --git c/browser/components/customkeys/tests/browser/browser.toml w/browser/components/customkeys/tests/browser/browser.toml
+index e4dcd2d574be..b5b44f05acd4 100644
+--- c/browser/components/customkeys/tests/browser/browser.toml
++++ w/browser/components/customkeys/tests/browser/browser.toml
+@@ -1,6 +1,8 @@
+ [DEFAULT]
+ support-files = ["head.js"]
+ 
++["browser_ChromePreset.js"]
++
+ ["browser_CustomKeys.js"]
+ 
+ ["browser_aboutKeyboard.js"]
+diff --git c/browser/locales/en-US/browser/confirmationHints.ftl w/browser/locales/en-US/browser/confirmationHints.ftl
+index 3ca13ebd3641..484775757ed5 100644
+--- c/browser/locales/en-US/browser/confirmationHints.ftl
++++ w/browser/locales/en-US/browser/confirmationHints.ftl
+@@ -22,6 +22,8 @@ confirmation-hint-send-to-device = Sent!
+ confirmation-hint-firefox-relay-mask-created = New mask created!
+ confirmation-hint-firefox-relay-mask-reused = Existing mask reused!
+ confirmation-hint-screenshot-copied = Screenshot copied!
++confirmation-hint-umbrafox-copy-not-retried = Copy was not retried. Repeat the copy command.
++confirmation-hint-umbrafox-paste-not-retried = Paste was not retried. Repeat the paste command.
+ # Variables:
+ #   $tabCount (Number): The number of duplicate tabs closed, at least 1.
+ confirmation-hint-duplicate-tabs-closed =
+diff --git c/browser/locales/en-US/browser/customkeys.ftl w/browser/locales/en-US/browser/customkeys.ftl
+index 14bf14761d90..f1f135bb819e 100644
+--- c/browser/locales/en-US/browser/customkeys.ftl
++++ w/browser/locales/en-US/browser/customkeys.ftl
+@@ -17,6 +17,7 @@ customkeys-search-input =
+ customkeys-description = Control how you move around and interact with { -brand-short-name }.
+ customkeys-support-link-text = Learn more
+ customkeys-reset-all-button = Restore defaults
++customkeys-chrome-preset-button = Use Chrome shortcuts
+ 
+ ## Shortcut actions
+ 
+@@ -43,6 +44,11 @@ customkeys-key-reset =
+ 
+ ## Confirmation dialogs
+ 
++customkeys-chrome-preset-title = Use Chrome-style shortcuts on Linux?
++customkeys-chrome-preset-body = Replace Downloads, alternate search, private window, and numbered-tab shortcuts? The reopen-window shortcut will be unassigned. Other custom shortcuts are kept. This is a partial preset; Firefox commands remain unchanged. Websites may observe different keyboard behavior. Restoring defaults removes custom assignments, including earlier overrides.
++customkeys-chrome-preset-failed-title = Shortcuts were not changed
++customkeys-chrome-preset-failed-body = A required command is unavailable or another shortcut conflicts with this preset. Review your custom assignments before trying again.
++
+ customkeys-conflict-confirm-title = Remove another shortcut?
+ # Variables
+ # $conflict (string) - The title of the conflicting shortcut.
+diff --git c/browser/locales/en-US/browser/sitePermissions.ftl w/browser/locales/en-US/browser/sitePermissions.ftl
+index 9ba374f38b9c..a658400cffa8 100644
+--- c/browser/locales/en-US/browser/sitePermissions.ftl
++++ w/browser/locales/en-US/browser/sitePermissions.ftl
+@@ -13,3 +13,20 @@ site-permissions-open-blocked-popups =
+ 
+ # This string is used to display the option to unblock a third-party redirect.
+ site-permissions-unblock-redirect = Unblock third-party redirect…
++
++umbrafox-clipboard-copy-prompt = This site canceled the browser's standard copy. Copy using the browser instead? This override may change how the site works.
++umbrafox-clipboard-paste-prompt = This site canceled the browser's standard paste. Paste using the browser instead? This override may change how the site works.
++umbrafox-clipboard-no =
++    .label = No
++    .accesskey = N
++umbrafox-clipboard-yes =
++    .label = Yes
++    .accesskey = Y
++umbrafox-clipboard-always =
++    .label = Always
++    .accesskey = A
++
++# Variables:
++#   $origin (String) - The requesting site's origin, including scheme and port.
++umbrafox-clipboard-copy-permission = Override canceled copy ({ $origin })
++umbrafox-clipboard-paste-permission = Override canceled paste ({ $origin })
+diff --git c/browser/modules/SitePermissions.sys.mjs w/browser/modules/SitePermissions.sys.mjs
+index d8be7e764416..4461a06d723d 100644
+--- c/browser/modules/SitePermissions.sys.mjs
++++ w/browser/modules/SitePermissions.sys.mjs
+@@ -4,6 +4,23 @@
+ 
+ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+ 
++const lazy = {};
++ChromeUtils.defineESModuleGetters(lazy, {
++  UmbrafoxClipboardProtection:
++    "resource:///modules/UmbrafoxClipboardProtection.sys.mjs",
++});
++ChromeUtils.defineLazyGetter(
++  lazy,
++  "clipboardL10n",
++  () => new Localization(["browser/sitePermissions.ftl"], true)
++);
++
++function isClipboardPermission(permissionID) {
++  return ["umbrafox-clipboard-copy", "umbrafox-clipboard-paste"].includes(
++    permissionID.split("^")[0]
++  );
++}
++
+ var gStringBundle = Services.strings.createBundle(
+   "chrome://browser/locale/sitePermissions.properties"
+ );
+@@ -190,6 +207,12 @@ export var SitePermissions = {
+           return false;
+         }
+         let type = entry.id;
++        if (
++          isClipboardPermission(type) &&
++          permission.type !== `${type}^${encodeURIComponent(principal.origin)}`
++        ) {
++          return false;
++        }
+ 
+         /* Hide persistent storage permission when extension principal
+          * have WebExtensions-unlimitedStorage permission. */
+@@ -264,6 +287,12 @@ export var SitePermissions = {
+       permissions[permission.id] = permission;
+     }
+ 
++    for (let permission of lazy.UmbrafoxClipboardProtection.getGrantsForBrowser(
++      browser
++    )) {
++      permissions[permission.id] = permission;
++    }
++
+     return Object.values(permissions);
+   },
+ 
+@@ -464,6 +493,12 @@ export var SitePermissions = {
+     }
+     let defaultState = this.getDefault(permissionID);
+     let result = { state: defaultState, scope: this.SCOPE_PERSISTENT };
++    if (
++      isClipboardPermission(permissionID) &&
++      permissionID.split("^")[1] !== encodeURIComponent(principal?.origin)
++    ) {
++      return result;
++    }
+     if (this.isSupportedPrincipal(principal)) {
+       let permission = null;
+       if (
+@@ -638,6 +673,19 @@ export var SitePermissions = {
+         "Atleast one of the arguments, either principal or browser should not be null."
+       );
+     }
++    if (isClipboardPermission(permissionID)) {
++      const grantPrincipal =
++        lazy.UmbrafoxClipboardProtection.getGrantPrincipal(permissionID);
++      if (grantPrincipal) {
++        Services.perms.removeFromPrincipal(grantPrincipal, permissionID);
++        if (browser?.documentGlobal) {
++          browser.dispatchEvent(
++            new browser.documentGlobal.CustomEvent("PermissionStateChange")
++          );
++        }
++      }
++      return;
++    }
+     if (this.isSupportedPrincipal(principal)) {
+       Services.perms.removeFromPrincipal(principal, permissionID);
+     }
+@@ -706,6 +754,16 @@ export var SitePermissions = {
+       // Permission can't be found.
+       return null;
+     }
++    if (isClipboardPermission(id)) {
++      const principal =
++        lazy.UmbrafoxClipboardProtection.getGrantPrincipal(permissionID);
++      if (!principal) {
++        return null;
++      }
++      return lazy.clipboardL10n.formatValueSync(`${id}-permission`, {
++        origin: principal.originNoSuffix,
++      });
++    }
+     if (
+       "labelID" in gPermissions.get(id) &&
+       gPermissions.get(id).labelID === null
+@@ -835,7 +893,8 @@ let gPermissions = {
+ 
+   getEnabledPermissions() {
+     return Object.keys(this._permissions).filter(
+-      id => !this._permissions[id].disabled
++      id =>
++        !this._permissions[id].disabled && !this._permissions[id].browserOnly
+     );
+   },
+ 
+@@ -860,10 +919,31 @@ let gPermissions = {
+    *    Array of permission states to be exposed to the user.
+    *    Defaults to ALLOW, BLOCK and the default state (see getDefault).
+    *
++   *  - browserOnly
++   *    Excludes internal, request-keyed controls from Page Info's generic editor.
++   *
+    *  - getMultichoiceStateLabel
+    *    Optional method to overwrite SitePermissions#getMultichoiceStateLabel with custom label logic.
+    */
+   _permissions: {
++    "umbrafox-clipboard-copy": {
++      exactHostMatch: true,
++      browserOnly: true,
++      getDefault() {
++        return SitePermissions.UNKNOWN;
++      },
++      states: [SitePermissions.UNKNOWN, SitePermissions.ALLOW],
++    },
++
++    "umbrafox-clipboard-paste": {
++      exactHostMatch: true,
++      browserOnly: true,
++      getDefault() {
++        return SitePermissions.UNKNOWN;
++      },
++      states: [SitePermissions.UNKNOWN, SitePermissions.ALLOW],
++    },
++
+     "autoplay-media": {
+       exactHostMatch: true,
+       getDefault() {
+diff --git c/browser/modules/moz.build w/browser/modules/moz.build
+index 66306f218dff..47d89741aa94 100644
+--- c/browser/modules/moz.build
++++ w/browser/modules/moz.build
+@@ -144,6 +144,7 @@ EXTRA_JS_MODULES += [
+     "SiteDataManager.sys.mjs",
+     "SitePermissions.sys.mjs",
+     "TransientPrefs.sys.mjs",
++    "UmbrafoxClipboardProtection.sys.mjs",
+     "UpdatePolicyEnforcer.sys.mjs",
+     "URILoadingHelper.sys.mjs",
+     "webrtcUI.sys.mjs",
+diff --git c/browser/modules/test/browser/browser.toml w/browser/modules/test/browser/browser.toml
+index 01baf9521cae..17a78c947b17 100644
+--- c/browser/modules/test/browser/browser.toml
++++ w/browser/modules/test/browser/browser.toml
+@@ -62,6 +62,8 @@ support-files = [
+ 
+ ["browser_UIDensityTelemetry.js"]
+ 
++["browser_UmbrafoxClipboardProtection.js"]
++
+ ["browser_URILoadingHelper_chromeless.js"]
+ 
+ ["browser_UnsubmittedCrashHandler.js"]
+diff --git c/browser/modules/test/unit/xpcshell.toml w/browser/modules/test/unit/xpcshell.toml
+index 185975c1eee7..6352266bb032 100644
+--- c/browser/modules/test/unit/xpcshell.toml
++++ w/browser/modules/test/unit/xpcshell.toml
+@@ -4,6 +4,7 @@ run-if = [
+ ]
+ head =  ''
+ firefox-appdir = "browser"
++umbrafox-appdir = "browser"
+ tags = "os_integration"
+ 
+ ["test_ContextId_LegacyBackend.js"]
+@@ -64,6 +65,8 @@ run-if = [
+ 
+ ["test_TabUnloader.js"]
+ 
++["test_UmbrafoxClipboardPermissions.js"]
++
+ ["test_UpdatePolicyEnforcer.js"]
+ head =  "../../../../toolkit/components/enterprisepolicies/tests/xpcshell/head.js"
+ firefox-appdir = "browser"
+diff --git c/dom/base/Document.cpp w/dom/base/Document.cpp
+index da0ec62abfa5..ba276a85f907 100644
+--- c/dom/base/Document.cpp
++++ w/dom/base/Document.cpp
+@@ -32,6 +32,7 @@
+ #include "SharedLcpMarkerState.h"
+ #include "StorageAccessPermissionRequest.h"
+ #include "ThirdPartyUtil.h"
++#include "UmbrafoxClipboard.h"
+ #include "domstubs.h"
+ #include "gfxPlatform.h"
+ #include "imgIContainer.h"
+@@ -5927,6 +5928,7 @@ static bool IsExecCommandPasteAllowed(Document* aDocument,
+ bool Document::ExecCommand(const nsAString& aHTMLCommandName, bool aShowUI,
+                            const TrustedHTMLOrString& aValue,
+                            nsIPrincipal& aSubjectPrincipal, ErrorResult& aRv) {
++  AutoSuspendClipboardCommand suspendClipboardCommand;
+   // Only allow on HTML documents.
+   if (!IsHTMLOrXHTML()) {
+     aRv.ThrowInvalidStateError(
+diff --git c/dom/base/UmbrafoxUserlandMutation.cpp w/dom/base/UmbrafoxUserlandMutation.cpp
+index 06166f0fadb7..35b5932e70d6 100644
+--- c/dom/base/UmbrafoxUserlandMutation.cpp
++++ w/dom/base/UmbrafoxUserlandMutation.cpp
+@@ -4,6 +4,7 @@
+ 
+ #include "UmbrafoxUserlandMutation.h"
+ 
++#include "mozilla/Services.h"
+ #include "mozilla/dom/BrowsingContext.h"
+ #include "mozilla/dom/CharacterData.h"
+ #include "mozilla/dom/Document.h"
+diff --git c/dom/base/moz.build w/dom/base/moz.build
+index 3c7cdd96eee7..507672c3eadb 100644
+--- c/dom/base/moz.build
++++ w/dom/base/moz.build
+@@ -131,6 +131,7 @@ EXPORTS.mozilla += [
+     "SelectionChangeEventDispatcher.h",
+     "SourceLocation.h",
+     "TextInputProcessor.h",
++    "UmbrafoxClipboard.h",
+     "UseCounter.h",
+ ]
+ 
+@@ -513,6 +514,7 @@ UNIFIED_SOURCES += [
+     "TimeoutManager.cpp",
+     "TreeWalker.cpp",
+     "UIDirectionManager.cpp",
++    "UmbrafoxClipboard.cpp",
+     "UmbrafoxUserlandMutation.cpp",
+     "UserActivation.cpp",
+     "ViewportMetaData.cpp",
+diff --git c/dom/base/nsContentUtils.cpp w/dom/base/nsContentUtils.cpp
+index 11492d92b29a..5600bcc1cedf 100644
+--- c/dom/base/nsContentUtils.cpp
++++ w/dom/base/nsContentUtils.cpp
+@@ -29,6 +29,7 @@
+ #include "ReferrerInfo.h"
+ #include "ScopedNSSTypes.h"
+ #include "ThirdPartyUtil.h"
++#include "UmbrafoxClipboard.h"
+ #include "Units.h"
+ #include "chrome/common/ipc_message.h"
+ #include "gfxDrawable.h"
+@@ -6512,8 +6513,13 @@ nsresult nsContentUtils::DispatchInputEvent(
+            YesOrNo(nsContentUtils::IsSafeToRunScript()),
+            ToString(inputEvent.mInputType).c_str(), aEditorBase,
+            ToString(RefPtr{aEventTargetElement}).c_str()));
+-  return AsyncEventDispatcher::RunDOMEventWhenSafe(*aEventTargetElement,
+-                                                   inputEvent, aEventStatus);
++  nsresult rv = AsyncEventDispatcher::RunDOMEventWhenSafe(
++      *aEventTargetElement, inputEvent, aEventStatus);
++  if (aEventStatus && aEventMessage == eEditorBeforeInput) {
++    AutoClipboardCommand::AfterEvent(*aEventTargetElement, inputEvent,
++                                     *aEventStatus);
++  }
++  return rv;
+ }
+ 
+ nsresult nsContentUtils::DispatchChromeEvent(
+diff --git c/dom/base/nsCopySupport.cpp w/dom/base/nsCopySupport.cpp
+index b0f33d95cc2d..9da416e28aa5 100644
+--- c/dom/base/nsCopySupport.cpp
++++ w/dom/base/nsCopySupport.cpp
+@@ -4,6 +4,7 @@
+ 
+ #include "nsCopySupport.h"
+ 
++#include "UmbrafoxClipboard.h"
+ #include "imgIContainer.h"
+ #include "imgIRequest.h"
+ #include "mozilla/ScopeExit.h"
+@@ -860,6 +861,11 @@ bool nsCopySupport::FireClipboardEvent(
+     InternalClipboardEvent evt(true, originalEventMessage);
+     evt.mClipboardData = clipboardData;
+ 
++    if (sel) {
++      AutoClipboardCommand::BeforeClipboardEvent(
++          *targetElement, *sel, clipboardData, originalEventMessage);
++    }
++
+     {
+       AutoHandlingPasteEvent autoHandlingPasteEvent(
+           nsGlobalWindowInner::Cast(doc->GetInnerWindow()), clipboardData,
+@@ -870,6 +876,8 @@ bool nsCopySupport::FireClipboardEvent(
+                                 &status);
+     }
+ 
++    AutoClipboardCommand::AfterEvent(*targetElement, evt, status);
++
+     // If the event was cancelled, don't do the clipboard operation
+     doDefault = (status != nsEventStatus_eConsumeNoDefault);
+   }
+@@ -909,6 +917,10 @@ bool nsCopySupport::FireClipboardEvent(
+     return false;
+   }
+ 
++  if (!AutoClipboardCommand::CanContinueCopy()) {
++    return false;
++  }
++
+   // if the event was not cancelled, do the default copy. If the event was
+   // cancelled, use the data added to the data transfer and copy that instead.
+   uint32_t count = 0;
+diff --git c/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp w/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp
+index 386d9f3a63f5..5b530006d32f 100644
+--- c/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp
++++ w/dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp
+@@ -31,6 +31,7 @@ class CanvasVideoSurfaceCache : public ::testing::Test {
+ 
+   RefPtr<SharedContextWebgl> mContext;
+   RefPtr<DrawTargetWebgl> mTarget;
++  SurfaceFormat mInputFormat = SurfaceFormat::UNKNOWN;
+   Input mRed;
+   Input mGreen;
+   Maybe<bool> mSoftwarePolicy;
+@@ -58,9 +59,7 @@ class CanvasVideoSurfaceCache : public ::testing::Test {
+     mSoftwarePolicy = Some(gfxVars::UseSoftwareWebRender());
+     RecordProperty("originalSoftwarePolicy", mSoftwarePolicy.value() ? 1 : 0);
+     gfxVars::SetUseSoftwareWebRender(false);
+-    mTarget = DrawTargetWebgl::Create(IntSize(kSize, kSize), kFormat, mContext,
+-                                      dom::ContentParentId(1));
+-    ASSERT_TRUE(mTarget);
++    ASSERT_NO_FATAL_FAILURE(CreateTarget(dom::ContentParentId(1)));
+     ASSERT_NO_FATAL_FAILURE(CreateInput(mRed, false));
+     ASSERT_NO_FATAL_FAILURE(CreateInput(mGreen, true));
+   }
+@@ -110,13 +109,27 @@ class CanvasVideoSurfaceCache : public ::testing::Test {
+         aInput.descriptor.get_SurfaceDescriptorDMABuf());
+     ASSERT_TRUE(aInput.host->IsValid());
+     ASSERT_EQ(aInput.host->GetSize(), IntSize(kSize, kSize));
+-    ASSERT_EQ(aInput.host->GetFormat(), kFormat);
++    const SurfaceFormat format = aInput.host->GetFormat();
++    ASSERT_TRUE(format == SurfaceFormat::B8G8R8A8 ||
++                format == SurfaceFormat::R8G8B8A8);
++    if (mInputFormat == SurfaceFormat::UNKNOWN) {
++      mInputFormat = format;
++      RecordProperty("inputFormat", int(format));
++    }
++    ASSERT_EQ(format, mInputFormat);
++  }
++
++  void CreateTarget(const dom::ContentParentId& aContentId) {
++    mTarget = new DrawTargetWebgl;
++    ASSERT_TRUE(
++        mTarget->Init(IntSize(kSize, kSize), kFormat, mContext, aContentId));
++    ASSERT_TRUE(mTarget->IsValid());
+   }
+ 
+   already_AddRefed<SourceSurface> Import(const Input& aInput) {
+     return mContext->ImportVideoSurfaceDescriptor(
+-        mTarget, aInput.descriptor, IntSize(kSize, kSize), kFormat, aInput.host,
+-        aInput.id);
++        mTarget, aInput.descriptor, IntSize(kSize, kSize), mInputFormat,
++        aInput.host, aInput.id);
+   }
+ 
+   TextureHandle* CachedHandle() const {
+@@ -134,17 +147,20 @@ class CanvasVideoSurfaceCache : public ::testing::Test {
+   void ExpectPixels(SourceSurface* aSurface, bool aGreen) {
+     ASSERT_TRUE(aSurface);
+     ASSERT_EQ(aSurface->GetSize(), IntSize(kSize, kSize));
+-    ASSERT_EQ(aSurface->GetFormat(), kFormat);
++    ASSERT_EQ(aSurface->GetFormat(), mInputFormat);
+     RefPtr<DataSourceSurface> data = aSurface->GetDataSurface();
+     ASSERT_TRUE(data);
++    ASSERT_EQ(data->GetFormat(), mInputFormat);
++    const size_t red = mInputFormat == SurfaceFormat::R8G8B8A8 ? 0 : 2;
++    const size_t blue = 2 - red;
+     DataSourceSurface::ScopedMap map(data, DataSourceSurface::READ);
+     ASSERT_TRUE(map.IsMapped());
+     for (int32_t y = 0; y < kSize; ++y) {
+       const auto* row = map.GetData() + y * map.GetStride();
+       for (int32_t x = 0; x < kSize; ++x) {
+-        ASSERT_EQ(row[4 * x], 0);
++        ASSERT_EQ(row[4 * x + blue], 0);
+         ASSERT_EQ(row[4 * x + 1], aGreen ? 255 : 0);
+-        ASSERT_EQ(row[4 * x + 2], aGreen ? 0 : 255);
++        ASSERT_EQ(row[4 * x + red], aGreen ? 0 : 255);
+         ASSERT_EQ(row[4 * x + 3], 255);
+       }
+     }
+@@ -180,7 +196,8 @@ TEST_F(CanvasVideoSurfaceCache,
+     EXPECT_TRUE(descriptor.refCount()[0].IsValid());
+   }
+   RefPtr<SourceSurface> surface = mContext->ImportVideoSurfaceDescriptor(
+-      mTarget, *borrowed, IntSize(kSize, kSize), kFormat, input.host, input.id);
++      mTarget, *borrowed, IntSize(kSize, kSize), mInputFormat, input.host,
++      input.id);
+   ASSERT_NO_FATAL_FAILURE(ExpectPixels(surface, false));
+ }
+ 
+@@ -199,7 +216,7 @@ TEST_F(CanvasVideoSurfaceCache, GenericImportsAreDistinctAndInvalidate) {
+   RefPtr<SourceSurface> first = Import(mRed);
+   ASSERT_TRUE(first);
+   RefPtr<SourceSurface> generic = mContext->ImportSurfaceDescriptor(
+-      mTarget, mRed.descriptor, IntSize(kSize, kSize), kFormat, true);
++      mTarget, mRed.descriptor, IntSize(kSize, kSize), mInputFormat, true);
+   ASSERT_TRUE(generic);
+   EXPECT_NE(generic, first);
+   ExpectEmptyCache();
+@@ -228,9 +245,7 @@ TEST_F(CanvasVideoSurfaceCache, FrameAndHostIdentityCannotAlias) {
+ TEST_F(CanvasVideoSurfaceCache, ContentOwnershipCannotAlias) {
+   RefPtr<SourceSurface> first = Import(mRed);
+   ASSERT_TRUE(first);
+-  mTarget = DrawTargetWebgl::Create(IntSize(kSize, kSize), kFormat, mContext,
+-                                    dom::ContentParentId(2));
+-  ASSERT_TRUE(mTarget);
++  ASSERT_NO_FATAL_FAILURE(CreateTarget(dom::ContentParentId(2)));
+   RefPtr<SourceSurface> second = Import(mRed);
+   ASSERT_TRUE(second);
+   EXPECT_NE(second, first);
+@@ -325,14 +340,14 @@ TEST_F(CanvasVideoSurfaceCache, FailedImportsDoNotPoisonRecovery) {
+   ASSERT_TRUE(first);
+   const layers::SurfaceDescriptor unusable;
+   RefPtr<SourceSurface> failed = mContext->ImportVideoSurfaceDescriptor(
+-      mTarget, unusable, IntSize(kSize, kSize), kFormat, mGreen.host,
++      mTarget, unusable, IntSize(kSize, kSize), mInputFormat, mGreen.host,
+       mGreen.id);
+   EXPECT_FALSE(failed);
+   ExpectEmptyCache();
+   failed = mContext->ImportVideoSurfaceDescriptor(
+       mTarget, mGreen.descriptor,
+-      IntSize(std::numeric_limits<int32_t>::max(), kSize), kFormat, mGreen.host,
+-      mGreen.id);
++      IntSize(std::numeric_limits<int32_t>::max(), kSize), mInputFormat,
++      mGreen.host, mGreen.id);
+   EXPECT_FALSE(failed);
+   ExpectEmptyCache();
+   RefPtr<SourceSurface> recovered = Import(mGreen);
+@@ -355,9 +370,7 @@ TEST_F(CanvasVideoSurfaceCache, ContextLossRejectsAndReplacementRecovers) {
+   ASSERT_NE(mContext, lost);
+   ASSERT_FALSE(mContext->IsContextLost());
+   ExpectEmptyCache();
+-  mTarget = DrawTargetWebgl::Create(IntSize(kSize, kSize), kFormat, mContext,
+-                                    dom::ContentParentId(1));
+-  ASSERT_TRUE(mTarget);
++  ASSERT_NO_FATAL_FAILURE(CreateTarget(dom::ContentParentId(1)));
+   RefPtr<SourceSurface> recovered = Import(mRed);
+   ASSERT_TRUE(recovered);
+   EXPECT_NE(recovered, first);
+diff --git c/dom/canvas/gtest/TestDMABufReadback.cpp w/dom/canvas/gtest/TestDMABufReadback.cpp
+index 3d894d7c18c4..cb4e9175f782 100644
+--- c/dom/canvas/gtest/TestDMABufReadback.cpp
++++ w/dom/canvas/gtest/TestDMABufReadback.cpp
+@@ -215,7 +215,8 @@ class DMABufReadback : public ::testing::Test {
+     ASSERT_TRUE(shared);
+     RefPtr<DrawTargetWebgl> target = new DrawTargetWebgl;
+     // Exercise drawing below the production minimum-size admission heuristic.
+-    ASSERT_TRUE(target->Init(aDestination, SurfaceFormat::B8G8R8A8, shared));
++    ASSERT_TRUE(target->Init(aDestination, SurfaceFormat::B8G8R8A8, shared,
++                             dom::ContentParentId(1)));
+     target->DrawSurface(source, Rect(Point(), Size(aDestination)),
+                         Rect(Point(), Size(mSize)),
+                         DrawSurfaceOptions(SamplingFilter::LINEAR),
+@@ -282,8 +283,8 @@ class DMABufReadback : public ::testing::Test {
+       shared = SharedContextWebgl::Create();
+       ASSERT_TRUE(shared);
+       RefPtr<DrawTargetWebgl> accelerated = new DrawTargetWebgl;
+-      ASSERT_TRUE(
+-          accelerated->Init(aDestination, SurfaceFormat::B8G8R8A8, shared));
++      ASSERT_TRUE(accelerated->Init(aDestination, SurfaceFormat::B8G8R8A8,
++                                    shared, dom::ContentParentId(1)));
+       target = accelerated;
+     }
+     ASSERT_TRUE(target);
+diff --git c/dom/commandhandler/nsBaseCommandController.cpp w/dom/commandhandler/nsBaseCommandController.cpp
+index 2413c20c33a2..f24bdf8f4401 100644
+--- c/dom/commandhandler/nsBaseCommandController.cpp
++++ w/dom/commandhandler/nsBaseCommandController.cpp
+@@ -4,6 +4,7 @@
+ 
+ #include "nsBaseCommandController.h"
+ 
++#include "UmbrafoxClipboard.h"
+ #include "mozilla/ControllerCommand.h"
+ #include "nsControllerCommandTable.h"
+ #include "nsIWeakReferenceUtils.h"
+@@ -51,6 +52,7 @@ nsBaseCommandController::DoCommand(const char* aCommand) {
+   RefPtr<nsControllerCommandTable> table = mCommandTable;
+   nsDependentCString command(aCommand);
+   if (RefPtr handler = table->FindCommandHandler(command)) {
++    mozilla::AutoClipboardCommand clipboardCommand(command);
+     return handler->DoCommand(command, nullptr, context);
+   }
+   return NS_OK;
+@@ -66,6 +68,7 @@ nsBaseCommandController::DoCommandWithParams(const char* aCommand,
+   RefPtr<nsControllerCommandTable> table = mCommandTable;
+   nsDependentCString command(aCommand);
+   if (RefPtr handler = table->FindCommandHandler(command)) {
++    mozilla::AutoClipboardCommand clipboardCommand(command);
+     handler->DoCommand(command, aParams, context);
+   }
+   return NS_OK;
+diff --git c/dom/events/test/clipboard/browser.toml w/dom/events/test/clipboard/browser.toml
+index 024b2cf4ed74..8654c56111fe 100644
+--- c/dom/events/test/clipboard/browser.toml
++++ w/dom/events/test/clipboard/browser.toml
+@@ -109,3 +109,9 @@ skip-if = [
+ 
+ ["browser_navigator_clipboard_touch.js"]
+ support-files = ["simple_navigator_clipboard_readText.html"]
++
++["browser_umbrafox_clipboard.js"]
++
++["browser_umbrafox_clipboard_override.js"]
++
++["browser_umbrafox_clipboard_safety.js"]
+diff --git c/dom/media/AudioStream.h w/dom/media/AudioStream.h
+index 2cddcaabc4e7..6661050acf2f 100644
+--- c/dom/media/AudioStream.h
++++ w/dom/media/AudioStream.h
+@@ -341,6 +341,10 @@ class AudioStream final {
+   // the audio stream alive and reusable instead of tearing it down.
+   void SetKeepRunningMode(bool aKeepRunning);
+ 
++  bool CanReuseAfterSeek() const {
++    return mKeepRunning && mCubebStarted && mState == STOPPED;
++  }
++
+   // Rebase the clock of the reused stream so the reported time resumes from the
+   // seek target. Does not touch the ended promise.
+   void RebaseLive();
+@@ -494,8 +498,8 @@ class AudioStream final {
+   bool mCubebStarted = false;
+ 
+   // Whether the last Resume() found the cubeb stream still running, so the
+-  // frames handed over before the seek are still queued in the device. A
+-  // restart discards them. Owner thread only.
++  // frames handed over before the seek are still queued in the device.
++  // A stopped stream is not eligible for reuse. Owner thread only.
+   bool mResumeKeptCubebRunning = false;
+ };
+ 
+diff --git c/dom/media/gtest/TestAudioSinkWrapper.cpp w/dom/media/gtest/TestAudioSinkWrapper.cpp
+index c0fd5a47de21..ac082b5e1057 100644
+--- c/dom/media/gtest/TestAudioSinkWrapper.cpp
++++ w/dom/media/gtest/TestAudioSinkWrapper.cpp
+@@ -1020,10 +1020,10 @@ TEST_F(AudioSinkWrapperReuseTest, ConsecutiveSeeksReuseStream) {
+ // already-stopped stream. Consistency is checked implicitly: the trailing
+ // pause/resume/pause runs through AudioStream::Pause()/Resume(), which assert
+ // mState != STOPPED ("Already Pause()ed.") and mState != STARTED ("Already
+-// Start()ed.") on the non-keep-running path. If the paused-seek reuse left the
+-// logical playing state out of sync with the physical stream, one of those
++// Start()ed.") on the non-keep-running path. If the paused-seek recreation left
++// the logical playing state out of sync with the physical stream, one of those
+ // MOZ_ASSERTs would fire; the test passing without crashing is the check.
+-TEST_F(AudioSinkWrapperReuseTest, PauseAfterPausedSeekReuse) {
++TEST_F(AudioSinkWrapperReuseTest, PauseAfterPausedSeekRecreation) {
+   CreateWrapper();
+   Start(media::TimeUnit::Zero());
+   EXPECT_EQ(mInits, 1);
+@@ -1031,15 +1031,15 @@ TEST_F(AudioSinkWrapperReuseTest, PauseAfterPausedSeekReuse) {
+   // Pause playback, then seek while still paused with reuse on.
+   mWrapper->SetPlaying(false);
+   SeekStop();
+-  EXPECT_EQ(mDestroys, 0) << "stream should be stashed, not destroyed";
++  ASSERT_EQ(mDestroys, 1) << "a stopped backend cannot be reused safely";
+ 
+   // Resume to the seek target and play again.
+   Start(media::TimeUnit::FromSeconds(10));
+-  EXPECT_EQ(mInits, 1) << "stream should be reused, not recreated";
++  EXPECT_EQ(mInits, 2) << "a stopped stream must be recreated";
+ 
+   // A later pause/resume cycle must remain consistent: these calls reach
+   // AudioStream::Pause()/Resume(), whose MOZ_ASSERTs on mState would trip if
+-  // the reuse had left the logical playing state stale.
++  // the recreation had left the logical playing state stale.
+   mWrapper->SetPlaying(false);
+   mWrapper->SetPlaying(true);
+   mWrapper->SetPlaying(false);
+@@ -1077,10 +1077,10 @@ TEST_F(AudioSinkWrapperReuseTest, SeekResumeClockFollowsAudibleReusedStream) {
+   RunSeekResumeClockFollowsAudible(ReuseStream::Enabled);
+ }
+ 
+-// A pause before the seek stops the backend, discarding its queued audio.
+-// Waiting for audio that will never play would leave the clock an
+-// output-latency window behind for the rest of playback.
+-TEST_F(AudioSinkWrapperReuseTest, SeekResumeAfterPauseIgnoresDiscardedAudio) {
++// Backends need not discard queued audio on pause. Recreate a stopped stream
++// rather than rebasing it with an assumed empty output queue.
++TEST_F(AudioSinkWrapperReuseTest,
++       SeekResumeAfterPauseRecreatesAndFollowsAudio) {
+   CreateWrapper(ReuseStream::Enabled, MockCubeb::RunningMode::Manual);
+   mCubeb->SetDefaultOutputLatencyFrames(OutputLatencyFrames());
+   const media::TimeUnit target = media::TimeUnit::FromSeconds(10);
+@@ -1092,20 +1092,24 @@ TEST_F(AudioSinkWrapperReuseTest, SeekResumeAfterPauseIgnoresDiscardedAudio) {
+   mWrapper->SetPlaying(false);
+   SeekAndResumeAt(target);
+ 
+-  EXPECT_EQ(mInits, 1) << "the stream must be reused, not recreated";
+-  EXPECT_EQ(mDestroys, 0) << "the stream must be reused, not recreated";
++  ASSERT_EQ(mDestroys, 1) << "the stopped stream must be destroyed";
++  ExpectClockHoldsAtTargetWhileSilent(target, ReuseStream::Disabled);
++  ASSERT_EQ(mInits, 2);
++  ASSERT_NO_FATAL_FAILURE(ExpectClockFollowsAudioOncePlaying(target));
++}
+ 
+-  ASSERT_EQ(DriveCallback(kCallbackFrames),
+-            MockCubebStream::KeepProcessing::Yes);
+-  const media::TimeUnit expected =
+-      target +
+-      media::TimeUnit(CheckedInt64(kCallbackFrames), mInfo.mAudio.mRate);
+-  // The frame history converts frames to microseconds with integer division, so
+-  // allow the one microsecond that truncation costs.
+-  EXPECT_NEAR(mWrapper->GetPosition().ToMicroseconds(),
+-              expected.ToMicroseconds(), 1)
+-      << "the clock advances by exactly the post-seek callback rather than "
+-         "waiting out audio the backend had already discarded";
++TEST_F(AudioSinkWrapperReuseTest, RegularPauseThenSeekStopRecreates) {
++  CreateWrapper(ReuseStream::Enabled, MockCubeb::RunningMode::Manual);
++  ASSERT_NO_FATAL_FAILURE(PlayFromZeroToSteadyState());
++  mWrapper->SetPlaying(false);
++  mWrapper->Stop(MediaSink::StopReason::Seeking);
++  ProcessPending();
++  ASSERT_EQ(mDestroys, 1);
++  ResumeWithData(kBufferFrames, kPostSeekDataValue,
++                 media::TimeUnit::FromSeconds(10));
++  ExpectClockHoldsAtTargetWhileSilent(media::TimeUnit::FromSeconds(10),
++                                      ReuseStream::Disabled);
++  EXPECT_EQ(mInits, 2);
+ }
+ 
+ // A seek resume that begins while muted has no audio sink, so playback advances
+diff --git c/dom/media/mediasink/AudioSink.h w/dom/media/mediasink/AudioSink.h
+index 798dc9045c73..1378d599a60b 100644
+--- c/dom/media/mediasink/AudioSink.h
++++ w/dom/media/mediasink/AudioSink.h
+@@ -87,6 +87,10 @@ class AudioSink : private AudioStream::DataSource {
+ 
+   bool IsErrored() const { return mErrored; }
+ 
++  bool CanReuseAfterSeek() const {
++    return mAudioStream && mAudioStream->CanReuseAfterSeek();
++  }
++
+   bool IsStreamDrained() const {
+     return mAudioStream && mAudioStream->IsPlaybackCompleted();
+   }
+diff --git c/dom/media/mediasink/AudioSinkWrapper.cpp w/dom/media/mediasink/AudioSinkWrapper.cpp
+index 704957c7a7b8..66968b560623 100644
+--- c/dom/media/mediasink/AudioSinkWrapper.cpp
++++ w/dom/media/mediasink/AudioSinkWrapper.cpp
+@@ -723,7 +723,8 @@ void AudioSinkWrapper::Stop(StopReason aReason) {
+   mClockPausedDuringSeek = false;
+   if (mAudioSink) {
+     if (aReason == StopReason::Seeking && mReuseStreamOnSeek &&
+-        !mAudioSink->IsErrored() && !mAudioSink->IsStreamDrained()) {
++        !mAudioSink->IsErrored() && !mAudioSink->IsStreamDrained() &&
++        mAudioSink->CanReuseAfterSeek()) {
+       // Keep the sink and its still-running audio stream alive so the next
+       // start can reset and reuse them instead of paying for a destroy +
+       // recreate.
+diff --git c/editor/libeditor/EditorBase.cpp w/editor/libeditor/EditorBase.cpp
+index ffc53b165df2..18e31267e6d0 100644
+--- c/editor/libeditor/EditorBase.cpp
++++ w/editor/libeditor/EditorBase.cpp
+@@ -3,6 +3,7 @@
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ 
+ #include "EditorBase.h"
++#include "UmbrafoxClipboard.h"
+ 
+ #include <stdio.h>   // for nullptr, stdout
+ #include <string.h>  // for strcmp
+@@ -7701,6 +7702,7 @@ nsresult EditorBase::AutoEditActionDataSetter::MaybeDispatchBeforeInputEvent(
+   status = nsEventStatus_eIgnore;
+   rv = AsyncEventDispatcher::RunDOMEventWhenSafe(*targetElement, textEvent,
+                                                  &status);
++  AutoClipboardCommand::AfterEvent(*targetElement, textEvent, status);
+   if (NS_WARN_IF(mEditorBase.Destroyed())) {
+     return NS_ERROR_EDITOR_DESTROYED;
+   }
+@@ -8127,7 +8129,8 @@ nsresult EditorBase::GetDataFromDataTransferOrClipboard(
+       return NS_OK;
+     }();
+     // If the operation failed, only fall back to the clipboard if indicated.
+-    if (NS_SUCCEEDED(rv) || !readFromClipboard) {
++    if (NS_SUCCEEDED(rv) || !readFromClipboard ||
++        AutoClipboardCommand::IsRetryingPaste()) {
+       return rv;
+     }
+   }
+diff --git c/ipc/ipdl/sync-messages.ini w/ipc/ipdl/sync-messages.ini
+index effd3b7bc8dc..359c86d11272 100644
+--- c/ipc/ipdl/sync-messages.ini
++++ w/ipc/ipdl/sync-messages.ini
+@@ -104,6 +104,8 @@ description = Called from synchronous DataTransfer constructor
+ description = Called from the synchronous nsIClipboard::setData API when content analysis may block the copy, so the copy is complete before the call returns
+ [PClipboardReadRequest::GetDataSync]
+ description = Called from synchronous DataTransfer constructor
++[PClipboardReadRequest::CheckClipboardOverrideValidity]
++description = Owner-selected clipboard retry must synchronously reject a changed native clipboard generation before dispatch or insertion; returns validity only, without reading clipboard data
+ [PContent::GetClipboard]
+ description = Legacy synchronous clipboard API
+ [PContent::ClipboardHasType]
+diff --git c/toolkit/actors/moz.build w/toolkit/actors/moz.build
+index e99f0b7b5852..9bac8b0eae72 100644
+--- c/toolkit/actors/moz.build
++++ w/toolkit/actors/moz.build
+@@ -72,6 +72,8 @@ MOZ_SRC_FILES += [
+     "ThumbnailsChild.sys.mjs",
+     "TLSCertificateBindingChild.sys.mjs",
+     "UAWidgetsChild.sys.mjs",
++    "UmbrafoxClipboardChild.sys.mjs",
++    "UmbrafoxClipboardParent.sys.mjs",
+     "UmbrafoxControlDiagnosticsChild.sys.mjs",
+     "UmbrafoxControlDiagnosticsParent.sys.mjs",
+     "UmbrafoxControlExecutionChild.sys.mjs",
+diff --git c/toolkit/modules/ActorManagerParent.sys.mjs w/toolkit/modules/ActorManagerParent.sys.mjs
+index dcd887050b28..d6f6ef6e2042 100644
+--- c/toolkit/modules/ActorManagerParent.sys.mjs
++++ w/toolkit/modules/ActorManagerParent.sys.mjs
+@@ -663,6 +663,19 @@ let JSWINDOWACTORS = {
+     safeForUntrustedWebProcess: true,
+   },
+ 
++  UmbrafoxClipboard: {
++    parent: {
++      esModuleURI: "moz-src:///toolkit/actors/UmbrafoxClipboardParent.sys.mjs",
++    },
++    child: {
++      esModuleURI: "moz-src:///toolkit/actors/UmbrafoxClipboardChild.sys.mjs",
++      observers: ["umbrafox-clipboard-canceled"],
++    },
++    messageManagerGroups: ["browsers"],
++    allFrames: true,
++    safeForUntrustedWebProcess: true,
++  },
++
+   UmbrafoxUserland: {
+     parent: {
+       esModuleURI: "moz-src:///toolkit/actors/UmbrafoxUserlandParent.sys.mjs",
+diff --git c/toolkit/modules/RemotePageAccessManager.sys.mjs w/toolkit/modules/RemotePageAccessManager.sys.mjs
+index ceb8c7a6864c..0505de1dc194 100644
+--- c/toolkit/modules/RemotePageAccessManager.sys.mjs
++++ w/toolkit/modules/RemotePageAccessManager.sys.mjs
+@@ -100,6 +100,8 @@ export let RemotePageAccessManager = {
+       RPMGetFormatURLPref: ["app.support.baseURL"],
+       RPMSendAsyncMessage: ["CustomKeys:CaptureKey"],
+       RPMSendQuery: [
++        "CustomKeys:ApplyChromePreset",
++        "CustomKeys:CanApplyChromePreset",
+         "CustomKeys:ChangeKey",
+         "CustomKeys:ClearKey",
+         "CustomKeys:Confirm",
+diff --git c/widget/ClipboardReadRequestParent.cpp w/widget/ClipboardReadRequestParent.cpp
+index c8b29503f492..6b7b911c8218 100644
+--- c/widget/ClipboardReadRequestParent.cpp
++++ w/widget/ClipboardReadRequestParent.cpp
+@@ -68,6 +68,13 @@ static Result<nsCOMPtr<nsITransferable>, nsresult> CreateTransferable(
+ 
+ }  // namespace
+ 
++IPCResult ClipboardReadRequestParent::RecvCheckClipboardOverrideValidity(
++    bool* aValid) {
++  nsCOMPtr snapshot = mClipboardDataSnapshot;
++  *aValid = snapshot && snapshot->IsCurrentForClipboardOverride();
++  return IPC_OK();
++}
++
+ IPCResult ClipboardReadRequestParent::RecvGetData(
+     const nsTArray<nsCString>& aFlavors, GetDataResolver&& aResolver) {
+   bool valid = false;
+diff --git c/widget/ClipboardReadRequestParent.h w/widget/ClipboardReadRequestParent.h
+index 9a286fb442b4..3c185e5b1f7c 100644
+--- c/widget/ClipboardReadRequestParent.h
++++ w/widget/ClipboardReadRequestParent.h
+@@ -23,6 +23,7 @@ class ClipboardReadRequestParent final : public PClipboardReadRequestParent {
+   NS_INLINE_DECL_REFCOUNTING(ClipboardReadRequestParent, override)
+ 
+   // PClipboardReadRequestParent
++  IPCResult RecvCheckClipboardOverrideValidity(bool* aValid);
+   IPCResult RecvGetData(const nsTArray<nsCString>& aFlavors,
+                         GetDataResolver&& aResolver);
+   IPCResult RecvGetDataSync(
+diff --git c/widget/PClipboardReadRequest.ipdl w/widget/PClipboardReadRequest.ipdl
+index d5d94a9b87c1..90d9310076d3 100644
+--- c/widget/PClipboardReadRequest.ipdl
++++ w/widget/PClipboardReadRequest.ipdl
+@@ -16,6 +16,7 @@ sync protocol PClipboardReadRequest {
+   manager PContent;
+ 
+  parent:
++  sync CheckClipboardOverrideValidity() returns (bool valid);
+   async GetData(nsCString[] aFlavors) returns (IPCTransferableDataOrError aTransferableData);
+   sync GetDataSync(nsCString[] aFlavors) returns (IPCTransferableDataOrError aTransferableData);
+ 
+diff --git c/widget/nsBaseClipboard.cpp w/widget/nsBaseClipboard.cpp
+index 0ff8e7bb0878..5c89d2b4a851 100644
+--- c/widget/nsBaseClipboard.cpp
++++ w/widget/nsBaseClipboard.cpp
+@@ -1418,6 +1418,14 @@ nsresult nsBaseClipboard::SanitizeForClipboard(nsITransferable* aTransferable) {
+ NS_IMPL_ISUPPORTS(nsBaseClipboard::ClipboardDataSnapshot,
+                   nsIClipboardDataSnapshot)
+ 
++bool nsBaseClipboard::ClipboardDataSnapshot::IsCurrentForClipboardOverride() {
++  if (!mClipboard) {
++    return false;
++  }
++  auto sequence = mClipboard->GetNativeClipboardSequenceNumber(mClipboardType);
++  return sequence.isOk() && sequence.unwrap() == mSequenceNumber;
++}
++
+ nsBaseClipboard::ClipboardDataSnapshot::ClipboardDataSnapshot(
+     nsIClipboard::ClipboardType aClipboardType, int32_t aSequenceNumber,
+     nsTArray<nsCString>&& aFlavors, bool aFromCache,
+@@ -1697,6 +1705,11 @@ void nsBaseClipboard::ClipboardDataSnapshot::GetDataInternal(
+ NS_IMPL_ISUPPORTS(nsBaseClipboard::ClipboardPopulatedDataSnapshot,
+                   nsIClipboardDataSnapshot)
+ 
++bool nsBaseClipboard::ClipboardPopulatedDataSnapshot::
++    IsCurrentForClipboardOverride() {
++  return false;
++}
++
+ nsBaseClipboard::ClipboardPopulatedDataSnapshot::ClipboardPopulatedDataSnapshot(
+     nsITransferable* aTransferable)
+     : mTransferable(aTransferable) {
+diff --git c/widget/nsClipboardProxy.cpp w/widget/nsClipboardProxy.cpp
+index cc9f08ac4f18..096acc31cab8 100644
+--- c/widget/nsClipboardProxy.cpp
++++ w/widget/nsClipboardProxy.cpp
+@@ -251,6 +251,12 @@ class ClipboardDataSnapshotProxy final : public nsIClipboardDataSnapshot {
+ 
+ NS_IMPL_ISUPPORTS(ClipboardDataSnapshotProxy, nsIClipboardDataSnapshot)
+ 
++bool ClipboardDataSnapshotProxy::IsCurrentForClipboardOverride() {
++  bool valid = false;
++  return mActor->CanSend() &&
++         mActor->SendCheckClipboardOverrideValidity(&valid) && valid;
++}
++
+ NS_IMETHODIMP ClipboardDataSnapshotProxy::GetValid(bool* aOutResult) {
+   MOZ_ASSERT(mActor);
+   *aOutResult = mActor->CanSend();
+diff --git c/widget/nsIClipboard.idl w/widget/nsIClipboard.idl
+index 851b2ca4d45f..42dab34b15ed 100644
+--- c/widget/nsIClipboard.idl
++++ w/widget/nsIClipboard.idl
+@@ -89,6 +89,7 @@ interface nsIClipboardDataSnapshot : nsISupports {
+    * @result NS_OK if no errors
+    */
+   void getDataSync(in nsITransferable aTransferable);
++  [noscript, notxpcom, nostdcall] boolean isCurrentForClipboardOverride();
+ };
+ 
+ [scriptable, uuid(ce23c1c4-58fd-4c33-8579-fa0796d9652c)]

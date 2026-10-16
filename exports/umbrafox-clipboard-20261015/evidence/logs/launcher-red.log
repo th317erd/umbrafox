@@ -1,0 +1,133 @@
+✖ newer nightly supersedes an older dated installation (16.242592ms)
+✖ actual BuildID wins over directory name (10.918018ms)
+✖ unpublished staging and incomplete or mismatched installs are ignored (10.320638ms)
+✖ nightly wins equal BuildIDs without injecting a profile argument (11.183358ms)
+✖ duplicate BuildIDs and missing installations fail closed (27.053121ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 0
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 146.008039
+
+✖ failing tests:
+
+test at tools/umbrafox/beta/test/launcher-spec.mjs:44:1
+✖ newer nightly supersedes an older dated installation (16.242592ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+  +   '/tmp/umbrafox launcher 954mbk/Programs/umbrafox-20261001/umbrafox',
+  -   '/tmp/umbrafox launcher 954mbk/Programs/umbrafox-nightly/umbrafox',
+      '--new-tab',
+      'https://example.com/a b'
+    ]
+  
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/tools/umbrafox/beta/test/launcher-spec.mjs:48:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ '/tmp/umbrafox launcher 954mbk/Programs/umbrafox-20261001/umbrafox', '--new-tab', 'https://example.com/a b' ],
+    expected: [ '/tmp/umbrafox launcher 954mbk/Programs/umbrafox-nightly/umbrafox', '--new-tab', 'https://example.com/a b' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tools/umbrafox/beta/test/launcher-spec.mjs:53:1
+✖ actual BuildID wins over directory name (10.918018ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+  +   '/tmp/umbrafox launcher g4WjGo/Programs/umbrafox-20990101/umbrafox'
+  -   '/tmp/umbrafox launcher g4WjGo/Programs/umbrafox-20261016/umbrafox'
+    ]
+  
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/tools/umbrafox/beta/test/launcher-spec.mjs:58:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ '/tmp/umbrafox launcher g4WjGo/Programs/umbrafox-20990101/umbrafox' ],
+    expected: [ '/tmp/umbrafox launcher g4WjGo/Programs/umbrafox-20261016/umbrafox' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tools/umbrafox/beta/test/launcher-spec.mjs:61:1
+✖ unpublished staging and incomplete or mismatched installs are ignored (10.320638ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+  +   '/tmp/umbrafox launcher GwkwUK/Programs/umbrafox-20261020/umbrafox'
+  -   '/tmp/umbrafox launcher GwkwUK/Programs/umbrafox-nightly/umbrafox'
+    ]
+  
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/tools/umbrafox/beta/test/launcher-spec.mjs:68:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ '/tmp/umbrafox launcher GwkwUK/Programs/umbrafox-20261020/umbrafox' ],
+    expected: [ '/tmp/umbrafox launcher GwkwUK/Programs/umbrafox-nightly/umbrafox' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tools/umbrafox/beta/test/launcher-spec.mjs:71:1
+✖ nightly wins equal BuildIDs without injecting a profile argument (11.183358ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+  +   '/tmp/umbrafox launcher 1KZhkU/Programs/umbrafox-20261015/umbrafox',
+  -   '/tmp/umbrafox launcher 1KZhkU/Programs/umbrafox-nightly/umbrafox',
+      '--private-window'
+    ]
+  
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/tools/umbrafox/beta/test/launcher-spec.mjs:75:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ '/tmp/umbrafox launcher 1KZhkU/Programs/umbrafox-20261015/umbrafox', '--private-window' ],
+    expected: [ '/tmp/umbrafox launcher 1KZhkU/Programs/umbrafox-nightly/umbrafox', '--private-window' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tools/umbrafox/beta/test/launcher-spec.mjs:80:1
+✖ duplicate BuildIDs and missing installations fail closed (27.053121ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/tools/umbrafox/beta/test/launcher-spec.mjs:84:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }

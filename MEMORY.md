@@ -1,5 +1,87 @@
 # Umbrafox Working Memory and Resume Instructions
 
+## October 15 Clipboard Prototype: Installed Inactive
+
+Implementation commit47e6fdeb78fee3bde3447b348f49244025b0b738; release receipt
+and continuity publication follows as a separate milestone.
+
+Native and integration gates PASS; report2026-10-15-clipboard-protection.md and
+conversion recipe19 now record actual implementation/reapply rules. Browser808,
+snapshot668,permissions148,UI/actor51; packaging/install12;launcher/beta16.
+Installed complete package ~/Programs/umbrafox-nightly, BuildID20261015235226,
+archiveb4db996e...119460288B, rollback sibling.before-clipboard-20261015.
+Version exit0 Umbrafox160.0a1, ownedPID absent; .purgecaches verified. No daily
+browser restart/clipboard/profile/launcher change. ACTIVATION STILL HELD:
+nightly/default installation mapping points to a different profile from owner
+dated build. Ask owner to close/approve mapping before switching tested launcher;
+never copy profiles or promise current launcher selects new package. All lanes
+closed, monitor stopped; recorded owned test/helper PIDs absent. Preserve all
+failed runtime/build/test logs in export evidence, not just final green results.
+Read newest DETAILS/export README for commit/push state and exact provenance.
+
+## October 15 Clipboard Runtime Checkpoint
+
+Read newest DETAILS first. Build7 passed; build8 compiles readonly freshness fix
+under same20261015235226 pin. Integrated1 actual419PASS/12FAIL/2TODO: native
+Yes/Always/revoke for both operations and default pointerlock/focus traces pass.
+Failure logs preserved; obsolete ownerGlobal fixture cleanup now documentGlobal.
+Two substantive failures: beforeinput readonly must reject retry success (parent
+fix compiling), persisted cross-origin frame grant icon hidden after reload (UI
+agent resumed). Parent47pure tests pass, no package/install yet. Same DB/bus.
+Fresh isolated headless app-data/clipboard only; daily browser untouched. New
+launcher/profile activation is HELD because nightly maps to a different profile;
+owner informed closing consent needed. Inactive verified package install remains
+authorized. Do not claim restart will select new package while launcher held.
+
+## October 15 Clipboard Continuation: Not Yet Ready To Install
+
+Latest native build6 full mach build -j2 (not binaries: IDL/IPDL changed),
+log /tmp/codex/clipboard-20261015/native-build-6.log. Pin20261015235226.
+Read newest DETAILS and teamwork DB for subsequent status. Private noscript
+generation-check helper appended after4 existing snapshot methods; no stale
+paste fallback. Build corrections preserved in logs, native/runtime pending.
+UI review disproved automatic popup default parity (Escape/pointer lock).
+Quiet dismissed permission indicator selected, explicit click opens choices;
+user informed, UI worker implementing without global popup behavior changes.
+Additional real native safety tests being authored by bridge worker; parent
+alone runs isolated headless tests. Do not install incomplete build or touch
+active daily browser/profile/clipboard. No implementation completion claim yet.
+
+## October 15: Clipboard Implementation Authorized And Active
+
+Owner requested three sub-agents and prototype installation after verification.
+See newest .codex/DETAILS.md and /tmp/codex/clipboard-20261015/{teamwork.sqlite,
+control.txt,*-contract.md,review.md}. Do not restart/close daily browser.
+Native draft and UI/actors exist but are NOT integrated/verified/installed yet.
+Only original clipboard default semantics until explicit No/Yes/Always response;
+CE exemption, script execCommand exclusion and private observer transport.
+Native baseline canceled-copy notice RED0vs1; unknown token failclosed PASS.
+Isolated native build2 running, logs native-build-2.log, pin20261015235226,
+C++/Rust2jobs. Main native corrections must resync after this first compile.
+UI16/bridge21 pure tests pass; runtime/compiled safety and package remain gates.
+
+## October 15: Shortcut Push Complete; Clipboard Policy Clarified
+
+Published Chrome preset 25de5d0b584d; remote main exact SHA independently verified.
+Canonical conversion guide recipe18 now preserves that implementation's commit,
+files and verification; recipe19 registers the clipboard design as PLANNED ONLY.
+Guide README/current-state/inventory updated; add native/UI paths and commits to
+recipe19 when implemented, never reapply the withdrawn default-on proposal.
+No install or daily-browser activation. Owner WITHDREW default-on copy/paste
+protection: now discussing Firefox defaults plus browser-owned per-site
+No/Yes/Always override notice after a user operation is canceled. Contenteditable
+exception remains. No parity exception authorized; no clipboard source/pref/runtime
+changes yet. Cancellation can mean successful custom copy/paste, not blockage.
+Owner explicitly accepts that ambiguity: outside contenteditable, content-canceled
+genuine user copy/paste should prompt regardless of intent/replacement content.
+No success heuristic; propagation stop alone is not a trigger; no automatic retry.
+Non-focus-stealing UI, no suspended DOM dispatch, bounded safe retry, scoped grants
+and no background clipboard permission expansion are proposed design constraints.
+Source investigation and verification gates: bot-docs/plans/clipboard-protection.md.
+Protect ordinary inputs/textareas and page selection, preserve rich-editor handling
+in contenteditable; do not promise protection against arbitrary subsequent DOM
+mutation or relax clipboard permissions. Daily browser/clipboard remain untouched.
+
 ## October 15: Chrome Preset First Pass Verified
 
 Owner accepts partial/non-one-to-one parity and approved implementation. Explicit

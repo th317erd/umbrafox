@@ -1,0 +1,28 @@
+ 0:00.31 W Warnings in third-party code are being suppressed from the terminal output. Use --show-all-warnings or --verbose to see them.
+ 0:00.31 W All warnings will still be dumped to /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/warnings_*.json at the end of the build.
+ 0:00.46 Clobber not needed.
+ 0:00.49 /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/backend.RecursiveMakeBackend is out of date with respect to /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/browser/modules/test/unit/xpcshell.toml
+ 0:00.49 Build configuration changed. Regenerating backend.
+ 0:00.49 /home/wyatt/.mozbuild/srcdirs/source-38eb0eaf04cc/_virtualenvs/build/bin/python /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/config.status
+Reticulating splines...
+Finished reading 2824 moz.build files in 2.59s
+Read 58 gyp files in parallel contributing 0.00s to total wall time
+Processed into 22415 build config descriptors in 1.98s
+RecursiveMake backend executed in 3.44s
+  6106 total backend files; 0 created; 3 updated; 6103 unchanged; 0 deleted; 12 -> 2280 Makefile
+FasterMake backend executed in 0.18s
+  96 total backend files; 0 created; 0 updated; 96 unchanged; 0 deleted
+Clangd backend executed in 1.71s
+  1374 total backend files; 0 created; 3 updated; 1371 unchanged; 0 deleted
+Total wall time: 10.24s; CPU time: 9.11s; Efficiency: 89%; Untracked: 0.35s
+ 0:12.38 Parallelism determined by memory: using 16 jobs for 16 cores based on 62.7 GiB RAM and estimated job size of 1.0 GiB
+ 0:12.38 /usr/bin/make -C faster -j16 -s
+ 0:12.63 Elapsed: 0.05s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/gmp-clearkey/0.1: Kept 0 existing; Added/updated 1; Removed 0 files and 0 directories.
+ 0:14.65 Elapsed: 0.15s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin: Kept 2048 existing; Added/updated 24; Removed 0 files and 0 directories.
+ 0:14.79 Elapsed: 0.29s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/browser: Kept 4966 existing; Added/updated 25; Removed 0 files and 0 directories.
+ 0:14.92 W 0 compiler warnings present.
+ 0:14.94 W Overall system resources - Wall time: 15s; CPU: 36%; Read bytes: 855961600; Write bytes: 394436608; Read time: 22168; Write time: 5651
+ 0:14.94 W Swap in/out (MB): 17.22265625/1.4140625
+ 0:14.94 To view a profile of the build, run |mach resource-usage|.
+ 0:14.94 Your build was successful!
+Streaming resource usage profile to: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/profile_log_20261015_183010.json

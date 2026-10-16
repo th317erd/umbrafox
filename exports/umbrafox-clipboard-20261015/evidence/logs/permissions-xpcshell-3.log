@@ -1,0 +1,332 @@
+Streaming resource usage profile to: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/test/profile_log_20261015_183036.json
+ 0:00.11 INFO Using harness timeout of 30s (base=30s, factor=1.0)
+ 0:00.11 INFO These variables are available in the mozinfo environment and can be used to skip tests conditionally:
+ 0:00.11 INFO     appname: umbrafox
+ 0:00.11 INFO     artifact: False
+ 0:00.11 INFO     asan: False
+ 0:00.11 INFO     automation: False
+ 0:00.11 INFO     bin_suffix: 
+ 0:00.11 INFO     bits: 64
+ 0:00.11 INFO     buildapp: browser
+ 0:00.11 INFO     buildtype: opt
+ 0:00.11 INFO     buildtype_guess: opt
+ 0:00.11 INFO     cc_type: clang
+ 0:00.11 INFO     ccov: False
+ 0:00.11 INFO     condprof: False
+ 0:00.11 INFO     crashreporter: True
+ 0:00.11 INFO     datareporting: True
+ 0:00.11 INFO     dbus_enabled: True
+ 0:00.11 INFO     debug: False
+ 0:00.11 INFO     devedition: False
+ 0:00.11 INFO     e10s: False
+ 0:00.11 INFO     early_beta_or_earlier: True
+ 0:00.11 INFO     enterprise: False
+ 0:00.11 INFO     fission: True
+ 0:00.11 INFO     healthreport: True
+ 0:00.11 INFO     inc_origin_init: False
+ 0:00.11 INFO     is_ubuntu: False
+ 0:00.11 INFO     isolated_process: False
+ 0:00.11 INFO     mingw: False
+ 0:00.12 INFO     mozconfig: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozconfig
+ 0:00.12 INFO     msix: False
+ 0:00.12 INFO     nightly_build: True
+ 0:00.12 INFO     normandy: True
+ 0:00.12 INFO     official: False
+ 0:00.12 INFO     opt: True
+ 0:00.12 INFO     os: linux
+ 0:00.12 INFO     pgo: False
+ 0:00.12 INFO     platform_guess: linux64
+ 0:00.12 INFO     privateBrowsing: False
+ 0:00.12 INFO     processor: x86_64
+ 0:00.12 INFO     release_or_beta: False
+ 0:00.12 INFO     require_signing: False
+ 0:00.12 INFO     sessionHistoryInParent: True
+ 0:00.12 INFO     socketprocess_networking: False
+ 0:00.12 INFO     stylo: True
+ 0:00.12 INFO     sync: True
+ 0:00.12 INFO     telemetry: False
+ 0:00.12 INFO     tests_enabled: True
+ 0:00.12 INFO     toolkit: gtk
+ 0:00.12 INFO     topobjdir: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+ 0:00.12 INFO     topsrcdir: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source
+ 0:00.12 INFO     tsan: False
+ 0:00.12 INFO     ubsan: False
+ 0:00.12 INFO     updater: True
+ 0:00.12 INFO     verify: False
+ 0:00.12 INFO Found node at /home/wyatt/.mozbuild/node/bin/node
+ 0:00.12 INFO mozserve | Found moz-http2 server path: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/xpcshell/moz-http2/moz-http2.js
+ 0:00.12 INFO Found node at /home/wyatt/.mozbuild/node/bin/node
+ 0:00.18 INFO mozserve | moz-http2 server msg: HTTP2 server listening on ports 35719,44525
+
+ 0:00.18 INFO moz-http2 server started on ports 35719, 44525
+ 0:00.18 INFO node moz-http2 [stderr] (node:1138400) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+
+ 0:00.18 INFO node moz-http2 [stderr] (Use `node --trace-deprecation ...` to show where the warning was created)
+
+ 0:00.18 INFO mozserve | Found Http3Server path: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/http3server
+ 0:00.18 INFO mozserve | cert db path: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/test/http3serverDB
+ 0:00.19 INFO mozserve | http3 server msg: HTTP3 server listening on ports 39328, 50582, 54539, 33631, 45306 and 50827. EchConfig is @AE3+DQBJBwAgACA3vcO7HTgRsZnxkzQwXF0ERhX6ZQgMvqbAphgI783JdwAQAAEAAQABAAMAAgABAAIAA0AOcHVibGljLmV4YW1wbGUAAA==@
+
+ 0:00.41 INFO Running tests sequentially.
+ 0:00.42 SUITE_START: xpcshell - running 2 tests
+ 0:00.42 TEST_START: browser/modules/test/unit/test_SitePermissions.js
+ 0:00.42 INFO browser/modules/test/unit/test_SitePermissions.js | full command: ['/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/xpcshell', '-g', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin', '-a', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/browser', '-m', '-e', 'const _HEAD_JS_PATH = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/xpcshell/head.js";', '-e', 'const _MOZINFO_JS_PATH = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-profile-p_5akwoy/mozinfo.json";', '-e', 'const _PREFS_FILE = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/user.js";', '-e', 'const _TESTING_MODULES_DIR = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/modules/";', '-f', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/xpcshell/head.js', '-e', 'const _HEAD_FILES = [];', '-e', 'const _JSDEBUGGER_PORT = 0;', '-e', 'const _TEST_FILE = ["/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/xpcshell/browser/modules/test/unit/test_SitePermissions.js"];', '-e', 'const _TEST_NAME = "browser/modules/test/unit/test_SitePermissions.js";', '-e', 'const _EXPECTED = "pass";', '-e', '_execute_test(); quit(0);']
+ 0:00.42 INFO browser/modules/test/unit/test_SitePermissions.js | current directory: '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/xpcshell/browser/modules/test/unit'
+ 0:00.42 INFO browser/modules/test/unit/test_SitePermissions.js | environment: ['MOZ_DISABLE_SOCKET_PROCESS=1', 'LD_LIBRARY_PATH=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin', 'XPCSHELL_TEST_TEMP_DIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-other-7d32ni1d', 'MOZHTTP3_ECH=AE3+DQBJBwAgACA3vcO7HTgRsZnxkzQwXF0ERhX6ZQgMvqbAphgI783JdwAQAAEAAQABAAMAAgABAAIAA0AOcHVibGljLmV4YW1wbGUAAA==', 'MOZHTTP3_PORT_ECH=54539', 'XPCOM_DEBUG_BREAK=stack-and-abort', 'MOZHTTP3_PORT_MASQUE=50827', 'MOZHTTP3_PORT_FAILED=50582', 'MOZNODE_EXEC_PORT=44525', 'MOZ_DEVELOPER_OBJ_DIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj', 'MOZHTTP2_PORT=35719', 'MOZHTTP3_PORT_PROXY=33631', 'MOZ_TEST_TIMEOUT_INTERVAL=30', 'MOZHTTP3_PORT=39328', 'MOZ_PROFILER_STARTUP_FEATURES=java,js,screenshots,processcpu,ipcmessages,memory', 'MOZ_DISABLE_CONTENT_SANDBOX=1', 'MOZHTTP3_PORT_NO_RESPONSE=45306', 'MOZ_HTTP3_CERT_DB_PATH=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/test/http3serverDB', 'MOZ_PROFILER_STARTUP_INTERVAL=10', 'MOZ_HTTP3_SERVER_PATH=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/http3server', 'XPCSHELL_TEST_PROFILE_DIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-profile-p_5akwoy', 'MOZ_CRASHREPORTER=1', 'MOZ_DEVELOPER_REPO_DIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source', 'MOZ_PROFILER_STARTUP=1']
+ 0:00.42 INFO browser/modules/test/unit/test_SitePermissions.js | as shell command: (cd /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/xpcshell/browser/modules/test/unit; MOZ_DISABLE_SOCKET_PROCESS=1 LD_LIBRARY_PATH=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin XPCSHELL_TEST_TEMP_DIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-other-7d32ni1d MOZHTTP3_ECH=AE3+DQBJBwAgACA3vcO7HTgRsZnxkzQwXF0ERhX6ZQgMvqbAphgI783JdwAQAAEAAQABAAMAAgABAAIAA0AOcHVibGljLmV4YW1wbGUAAA== MOZHTTP3_PORT_ECH=54539 XPCOM_DEBUG_BREAK=stack-and-abort MOZHTTP3_PORT_MASQUE=50827 MOZHTTP3_PORT_FAILED=50582 MOZNODE_EXEC_PORT=44525 MOZ_DEVELOPER_OBJ_DIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj MOZHTTP2_PORT=35719 MOZHTTP3_PORT_PROXY=33631 MOZ_TEST_TIMEOUT_INTERVAL=30 MOZHTTP3_PORT=39328 MOZ_PROFILER_STARTUP_FEATURES=java,js,screenshots,processcpu,ipcmessages,memory MOZ_DISABLE_CONTENT_SANDBOX=1 MOZHTTP3_PORT_NO_RESPONSE=45306 MOZ_HTTP3_CERT_DB_PATH=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/test/http3serverDB MOZ_PROFILER_STARTUP_INTERVAL=10 MOZ_HTTP3_SERVER_PATH=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/http3server XPCSHELL_TEST_PROFILE_DIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-profile-p_5akwoy MOZ_CRASHREPORTER=1 MOZ_DEVELOPER_REPO_DIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source MOZ_PROFILER_STARTUP=1 /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/xpcshell -g /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin -a /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/browser -m -e 'const _HEAD_JS_PATH = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/xpcshell/head.js";' -e 'const _MOZINFO_JS_PATH = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-profile-p_5akwoy/mozinfo.json";' -e 'const _PREFS_FILE = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/user.js";' -e 'const _TESTING_MODULES_DIR = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/modules/";' -f /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/xpcshell/head.js -e 'const _HEAD_FILES = [];' -e 'const _JSDEBUGGER_PORT = 0;' -e 'const _TEST_FILE = ["/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/xpcshell/browser/modules/test/unit/test_SitePermissions.js"];' -e 'const _TEST_NAME = "browser/modules/test/unit/test_SitePermissions.js";' -e 'const _EXPECTED = "pass";' -e '_execute_test(); quit(0);')
+ 0:00.50 INFO (xpcshell/head.js) | test MAIN run_test pending (1)
+ 0:00.51 INFO (xpcshell/head.js) | test run_next_test 0 pending (2)
+ 0:00.51 INFO (xpcshell/head.js) | test MAIN run_test finished (2)
+ 0:00.51 INFO running event loop
+ 0:00.51 INFO browser/modules/test/unit/test_SitePermissions.js | Starting testPermissionsListing
+ 0:00.51 INFO (xpcshell/head.js) | test testPermissionsListing pending (2)
+ 0:00.51 PASS testPermissionsListing - [testPermissionsListing : 73] Correct list of all permissions - ["3rdPartyFrameStorage","3rdPartyStorage","autoplay-media","camera","cookie","desktop-notification","focus-tab-by-prompt","geo","install","local-network","loopback-network","microphone","midi","midi-sysex","open-protocol-handler","persistent-storage","popup","screen","serial","shortcuts","speaker","storage-access","xr"] deepEqual ["3rdPartyFrameStorage","3rdPartyStorage","autoplay-media","camera","cookie","desktop-notification","focus-tab-by-prompt","geo","install","local-network","loopback-network","microphone","midi","midi-sysex","open-protocol-handler","persistent-storage","popup","screen","serial","shortcuts","speaker","storage-access","xr"]
+ 0:00.51 INFO (xpcshell/head.js) | test run_next_test 0 finished (2)
+ 0:00.51 INFO (xpcshell/head.js) | test run_next_test 1 pending (2)
+ 0:00.51 INFO (xpcshell/head.js) | test testPermissionsListing finished (2)
+ 0:00.51 INFO browser/modules/test/unit/test_SitePermissions.js | Starting testGetAllByPrincipal
+ 0:00.51 INFO (xpcshell/head.js) | test testGetAllByPrincipal pending (2)
+ 0:00.51 PASS testGetAllByPrincipal - [testGetAllByPrincipal : 87] [] deepEqual []
+ 0:00.51 PASS testGetAllByPrincipal - [testGetAllByPrincipal : 93] [] deepEqual []
+ 0:00.51 PASS testGetAllByPrincipal - [testGetAllByPrincipal : 96] [{"id":"camera","scope":"{SitePermissions.SCOPE_PERSISTENT}","state":1}] deepEqual [{"id":"camera","state":1,"scope":"{SitePermissions.SCOPE_PERSISTENT}"}]
+ 0:00.51 PASS testGetAllByPrincipal - [testGetAllByPrincipal : 133] [{"id":"camera","scope":"{SitePermissions.SCOPE_PERSISTENT}","state":1},{"id":"microphone","scope":"{SitePermissions.SCOPE_SESSION}","state":1},{"id":"loopback-network","scope":"{SitePermissions.SCOPE_SESSION}","state":1},{"id":"local-network","scope":"{SitePermissions.SCOPE_SESSION}","state":1},{"id":"desktop-notification","scope":"{SitePermissions.SCOPE_PERSISTENT}","state":2}] deepEqual [{"id":"camera","state":1,"scope":"{SitePermissions.SCOPE_PERSISTENT}"},{"id":"microphone","state":1,"scope":"{SitePermissions.SCOPE_SESSION}"},{"id":"loopback-network","state":1,"scope":"{SitePermissions.SCOPE_SESSION}"},{"id":"local-network","state":1,"scope":"{SitePermissions.SCOPE_SESSION}"},{"id":"desktop-notification","state":2,"scope":"{SitePermissions.SCOPE_PERSISTENT}"}]
+ 0:00.51 PASS testGetAllByPrincipal - [testGetAllByPrincipal : 162] [{"id":"camera","scope":"{SitePermissions.SCOPE_PERSISTENT}","state":1},{"id":"loopback-network","scope":"{SitePermissions.SCOPE_SESSION}","state":1},{"id":"local-network","scope":"{SitePermissions.SCOPE_SESSION}","state":1},{"id":"desktop-notification","scope":"{SitePermissions.SCOPE_PERSISTENT}","state":2}] deepEqual [{"id":"camera","state":1,"scope":"{SitePermissions.SCOPE_PERSISTENT}"},{"id":"loopback-network","state":1,"scope":"{SitePermissions.SCOPE_SESSION}"},{"id":"local-network","state":1,"scope":"{SitePermissions.SCOPE_SESSION}"},{"id":"desktop-notification","state":2,"scope":"{SitePermissions.SCOPE_PERSISTENT}"}]
+ 0:00.51 PASS testGetAllByPrincipal - [testGetAllByPrincipal : 190] [] deepEqual []
+ 0:00.51 PASS testGetAllByPrincipal - [testGetAllByPrincipal : 192] 0 == 0
+ 0:00.51 PASS testGetAllByPrincipal - [testGetAllByPrincipal : 200] 0 == 0
+ 0:00.51 PASS testGetAllByPrincipal - [testGetAllByPrincipal : 201] [{"id":"shortcuts","scope":"{SitePermissions.SCOPE_PERSISTENT}","state":2}] deepEqual [{"id":"shortcuts","state":2,"scope":"{SitePermissions.SCOPE_PERSISTENT}"}]
+ 0:00.51 INFO (xpcshell/head.js) | test run_next_test 1 finished (2)
+ 0:00.51 INFO (xpcshell/head.js) | test run_next_test 2 pending (2)
+ 0:00.51 INFO (xpcshell/head.js) | test testGetAllByPrincipal finished (2)
+ 0:00.51 INFO browser/modules/test/unit/test_SitePermissions.js | Starting testGetAvailableStates
+ 0:00.51 INFO (xpcshell/head.js) | test testGetAvailableStates pending (2)
+ 0:00.51 PASS testGetAvailableStates - [testGetAvailableStates : 215] [0,1,2] deepEqual [0,1,2]
+ 0:00.51 PASS testGetAvailableStates - [testGetAvailableStates : 226] [3,1,2] deepEqual [3,1,2]
+ 0:00.51 PASS testGetAvailableStates - [testGetAvailableStates : 233] [1,8,2] deepEqual [1,8,2]
+ 0:00.51 PASS testGetAvailableStates - [testGetAvailableStates : 239] [1,2] deepEqual [1,2]
+ 0:00.51 INFO (xpcshell/head.js) | test run_next_test 2 finished (2)
+ 0:00.51 INFO (xpcshell/head.js) | test run_next_test 3 pending (2)
+ 0:00.51 INFO (xpcshell/head.js) | test testGetAvailableStates finished (2)
+ 0:00.51 INFO browser/modules/test/unit/test_SitePermissions.js | Starting testPersistDataOnShutdownPermission
+ 0:00.51 INFO (xpcshell/head.js) | test testPersistDataOnShutdownPermission pending (2)
+ 0:00.51 PASS testPersistDataOnShutdownPermission - [testPersistDataOnShutdownPermission : 253] Hidden when data is not cleared on shutdown - true == true
+ 0:00.51 PASS testPersistDataOnShutdownPermission - [testPersistDataOnShutdownPermission : 263] Shown when data is cleared on shutdown - true == true
+ 0:00.51 PASS testPersistDataOnShutdownPermission - [testPersistDataOnShutdownPermission : 268] Defaults to no exception (cleared on shutdown) - 0 == 0
+ 0:00.51 PASS testPersistDataOnShutdownPermission - [testPersistDataOnShutdownPermission : 274] Exposes the default and keep states - [0,1] deepEqual [0,1]
+ 0:00.51 PASS testPersistDataOnShutdownPermission - [testPersistDataOnShutdownPermission : 280] "Keep site data when closing" == "Keep site data when closing"
+ 0:00.51 PASS testPersistDataOnShutdownPermission - [testPersistDataOnShutdownPermission : 284] "Clear when closing" == "Clear when closing"
+ 0:00.51 PASS testPersistDataOnShutdownPermission - [testPersistDataOnShutdownPermission : 291] "Always keep site data" == "Always keep site data"
+ 0:00.51 PASS testPersistDataOnShutdownPermission - [testPersistDataOnShutdownPermission : 305] 1 == 1
+ 0:00.51 PASS testPersistDataOnShutdownPermission - [testPersistDataOnShutdownPermission : 317] 0 == 0
+ 0:00.51 PASS testPersistDataOnShutdownPermission - [testPersistDataOnShutdownPermission : 322] Permission is fully removed, not stored - null == null
+ 0:00.51 INFO (xpcshell/head.js) | test run_next_test 3 finished (2)
+ 0:00.51 INFO (xpcshell/head.js) | test run_next_test 4 pending (2)
+ 0:00.51 INFO (xpcshell/head.js) | test testPersistDataOnShutdownPermission finished (2)
+ 0:00.51 INFO browser/modules/test/unit/test_SitePermissions.js | Starting testExactHostMatch
+ 0:00.51 INFO (xpcshell/head.js) | test testExactHostMatch pending (2)
+ 0:00.51 PASS testExactHostMatch - [testExactHostMatch : 395] autoplay-media should exact-host match - 2 == 2
+ 0:00.51 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.51 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 402] cookie should not exact-host match - 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 395] desktop-notification should exact-host match - 0 == 0
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 395] camera should exact-host match - 0 == 0
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 395] loopback-network should exact-host match - 0 == 0
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 395] local-network should exact-host match - 0 == 0
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 395] microphone should exact-host match - 0 == 0
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 395] screen should exact-host match - 0 == 0
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 395] speaker should exact-host match - 0 == 0
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 402] popup should not exact-host match - 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 402] install should not exact-host match - 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 395] geo should exact-host match - 0 == 0
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 395] open-protocol-handler should exact-host match - 0 == 0
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 395] xr should exact-host match - 0 == 0
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 395] focus-tab-by-prompt should exact-host match - 0 == 0
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 395] persistent-storage should exact-host match - 0 == 0
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 402] persist-data-on-shutdown should not exact-host match - 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 402] shortcuts should not exact-host match - 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 395] midi should exact-host match - 0 == 0
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 395] midi-sysex should exact-host match - 0 == 0
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 395] serial should exact-host match - 0 == 0
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 402] storage-access should not exact-host match - 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 402] 3rdPartyStorage should not exact-host match - 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 402] 3rdPartyFrameStorage should not exact-host match - 1 == 1
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 421] 3 == 3
+ 0:00.52 PASS testExactHostMatch - [testExactHostMatch : 425] 1 == 1
+ 0:00.52 INFO (xpcshell/head.js) | test run_next_test 4 finished (2)
+ 0:00.52 INFO (xpcshell/head.js) | test run_next_test 5 pending (2)
+ 0:00.52 INFO (xpcshell/head.js) | test testExactHostMatch finished (2)
+ 0:00.52 INFO browser/modules/test/unit/test_SitePermissions.js | Starting testDefaultPrefs
+ 0:00.52 INFO (xpcshell/head.js) | test testDefaultPrefs pending (2)
+ 0:00.53 PASS testDefaultPrefs - [testDefaultPrefs : 442] {"state":0,"scope":"{SitePermissions.SCOPE_PERSISTENT}"} deepEqual {"state":0,"scope":"{SitePermissions.SCOPE_PERSISTENT}"}
+ 0:00.53 PASS testDefaultPrefs - [testDefaultPrefs : 452] {"state":2,"scope":"{SitePermissions.SCOPE_PERSISTENT}"} deepEqual {"state":2,"scope":"{SitePermissions.SCOPE_PERSISTENT}"}
+ 0:00.53 PASS testDefaultPrefs - [testDefaultPrefs : 458] {"state":0,"scope":"{SitePermissions.SCOPE_PERSISTENT}"} deepEqual {"state":0,"scope":"{SitePermissions.SCOPE_PERSISTENT}"}
+ 0:00.53 PASS testDefaultPrefs - [testDefaultPrefs : 463] {"state":0,"scope":"{SitePermissions.SCOPE_PERSISTENT}"} deepEqual {"state":0,"scope":"{SitePermissions.SCOPE_PERSISTENT}"}
+ 0:00.53 PASS testDefaultPrefs - [testDefaultPrefs : 471] {"state":0,"scope":"{SitePermissions.SCOPE_PERSISTENT}"} deepEqual {"state":0,"scope":"{SitePermissions.SCOPE_PERSISTENT}"}
+ 0:00.53 PASS testDefaultPrefs - [testDefaultPrefs : 484] {"state":1,"scope":"{SitePermissions.SCOPE_PERSISTENT}"} deepEqual {"state":1,"scope":"{SitePermissions.SCOPE_PERSISTENT}"}
+ 0:00.53 PASS testDefaultPrefs - [testDefaultPrefs : 491] {"state":2,"scope":"{SitePermissions.SCOPE_PERSISTENT}"} deepEqual {"state":2,"scope":"{SitePermissions.SCOPE_PERSISTENT}"}
+ 0:00.53 PASS testDefaultPrefs - [testDefaultPrefs : 498] {"state":1,"scope":"{SitePermissions.SCOPE_PERSISTENT}"} deepEqual {"state":1,"scope":"{SitePermissions.SCOPE_PERSISTENT}"}
+ 0:00.53 PASS testDefaultPrefs - [testDefaultPrefs : 505] {"state":0,"scope":"{SitePermissions.SCOPE_PERSISTENT}"} deepEqual {"state":0,"scope":"{SitePermissions.SCOPE_PERSISTENT}"}
+ 0:00.53 INFO (xpcshell/head.js) | test run_next_test 5 finished (2)
+ 0:00.53 INFO (xpcshell/head.js) | test run_next_test 6 pending (2)
+ 0:00.53 INFO (xpcshell/head.js) | test testDefaultPrefs finished (2)
+ 0:00.53 INFO browser/modules/test/unit/test_SitePermissions.js | Starting testCanvasPermission
+ 0:00.53 INFO (xpcshell/head.js) | test testCanvasPermission pending (2)
+ 0:00.53 PASS testCanvasPermission - [testCanvasPermission : 525] -1 == -1
+ 0:00.53 PASS testCanvasPermission - [testCanvasPermission : 526] 0 == 0
+ 0:00.53 PASS testCanvasPermission - [testCanvasPermission : 535] 18 != -1
+ 0:00.53 PASS testCanvasPermission - [testCanvasPermission : 536] 1 != 0
+ 0:00.53 INFO (xpcshell/head.js) | test run_next_test 6 finished (2)
+ 0:00.53 INFO (xpcshell/head.js) | test run_next_test 7 pending (2)
+ 0:00.53 INFO (xpcshell/head.js) | test testCanvasPermission finished (2)
+ 0:00.53 INFO browser/modules/test/unit/test_SitePermissions.js | Starting testLocalHostPermission
+ 0:00.53 INFO (xpcshell/head.js) | test testLocalHostPermission pending (2)
+ 0:00.53 PASS testLocalHostPermission - [testLocalHostPermission : 564] No 'loopback-network' permission should be present - true == true
+ 0:00.53 PASS testLocalHostPermission - [testLocalHostPermission : 568] No 'loopback-network' permission should be present - true == true
+ 0:00.53 PASS testLocalHostPermission - [testLocalHostPermission : 576] 'loopback-network' should be in listPermissions when blocking is enabled - true == true
+ 0:00.53 PASS testLocalHostPermission - [testLocalHostPermission : 580] 'loopback-network' permission should be present for principal when blocking is enabled - true == true
+ 0:00.53 INFO (xpcshell/head.js) | test run_next_test 7 finished (2)
+ 0:00.53 INFO (xpcshell/head.js) | test run_next_test 8 pending (2)
+ 0:00.53 INFO (xpcshell/head.js) | test testLocalHostPermission finished (2)
+ 0:00.53 INFO browser/modules/test/unit/test_SitePermissions.js | Starting testLocalNetworkPermission
+ 0:00.53 INFO (xpcshell/head.js) | test testLocalNetworkPermission pending (2)
+ 0:00.53 PASS testLocalNetworkPermission - [testLocalNetworkPermission : 605] 'local-network' should not be in listPermissions when blocking is disabled - true == true
+ 0:00.53 PASS testLocalNetworkPermission - [testLocalNetworkPermission : 609] 'local-network' permission should not be present for principal when blocking is disabled - true == true
+ 0:00.53 PASS testLocalNetworkPermission - [testLocalNetworkPermission : 617] 'local-network' should be in listPermissions when blocking is enabled - true == true
+ 0:00.53 PASS testLocalNetworkPermission - [testLocalNetworkPermission : 621] 'local-network' permission should be present for principal when blocking is enabled - true == true
+ 0:00.53 INFO (xpcshell/head.js) | test run_next_test 8 finished (2)
+ 0:00.53 INFO (xpcshell/head.js) | test run_next_test 9 pending (2)
+ 0:00.53 INFO (xpcshell/head.js) | test testLocalNetworkPermission finished (2)
+ 0:00.53 INFO browser/modules/test/unit/test_SitePermissions.js | Starting testFilePermissions
+ 0:00.53 INFO (xpcshell/head.js) | test testFilePermissions pending (2)
+ 0:00.53 PASS testFilePermissions - [testFilePermissions : 637] [] deepEqual []
+ 0:00.53 PASS testFilePermissions - [testFilePermissions : 640] [{"id":"camera","scope":"{SitePermissions.SCOPE_PERSISTENT}","state":1}] deepEqual [{"id":"camera","state":1,"scope":"{SitePermissions.SCOPE_PERSISTENT}"}]
+ 0:00.53 PASS testFilePermissions - [testFilePermissions : 648] [] deepEqual []
+ 0:00.53 INFO (xpcshell/head.js) | test run_next_test 9 finished (2)
+ 0:00.53 INFO (xpcshell/head.js) | test run_next_test 10 pending (2)
+ 0:00.53 INFO (xpcshell/head.js) | test testFilePermissions finished (2)
+ 0:00.53 INFO (xpcshell/head.js) | test run_next_test 10 finished (1)
+ 0:00.53 INFO exiting test
+ 0:00.54 TEST_END: Test PASS. Subtests passed 120/120. Unexpected 0
+ 0:00.54 TEST_START: browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js
+ 0:00.54 INFO browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js | full command: ['/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/xpcshell', '-g', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin', '-a', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/browser', '-m', '-e', 'const _HEAD_JS_PATH = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/xpcshell/head.js";', '-e', 'const _MOZINFO_JS_PATH = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-profile-x7xhdzhq/mozinfo.json";', '-e', 'const _PREFS_FILE = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/user.js";', '-e', 'const _TESTING_MODULES_DIR = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/modules/";', '-f', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/xpcshell/head.js', '-e', 'const _HEAD_FILES = [];', '-e', 'const _JSDEBUGGER_PORT = 0;', '-e', 'const _TEST_FILE = ["/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/xpcshell/browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js"];', '-e', 'const _TEST_NAME = "browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js";', '-e', 'const _EXPECTED = "pass";', '-e', '_execute_test(); quit(0);']
+ 0:00.54 INFO browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js | current directory: '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/xpcshell/browser/modules/test/unit'
+ 0:00.54 INFO browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js | environment: ['MOZ_DISABLE_SOCKET_PROCESS=1', 'LD_LIBRARY_PATH=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin', 'MOZHTTP3_ECH=AE3+DQBJBwAgACA3vcO7HTgRsZnxkzQwXF0ERhX6ZQgMvqbAphgI783JdwAQAAEAAQABAAMAAgABAAIAA0AOcHVibGljLmV4YW1wbGUAAA==', 'MOZHTTP3_PORT_ECH=54539', 'XPCOM_DEBUG_BREAK=stack-and-abort', 'MOZHTTP3_PORT_MASQUE=50827', 'MOZHTTP3_PORT_FAILED=50582', 'XPCSHELL_TEST_PROFILE_DIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-profile-x7xhdzhq', 'MOZNODE_EXEC_PORT=44525', 'MOZ_DEVELOPER_OBJ_DIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj', 'MOZHTTP2_PORT=35719', 'MOZHTTP3_PORT_PROXY=33631', 'MOZ_TEST_TIMEOUT_INTERVAL=30', 'MOZHTTP3_PORT=39328', 'MOZ_PROFILER_STARTUP_FEATURES=java,js,screenshots,processcpu,ipcmessages,memory', 'MOZ_DISABLE_CONTENT_SANDBOX=1', 'XPCSHELL_TEST_TEMP_DIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-other-l8au89ea', 'MOZHTTP3_PORT_NO_RESPONSE=45306', 'MOZ_HTTP3_CERT_DB_PATH=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/test/http3serverDB', 'MOZ_PROFILER_STARTUP_INTERVAL=10', 'MOZ_HTTP3_SERVER_PATH=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/http3server', 'MOZ_CRASHREPORTER=1', 'MOZ_DEVELOPER_REPO_DIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source', 'MOZ_PROFILER_STARTUP=1']
+ 0:00.54 INFO browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js | as shell command: (cd /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/xpcshell/browser/modules/test/unit; MOZ_DISABLE_SOCKET_PROCESS=1 LD_LIBRARY_PATH=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin MOZHTTP3_ECH=AE3+DQBJBwAgACA3vcO7HTgRsZnxkzQwXF0ERhX6ZQgMvqbAphgI783JdwAQAAEAAQABAAMAAgABAAIAA0AOcHVibGljLmV4YW1wbGUAAA== MOZHTTP3_PORT_ECH=54539 XPCOM_DEBUG_BREAK=stack-and-abort MOZHTTP3_PORT_MASQUE=50827 MOZHTTP3_PORT_FAILED=50582 XPCSHELL_TEST_PROFILE_DIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-profile-x7xhdzhq MOZNODE_EXEC_PORT=44525 MOZ_DEVELOPER_OBJ_DIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj MOZHTTP2_PORT=35719 MOZHTTP3_PORT_PROXY=33631 MOZ_TEST_TIMEOUT_INTERVAL=30 MOZHTTP3_PORT=39328 MOZ_PROFILER_STARTUP_FEATURES=java,js,screenshots,processcpu,ipcmessages,memory MOZ_DISABLE_CONTENT_SANDBOX=1 XPCSHELL_TEST_TEMP_DIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-other-l8au89ea MOZHTTP3_PORT_NO_RESPONSE=45306 MOZ_HTTP3_CERT_DB_PATH=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/test/http3serverDB MOZ_PROFILER_STARTUP_INTERVAL=10 MOZ_HTTP3_SERVER_PATH=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/http3server MOZ_CRASHREPORTER=1 MOZ_DEVELOPER_REPO_DIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source MOZ_PROFILER_STARTUP=1 /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/xpcshell -g /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin -a /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/browser -m -e 'const _HEAD_JS_PATH = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/xpcshell/head.js";' -e 'const _MOZINFO_JS_PATH = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-profile-x7xhdzhq/mozinfo.json";' -e 'const _PREFS_FILE = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/user.js";' -e 'const _TESTING_MODULES_DIR = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/modules/";' -f /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/xpcshell/head.js -e 'const _HEAD_FILES = [];' -e 'const _JSDEBUGGER_PORT = 0;' -e 'const _TEST_FILE = ["/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/xpcshell/browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js"];' -e 'const _TEST_NAME = "browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js";' -e 'const _EXPECTED = "pass";' -e '_execute_test(); quit(0);')
+ 0:00.64 INFO (xpcshell/head.js) | test MAIN run_test pending (1)
+ 0:00.64 INFO (xpcshell/head.js) | test run_next_test 0 pending (2)
+ 0:00.64 INFO (xpcshell/head.js) | test MAIN run_test finished (2)
+ 0:00.64 INFO running event loop
+ 0:00.64 INFO browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js | Starting test_exact_attributes_and_standard_permission_listing
+ 0:00.64 INFO (xpcshell/head.js) | test test_exact_attributes_and_standard_permission_listing pending (2)
+ 0:00.64 PASS test_exact_attributes_and_standard_permission_listing - [test_exact_attributes_and_standard_permission_listing : 37] true == true
+ 0:00.64 PASS test_exact_attributes_and_standard_permission_listing - [test_exact_attributes_and_standard_permission_listing : 38] true == true
+ 0:00.64 PASS test_exact_attributes_and_standard_permission_listing - [test_exact_attributes_and_standard_permission_listing : 39] true == true
+ 0:00.64 PASS test_exact_attributes_and_standard_permission_listing - [test_exact_attributes_and_standard_permission_listing : 40] true == true
+ 0:00.64 PASS test_exact_attributes_and_standard_permission_listing - [test_exact_attributes_and_standard_permission_listing : 41] 0 == 0
+ 0:00.65 PASS test_exact_attributes_and_standard_permission_listing - [test_exact_attributes_and_standard_permission_listing : 42] 0 == 0
+ 0:00.65 PASS test_exact_attributes_and_standard_permission_listing - [test_exact_attributes_and_standard_permission_listing : 43] 0 == 0
+ 0:00.65 PASS test_exact_attributes_and_standard_permission_listing - [test_exact_attributes_and_standard_permission_listing : 44] [{"id":"umbrafox-clipboard-copy^https%3A%2F%2Fclipboard-ui.example.com%5EuserContextId%3D1","scope":"{SitePermissions.SCOPE_PERSISTENT}","state":1}] deepEqual [{"id":"umbrafox-clipboard-copy^https%3A%2F%2Fclipboard-ui.example.com%5EuserContextId%3D1","state":1,"scope":"{SitePermissions.SCOPE_PERSISTENT}"}]
+ 0:00.65 PASS test_exact_attributes_and_standard_permission_listing - [test_exact_attributes_and_standard_permission_listing : 51] "Override canceled copy (https://clipboard-ui.example.com)" == true
+ 0:00.65 PASS test_exact_attributes_and_standard_permission_listing - [test_exact_attributes_and_standard_permission_listing : 52] Even an explicit foreign-container key does not apply to this principal - 0 == 0
+ 0:00.65 PASS test_exact_attributes_and_standard_permission_listing - [test_exact_attributes_and_standard_permission_listing : 58] true == true
+ 0:00.65 INFO (xpcshell/head.js) | test run_next_test 0 finished (2)
+ 0:00.65 INFO (xpcshell/head.js) | test run_next_test 1 pending (2)
+ 0:00.65 INFO (xpcshell/head.js) | test test_exact_attributes_and_standard_permission_listing finished (2)
+ 0:00.65 INFO browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js | Starting test_authoritative_frame_grant_revocation
+ 0:00.65 INFO (xpcshell/head.js) | test test_authoritative_frame_grant_revocation pending (2)
+ 0:00.65 PASS test_authoritative_frame_grant_revocation - [test_authoritative_frame_grant_revocation : 71] true == true
+ 0:00.65 PASS test_authoritative_frame_grant_revocation - [test_authoritative_frame_grant_revocation : 73] 1 == 1
+ 0:00.65 PASS test_authoritative_frame_grant_revocation - [test_authoritative_frame_grant_revocation : 74] "umbrafox-clipboard-paste^https%3A%2F%2Fclipboard-frame.example.com" == "umbrafox-clipboard-paste^https%3A%2F%2Fclipboard-frame.example.com"
+ 0:00.65 PASS test_authoritative_frame_grant_revocation - [test_authoritative_frame_grant_revocation : 75] true == true
+ 0:00.65 PASS test_authoritative_frame_grant_revocation - [test_authoritative_frame_grant_revocation : 77] true == true
+ 0:00.65 PASS test_authoritative_frame_grant_revocation - [test_authoritative_frame_grant_revocation : 78] 0 == 0
+ 0:00.65 INFO (xpcshell/head.js) | test run_next_test 1 finished (2)
+ 0:00.65 INFO (xpcshell/head.js) | test run_next_test 2 pending (2)
+ 0:00.65 INFO (xpcshell/head.js) | test test_authoritative_frame_grant_revocation finished (2)
+ 0:00.65 INFO browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js | Starting test_no_frame_grants_carried_to_new_document
+ 0:00.65 INFO (xpcshell/head.js) | test test_no_frame_grants_carried_to_new_document pending (2)
+ 0:00.65 PASS test_no_frame_grants_carried_to_new_document - [test_no_frame_grants_carried_to_new_document : 91] true == true
+ 0:00.65 PASS test_no_frame_grants_carried_to_new_document - [test_no_frame_grants_carried_to_new_document : 93] 0 == 0
+ 0:00.65 INFO (xpcshell/head.js) | test run_next_test 2 finished (2)
+ 0:00.65 INFO (xpcshell/head.js) | test run_next_test 3 pending (2)
+ 0:00.65 INFO (xpcshell/head.js) | test test_no_frame_grants_carried_to_new_document finished (2)
+ 0:00.65 INFO browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js | Starting test_malformed_keys_and_browser_only_types
+ 0:00.65 INFO (xpcshell/head.js) | test test_malformed_keys_and_browser_only_types pending (2)
+ 0:00.65 PASS test_malformed_keys_and_browser_only_types - [test_malformed_keys_and_browser_only_types : 104] null == null
+ 0:00.65 PASS test_malformed_keys_and_browser_only_types - [test_malformed_keys_and_browser_only_types : 104] null == null
+ 0:00.65 PASS test_malformed_keys_and_browser_only_types - [test_malformed_keys_and_browser_only_types : 104] null == null
+ 0:00.65 PASS test_malformed_keys_and_browser_only_types - [test_malformed_keys_and_browser_only_types : 104] null == null
+ 0:00.65 PASS test_malformed_keys_and_browser_only_types - [test_malformed_keys_and_browser_only_types : 106] true == true
+ 0:00.65 PASS test_malformed_keys_and_browser_only_types - [test_malformed_keys_and_browser_only_types : 109] true == true
+ 0:00.65 INFO (xpcshell/head.js) | test run_next_test 3 finished (2)
+ 0:00.65 INFO (xpcshell/head.js) | test run_next_test 4 pending (2)
+ 0:00.65 INFO (xpcshell/head.js) | test test_malformed_keys_and_browser_only_types finished (2)
+ 0:00.65 INFO browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js | Starting test_private_grants_clear_when_private_contexts_close
+ 0:00.65 INFO (xpcshell/head.js) | test test_private_grants_clear_when_private_contexts_close pending (2)
+ 0:00.65 PASS test_private_grants_clear_when_private_contexts_close - [test_private_grants_clear_when_private_contexts_close : 128] 1 == 1
+ 0:00.65 PASS test_private_grants_clear_when_private_contexts_close - [test_private_grants_clear_when_private_contexts_close : 134] true == true
+ 0:00.65 PASS test_private_grants_clear_when_private_contexts_close - [test_private_grants_clear_when_private_contexts_close : 135] true == true
+ 0:00.65 INFO (xpcshell/head.js) | test run_next_test 4 finished (2)
+ 0:00.65 INFO (xpcshell/head.js) | test run_next_test 5 pending (2)
+ 0:00.65 INFO (xpcshell/head.js) | test test_private_grants_clear_when_private_contexts_close finished (2)
+ 0:00.65 INFO (xpcshell/head.js) | test run_next_test 5 finished (1)
+ 0:00.65 INFO exiting test
+ 0:00.69 TEST_END: Test PASS. Subtests passed 28/28. Unexpected 0
+ 0:00.70 INFO INFO | Result summary:
+ 0:00.70 INFO INFO | Passed: 2
+ 0:00.70 INFO INFO | Failed: 0
+ 0:00.70 INFO INFO | Todo: 0
+ 0:00.70 INFO INFO | Retried: 0
+ 0:00.70 SUITE_END
+
+xpcshell
+~~~~~~~~
+Ran 150 checks (148 subtests, 2 tests)
+Expected results: 150
+Unexpected results: 0
+OK
+ 0:00.70 INFO http3Server server shutting down ...

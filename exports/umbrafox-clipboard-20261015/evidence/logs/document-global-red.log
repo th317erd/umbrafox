@@ -1,0 +1,461 @@
+(node:1081076) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✖ default, No and dismissal preserve permissions and never allow (9.559844ms)
+✖ only explicit strict-false native retry shows an owned neutral failure hint (3.140821ms)
+✖ failure feedback suppresses unsafe state and never replaces another hint (1.980882ms)
+✖ failure hint navigation and tab cleanup only close the matching owned hint (1.939371ms)
+✖ an old failure hint timer cannot close a newer hint with the same message (1.913981ms)
+✖ Yes is consumed once and never remembered (2.161745ms)
+✖ Always is exact-origin, operation and origin-attribute scoped, and revocable (1.865191ms)
+✖ private Always expires with the last private context, leaving normal grants (2.206056ms)
+✖ stale requests and TTL expire without an allow or grant (2.023682ms)
+✖ concurrent requests coalesce without replacing the outstanding request (3.597569ms)
+✔ ineligible principals, background requests and existing panels never show (8.812693ms)
+✖ popup failure and callback errors release pending ownership (1.761848ms)
+✔ async validation is awaited and dismissal prevents later display (1.812049ms)
+✖ rejected native retry never persists Always (1.660807ms)
+✖ duplicate choices during async validation or retry execute once (2.405309ms)
+✖ dismissal and expiry during retry prohibit persistence (1.577296ms)
+✖ PopupNotifications action removal does not cancel an owned async retry (1.468894ms)
+✖ standard permission listing preserves container keys and revokes frame origins (2.718904ms)
+✖ known frame grants do not carry over navigation; private types stay out of generic editor (2.620812ms)
+✖ validation failure and malformed grant keys fail closed (4.35639ms)
+✔ current frame principals rediscover saved grants after reload without actor traffic (3.890453ms)
+(node:1081082) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ rejects malformed and wrong-window native notifications (9.428463ms)
+✖ uses native token, exact inner window, and authoritative frame principal (2.575962ms)
+✖ Yes is one-shot even when called concurrently (3.399524ms)
+✖ No and actor destruction discard without retry (2.49324ms)
+✖ expiry, navigation, background tab, and inactive frame fail closed (3.09981ms)
+✖ changed native target or missing native acceptance never succeeds (2.975338ms)
+✖ request identity mismatch cannot validate, retry or clear another request (2.836766ms)
+✖ pagehide invalidates pending state without document clipboard listeners (3.957754ms)
+✖ saved explicit grant retries with no new prompt (2.494021ms)
+✖ custom replacement still offers notice when native replay is stale (2.363648ms)
+✖ current retry failure reaches UI completion without premature cancellation (2.4734ms)
+✖ lost frame during retry still cancels UI even without didDestroy (2.169275ms)
+✖ saved-grant retry failure releases actors without creating UI (5.974507ms)
+✖ in-flight retry expiry or replacement cancels only its own UI once (2.218786ms)
+✖ UI cancellation ownership survives asynchronous successful retry (2.095974ms)
+✖ navigation while retry is in flight prevents successful grant result (2.49262ms)
+✖ timer expiry clears both actors and notice (2.200226ms)
+✖ new native request invalidates old notice without accepting old callback (3.150351ms)
+✖ malformed parent messages and mismatched callbacks leave active request intact (3.388955ms)
+✖ inactive owner window blocks saved-grant retry (2.981759ms)
+✖ actor IPC and UI failures release pending state without retry (2.287997ms)
+✖ toolkit applications without browser UI fail closed (2.095554ms)
+✖ untrusted lifecycle event cannot invalidate native pending state (2.174085ms)
+✔ missing native observer or property-bag factory never offers a notice (6.861301ms)
+✔ non-web principals cannot produce browser permission notices (5.136073ms)
+ℹ tests 46
+ℹ suites 0
+ℹ pass 6
+ℹ fail 40
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 142.729469
+
+✖ failing tests:
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:313:1
+✖ default, No and dismissal preserve permissions and never allow (9.559844ms)
+  TypeError: Cannot read properties of undefined (reading 'options')
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:318:37)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:335:1
+✖ only explicit strict-false native retry shows an owned neutral failure hint (3.140821ms)
+  TypeError: Cannot read properties of undefined (reading 'args')
+      at Object.choose (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:282:35)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:340:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:365:1
+✖ failure feedback suppresses unsafe state and never replaces another hint (1.980882ms)
+  TypeError: Cannot read properties of undefined (reading 'args')
+      at Object.choose (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:282:35)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:407:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:415:1
+✖ failure hint navigation and tab cleanup only close the matching owned hint (1.939371ms)
+  TypeError: Cannot read properties of undefined (reading 'args')
+      at Object.choose (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:282:35)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:427:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:453:1
+✖ an old failure hint timer cannot close a newer hint with the same message (1.913981ms)
+  TypeError: Cannot read properties of undefined (reading 'args')
+      at Object.choose (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:282:35)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:456:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:473:1
+✖ Yes is consumed once and never remembered (2.161745ms)
+  TypeError: Cannot read properties of undefined (reading 'args')
+      at Object.choose (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:282:35)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:476:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:485:1
+✖ Always is exact-origin, operation and origin-attribute scoped, and revocable (1.865191ms)
+  TypeError: Cannot read properties of undefined (reading 'args')
+      at Object.choose (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:282:35)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:488:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:512:1
+✖ private Always expires with the last private context, leaving normal grants (2.206056ms)
+  TypeError: Cannot read properties of undefined (reading 'args')
+      at Object.choose (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:282:35)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:515:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:533:1
+✖ stale requests and TTL expire without an allow or grant (2.023682ms)
+  TypeError: Cannot read properties of undefined (reading 'args')
+      at Object.choose (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:282:35)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:563:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:570:1
+✖ concurrent requests coalesce without replacing the outstanding request (3.597569ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:574:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:617:1
+✖ popup failure and callback errors release pending ownership (1.761848ms)
+  TypeError: Cannot read properties of undefined (reading 'message')
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:624:28)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:655:1
+✖ rejected native retry never persists Always (1.660807ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:659:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:666:1
+✖ duplicate choices during async validation or retry execute once (2.405309ms)
+  TypeError: Cannot read properties of undefined (reading 'args')
+      at Object.choose (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:282:35)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:679:19)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:689:1
+✖ dismissal and expiry during retry prohibit persistence (1.577296ms)
+  TypeError: Cannot read properties of undefined (reading 'args')
+      at Object.choose (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:282:35)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:697:22)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:715:1
+✖ PopupNotifications action removal does not cancel an owned async retry (1.468894ms)
+  TypeError: Cannot read properties of undefined (reading 'args')
+      at Object.choose (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:282:35)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:718:20)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:725:1
+✖ standard permission listing preserves container keys and revokes frame origins (2.718904ms)
+  TypeError: Cannot read properties of undefined (reading 'args')
+      at Object.choose (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:282:35)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:732:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:752:1
+✖ known frame grants do not carry over navigation; private types stay out of generic editor (2.620812ms)
+  TypeError: Cannot read properties of undefined (reading 'args')
+      at Object.choose (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:282:35)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:757:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:773:1
+✖ validation failure and malformed grant keys fail closed (4.35639ms)
+  TypeError: Cannot read properties of undefined (reading 'message')
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:783:28)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:227:1
+✖ uses native token, exact inner window, and authoritative frame principal (2.575962ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:229:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:240:1
+✖ Yes is one-shot even when called concurrently (3.399524ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:242:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:259:1
+✖ No and actor destruction discard without retry (2.49324ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:262:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:277:1
+✖ expiry, navigation, background tab, and inactive frame fail closed (3.09981ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:294:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:304:1
+✖ changed native target or missing native acceptance never succeeds (2.975338ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:311:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:320:1
+✖ request identity mismatch cannot validate, retry or clear another request (2.836766ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:322:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:338:1
+✖ pagehide invalidates pending state without document clipboard listeners (3.957754ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:340:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:353:1
+✖ saved explicit grant retries with no new prompt (2.494021ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:356:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:361:1
+✖ custom replacement still offers notice when native replay is stale (2.363648ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:364:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:374:1
+✖ current retry failure reaches UI completion without premature cancellation (2.4734ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:386:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:420:1
+✖ lost frame during retry still cancels UI even without didDestroy (2.169275ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:423:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:447:1
+✖ saved-grant retry failure releases actors without creating UI (5.974507ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:451:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:457:1
+✖ in-flight retry expiry or replacement cancels only its own UI once (2.218786ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:460:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:498:1
+✖ UI cancellation ownership survives asynchronous successful retry (2.095974ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:500:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:518:1
+✖ navigation while retry is in flight prevents successful grant result (2.49262ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:520:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:534:1
+✖ timer expiry clears both actors and notice (2.200226ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:536:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:550:1
+✖ new native request invalidates old notice without accepting old callback (3.150351ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:552:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:568:1
+✖ malformed parent messages and mismatched callbacks leave active request intact (3.388955ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:570:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:586:1
+✖ inactive owner window blocks saved-grant retry (2.981759ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:590:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:595:1
+✖ actor IPC and UI failures release pending state without retry (2.287997ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:610:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:616:1
+✖ toolkit applications without browser UI fail closed (2.095554ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:618:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:624:1
+✖ untrusted lifecycle event cannot invalidate native pending state (2.174085ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:36)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:626:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)

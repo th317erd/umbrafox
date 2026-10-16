@@ -1,0 +1,634 @@
+Skipping test file installation (up to date). Run with --force to force reinstallation.
+Streaming resource usage profile to: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/test/profile_log_20261015_182016.json
+ 0:00.22 INFO These variables are available in the mozinfo environment and can be used to skip tests conditionally:
+ 0:00.22 INFO     a11y_checks: False
+ 0:00.22 INFO     android: False
+ 0:00.22 INFO     apple_catalina: False
+ 0:00.22 INFO     apple_silicon: False
+ 0:00.22 INFO     appname: umbrafox
+ 0:00.22 INFO     arch: x86_64
+ 0:00.22 INFO     artifact: False
+ 0:00.22 INFO     asan: False
+ 0:00.22 INFO     automation: False
+ 0:00.22 INFO     bin_suffix: 
+ 0:00.22 INFO     bits: 64
+ 0:00.22 INFO     buildapp: browser
+ 0:00.22 INFO     buildtype: opt
+ 0:00.22 INFO     buildtype_guess: opt
+ 0:00.22 INFO     cc_type: clang
+ 0:00.22 INFO     ccov: False
+ 0:00.22 INFO     condprof: False
+ 0:00.22 INFO     coverage: False
+ 0:00.22 INFO     crashreporter: True
+ 0:00.22 INFO     datareporting: True
+ 0:00.22 INFO     dbus_enabled: True
+ 0:00.22 INFO     debug: False
+ 0:00.22 INFO     devedition: False
+ 0:00.22 INFO     display: wayland
+ 0:00.22 INFO     e10s: True
+ 0:00.22 INFO     early_beta_or_earlier: True
+ 0:00.22 INFO     enterprise: False
+ 0:00.22 INFO     fission: True
+ 0:00.22 INFO     has_sandbox: True
+ 0:00.22 INFO     headless: True
+ 0:00.22 INFO     healthreport: True
+ 0:00.22 INFO     http2: False
+ 0:00.22 INFO     http3: False
+ 0:00.22 INFO     inc_origin_init: False
+ 0:00.22 INFO     is_emulator: False
+ 0:00.22 INFO     is_ubuntu: False
+ 0:00.22 INFO     isolated_process: False
+ 0:00.22 INFO     linux_distro: Omarchy
+ 0:00.22 INFO     macos_vm: False
+ 0:00.22 INFO     mda_gpu: False
+ 0:00.22 INFO     mingw: False
+ 0:00.22 INFO     mozconfig: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozconfig
+ 0:00.22 INFO     msix: False
+ 0:00.22 INFO     nightly_build: True
+ 0:00.22 INFO     nogpu: False
+ 0:00.22 INFO     normandy: True
+ 0:00.22 INFO     nova: True
+ 0:00.22 INFO     official: False
+ 0:00.22 INFO     opt: True
+ 0:00.22 INFO     os: linux
+ 0:00.22 INFO     os_version: 4.0.4
+ 0:00.22 INFO     pgo: False
+ 0:00.22 INFO     platform_guess: linux64
+ 0:00.22 INFO     processor: x86_64
+ 0:00.22 INFO     release_or_beta: False
+ 0:00.22 INFO     require_signing: False
+ 0:00.23 INFO     sessionHistoryInParent: True
+ 0:00.23 INFO     socketprocess_e10s: False
+ 0:00.23 INFO     socketprocess_networking: False
+ 0:00.23 INFO     standalone: False
+ 0:00.23 INFO     stylo: True
+ 0:00.23 INFO     swgl: False
+ 0:00.23 INFO     sync: True
+ 0:00.23 INFO     telemetry: False
+ 0:00.23 INFO     tests_enabled: True
+ 0:00.23 INFO     toolkit: gtk
+ 0:00.23 INFO     topobjdir: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+ 0:00.23 INFO     topsrcdir: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source
+ 0:00.23 INFO     tsan: False
+ 0:00.23 INFO     ubsan: False
+ 0:00.23 INFO     updater: True
+ 0:00.23 INFO     verify: False
+ 0:00.23 INFO     verify_fission: False
+ 0:00.23 INFO     version: Omarchy 4.0.4
+ 0:00.23 INFO     vertical_tab: False
+ 0:00.23 INFO     win10_2009: False
+ 0:00.23 INFO     win11_2009: False
+ 0:00.23 INFO     wmfme: 0
+ 0:00.23 INFO     xorigin: False
+ 0:00.23 INFO Checking for ssltunnel processes...
+ 0:00.26 INFO Checking for xpcshell processes...
+ 0:00.29 SUITE_START: mochitest-browser - running 1 tests
+ 0:00.29 INFO Running manifest: dom/events/test/clipboard/browser.toml
+ 0:00.35 pid:1104751 Full command: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/pk12util -i /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/pgo/certs/mochitest.client -w /tmp/tmp4pbiqc8b.mozrunner/.crtdbpw -d /tmp/tmp4pbiqc8b.mozrunner
+pid:1104751 pk12util: PKCS12 IMPORT SUCCESSFUL
+
+ 0:00.42 INFO MochitestServer : launching ['/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/xpcshell', '-g', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin', '-e', "const _PROFILE_PATH = '/tmp/tmp4pbiqc8b.mozrunner'; const _SERVER_PORT = '8888'; const _SERVER_ADDR = '127.0.0.1'; const _TEST_PREFIX = undefined; const _DISPLAY_RESULTS = false; const _HTTPD_PATH = '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/components'; ", '-f', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/testing/mochitest/server.js']
+ 0:00.42 INFO runtests.py | Server pid: 1104762
+ 0:00.42 INFO runtests.py | Websocket server pid: 1104763
+ 0:00.43 INFO runtests.py | SSL tunnel pid: 1104764
+ 0:00.53 INFO use http3 server: False
+ 0:00.53 INFO Use build node at /home/wyatt/.mozbuild/node/bin/node
+ 0:00.53 INFO mozserve | Found moz-http2 server path: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/testing/mochitest/xpcshell/moz-http2/moz-http2.js
+ 0:00.53 INFO Found node at /home/wyatt/.mozbuild/node/bin/node
+ 0:00.59 INFO mozserve | moz-http2 server msg: HTTP2 server listening on ports 42635,44039
+
+ 0:00.59 INFO moz-http2 server started on ports 42635, 44039
+ 0:00.60 INFO node moz-http2 [stderr] (node:1104814) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+
+ 0:00.60 INFO node moz-http2 [stderr] (Use `node --trace-deprecation ...` to show where the warning was created)
+
+ 0:00.60 INFO runtests.py | Running with scheme: http
+ 0:00.60 INFO runtests.py | Running with e10s: True
+ 0:00.60 INFO runtests.py | Running with fission: True
+ 0:00.60 INFO runtests.py | Running with cross-origin iframes: False
+ 0:00.60 INFO runtests.py | Running with socketprocess_e10s: False
+ 0:00.60 INFO runtests.py | Running http tests: start.
+
+ 0:00.62 INFO Application command: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/umbrafox -marionette -foreground -profile /tmp/tmp4pbiqc8b.mozrunner
+ 0:00.63 INFO runtests.py | Application pid: 1104844
+ 0:00.63 Started process `GECKO(1104844)`
+ 0:00.66 GECKO(1104844) *** You are running in headless mode.
+ 0:00.73 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_socket_pid1104888.log
+ 0:01.02 GECKO(1104844) 1792113617186	Marionette	INFO	Marionette enabled
+ 0:01.02 GECKO(1104844) 1792113617187	Marionette	TRACE	Received observer notification final-ui-startup
+ 0:01.02 GECKO(1104844) 1792113617187	Marionette	DEBUG	Initializing Marionette
+ 0:01.08 GECKO(1104844) console.error: "Warning: unrecognized command line flag" "-foreground"
+ 0:01.09 GECKO(1104844) 1792113617263	Marionette	INFO	Listening on port 2828
+ 0:01.09 GECKO(1104844) 1792113617263	Marionette	DEBUG	Marionette is listening
+ 0:01.11 GECKO(1104844) 1792113617278	Marionette	DEBUG	Accepted connection 0 from 127.0.0.1:49382
+ 0:01.12 GECKO(1104844) 1792113617285	Marionette	DEBUG	Closed connection 0
+ 0:01.12 GECKO(1104844) 1792113617285	Marionette	DEBUG	Accepted connection 1 from 127.0.0.1:49392
+ 0:01.20 GECKO(1104844) 1792113617366	Marionette	DEBUG	1 -> [0,1,"WebDriver:NewSession",{"strictFileInteractability":true}]
+ 0:01.20 GECKO(1104844) 1792113617372	Marionette	DEBUG	Waiting for initial application window
+ 0:01.38 GECKO(1104844) [Parent 1104844: Main Thread]: I/SlowChromeEvent Please do not use mouseenter/leave events in chrome. They are slower than mouseover/out! chrome://browser/content/tabbrowser/tabs.mjs:61:10
+ 0:01.43 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1104980.log
+ 0:01.43 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1104980.log
+ 0:01.43 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_rdd_pid1104990.log
+ 0:01.44 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_rdd_pid1104990.log
+ 0:01.53 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105027.log
+ 0:01.53 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105027.log
+ 0:01.66 GECKO(1104844) [GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
+ 0:02.11 GECKO(1104844) console.error: services.settings:
+ 0:02.11 GECKO(1104844)   Message: EmptyDatabaseError: "main/nimbus-desktop-experiments" has not been synced yet
+ 0:02.11 GECKO(1104844)   Stack:
+ 0:02.11 GECKO(1104844)     EmptyDatabaseError@resource://services-settings/Database.sys.mjs:19:5
+ 0:02.11 GECKO(1104844) list@resource://services-settings/Database.sys.mjs:96:13
+ 0:02.11 GECKO(1104844) async*get@resource://services-settings/RemoteSettingsClient.sys.mjs:570:28
+ 0:02.11 GECKO(1104844) async*getRecipesFromCollection/recipes<@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:792:16
+ 0:02.11 GECKO(1104844) #raceShutdown@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:748:34
+ 0:02.11 GECKO(1104844) getRecipesFromCollection@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:791:41
+ 0:02.11 GECKO(1104844) getRecipesFromAllCollections@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:647:39
+ 0:02.11 GECKO(1104844) #updateImpl@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:517:33
+ 0:02.11 GECKO(1104844) async*updateRecipes/<@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:434:55
+ 0:02.11 GECKO(1104844) LockGrantedCallback*withUpdateLock@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:370:26
+ 0:02.11 GECKO(1104844) updateRecipes@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:434:18
+ 0:02.11 GECKO(1104844) enable@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:322:16
+ 0:02.11 GECKO(1104844) #init@resource://nimbus/ExperimentAPI.sys.mjs:325:28
+ 0:02.11 GECKO(1104844) async*init@resource://nimbus/ExperimentAPI.sys.mjs:264:49
+ 0:02.11 GECKO(1104844) finishInit@resource://normandy/Normandy.sys.mjs:80:30
+ 0:02.11 GECKO(1104844) init@resource://normandy/Normandy.sys.mjs:58:16
+ 0:02.11 GECKO(1104844) async*fn@resource://gre/modules/BrowserUtils.sys.mjs:83:33
+ 0:02.11 GECKO(1104844) callSingleListener@resource://gre/modules/BrowserUtils.sys.mjs:828:15
+ 0:02.12 GECKO(1104844) callModulesFromCategory@resource://gre/modules/BrowserUtils.sys.mjs:883:23
+ 0:02.12 GECKO(1104844) BG__beforeUIStartup@moz-src:///browser/components/BrowserGlue.sys.mjs:441:23
+ 0:02.12 GECKO(1104844) BG_observe@moz-src:///browser/components/BrowserGlue.sys.mjs:208:14
+ 0:02.25 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_utility_pid1105178.log
+ 0:02.25 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_utility_pid1105178.log
+ 0:02.31 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105213.log
+ 0:02.31 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105213.log
+ 0:02.31 GECKO(1104844) 1792113618480	Marionette	TRACE	Received observer notification browser-idle-startup-tasks-finished
+ 0:02.49 GECKO(1104844) 1792113618661	RemoteAgent	TRACE	[10] ProgressListener Start: expectNavigation=false resolveWhenStarted=false unloadTimeout=5000 waitForExplicitStart=false
+ 0:02.49 GECKO(1104844) 1792113618662	RemoteAgent	TRACE	[10] ProgressListener Setting unload timer (5000ms)
+ 0:02.49 GECKO(1104844) 1792113618662	RemoteAgent	TRACE	[10] Wait for initial navigation: isUncommittedInitial=false, isLoadingDocument=false
+ 0:02.49 GECKO(1104844) 1792113618662	RemoteAgent	TRACE	[10] Document already finished loading: about:blank
+ 0:02.50 GECKO(1104844) 1792113618662	RemoteAgent	TRACE	[10] ProgressListener Stop: has error=false url=about:blank
+ 0:02.51 GECKO(1104844) 1792113618673	Marionette	DEBUG	1 <- [1,1,null,{"sessionId":"53a0dc98-df6a-45bd-964e-41c3c3ed7e3f","capabilities":{"acceptInsecureCerts":false,"browserName":"umbrafox","browserVersion":"160.0a1","platformName":"linux","setWindowRect":true,"unhandledPromptBehavior":"dismiss and notify","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:160.0) Gecko/20100101 Firefox/160.0","moz:buildID":"20261015235226","moz:headless":true,"moz:platformVersion":"7.2.5-3-omarchy","moz:processID":1104844,"moz:profile":"/tmp/tmp4pbiqc8b.mozrunner","moz:shutdownTimeout":73000,"pageLoadStrategy":"normal","timeouts":{"implicit":0,"pageLoad":300000,"script":30000},"strictFileInteractability":true,"moz:accessibilityChecks":false,"moz:webdriverClick":true,"moz:windowless":false,"proxy":{}}}]
+ 0:02.52 GECKO(1104844) 1792113618686	Marionette	DEBUG	1 -> [0,2,"Addon:Install",{"temporary":false,"path":"/tmp/tmpkzmjt6uh.zip"}]
+ 0:02.53 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105310.log
+ 0:02.53 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105310.log
+ 0:02.53 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105315.log
+ 0:02.54 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105315.log
+ 0:02.54 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105321.log
+ 0:02.54 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105321.log
+ 0:02.58 GECKO(1104844) 1792113618745	Marionette	DEBUG	1 <- [1,2,null,{"value":"special-powers@mozilla.org"}]
+ 0:02.60 GECKO(1104844) 1792113618769	Marionette	DEBUG	1 -> [0,3,"Addon:Install",{"temporary":false,"path":"/tmp/tmp4g5wadkb.zip"}]
+ 0:02.62 GECKO(1104844) 1792113618783	Marionette	DEBUG	1 <- [1,3,null,{"value":"mochikit@mozilla.org"}]
+ 0:02.62 GECKO(1104844) 1792113618785	Marionette	DEBUG	1 -> [0,4,"Marionette:GetContext",{}]
+ 0:02.62 GECKO(1104844) 1792113618785	Marionette	DEBUG	1 <- [1,4,null,{"value":"content"}]
+ 0:02.62 GECKO(1104844) 1792113618785	Marionette	DEBUG	1 -> [0,5,"Marionette:SetContext",{"value":"chrome"}]
+ 0:02.62 GECKO(1104844) 1792113618785	Marionette	DEBUG	1 <- [1,5,null,{"value":null}]
+ 0:02.62 GECKO(1104844) 1792113618787	Marionette	DEBUG	1 -> [0,6,"WebDriver:ExecuteScript",{"script":"/* This Source Code Form is subject to the terms of the Mozilla Public\n * License, v. 2.0. If a copy of the MPL was not distr ... \n// the flavor and url to load.\nlet ev = new CustomEvent(\"mochitest-load\", { detail: [flavor, url] });\nwin.dispatchEvent(ev);","args":[{"flavor":"browser-chrome","testUrl":"about:blank"}],"newSandbox":true,"sandbox":"default","line":2381,"filename":"_tests/testing/mochitest/runtests.py"}]
+ 0:02.62 GECKO(1104844) 1792113618791	RemoteAgent	TRACE	WebDriverProcessData actor created for PID 1104844
+ 0:02.62 GECKO(1104844) 1792113618792	Marionette	TRACE	[1] MarionetteCommands actor created for window id 2
+ 0:02.64 GECKO(1104844) 1792113618807	Marionette	DEBUG	1 <- [1,6,null,{"value":null}]
+ 0:02.66 GECKO(1104844) 1792113618825	Marionette	DEBUG	1 -> [0,7,"Marionette:SetContext",{"value":"content"}]
+ 0:02.66 GECKO(1104844) 1792113618825	Marionette	DEBUG	1 <- [1,7,null,{"value":null}]
+ 0:02.67 GECKO(1104844) 1792113618843	Marionette	DEBUG	1 -> [0,8,"WebDriver:DeleteSession",{}]
+ 0:02.68 GECKO(1104844) 1792113618843	Marionette	TRACE	[1] MarionetteCommands actor destroyed for window id 2
+ 0:02.68 GECKO(1104844) 1792113618845	Marionette	DEBUG	1 <- [1,8,null,{"value":null}]
+ 0:02.68 INFO runtests.py | Waiting for browser...
+ 0:02.68 GECKO(1104844) 1792113618848	Marionette	DEBUG	Closed connection 1
+ 0:02.72 INFO *** Start BrowserChrome Test Results ***
+ 0:02.72 INFO checking for open sidebars
+ 0:02.72 INFO checking window state
+ 0:02.87 TEST_START: dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js
+ 0:02.87 INFO Entering test test_script_and_synthetic_events_have_no_native_authority
+ 0:02.98 GECKO(1104844) must wait for focus in content
+ 0:03.03 PASS test_script_and_synthetic_events_have_no_native_authority - Page execCommand(copy) has no native authority - 0 == 0
+ 0:03.03 PASS test_script_and_synthetic_events_have_no_native_authority - The permitted script command actually dispatched - 1 == 1
+ 0:03.03 PASS test_script_and_synthetic_events_have_no_native_authority - A trusted script-dispatched clipboard event is still not a native command - true == true
+ 0:03.03 PASS test_script_and_synthetic_events_have_no_native_authority - true == true
+ 0:03.03 PASS test_script_and_synthetic_events_have_no_native_authority - "original textarea fixture" == "original textarea fixture"
+ 0:03.04 PASS test_script_and_synthetic_events_have_no_native_authority - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:03.12 GECKO(1104844) must wait for focus in content
+ 0:03.18 PASS test_script_and_synthetic_events_have_no_native_authority - Synthetic copy: no native notice - 0 == 0
+ 0:03.18 PASS test_script_and_synthetic_events_have_no_native_authority - Synthetic copy: event path was exercised - 1 == true
+ 0:03.18 PASS test_script_and_synthetic_events_have_no_native_authority - 1 == 1
+ 0:03.18 PASS test_script_and_synthetic_events_have_no_native_authority - true == true
+ 0:03.18 PASS test_script_and_synthetic_events_have_no_native_authority - true == true
+ 0:03.18 PASS test_script_and_synthetic_events_have_no_native_authority - "original textarea fixture" == "original textarea fixture"
+ 0:03.18 PASS test_script_and_synthetic_events_have_no_native_authority - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:03.20 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105474.log
+ 0:03.20 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105474.log
+ 0:03.30 GECKO(1104844) must wait for focus in content
+ 0:03.36 INFO Console message: [JavaScript Warning: "document.execCommand(‘paste’) was denied because it was not called from inside a short running user-generated event handler." {file: "https://example.com/" line: 13}]
+ 0:03.39 PASS test_script_and_synthetic_events_have_no_native_authority - Page execCommand(paste) has no native authority - 0 == 0
+ 0:03.39 PASS test_script_and_synthetic_events_have_no_native_authority - Default script-paste permission denial remains unchanged - false == false
+ 0:03.39 PASS test_script_and_synthetic_events_have_no_native_authority - "original textarea fixture" == "original textarea fixture"
+ 0:03.39 PASS test_script_and_synthetic_events_have_no_native_authority - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:03.41 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105516.log
+ 0:03.41 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105516.log
+ 0:03.51 GECKO(1104844) must wait for focus in content
+ 0:03.54 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105551.log
+ 0:03.54 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105551.log
+ 0:03.54 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105558.log
+ 0:03.54 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105558.log
+ 0:03.55 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105565.log
+ 0:03.55 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105565.log
+ 0:03.59 PASS test_script_and_synthetic_events_have_no_native_authority - Synthetic paste: no native notice - 0 == 0
+ 0:03.59 PASS test_script_and_synthetic_events_have_no_native_authority - Synthetic paste: event path was exercised - 1 == true
+ 0:03.59 PASS test_script_and_synthetic_events_have_no_native_authority - 1 == 1
+ 0:03.59 PASS test_script_and_synthetic_events_have_no_native_authority - true == true
+ 0:03.59 PASS test_script_and_synthetic_events_have_no_native_authority - true == true
+ 0:03.59 PASS test_script_and_synthetic_events_have_no_native_authority - "original textarea fixture" == "original textarea fixture"
+ 0:03.59 PASS test_script_and_synthetic_events_have_no_native_authority - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:03.60 INFO Leaving test test_script_and_synthetic_events_have_no_native_authority
+ 0:03.60 INFO Entering test test_permitted_script_paste_has_no_native_authority
+ 0:03.68 GECKO(1104844) must wait for focus in content
+ 0:03.73 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105661.log
+ 0:03.74 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105661.log
+ 0:03.75 PASS test_permitted_script_paste_has_no_native_authority - Permitted script paste: no native notice - 0 == 0
+ 0:03.75 PASS test_permitted_script_paste_has_no_native_authority - Permitted script paste: event path was exercised - 1 == true
+ 0:03.75 PASS test_permitted_script_paste_has_no_native_authority - ["paste"] deepEqual ["paste"]
+ 0:03.75 PASS test_permitted_script_paste_has_no_native_authority - true == true
+ 0:03.75 PASS test_permitted_script_paste_has_no_native_authority - true == true
+ 0:03.75 PASS test_permitted_script_paste_has_no_native_authority - "original textarea fixture" == "original textarea fixture"
+ 0:03.75 PASS test_permitted_script_paste_has_no_native_authority - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:03.77 INFO Leaving test test_permitted_script_paste_has_no_native_authority
+ 0:03.77 INFO Entering test test_propagation_stopping_does_not_offer_override
+ 0:03.83 GECKO(1104844) must wait for focus in content
+ 0:03.88 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105704.log
+ 0:03.88 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105704.log
+ 0:03.89 PASS test_propagation_stopping_does_not_offer_override - copy propagation: no native notice - 0 == 0
+ 0:03.89 PASS test_propagation_stopping_does_not_offer_override - copy propagation: event path was exercised - 1 == true
+ 0:03.89 PASS test_propagation_stopping_does_not_offer_override - true == true
+ 0:03.89 PASS test_propagation_stopping_does_not_offer_override - "copy" == "copy"
+ 0:03.89 PASS test_propagation_stopping_does_not_offer_override - "native safety selected text" == "native safety selected text"
+ 0:03.98 GECKO(1104844) must wait for focus in content
+ 0:04.04 PASS test_propagation_stopping_does_not_offer_override - copy immediate: no native notice - 0 == 0
+ 0:04.04 PASS test_propagation_stopping_does_not_offer_override - copy immediate: event path was exercised - 1 == true
+ 0:04.04 PASS test_propagation_stopping_does_not_offer_override - true == true
+ 0:04.04 PASS test_propagation_stopping_does_not_offer_override - "copy" == "copy"
+ 0:04.04 PASS test_propagation_stopping_does_not_offer_override - "native safety selected text" == "native safety selected text"
+ 0:04.08 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105758.log
+ 0:04.08 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105758.log
+ 0:04.09 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105765.log
+ 0:04.09 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105765.log
+ 0:04.12 GECKO(1104844) must wait for focus in content
+ 0:04.20 PASS test_propagation_stopping_does_not_offer_override - paste propagation: no native notice - 0 == 0
+ 0:04.20 PASS test_propagation_stopping_does_not_offer_override - paste propagation: event path was exercised - 3 == true
+ 0:04.20 PASS test_propagation_stopping_does_not_offer_override - true == true
+ 0:04.20 PASS test_propagation_stopping_does_not_offer_override - "paste" == "paste"
+ 0:04.20 PASS test_propagation_stopping_does_not_offer_override - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:04.20 PASS test_propagation_stopping_does_not_offer_override - ["paste","beforeinput","input"] deepEqual ["paste","beforeinput","input"]
+ 0:04.27 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105846.log
+ 0:04.27 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105846.log
+ 0:04.28 GECKO(1104844) must wait for focus in content
+ 0:04.36 PASS test_propagation_stopping_does_not_offer_override - paste immediate: no native notice - 0 == 0
+ 0:04.36 PASS test_propagation_stopping_does_not_offer_override - paste immediate: event path was exercised - 3 == true
+ 0:04.37 PASS test_propagation_stopping_does_not_offer_override - true == true
+ 0:04.37 PASS test_propagation_stopping_does_not_offer_override - "paste" == "paste"
+ 0:04.37 PASS test_propagation_stopping_does_not_offer_override - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:04.37 PASS test_propagation_stopping_does_not_offer_override - ["paste","beforeinput","input"] deepEqual ["paste","beforeinput","input"]
+ 0:04.37 INFO Leaving test test_propagation_stopping_does_not_offer_override
+ 0:04.37 INFO Entering test test_privileged_only_cancellation_is_not_content_cancellation
+ 0:04.45 GECKO(1104844) must wait for focus in content
+ 0:04.49 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105901.log
+ 0:04.49 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105901.log
+ 0:04.50 PASS test_privileged_only_cancellation_is_not_content_cancellation - Privileged-only copy: no native notice - 0 == 0
+ 0:04.50 PASS test_privileged_only_cancellation_is_not_content_cancellation - Privileged-only copy: event path was exercised - 1 == true
+ 0:04.50 PASS test_privileged_only_cancellation_is_not_content_cancellation - 1 == 1
+ 0:04.50 PASS test_privileged_only_cancellation_is_not_content_cancellation - 1 == 1
+ 0:04.50 PASS test_privileged_only_cancellation_is_not_content_cancellation - true == true
+ 0:04.50 PASS test_privileged_only_cancellation_is_not_content_cancellation - Content listener did not cancel before the system group - true == true
+ 0:04.50 PASS test_privileged_only_cancellation_is_not_content_cancellation - "original textarea fixture" == "original textarea fixture"
+ 0:04.50 PASS test_privileged_only_cancellation_is_not_content_cancellation - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:04.58 GECKO(1104844) must wait for focus in content
+ 0:04.62 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105961.log
+ 0:04.62 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1105961.log
+ 0:04.67 PASS test_privileged_only_cancellation_is_not_content_cancellation - Privileged-only paste: no native notice - 0 == 0
+ 0:04.67 PASS test_privileged_only_cancellation_is_not_content_cancellation - Privileged-only paste: event path was exercised - 1 == true
+ 0:04.67 PASS test_privileged_only_cancellation_is_not_content_cancellation - 1 == 1
+ 0:04.67 PASS test_privileged_only_cancellation_is_not_content_cancellation - 1 == 1
+ 0:04.67 PASS test_privileged_only_cancellation_is_not_content_cancellation - true == true
+ 0:04.67 PASS test_privileged_only_cancellation_is_not_content_cancellation - Content listener did not cancel before the system group - true == true
+ 0:04.67 PASS test_privileged_only_cancellation_is_not_content_cancellation - "original textarea fixture" == "original textarea fixture"
+ 0:04.67 PASS test_privileged_only_cancellation_is_not_content_cancellation - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:04.68 INFO Leaving test test_privileged_only_cancellation_is_not_content_cancellation
+ 0:04.68 INFO Entering test test_editing_hosts_preserve_page_cancellation_without_notice
+ 0:04.75 GECKO(1104844) must wait for focus in content
+ 0:04.78 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106011.log
+ 0:04.79 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106011.log
+ 0:04.81 PASS test_editing_hosts_preserve_page_cancellation_without_notice - inherited copy: no native notice - 0 == 0
+ 0:04.81 PASS test_editing_hosts_preserve_page_cancellation_without_notice - inherited copy: event path was exercised - 1 == true
+ 0:04.81 PASS test_editing_hosts_preserve_page_cancellation_without_notice - 1 == 1
+ 0:04.81 PASS test_editing_hosts_preserve_page_cancellation_without_notice - "copy" == "copy"
+ 0:04.81 PASS test_editing_hosts_preserve_page_cancellation_without_notice - true == true
+ 0:04.81 PASS test_editing_hosts_preserve_page_cancellation_without_notice - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:04.89 GECKO(1104844) must wait for focus in content
+ 0:04.92 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106058.log
+ 0:04.92 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106058.log
+ 0:04.93 PASS test_editing_hosts_preserve_page_cancellation_without_notice - designMode copy: no native notice - 0 == 0
+ 0:04.93 PASS test_editing_hosts_preserve_page_cancellation_without_notice - designMode copy: event path was exercised - 1 == true
+ 0:04.93 PASS test_editing_hosts_preserve_page_cancellation_without_notice - 1 == 1
+ 0:04.93 PASS test_editing_hosts_preserve_page_cancellation_without_notice - "copy" == "copy"
+ 0:04.93 PASS test_editing_hosts_preserve_page_cancellation_without_notice - true == true
+ 0:04.93 PASS test_editing_hosts_preserve_page_cancellation_without_notice - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:05.01 GECKO(1104844) must wait for focus in content
+ 0:05.06 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106095.log
+ 0:05.06 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106095.log
+ 0:05.07 PASS test_editing_hosts_preserve_page_cancellation_without_notice - inherited paste: no native notice - 0 == 0
+ 0:05.07 PASS test_editing_hosts_preserve_page_cancellation_without_notice - inherited paste: event path was exercised - 1 == true
+ 0:05.07 PASS test_editing_hosts_preserve_page_cancellation_without_notice - 1 == 1
+ 0:05.07 PASS test_editing_hosts_preserve_page_cancellation_without_notice - "paste" == "paste"
+ 0:05.07 PASS test_editing_hosts_preserve_page_cancellation_without_notice - true == true
+ 0:05.07 PASS test_editing_hosts_preserve_page_cancellation_without_notice - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:05.15 GECKO(1104844) must wait for focus in content
+ 0:05.19 PASS test_editing_hosts_preserve_page_cancellation_without_notice - designMode paste: no native notice - 0 == 0
+ 0:05.19 PASS test_editing_hosts_preserve_page_cancellation_without_notice - designMode paste: event path was exercised - 1 == true
+ 0:05.19 PASS test_editing_hosts_preserve_page_cancellation_without_notice - 1 == 1
+ 0:05.19 PASS test_editing_hosts_preserve_page_cancellation_without_notice - "paste" == "paste"
+ 0:05.19 PASS test_editing_hosts_preserve_page_cancellation_without_notice - true == true
+ 0:05.19 PASS test_editing_hosts_preserve_page_cancellation_without_notice - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:05.20 INFO Leaving test test_editing_hosts_preserve_page_cancellation_without_notice
+ 0:05.20 INFO Entering test test_textarea_beforeinput_cancellation_is_notice_eligible
+ 0:05.24 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106172.log
+ 0:05.24 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106172.log
+ 0:05.24 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106178.log
+ 0:05.24 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106178.log
+ 0:05.27 GECKO(1104844) must wait for focus in content
+ 0:05.35 PASS test_textarea_beforeinput_cancellation_is_notice_eligible - 1 == 1
+ 0:05.35 PASS test_textarea_beforeinput_cancellation_is_notice_eligible - "paste" == "paste"
+ 0:05.35 PASS test_textarea_beforeinput_cancellation_is_notice_eligible - ["paste","beforeinput"] deepEqual ["paste","beforeinput"]
+ 0:05.35 PASS test_textarea_beforeinput_cancellation_is_notice_eligible - true == true
+ 0:05.35 PASS test_textarea_beforeinput_cancellation_is_notice_eligible - true == true
+ 0:05.35 PASS test_textarea_beforeinput_cancellation_is_notice_eligible - "insertFromPaste" == "insertFromPaste"
+ 0:05.35 PASS test_textarea_beforeinput_cancellation_is_notice_eligible - "original textarea fixture" == "original textarea fixture"
+ 0:05.35 PASS test_textarea_beforeinput_cancellation_is_notice_eligible - true == true
+ 0:05.35 PASS test_textarea_beforeinput_cancellation_is_notice_eligible - Validation performs no edit - {"events":[{"type":"paste","trusted":true,"canceled":false,"inputType":null,"nested":false},{"type":"beforeinput","trusted":true,"canceled":true,"inputType":"insertFromPaste","nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"paste","trusted":true,"canceled":false,"inputType":null,"nested":false},{"type":"beforeinput","trusted":true,"canceled":true,"inputType":"insertFromPaste","nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null}
+ 0:05.35 PASS test_textarea_beforeinput_cancellation_is_notice_eligible - true == true
+ 0:05.36 PASS test_textarea_beforeinput_cancellation_is_notice_eligible - true == true
+ 0:05.37 INFO Leaving test test_textarea_beforeinput_cancellation_is_notice_eligible
+ 0:05.37 INFO Entering test test_nested_page_execcommand_cannot_borrow_native_authority
+ 0:05.40 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106287.log
+ 0:05.40 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106287.log
+ 0:05.43 GECKO(1104844) must wait for focus in content
+ 0:05.49 PASS test_nested_page_execcommand_cannot_borrow_native_authority - Only nested page copy was canceled: no native notice - 0 == 0
+ 0:05.49 PASS test_nested_page_execcommand_cannot_borrow_native_authority - Only nested page copy was canceled: event path was exercised - 2 == true
+ 0:05.49 PASS test_nested_page_execcommand_cannot_borrow_native_authority - true == true
+ 0:05.49 PASS test_nested_page_execcommand_cannot_borrow_native_authority - Both outer native and inner script copy actually dispatched - 2 == 2
+ 0:05.49 PASS test_nested_page_execcommand_cannot_borrow_native_authority - true == true
+ 0:05.49 PASS test_nested_page_execcommand_cannot_borrow_native_authority - true == true
+ 0:05.49 PASS test_nested_page_execcommand_cannot_borrow_native_authority - true == true
+ 0:05.49 PASS test_nested_page_execcommand_cannot_borrow_native_authority - "native safety selected text" == "native safety selected text"
+ 0:05.50 INFO Leaving test test_nested_page_execcommand_cannot_borrow_native_authority
+ 0:05.50 INFO Entering test test_stale_retry_is_consumed_without_page_dispatch
+ 0:05.54 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106351.log
+ 0:05.54 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106351.log
+ 0:05.57 GECKO(1104844) must wait for focus in content
+ 0:05.62 PASS test_stale_retry_is_consumed_without_page_dispatch - copy selection: pending command - 1 == 1
+ 0:05.63 PASS test_stale_retry_is_consumed_without_page_dispatch - Notice eligibility does not require replay freshness - true == true
+ 0:05.63 PASS test_stale_retry_is_consumed_without_page_dispatch - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:05.63 PASS test_stale_retry_is_consumed_without_page_dispatch - copy selection: stale replay fails closed - true == true
+ 0:05.63 PASS test_stale_retry_is_consumed_without_page_dispatch - No extra event, edit, or focus restoration - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:05.63 PASS test_stale_retry_is_consumed_without_page_dispatch - A failed matched retry consumes the token - true == true
+ 0:05.64 PASS test_stale_retry_is_consumed_without_page_dispatch - Restoring the old target cannot revive the token - true == true
+ 0:05.64 PASS test_stale_retry_is_consumed_without_page_dispatch - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:05.64 PASS test_stale_retry_is_consumed_without_page_dispatch - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:05.69 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106392.log
+ 0:05.69 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106392.log
+ 0:05.72 GECKO(1104844) must wait for focus in content
+ 0:05.77 PASS test_stale_retry_is_consumed_without_page_dispatch - copy focus: pending command - 1 == 1
+ 0:05.80 PASS test_stale_retry_is_consumed_without_page_dispatch - Notice eligibility does not require replay freshness - true == true
+ 0:05.80 PASS test_stale_retry_is_consumed_without_page_dispatch - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"other-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"other-target","nestedAttempted":false,"scriptResult":null}
+ 0:05.81 PASS test_stale_retry_is_consumed_without_page_dispatch - copy focus: stale replay fails closed - true == true
+ 0:05.81 PASS test_stale_retry_is_consumed_without_page_dispatch - No extra event, edit, or focus restoration - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"other-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"other-target","nestedAttempted":false,"scriptResult":null}
+ 0:05.81 PASS test_stale_retry_is_consumed_without_page_dispatch - A failed matched retry consumes the token - true == true
+ 0:05.81 PASS test_stale_retry_is_consumed_without_page_dispatch - Restoring the old target cannot revive the token - true == true
+ 0:05.81 PASS test_stale_retry_is_consumed_without_page_dispatch - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:05.81 PASS test_stale_retry_is_consumed_without_page_dispatch - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:05.85 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106435.log
+ 0:05.85 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106435.log
+ 0:05.90 GECKO(1104844) must wait for focus in content
+ 0:05.95 PASS test_stale_retry_is_consumed_without_page_dispatch - copy value: pending command - 1 == 1
+ 0:05.95 PASS test_stale_retry_is_consumed_without_page_dispatch - Notice eligibility does not require replay freshness - true == true
+ 0:05.95 PASS test_stale_retry_is_consumed_without_page_dispatch - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"changed selected fixture","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"changed selected fixture","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:05.95 PASS test_stale_retry_is_consumed_without_page_dispatch - copy value: stale replay fails closed - true == true
+ 0:05.95 PASS test_stale_retry_is_consumed_without_page_dispatch - No extra event, edit, or focus restoration - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"changed selected fixture","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"changed selected fixture","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:05.96 PASS test_stale_retry_is_consumed_without_page_dispatch - A failed matched retry consumes the token - true == true
+ 0:05.96 PASS test_stale_retry_is_consumed_without_page_dispatch - Restoring the old target cannot revive the token - true == true
+ 0:05.96 PASS test_stale_retry_is_consumed_without_page_dispatch - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:05.96 PASS test_stale_retry_is_consumed_without_page_dispatch - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:06.03 GECKO(1104844) must wait for focus in content
+ 0:06.08 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106483.log
+ 0:06.08 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106483.log
+ 0:06.09 PASS test_stale_retry_is_consumed_without_page_dispatch - copy target: pending command - 1 == 1
+ 0:06.09 PASS test_stale_retry_is_consumed_without_page_dispatch - Notice eligibility does not require replay freshness - true == true
+ 0:06.09 PASS test_stale_retry_is_consumed_without_page_dispatch - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:06.09 PASS test_stale_retry_is_consumed_without_page_dispatch - copy target: stale replay fails closed - true == true
+ 0:06.09 PASS test_stale_retry_is_consumed_without_page_dispatch - No extra event, edit, or focus restoration - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:06.10 PASS test_stale_retry_is_consumed_without_page_dispatch - A failed matched retry consumes the token - true == true
+ 0:06.10 PASS test_stale_retry_is_consumed_without_page_dispatch - Restoring the old target cannot revive the token - true == true
+ 0:06.10 PASS test_stale_retry_is_consumed_without_page_dispatch - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:06.10 PASS test_stale_retry_is_consumed_without_page_dispatch - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:06.18 GECKO(1104844) must wait for focus in content
+ 0:06.21 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106523.log
+ 0:06.21 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106523.log
+ 0:06.25 PASS test_stale_retry_is_consumed_without_page_dispatch - paste selection: pending command - 1 == 1
+ 0:06.25 PASS test_stale_retry_is_consumed_without_page_dispatch - Notice eligibility does not require replay freshness - true == true
+ 0:06.25 PASS test_stale_retry_is_consumed_without_page_dispatch - {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null}
+ 0:06.26 PASS test_stale_retry_is_consumed_without_page_dispatch - paste selection: stale replay fails closed - true == true
+ 0:06.26 PASS test_stale_retry_is_consumed_without_page_dispatch - No extra event, edit, or focus restoration - {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null}
+ 0:06.26 PASS test_stale_retry_is_consumed_without_page_dispatch - A failed matched retry consumes the token - true == true
+ 0:06.26 PASS test_stale_retry_is_consumed_without_page_dispatch - Restoring the old target cannot revive the token - true == true
+ 0:06.26 PASS test_stale_retry_is_consumed_without_page_dispatch - {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null}
+ 0:06.26 PASS test_stale_retry_is_consumed_without_page_dispatch - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:06.33 GECKO(1104844) must wait for focus in content
+ 0:06.38 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106566.log
+ 0:06.38 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106566.log
+ 0:06.41 PASS test_stale_retry_is_consumed_without_page_dispatch - paste focus: pending command - 1 == 1
+ 0:06.41 PASS test_stale_retry_is_consumed_without_page_dispatch - Notice eligibility does not require replay freshness - true == true
+ 0:06.41 PASS test_stale_retry_is_consumed_without_page_dispatch - {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"other-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"other-target","nestedAttempted":false,"scriptResult":null}
+ 0:06.42 PASS test_stale_retry_is_consumed_without_page_dispatch - paste focus: stale replay fails closed - true == true
+ 0:06.42 PASS test_stale_retry_is_consumed_without_page_dispatch - No extra event, edit, or focus restoration - {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"other-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"other-target","nestedAttempted":false,"scriptResult":null}
+ 0:06.42 PASS test_stale_retry_is_consumed_without_page_dispatch - A failed matched retry consumes the token - true == true
+ 0:06.42 PASS test_stale_retry_is_consumed_without_page_dispatch - Restoring the old target cannot revive the token - true == true
+ 0:06.42 PASS test_stale_retry_is_consumed_without_page_dispatch - {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null}
+ 0:06.42 PASS test_stale_retry_is_consumed_without_page_dispatch - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:06.50 GECKO(1104844) must wait for focus in content
+ 0:06.52 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106604.log
+ 0:06.52 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106604.log
+ 0:06.57 PASS test_stale_retry_is_consumed_without_page_dispatch - paste value: pending command - 1 == 1
+ 0:06.57 PASS test_stale_retry_is_consumed_without_page_dispatch - Notice eligibility does not require replay freshness - true == true
+ 0:06.57 PASS test_stale_retry_is_consumed_without_page_dispatch - {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"changed textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"changed textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null}
+ 0:06.58 PASS test_stale_retry_is_consumed_without_page_dispatch - paste value: stale replay fails closed - true == true
+ 0:06.58 PASS test_stale_retry_is_consumed_without_page_dispatch - No extra event, edit, or focus restoration - {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"changed textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"changed textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null}
+ 0:06.58 PASS test_stale_retry_is_consumed_without_page_dispatch - A failed matched retry consumes the token - true == true
+ 0:06.58 PASS test_stale_retry_is_consumed_without_page_dispatch - Restoring the old target cannot revive the token - true == true
+ 0:06.58 PASS test_stale_retry_is_consumed_without_page_dispatch - {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null}
+ 0:06.58 PASS test_stale_retry_is_consumed_without_page_dispatch - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:06.65 GECKO(1104844) must wait for focus in content
+ 0:06.68 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106649.log
+ 0:06.68 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106649.log
+ 0:06.73 PASS test_stale_retry_is_consumed_without_page_dispatch - paste target: pending command - 1 == 1
+ 0:06.74 PASS test_stale_retry_is_consumed_without_page_dispatch - Notice eligibility does not require replay freshness - true == true
+ 0:06.74 PASS test_stale_retry_is_consumed_without_page_dispatch - {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"focused replacement fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"focused replacement fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null}
+ 0:06.74 PASS test_stale_retry_is_consumed_without_page_dispatch - paste target: stale replay fails closed - true == true
+ 0:06.74 PASS test_stale_retry_is_consumed_without_page_dispatch - No extra event, edit, or focus restoration - {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"focused replacement fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"focused replacement fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null}
+ 0:06.74 PASS test_stale_retry_is_consumed_without_page_dispatch - A failed matched retry consumes the token - true == true
+ 0:06.75 PASS test_stale_retry_is_consumed_without_page_dispatch - Restoring the old target cannot revive the token - true == true
+ 0:06.75 PASS test_stale_retry_is_consumed_without_page_dispatch - {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null}
+ 0:06.75 PASS test_stale_retry_is_consumed_without_page_dispatch - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:06.76 INFO Leaving test test_stale_retry_is_consumed_without_page_dispatch
+ 0:06.76 INFO Entering test test_retry_beforeinput_cannot_make_control_unwritable
+ 0:06.82 GECKO(1104844) must wait for focus in content
+ 0:06.85 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106691.log
+ 0:06.85 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106691.log
+ 0:06.90 PASS test_retry_beforeinput_cannot_make_control_unwritable - 1 == 1
+ 0:06.90 PASS test_retry_beforeinput_cannot_make_control_unwritable - ["paste"] deepEqual ["paste"]
+ 0:06.90 PASS test_retry_beforeinput_cannot_make_control_unwritable - true == true
+ 0:06.90 PASS test_retry_beforeinput_cannot_make_control_unwritable - true == true
+ 0:06.91 PASS test_retry_beforeinput_cannot_make_control_unwritable - Replay reached the content mutation handler without dispatching input - ["paste","beforeinput"] deepEqual ["paste","beforeinput"]
+ 0:06.91 PASS test_retry_beforeinput_cannot_make_control_unwritable - true == true
+ 0:06.91 PASS test_retry_beforeinput_cannot_make_control_unwritable - "insertFromPaste" == "insertFromPaste"
+ 0:06.91 PASS test_retry_beforeinput_cannot_make_control_unwritable - Content beforeinput set readOnly - true == true
+ 0:06.91 PASS test_retry_beforeinput_cannot_make_control_unwritable - readOnly during replay must not report success - true == true
+ 0:06.91 PASS test_retry_beforeinput_cannot_make_control_unwritable - Nothing was inserted into the unwritable original control - "original textarea fixture" == "original textarea fixture"
+ 0:06.91 PASS test_retry_beforeinput_cannot_make_control_unwritable - "other fixture" == "other fixture"
+ 0:06.91 PASS test_retry_beforeinput_cannot_make_control_unwritable - true == true
+ 0:06.91 PASS test_retry_beforeinput_cannot_make_control_unwritable - Failed replay remains consumed - true == true
+ 0:06.91 PASS test_retry_beforeinput_cannot_make_control_unwritable - {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false},{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false},{"type":"beforeinput","trusted":true,"canceled":true,"inputType":"insertFromPaste","nested":false}],"value":"original textarea fixture","readOnly":true,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false},{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false},{"type":"beforeinput","trusted":true,"canceled":true,"inputType":"insertFromPaste","nested":false}],"value":"original textarea fixture","readOnly":true,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null}
+ 0:06.91 PASS test_retry_beforeinput_cannot_make_control_unwritable - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:06.98 GECKO(1104844) must wait for focus in content
+ 0:06.98 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106730.log
+ 0:06.98 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106730.log
+ 0:07.07 PASS test_retry_beforeinput_cannot_make_control_unwritable - 1 == 1
+ 0:07.07 PASS test_retry_beforeinput_cannot_make_control_unwritable - ["paste"] deepEqual ["paste"]
+ 0:07.07 PASS test_retry_beforeinput_cannot_make_control_unwritable - true == true
+ 0:07.07 PASS test_retry_beforeinput_cannot_make_control_unwritable - true == true
+ 0:07.07 PASS test_retry_beforeinput_cannot_make_control_unwritable - Replay reached the content mutation handler without dispatching input - ["paste","beforeinput"] deepEqual ["paste","beforeinput"]
+ 0:07.07 PASS test_retry_beforeinput_cannot_make_control_unwritable - true == true
+ 0:07.07 PASS test_retry_beforeinput_cannot_make_control_unwritable - "insertFromPaste" == "insertFromPaste"
+ 0:07.07 PASS test_retry_beforeinput_cannot_make_control_unwritable - Content beforeinput set disabled - true == true
+ 0:07.07 PASS test_retry_beforeinput_cannot_make_control_unwritable - disabled during replay must not report success - true == true
+ 0:07.07 PASS test_retry_beforeinput_cannot_make_control_unwritable - Nothing was inserted into the unwritable original control - "original textarea fixture" == "original textarea fixture"
+ 0:07.07 PASS test_retry_beforeinput_cannot_make_control_unwritable - "other fixture" == "other fixture"
+ 0:07.07 PASS test_retry_beforeinput_cannot_make_control_unwritable - true == true
+ 0:07.07 PASS test_retry_beforeinput_cannot_make_control_unwritable - Failed replay remains consumed - true == true
+ 0:07.07 PASS test_retry_beforeinput_cannot_make_control_unwritable - {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false},{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false},{"type":"beforeinput","trusted":true,"canceled":true,"inputType":"insertFromPaste","nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":true,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false},{"type":"paste","trusted":true,"canceled":true,"inputType":null,"nested":false},{"type":"beforeinput","trusted":true,"canceled":true,"inputType":"insertFromPaste","nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":true,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null}
+ 0:07.07 PASS test_retry_beforeinput_cannot_make_control_unwritable - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:07.08 INFO Leaving test test_retry_beforeinput_cannot_make_control_unwritable
+ 0:07.08 INFO Entering test test_mismatched_actions_do_not_consume_or_replay
+ 0:07.12 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106790.log
+ 0:07.12 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106790.log
+ 0:07.15 GECKO(1104844) must wait for focus in content
+ 0:07.21 PASS test_mismatched_actions_do_not_consume_or_replay - 1 == 1
+ 0:07.21 PASS test_mismatched_actions_do_not_consume_or_replay - validate rejects mismatched identity - true == true
+ 0:07.21 PASS test_mismatched_actions_do_not_consume_or_replay - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:07.21 PASS test_mismatched_actions_do_not_consume_or_replay - An unrelated request does not consume the real token - true == true
+ 0:07.21 PASS test_mismatched_actions_do_not_consume_or_replay - discard rejects mismatched identity - true == true
+ 0:07.21 PASS test_mismatched_actions_do_not_consume_or_replay - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:07.22 PASS test_mismatched_actions_do_not_consume_or_replay - An unrelated request does not consume the real token - true == true
+ 0:07.22 PASS test_mismatched_actions_do_not_consume_or_replay - retry rejects mismatched identity - true == true
+ 0:07.22 PASS test_mismatched_actions_do_not_consume_or_replay - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:07.22 PASS test_mismatched_actions_do_not_consume_or_replay - An unrelated request does not consume the real token - true == true
+ 0:07.22 PASS test_mismatched_actions_do_not_consume_or_replay - validate rejects mismatched identity - true == true
+ 0:07.22 PASS test_mismatched_actions_do_not_consume_or_replay - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:07.22 PASS test_mismatched_actions_do_not_consume_or_replay - An unrelated request does not consume the real token - true == true
+ 0:07.22 PASS test_mismatched_actions_do_not_consume_or_replay - discard rejects mismatched identity - true == true
+ 0:07.22 PASS test_mismatched_actions_do_not_consume_or_replay - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:07.22 PASS test_mismatched_actions_do_not_consume_or_replay - An unrelated request does not consume the real token - true == true
+ 0:07.22 PASS test_mismatched_actions_do_not_consume_or_replay - retry rejects mismatched identity - true == true
+ 0:07.22 PASS test_mismatched_actions_do_not_consume_or_replay - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:07.23 PASS test_mismatched_actions_do_not_consume_or_replay - An unrelated request does not consume the real token - true == true
+ 0:07.23 PASS test_mismatched_actions_do_not_consume_or_replay - validate rejects mismatched identity - true == true
+ 0:07.23 PASS test_mismatched_actions_do_not_consume_or_replay - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:07.23 PASS test_mismatched_actions_do_not_consume_or_replay - An unrelated request does not consume the real token - true == true
+ 0:07.23 PASS test_mismatched_actions_do_not_consume_or_replay - discard rejects mismatched identity - true == true
+ 0:07.23 PASS test_mismatched_actions_do_not_consume_or_replay - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:07.23 PASS test_mismatched_actions_do_not_consume_or_replay - An unrelated request does not consume the real token - true == true
+ 0:07.24 PASS test_mismatched_actions_do_not_consume_or_replay - retry rejects mismatched identity - true == true
+ 0:07.24 PASS test_mismatched_actions_do_not_consume_or_replay - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:07.24 PASS test_mismatched_actions_do_not_consume_or_replay - An unrelated request does not consume the real token - true == true
+ 0:07.24 PASS test_mismatched_actions_do_not_consume_or_replay - validate rejects mismatched identity - true == true
+ 0:07.24 PASS test_mismatched_actions_do_not_consume_or_replay - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:07.24 PASS test_mismatched_actions_do_not_consume_or_replay - An unrelated request does not consume the real token - true == true
+ 0:07.24 PASS test_mismatched_actions_do_not_consume_or_replay - discard rejects mismatched identity - true == true
+ 0:07.24 PASS test_mismatched_actions_do_not_consume_or_replay - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:07.24 PASS test_mismatched_actions_do_not_consume_or_replay - An unrelated request does not consume the real token - true == true
+ 0:07.25 PASS test_mismatched_actions_do_not_consume_or_replay - retry rejects mismatched identity - true == true
+ 0:07.25 PASS test_mismatched_actions_do_not_consume_or_replay - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:07.25 PASS test_mismatched_actions_do_not_consume_or_replay - An unrelated request does not consume the real token - true == true
+ 0:07.25 PASS test_mismatched_actions_do_not_consume_or_replay - true == true
+ 0:07.25 PASS test_mismatched_actions_do_not_consume_or_replay - true == true
+ 0:07.25 PASS test_mismatched_actions_do_not_consume_or_replay - true == true
+ 0:07.25 PASS test_mismatched_actions_do_not_consume_or_replay - {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[{"type":"copy","trusted":true,"canceled":true,"inputType":null,"nested":false}],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"copy-target","nestedAttempted":false,"scriptResult":null}
+ 0:07.25 PASS test_mismatched_actions_do_not_consume_or_replay - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:07.26 INFO Leaving test test_mismatched_actions_do_not_consume_or_replay
+ 0:07.26 INFO Entering test test_navigation_cannot_redirect_a_pending_paste
+ 0:07.30 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106846.log
+ 0:07.30 GECKO(1104844) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp4pbiqc8b.mozrunner/runtests_leaks_tab_pid1106846.log
+ 0:07.33 GECKO(1104844) must wait for focus in content
+ 0:07.41 PASS test_navigation_cannot_redirect_a_pending_paste - 1 == 1
+ 0:07.46 GECKO(1104844) must wait for focus in content
+ 0:07.49 PASS test_navigation_cannot_redirect_a_pending_paste - validate cannot target the replacement document - true == true
+ 0:07.49 PASS test_navigation_cannot_redirect_a_pending_paste - {"events":[],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null}
+ 0:07.49 PASS test_navigation_cannot_redirect_a_pending_paste - retry cannot target the replacement document - true == true
+ 0:07.49 PASS test_navigation_cannot_redirect_a_pending_paste - {"events":[],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null}
+ 0:07.49 PASS test_navigation_cannot_redirect_a_pending_paste - retry cannot target the replacement document - true == true
+ 0:07.49 PASS test_navigation_cannot_redirect_a_pending_paste - {"events":[],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null} deepEqual {"events":[],"value":"original textarea fixture","readOnly":false,"disabled":false,"otherValue":"other fixture","copyText":"native safety selected text","focused":"paste-target","nestedAttempted":false,"scriptResult":null}
+ 0:07.49 PASS test_navigation_cannot_redirect_a_pending_paste - "native safety clipboard fixture" == "native safety clipboard fixture"
+ 0:07.50 INFO Leaving test test_navigation_cannot_redirect_a_pending_paste
+ 0:07.50 INFO checking for open popups
+ 0:07.94 EXPECTED-FAIL dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js - changed preference: extensions.formautofill.addresses.storage.rust.migrationTestVersion
+ 0:07.94 GECKO(1104844) MEMORY STAT vsizeMaxContiguous not supported in this build configuration.
+ 0:07.94 GECKO(1104844) MEMORY STAT | vsize 19715MB | residentFast 535MB | heapAllocated 369MB
+ 0:07.94 INFO checking for open sidebars
+ 0:07.94 INFO checking window state
+ 0:07.94 TEST_END: Test PASS. Subtests passed 264/265. Unexpected 0
+ 0:07.96 GECKO(1104844) Completed ShutdownLeaks collections in process 1104844
+ 0:07.96 INFO TEST-START | Shutdown
+ 0:07.96 INFO Browser Chrome Test Summary
+ 0:07.96 INFO Passed:  264
+ 0:07.96 INFO Failed:  0
+ 0:07.96 INFO Todo:    1
+ 0:07.96 INFO Mode:    e10s
+ 0:07.96 INFO *** End BrowserChrome Test Results ***
+ 0:08.00 GECKO(1104844) Exiting due to channel error.
+ 0:08.00 GECKO(1104844) Exiting due to channel error.
+ 0:08.00 GECKO(1104844) Exiting due to channel error.
+ 0:08.00 GECKO(1104844) Exiting due to channel error.
+ 0:08.00 GECKO(1104844) Exiting due to channel error.
+ 0:08.00 GECKO(1104844) Exiting due to channel error.
+ 0:08.00 GECKO(1104844) Exiting due to channel error.
+ 0:08.02 Main app process: exit 0
+ 0:08.02 INFO runtests.py | Main app process exited normally
+ 0:08.02 INFO runtests.py | Application ran for: 0:00:07.396177
+ 0:08.02 INFO zombiecheck | Reading PID log: /tmp/tmp99fljrn9pidlog
+ 0:08.02 INFO ==> process 1104844 launched child process 1104888
+ 0:08.02 INFO ==> process 1104844 launched child process 1104968
+ 0:08.02 INFO zombiecheck | Checking for orphan process with PID: 1104888
+ 0:08.02 INFO zombiecheck | Checking for orphan process with PID: 1104968
+ 0:08.02 INFO runtests.py | Running http tests: end. status: 0
+ 0:08.02 INFO Stopping web server
+ 0:08.03 INFO Server shut down.
+ 0:08.03 INFO Web server killed.
+ 0:08.03 INFO Stopping web socket server
+ 0:08.03 INFO Stopping ssltunnel
+ 0:08.03 WARNING leakcheck | refcount logging is off, so leaks can't be detected!
+ 0:08.04 INFO Buffered messages finished
+TEST-INFO | checking window state
+Browser Chrome Test Summary
+	Passed: 264
+	Failed: 0
+	Todo: 1
+	Retried: 0
+	Mode: e10s
+*** End BrowserChrome Test Results ***
+ 0:08.04 INFO Buffered messages finished
+ 0:08.04 SUITE_END
+ 0:08.04 
+Overall Summary
+===============
+
+mochitest-browser
+~~~~~~~~~~~~~~~~~
+Ran 266 checks (265 subtests, 1 tests)
+Expected results: 266
+Unexpected results: 0
+OK

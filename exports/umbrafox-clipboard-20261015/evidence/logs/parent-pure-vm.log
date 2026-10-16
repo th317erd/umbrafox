@@ -1,0 +1,49 @@
+(node:890442) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ default, No and dismissal preserve permissions and never allow (15.064645ms)
+✔ Yes is consumed once and never remembered (2.478107ms)
+✔ Always is exact-origin, operation and origin-attribute scoped, and revocable (2.479288ms)
+✔ private Always expires with the last private context, leaving normal grants (3.016655ms)
+✔ stale requests and TTL expire without an allow or grant (11.041864ms)
+✔ concurrent requests coalesce without replacing the outstanding request (2.807366ms)
+✔ ineligible principals, background requests and existing panels never show (8.506238ms)
+✔ popup failure and callback errors release pending ownership (2.449858ms)
+✔ async validation is awaited and dismissal prevents later display (1.857541ms)
+✔ rejected native retry never persists Always (4.725626ms)
+✔ duplicate choices during async validation or retry execute once (2.203029ms)
+✔ dismissal and expiry during retry prohibit persistence (4.925986ms)
+✔ PopupNotifications action removal does not cancel an owned async retry (2.490538ms)
+✔ standard permission listing preserves container keys and revokes frame origins (5.601342ms)
+✔ known frame grants do not carry over navigation; private types stay out of generic editor (6.01983ms)
+✔ validation failure and malformed grant keys fail closed (3.222784ms)
+(node:890448) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ rejects malformed and wrong-window native notifications (11.91021ms)
+✔ uses native token, exact inner window, and authoritative frame principal (3.385823ms)
+✔ Yes is one-shot even when called concurrently (6.389938ms)
+✔ No and actor destruction discard without retry (4.445878ms)
+✔ expiry, navigation, background tab, and inactive frame fail closed (10.813906ms)
+✔ changed native target or missing native acceptance never succeeds (5.825901ms)
+✔ request identity mismatch cannot validate, retry or clear another request (2.553807ms)
+✔ pagehide invalidates pending state without document clipboard listeners (2.362718ms)
+✔ saved explicit grant retries with no new prompt (3.525592ms)
+✔ custom replacement still offers notice when native replay is stale (4.14322ms)
+✔ UI cancellation ownership survives asynchronous successful retry (3.004915ms)
+✔ navigation while retry is in flight prevents successful grant result (2.957306ms)
+✔ timer expiry clears both actors and notice (2.762356ms)
+✔ new native request invalidates old notice without accepting old callback (2.13129ms)
+✔ malformed parent messages and mismatched callbacks leave active request intact (2.954906ms)
+✔ inactive owner window blocks saved-grant retry (1.869331ms)
+✔ actor IPC and UI failures release pending state without retry (4.842935ms)
+✔ toolkit applications without browser UI fail closed (2.878156ms)
+✔ untrusted lifecycle event cannot invalidate native pending state (2.547267ms)
+✔ missing native observer or property-bag factory never offers a notice (6.215919ms)
+✔ non-web principals cannot produce browser permission notices (6.080129ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 165.161405

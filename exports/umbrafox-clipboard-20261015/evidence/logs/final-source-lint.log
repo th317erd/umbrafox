@@ -1,0 +1,4 @@
+/home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/UmbrafoxClipboardParent.sys.mjs
+  0   error  This file needs formatting with Prettier (use 'mach lint --fix <path>').  prettier (eslint)
+
+✖ 1 problem (1 error, 0 warnings, 0 fixed)

@@ -34,3 +34,11 @@ Run `node --test tools/umbrafox/beta/test/preferences-spec.mjs` to verify the ex
 overlay and that normal builds still default both experiments to off. Native
 compilation, isolated startup/preference verification and relevant graphics tests
 are separate acceptance gates; these two source tests do not replace them.
+
+`launch-umbrafox` is the candidate daily launcher. It compares matching
+`application.ini`/`platform.ini` BuildIDs across complete dated and nightly
+installations, ignores unpublished staging directories, and forwards arguments
+without adding a profile. Test it with
+`node --test tools/umbrafox/beta/test/launcher-spec.mjs`; the tests use fake
+executables and temporary directories, never a browser. Do not install this
+launcher until the selected installation's profile mapping has been verified.

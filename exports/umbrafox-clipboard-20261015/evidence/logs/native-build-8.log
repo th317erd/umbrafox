@@ -1,0 +1,30 @@
+ 0:00.33 W Warnings in third-party code are being suppressed from the terminal output. Use --show-all-warnings or --verbose to see them.
+ 0:00.33 W All warnings will still be dumped to /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/warnings_*.json at the end of the build.
+ 0:00.50 Clobber not needed.
+ 0:00.55 W Adding make options from /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozconfig
+    MOZ_OBJDIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+    OBJDIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+    FOUND_MOZCONFIG=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozconfig
+    export FOUND_MOZCONFIG
+ 0:00.55 /usr/bin/make -f client.mk -j2 -s
+ 0:01.51 ./buildid.h.stub
+ 0:01.51 ./source-repo.h.stub
+ 0:03.01 dom/commandhandler
+ 0:05.85 editor/libeditor
+ 0:13.70 toolkit/library/buildid.cpp.stub
+ 0:15.49 dom/base
+ 1:05.30 toolkit/library/buildid.cpp.stub
+ 1:25.41 toolkit/library/build/libxul.so
+ 1:29.75 ./newtab-sources.stamp.stub
+ 1:32.03 ./dependentlibs.list.stub
+ 1:32.18 ./buildid.h.stub
+ 1:32.18 ./source-repo.h.stub
+ 1:32.71 ./built_in_addons.json.stub
+ 1:43.17 W 0 compiler warnings present.
+ 1:43.19 W Overall system resources - Wall time: 103s; CPU: 31%; Read bytes: 4139155456; Write bytes: 7391985664; Read time: 127197; Write time: 806410
+ 1:43.19 W Swap in/out (MB): 13.57421875/0.0
+ 1:43.19 To view a profile of the build, run |mach resource-usage|.
+ 1:43.19 Your build was successful!
+ 1:43.19 To take your build for a test drive, run: |mach run|
+ 1:43.19 For more information on what to do now, see https://firefox-source-docs.mozilla.org/setup/contributing_code.html
+Streaming resource usage profile to: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/profile_log_20261015_181602.json

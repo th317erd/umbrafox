@@ -1,0 +1,18 @@
+ 0:00.26 W Warnings in third-party code are being suppressed from the terminal output. Use --show-all-warnings or --verbose to see them.
+ 0:00.26 W All warnings will still be dumped to /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/warnings_*.json at the end of the build.
+ 0:00.42 Clobber not needed.
+ 0:00.47 /usr/bin/make -j2 -s binaries
+ 0:01.86 dom/commandhandler
+ 0:02.03 dom/events
+ 0:05.45 dom/ipc
+ 0:15.53 W In file included from /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/events/DataTransfer.cpp:32:
+ 0:15.53 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/widget/nsBaseClipboard.h:272:42: error: only virtual member functions can be marked 'override'
+ 0:15.53 E   272 |     bool IsCurrentForClipboardOverride() override { return IsValid(); }
+ 0:15.53 E       |                                          ^~~~~~~~
+ 0:15.53 E 1 error generated.
+ 0:15.53 E make[2]: *** [/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/config/rules.mk:620: Unified_cpp_dom_events0.o] Error 1
+ 0:15.53 E make[1]: *** [/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/config/recurse.mk:79: dom/events/target-objects] Error 2
+ 0:15.53 E make[1]: *** Waiting for unfinished jobs....
+ 0:36.12 E make: *** [/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/config/recurse.mk:39: binaries] Error 2
+ 0:36.22 W 0 compiler warnings present.
+Streaming resource usage profile to: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/profile_log_20261015_170237.json

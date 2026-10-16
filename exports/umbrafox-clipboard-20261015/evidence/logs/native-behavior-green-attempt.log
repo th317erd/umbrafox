@@ -1,0 +1,280 @@
+Test configuration changed. Regenerating backend.
+Skipping test file installation (up to date). Run with --force to force reinstallation.
+Streaming resource usage profile to: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/test/profile_log_20261015_180730.json
+ 0:00.30 INFO These variables are available in the mozinfo environment and can be used to skip tests conditionally:
+ 0:00.30 INFO     a11y_checks: False
+ 0:00.30 INFO     android: False
+ 0:00.30 INFO     apple_catalina: False
+ 0:00.30 INFO     apple_silicon: False
+ 0:00.30 INFO     appname: umbrafox
+ 0:00.30 INFO     arch: x86_64
+ 0:00.30 INFO     artifact: False
+ 0:00.30 INFO     asan: False
+ 0:00.30 INFO     automation: False
+ 0:00.30 INFO     bin_suffix: 
+ 0:00.30 INFO     bits: 64
+ 0:00.30 INFO     buildapp: browser
+ 0:00.30 INFO     buildtype: opt
+ 0:00.30 INFO     buildtype_guess: opt
+ 0:00.30 INFO     cc_type: clang
+ 0:00.30 INFO     ccov: False
+ 0:00.30 INFO     condprof: False
+ 0:00.30 INFO     coverage: False
+ 0:00.30 INFO     crashreporter: True
+ 0:00.30 INFO     datareporting: True
+ 0:00.30 INFO     dbus_enabled: True
+ 0:00.30 INFO     debug: False
+ 0:00.30 INFO     devedition: False
+ 0:00.30 INFO     display: wayland
+ 0:00.30 INFO     e10s: True
+ 0:00.30 INFO     early_beta_or_earlier: True
+ 0:00.30 INFO     enterprise: False
+ 0:00.30 INFO     fission: True
+ 0:00.30 INFO     has_sandbox: True
+ 0:00.30 INFO     headless: True
+ 0:00.30 INFO     healthreport: True
+ 0:00.30 INFO     http2: False
+ 0:00.30 INFO     http3: False
+ 0:00.30 INFO     inc_origin_init: False
+ 0:00.30 INFO     is_emulator: False
+ 0:00.30 INFO     is_ubuntu: False
+ 0:00.30 INFO     isolated_process: False
+ 0:00.30 INFO     linux_distro: Omarchy
+ 0:00.30 INFO     macos_vm: False
+ 0:00.30 INFO     mda_gpu: False
+ 0:00.30 INFO     mingw: False
+ 0:00.30 INFO     mozconfig: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozconfig
+ 0:00.30 INFO     msix: False
+ 0:00.30 INFO     nightly_build: True
+ 0:00.30 INFO     nogpu: False
+ 0:00.30 INFO     normandy: True
+ 0:00.30 INFO     nova: True
+ 0:00.30 INFO     official: False
+ 0:00.30 INFO     opt: True
+ 0:00.30 INFO     os: linux
+ 0:00.30 INFO     os_version: 4.0.4
+ 0:00.30 INFO     pgo: False
+ 0:00.30 INFO     platform_guess: linux64
+ 0:00.30 INFO     processor: x86_64
+ 0:00.30 INFO     release_or_beta: False
+ 0:00.30 INFO     require_signing: False
+ 0:00.30 INFO     sessionHistoryInParent: True
+ 0:00.30 INFO     socketprocess_e10s: False
+ 0:00.30 INFO     socketprocess_networking: False
+ 0:00.30 INFO     standalone: False
+ 0:00.30 INFO     stylo: True
+ 0:00.30 INFO     swgl: False
+ 0:00.30 INFO     sync: True
+ 0:00.30 INFO     telemetry: False
+ 0:00.30 INFO     tests_enabled: True
+ 0:00.30 INFO     toolkit: gtk
+ 0:00.30 INFO     topobjdir: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+ 0:00.30 INFO     topsrcdir: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source
+ 0:00.30 INFO     tsan: False
+ 0:00.30 INFO     ubsan: False
+ 0:00.30 INFO     updater: True
+ 0:00.30 INFO     verify: False
+ 0:00.30 INFO     verify_fission: False
+ 0:00.30 INFO     version: Omarchy 4.0.4
+ 0:00.30 INFO     vertical_tab: False
+ 0:00.30 INFO     win10_2009: False
+ 0:00.30 INFO     win11_2009: False
+ 0:00.30 INFO     wmfme: 0
+ 0:00.30 INFO     xorigin: False
+ 0:00.30 INFO Checking for ssltunnel processes...
+ 0:00.34 INFO Checking for xpcshell processes...
+ 0:00.36 SUITE_START: mochitest-browser - running 1 tests
+ 0:00.36 INFO Running manifest: dom/events/test/clipboard/browser.toml
+ 0:00.44 pid:1079965 Full command: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/pk12util -i /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/pgo/certs/mochitest.client -w /tmp/tmpxc8d1bz8.mozrunner/.crtdbpw -d /tmp/tmpxc8d1bz8.mozrunner
+pid:1079965 pk12util: PKCS12 IMPORT SUCCESSFUL
+
+ 0:00.55 INFO MochitestServer : launching ['/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/xpcshell', '-g', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin', '-e', "const _PROFILE_PATH = '/tmp/tmpxc8d1bz8.mozrunner'; const _SERVER_PORT = '8888'; const _SERVER_ADDR = '127.0.0.1'; const _TEST_PREFIX = undefined; const _DISPLAY_RESULTS = false; const _HTTPD_PATH = '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/components'; ", '-f', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/testing/mochitest/server.js']
+ 0:00.55 INFO runtests.py | Server pid: 1079975
+ 0:00.55 INFO runtests.py | Websocket server pid: 1079976
+ 0:00.55 INFO runtests.py | SSL tunnel pid: 1079977
+ 0:00.65 INFO use http3 server: False
+ 0:00.65 INFO Use build node at /home/wyatt/.mozbuild/node/bin/node
+ 0:00.65 INFO mozserve | Found moz-http2 server path: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/testing/mochitest/xpcshell/moz-http2/moz-http2.js
+ 0:00.65 INFO Found node at /home/wyatt/.mozbuild/node/bin/node
+ 0:00.72 INFO mozserve | moz-http2 server msg: HTTP2 server listening on ports 42287,45551
+
+ 0:00.72 INFO moz-http2 server started on ports 42287, 45551
+ 0:00.72 INFO node moz-http2 [stderr] (node:1080021) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+
+ 0:00.72 INFO node moz-http2 [stderr] (Use `node --trace-deprecation ...` to show where the warning was created)
+
+ 0:00.72 INFO runtests.py | Running with scheme: http
+ 0:00.72 INFO runtests.py | Running with e10s: True
+ 0:00.72 INFO runtests.py | Running with fission: True
+ 0:00.72 INFO runtests.py | Running with cross-origin iframes: False
+ 0:00.72 INFO runtests.py | Running with socketprocess_e10s: False
+ 0:00.72 INFO runtests.py | Running http tests: start.
+
+ 0:00.75 INFO Application command: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/umbrafox -marionette -foreground -profile /tmp/tmpxc8d1bz8.mozrunner
+ 0:00.77 INFO runtests.py | Application pid: 1080030
+ 0:00.77 Started process `GECKO(1080030)`
+ 0:00.80 GECKO(1080030) *** You are running in headless mode.
+ 0:00.87 GECKO(1080030) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpxc8d1bz8.mozrunner/runtests_leaks_socket_pid1080070.log
+ 0:01.23 GECKO(1080030) 1792112851994	Marionette	INFO	Marionette enabled
+ 0:01.23 GECKO(1080030) 1792112851996	Marionette	TRACE	Received observer notification final-ui-startup
+ 0:01.23 GECKO(1080030) 1792112851996	Marionette	DEBUG	Initializing Marionette
+ 0:01.31 GECKO(1080030) console.error: "Warning: unrecognized command line flag" "-foreground"
+ 0:01.33 GECKO(1080030) 1792112852094	Marionette	INFO	Listening on port 2828
+ 0:01.33 GECKO(1080030) 1792112852094	Marionette	DEBUG	Marionette is listening
+ 0:01.34 GECKO(1080030) 1792112852110	Marionette	DEBUG	Accepted connection 0 from 127.0.0.1:55306
+ 0:01.35 GECKO(1080030) 1792112852118	Marionette	DEBUG	Closed connection 0
+ 0:01.35 GECKO(1080030) 1792112852118	Marionette	DEBUG	Accepted connection 1 from 127.0.0.1:55322
+ 0:01.45 GECKO(1080030) 1792112852212	Marionette	DEBUG	1 -> [0,1,"WebDriver:NewSession",{"strictFileInteractability":true}]
+ 0:01.46 GECKO(1080030) 1792112852225	Marionette	DEBUG	Waiting for initial application window
+ 0:01.67 GECKO(1080030) [Parent 1080030: Main Thread]: I/SlowChromeEvent Please do not use mouseenter/leave events in chrome. They are slower than mouseover/out! chrome://browser/content/tabbrowser/tabs.mjs:61:10
+ 0:01.73 GECKO(1080030) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpxc8d1bz8.mozrunner/runtests_leaks_tab_pid1080138.log
+ 0:01.73 GECKO(1080030) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpxc8d1bz8.mozrunner/runtests_leaks_tab_pid1080138.log
+ 0:01.73 GECKO(1080030) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpxc8d1bz8.mozrunner/runtests_leaks_rdd_pid1080148.log
+ 0:01.73 GECKO(1080030) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpxc8d1bz8.mozrunner/runtests_leaks_rdd_pid1080148.log
+ 0:01.83 GECKO(1080030) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpxc8d1bz8.mozrunner/runtests_leaks_tab_pid1080177.log
+ 0:01.83 GECKO(1080030) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpxc8d1bz8.mozrunner/runtests_leaks_tab_pid1080177.log
+ 0:01.98 GECKO(1080030) [GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
+ 0:02.42 GECKO(1080030) console.error: services.settings:
+ 0:02.42 GECKO(1080030)   Message: EmptyDatabaseError: "main/nimbus-desktop-experiments" has not been synced yet
+ 0:02.42 GECKO(1080030)   Stack:
+ 0:02.42 GECKO(1080030)     EmptyDatabaseError@resource://services-settings/Database.sys.mjs:19:5
+ 0:02.42 GECKO(1080030) list@resource://services-settings/Database.sys.mjs:96:13
+ 0:02.42 GECKO(1080030) async*get@resource://services-settings/RemoteSettingsClient.sys.mjs:570:28
+ 0:02.42 GECKO(1080030) async*getRecipesFromCollection/recipes<@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:792:16
+ 0:02.42 GECKO(1080030) #raceShutdown@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:748:34
+ 0:02.42 GECKO(1080030) getRecipesFromCollection@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:791:41
+ 0:02.42 GECKO(1080030) getRecipesFromAllCollections@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:647:39
+ 0:02.42 GECKO(1080030) #updateImpl@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:517:33
+ 0:02.42 GECKO(1080030) async*updateRecipes/<@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:434:55
+ 0:02.42 GECKO(1080030) LockGrantedCallback*withUpdateLock@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:370:26
+ 0:02.42 GECKO(1080030) updateRecipes@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:434:18
+ 0:02.42 GECKO(1080030) enable@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:322:16
+ 0:02.42 GECKO(1080030) #init@resource://nimbus/ExperimentAPI.sys.mjs:325:28
+ 0:02.42 GECKO(1080030) async*init@resource://nimbus/ExperimentAPI.sys.mjs:264:49
+ 0:02.42 GECKO(1080030) finishInit@resource://normandy/Normandy.sys.mjs:80:30
+ 0:02.42 GECKO(1080030) init@resource://normandy/Normandy.sys.mjs:58:16
+ 0:02.42 GECKO(1080030) async*fn@resource://gre/modules/BrowserUtils.sys.mjs:83:33
+ 0:02.42 GECKO(1080030) callSingleListener@resource://gre/modules/BrowserUtils.sys.mjs:828:15
+ 0:02.42 GECKO(1080030) callModulesFromCategory@resource://gre/modules/BrowserUtils.sys.mjs:883:23
+ 0:02.42 GECKO(1080030) BG__beforeUIStartup@moz-src:///browser/components/BrowserGlue.sys.mjs:441:23
+ 0:02.42 GECKO(1080030) BG_observe@moz-src:///browser/components/BrowserGlue.sys.mjs:208:14
+ 0:02.64 GECKO(1080030) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpxc8d1bz8.mozrunner/runtests_leaks_utility_pid1080240.log
+ 0:02.64 GECKO(1080030) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpxc8d1bz8.mozrunner/runtests_leaks_utility_pid1080240.log
+ 0:02.70 GECKO(1080030) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpxc8d1bz8.mozrunner/runtests_leaks_tab_pid1080251.log
+ 0:02.71 GECKO(1080030) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpxc8d1bz8.mozrunner/runtests_leaks_tab_pid1080251.log
+ 0:02.71 GECKO(1080030) 1792112853473	Marionette	TRACE	Received observer notification browser-idle-startup-tasks-finished
+ 0:02.89 GECKO(1080030) 1792112853656	RemoteAgent	TRACE	[10] ProgressListener Start: expectNavigation=false resolveWhenStarted=false unloadTimeout=5000 waitForExplicitStart=false
+ 0:02.89 GECKO(1080030) 1792112853657	RemoteAgent	TRACE	[10] ProgressListener Setting unload timer (5000ms)
+ 0:02.89 GECKO(1080030) 1792112853657	RemoteAgent	TRACE	[10] Wait for initial navigation: isUncommittedInitial=false, isLoadingDocument=false
+ 0:02.89 GECKO(1080030) 1792112853657	RemoteAgent	TRACE	[10] Document already finished loading: about:blank
+ 0:02.89 GECKO(1080030) 1792112853657	RemoteAgent	TRACE	[10] ProgressListener Stop: has error=false url=about:blank
+ 0:02.91 GECKO(1080030) 1792112853672	Marionette	DEBUG	1 <- [1,1,null,{"sessionId":"dcc73994-6f2c-4507-9e93-db12d2a6076b","capabilities":{"acceptInsecureCerts":false,"browserName":"umbrafox","browserVersion":"160.0a1","platformName":"linux","setWindowRect":true,"unhandledPromptBehavior":"dismiss and notify","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:160.0) Gecko/20100101 Firefox/160.0","moz:buildID":"20261015235226","moz:headless":true,"moz:platformVersion":"7.2.5-3-omarchy","moz:processID":1080030,"moz:profile":"/tmp/tmpxc8d1bz8.mozrunner","moz:shutdownTimeout":73000,"pageLoadStrategy":"normal","timeouts":{"implicit":0,"pageLoad":300000,"script":30000},"strictFileInteractability":true,"moz:accessibilityChecks":false,"moz:webdriverClick":true,"moz:windowless":false,"proxy":{}}}]
+ 0:02.92 GECKO(1080030) 1792112853688	Marionette	DEBUG	1 -> [0,2,"Addon:Install",{"temporary":false,"path":"/tmp/tmpd6fs7cgp.zip"}]
+ 0:02.92 GECKO(1080030) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpxc8d1bz8.mozrunner/runtests_leaks_tab_pid1080298.log
+ 0:02.92 GECKO(1080030) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpxc8d1bz8.mozrunner/runtests_leaks_tab_pid1080298.log
+ 0:02.93 GECKO(1080030) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpxc8d1bz8.mozrunner/runtests_leaks_tab_pid1080301.log
+ 0:02.93 GECKO(1080030) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpxc8d1bz8.mozrunner/runtests_leaks_tab_pid1080301.log
+ 0:02.93 GECKO(1080030) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpxc8d1bz8.mozrunner/runtests_leaks_tab_pid1080310.log
+ 0:02.93 GECKO(1080030) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmpxc8d1bz8.mozrunner/runtests_leaks_tab_pid1080310.log
+ 0:02.99 GECKO(1080030) 1792112853753	Marionette	DEBUG	1 <- [1,2,null,{"value":"special-powers@mozilla.org"}]
+ 0:03.02 GECKO(1080030) 1792112853785	Marionette	DEBUG	1 -> [0,3,"Addon:Install",{"temporary":false,"path":"/tmp/tmpctag6156.zip"}]
+ 0:03.03 GECKO(1080030) 1792112853800	Marionette	DEBUG	1 <- [1,3,null,{"value":"mochikit@mozilla.org"}]
+ 0:03.04 GECKO(1080030) 1792112853801	Marionette	DEBUG	1 -> [0,4,"Marionette:GetContext",{}]
+ 0:03.04 GECKO(1080030) 1792112853801	Marionette	DEBUG	1 <- [1,4,null,{"value":"content"}]
+ 0:03.04 GECKO(1080030) 1792112853802	Marionette	DEBUG	1 -> [0,5,"Marionette:SetContext",{"value":"chrome"}]
+ 0:03.04 GECKO(1080030) 1792112853802	Marionette	DEBUG	1 <- [1,5,null,{"value":null}]
+ 0:03.04 GECKO(1080030) 1792112853805	Marionette	DEBUG	1 -> [0,6,"WebDriver:ExecuteScript",{"script":"/* This Source Code Form is subject to the terms of the Mozilla Public\n * License, v. 2.0. If a copy of the MPL was not distr ... \n// the flavor and url to load.\nlet ev = new CustomEvent(\"mochitest-load\", { detail: [flavor, url] });\nwin.dispatchEvent(ev);","args":[{"flavor":"browser-chrome","testUrl":"about:blank"}],"newSandbox":true,"sandbox":"default","line":2381,"filename":"_tests/testing/mochitest/runtests.py"}]
+ 0:03.04 GECKO(1080030) 1792112853810	RemoteAgent	TRACE	WebDriverProcessData actor created for PID 1080030
+ 0:03.04 GECKO(1080030) 1792112853811	Marionette	TRACE	[1] MarionetteCommands actor created for window id 2
+ 0:03.07 GECKO(1080030) 1792112853833	Marionette	DEBUG	1 <- [1,6,null,{"value":null}]
+ 0:03.07 GECKO(1080030) 1792112853835	Marionette	DEBUG	1 -> [0,7,"Marionette:SetContext",{"value":"content"}]
+ 0:03.07 GECKO(1080030) 1792112853835	Marionette	DEBUG	1 <- [1,7,null,{"value":null}]
+ 0:03.08 GECKO(1080030) 1792112853848	Marionette	DEBUG	1 -> [0,8,"WebDriver:DeleteSession",{}]
+ 0:03.08 GECKO(1080030) 1792112853848	Marionette	TRACE	[1] MarionetteCommands actor destroyed for window id 2
+ 0:03.08 GECKO(1080030) 1792112853850	Marionette	DEBUG	1 <- [1,8,null,{"value":null}]
+ 0:03.10 INFO runtests.py | Waiting for browser...
+ 0:03.10 GECKO(1080030) 1792112853870	Marionette	DEBUG	Closed connection 1
+ 0:03.15 INFO *** Start BrowserChrome Test Results ***
+ 0:03.16 INFO checking for open sidebars
+ 0:03.16 INFO checking window state
+ 0:03.31 TEST_START: dom/events/test/clipboard/browser_umbrafox_clipboard.js
+ 0:03.32 INFO Entering test test_private_clipboard_action_rejects_unknown_token
+ 0:03.45 PASS test_private_clipboard_action_rejects_unknown_token - Unknown native retry tokens fail closed without a clipboard action - false == false
+ 0:03.46 INFO Leaving test test_private_clipboard_action_rejects_unknown_token
+ 0:03.46 INFO Entering test test_native_cancellation_notice
+ 0:03.56 GECKO(1080030) JavaScript error: moz-src:///toolkit/actors/UmbrafoxClipboardParent.sys.mjs, line 115: TypeError: can't access property "closed", pending.browser.ownerGlobal is undefined
+ 0:03.56 INFO Console message: [JavaScript Error: "TypeError: can't access property "closed", pending.browser.ownerGlobal is undefined" {file: "moz-src:///toolkit/actors/UmbrafoxClipboardParent.sys.mjs" line: 115}]
+ 0:03.66 PASS test_native_cancellation_notice - A real canceled native Copy offers one notice - 1 == 1
+ 0:03.67 PASS test_native_cancellation_notice - The operation is native copy - "copy" == "copy"
+ 0:03.67 PASS test_native_cancellation_notice - Discard consumes the pending request - true == true
+ 0:03.56 FAIL test_native_cancellation_notice - uncaught rejection: can't access property "closed", pending.browser.ownerGlobal is undefined
+#current@moz-src:///toolkit/actors/UmbrafoxClipboardParent.sys.mjs:115:7
+#validate@moz-src:///toolkit/actors/UmbrafoxClipboardParent.sys.mjs:122:43
+receiveMessage@moz-src:///toolkit/actors/UmbrafoxClipboardParent.sys.mjs:64:31
+JSActor query*observe@moz-src:///toolkit/actors/UmbrafoxClipboardChild.sys.mjs:59:10
+ 0:03.68 INFO Leaving test test_native_cancellation_notice
+ 0:03.68 INFO checking for open popups
+ 0:03.91 GECKO(1080030) MEMORY STAT vsizeMaxContiguous not supported in this build configuration.
+ 0:03.91 GECKO(1080030) MEMORY STAT | vsize 11288MB | residentFast 402MB | heapAllocated 258MB
+ 0:03.91 INFO checking for open sidebars
+ 0:03.91 INFO checking window state
+ 0:03.91 TEST_END: Test FAIL, expected PASS. Subtests passed 4/5. Unexpected 1
+ 0:03.93 GECKO(1080030) Completed ShutdownLeaks collections in process 1080030
+ 0:03.93 INFO TEST-START | Shutdown
+ 0:03.93 INFO Browser Chrome Test Summary
+ 0:03.93 INFO Passed:  4
+ 0:03.93 INFO Failed:  1
+ 0:03.93 INFO Todo:    0
+ 0:03.93 INFO Mode:    e10s
+ 0:03.93 INFO *** End BrowserChrome Test Results ***
+ 0:03.96 GECKO(1080030) Exiting due to channel error.
+ 0:03.96 GECKO(1080030) Exiting due to channel error.
+ 0:03.96 GECKO(1080030) Exiting due to channel error.
+ 0:03.96 GECKO(1080030) Exiting due to channel error.
+ 0:03.97 Main app process: exit 0
+ 0:03.97 INFO runtests.py | Main app process exited normally
+ 0:03.97 INFO runtests.py | Application ran for: 0:00:03.223186
+ 0:03.97 INFO zombiecheck | Reading PID log: /tmp/tmpcj5tsgkrpidlog
+ 0:03.97 INFO ==> process 1080030 launched child process 1080070
+ 0:03.97 INFO ==> process 1080030 launched child process 1080130
+ 0:03.97 INFO zombiecheck | Checking for orphan process with PID: 1080130
+ 0:03.97 INFO zombiecheck | Checking for orphan process with PID: 1080070
+ 0:03.97 INFO runtests.py | Running http tests: end. status: 0
+ 0:03.97 INFO Stopping web server
+ 0:03.98 INFO Server shut down.
+ 0:03.98 INFO Web server killed.
+ 0:03.98 INFO Stopping web socket server
+ 0:03.98 INFO Stopping ssltunnel
+ 0:03.99 WARNING leakcheck | refcount logging is off, so leaks can't be detected!
+ 0:04.00 INFO Buffered messages finished
+TEST-INFO | checking window state
+Browser Chrome Test Summary
+	Passed: 4
+	Failed: 1
+	Todo: 0
+	Retried: 0
+	Mode: e10s
+*** End BrowserChrome Test Results ***
+ 0:04.00 INFO Buffered messages finished
+ 0:04.00 SUITE_END
+ 0:04.00 
+Overall Summary
+===============
+
+mochitest-browser
+~~~~~~~~~~~~~~~~~
+Ran 6 checks (5 subtests, 1 tests)
+Expected results: 4
+Unexpected results: 2
+  test: 1 (1 fail)
+  subtest: 1 (1 fail)
+
+Error Summary
+-------------
+dom/events/test/clipboard/browser_umbrafox_clipboard.js
+  FAIL test_native_cancellation_notice - uncaught rejection: can't access property "closed", pending.browser.ownerGlobal is undefined
+#current@moz-src:///toolkit/actors/UmbrafoxClipboardParent.sys.mjs:115:7
+#validate@moz-src:///toolkit/actors/UmbrafoxClipboardParent.sys.mjs:122:43
+receiveMessage@moz-src:///toolkit/actors/UmbrafoxClipboardParent.sys.mjs:64:31
+JSActor query*observe@moz-src:///toolkit/actors/UmbrafoxClipboardChild.sys.mjs:59:10
+  FAIL dom/events/test/clipboard/browser_umbrafox_clipboard.js - finished in 592ms

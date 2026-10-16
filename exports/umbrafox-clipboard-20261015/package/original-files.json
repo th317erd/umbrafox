@@ -1,0 +1,232 @@
+{
+  "application.ini": {
+    "size": 792,
+    "sha256": "c03b29f49f6bdce32785762b30126ae62b2dcf686efcc388327215d334634b81",
+    "mode": 420
+  },
+  "browser/chrome/icons/default/default128.png": {
+    "size": 6972,
+    "sha256": "91b49d610d9004ecc22f5300695e4dcb469b8b0bbc2aca6021bd789b8a31e7e0",
+    "mode": 420
+  },
+  "browser/chrome/icons/default/default16.png": {
+    "size": 703,
+    "sha256": "31733dc5da1d48b13b7e2b9db0888be6e4569441901cbca6e2575e282b2edf20",
+    "mode": 420
+  },
+  "browser/chrome/icons/default/default32.png": {
+    "size": 1364,
+    "sha256": "6257a79303dfe9d1dc9dbce593358803a4ff99458c60a726455854d9fb51c593",
+    "mode": 420
+  },
+  "browser/chrome/icons/default/default48.png": {
+    "size": 2197,
+    "sha256": "6316fd42aae42b0c0bb4d96076782d7d0016dd8ae0f3d1b1df72e2974405d9f2",
+    "mode": 420
+  },
+  "browser/chrome/icons/default/default64.png": {
+    "size": 2968,
+    "sha256": "a7d162363ae9441367c52f1b83894275c5468aeaa376c3f888da606c435b0c54",
+    "mode": 420
+  },
+  "browser/omni.ja": {
+    "size": 55031709,
+    "sha256": "0e8476a9e000d58e416e8adf4189f149128f0d37ab01d7888df4669894c323fc",
+    "mode": 420
+  },
+  "crashhelper": {
+    "size": 5256032,
+    "sha256": "8efed753548d300a419f8774569cfe10ba789d280b0ca390a3b0d712661e3d89",
+    "mode": 493
+  },
+  "crashreporter": {
+    "size": 6231768,
+    "sha256": "419f0dff4ef889e0299bf6fc9dd8c44c393682cfba65fe9aa560ea859a5f51a1",
+    "mode": 493
+  },
+  "defaults/pref/channel-prefs.js": {
+    "size": 429,
+    "sha256": "ef9fba57b2c3755b630b44ccfe703e2753d538fa50e3c52fc279c29e6db8200f",
+    "mode": 420
+  },
+  "dependentlibs.list": {
+    "size": 189,
+    "sha256": "621f575eaaf819dd0b18976c6a8a94d1caae95a9c748f4c9058a052395a4d173",
+    "mode": 420
+  },
+  "fonts/TwemojiMozilla.ttf": {
+    "size": 1474284,
+    "sha256": "6d90152ee0d29e82fe2a87793af5aa4b7ad13e6538360889e141e81ed299ee8e",
+    "mode": 420
+  },
+  "gfxtest": {
+    "size": 50488,
+    "sha256": "1f630b448ddb2d00a12cfee6ccbd65035cb836c9ff01d6cae337841ac4bc8c25",
+    "mode": 493
+  },
+  "gmp-clearkey/0.1/libclearkey.so": {
+    "size": 107768,
+    "sha256": "0a4461e4078a84145fb858d909efad3af929f055a5a86cdbb494dedf5a9b8370",
+    "mode": 493
+  },
+  "gmp-clearkey/0.1/manifest.json": {
+    "size": 225,
+    "sha256": "b7d65e60cccb80ffb2e95b5ae7e355d2c8c37575e886eef4325ca04fa7ba68fc",
+    "mode": 420
+  },
+  "icons/updater.png": {
+    "size": 2153,
+    "sha256": "cab5e9bc9511b0690e696b378efa6753705b1182660d9829f5b3dc9f0398e5cc",
+    "mode": 420
+  },
+  "libfreeblpriv3.so": {
+    "size": 1531984,
+    "sha256": "cf8011da6a846a9c73d0b3915c13a0820473cedc6540085e2cea50335aab5237",
+    "mode": 493
+  },
+  "libgkcodecs.so": {
+    "size": 11044032,
+    "sha256": "abfbf6160304541becb726d6ef12fb04e2f416bbbb4a67a99fd58cdabc710a00",
+    "mode": 493
+  },
+  "liblgpllibs.so": {
+    "size": 361168,
+    "sha256": "7a7fdf2a670e88c22aca426002ed0d09fc8bde789a6d6ab202d4acf8c8607136",
+    "mode": 493
+  },
+  "libmozavcodec.so": {
+    "size": 5637048,
+    "sha256": "29a4930b0cb6a26d5970778a30d4850043a6c9bef96b6caff34f24e29968959f",
+    "mode": 493
+  },
+  "libmozavutil.so": {
+    "size": 873488,
+    "sha256": "4a9986cfbb2a3f91102c8b9fb817c3f31f9b5af350d0dab7940296be868bf56a",
+    "mode": 493
+  },
+  "libmozgtk.so": {
+    "size": 5960,
+    "sha256": "3dd5926088f710b6aee0689486a31ce5df697c4714aa9438dc29678b9d3f1b3a",
+    "mode": 493
+  },
+  "libmozinference.so": {
+    "size": 4169536,
+    "sha256": "a727bd219e71a7fcfb610845105852f2065b49698936d07b03bb793754ec908c",
+    "mode": 493
+  },
+  "libmozsandbox.so": {
+    "size": 671848,
+    "sha256": "cb94bdf66e07a191cbac28dab982de67e0dd0cd3b170505bdd0824a20e6664aa",
+    "mode": 493
+  },
+  "libmozsqlite3.so": {
+    "size": 1665776,
+    "sha256": "74e0386f831c0c9400a53f5ffbbff16a5b901e4a3e552ca8860c75f601998a24",
+    "mode": 493
+  },
+  "libmozwayland.so": {
+    "size": 19720,
+    "sha256": "5c8b0cd7e370599e1c28745cccfe895e5406d06c30b7e4e510af9fdbc23c87da",
+    "mode": 493
+  },
+  "libnspr4.so": {
+    "size": 268864,
+    "sha256": "460b08ed5435d1ae34686c6ea0fe35fbcecdd39b6c19b400fdda11f49320d23e",
+    "mode": 493
+  },
+  "libnss3.so": {
+    "size": 871864,
+    "sha256": "12d4be4088f636de56024dc87cc3fc7baf92fec221f97aba5b62eeaa0f28604d",
+    "mode": 493
+  },
+  "libnssutil3.so": {
+    "size": 221960,
+    "sha256": "587cbd8adcaab604f9b337d37cd2825e11ee1365fc1de1476f64b61c261342c9",
+    "mode": 493
+  },
+  "libonnxruntime.so": {
+    "size": 14468128,
+    "sha256": "a52bd0845f7f928554b189b1eb1a67f8ddd72cf681ac4fa9067913c7a04e3165",
+    "mode": 493
+  },
+  "libplc4.so": {
+    "size": 21856,
+    "sha256": "d387e8f9e1641f1c9da65af795e964b44a383fca71ce0df85ed5499eeafef115",
+    "mode": 493
+  },
+  "libplds4.so": {
+    "size": 15568,
+    "sha256": "1c75d4370dac422b5938240ff5065e9204abc36fda6d02f60a9620f419f599cb",
+    "mode": 493
+  },
+  "libsmime3.so": {
+    "size": 217488,
+    "sha256": "975d2a3f659cd88d0cbe94a0c73ba244092afcf2d4d526edbc99cd54ea3fe6d3",
+    "mode": 493
+  },
+  "libsoftokn3.so": {
+    "size": 449384,
+    "sha256": "2af2bffbf6a4317033dbc9f5744e5433bd8eb0e42b362099cd67b9850980e3e6",
+    "mode": 493
+  },
+  "libssl3.so": {
+    "size": 542408,
+    "sha256": "0c0ad15e04ae73a0a399bb817c28484d79e2e7370067f1ffa0588312554c65f6",
+    "mode": 493
+  },
+  "libxul.so": {
+    "size": 310539016,
+    "sha256": "80b16aee72b03f711a27d15f43cb1ecb10b05fdc172d69e2194c7b70c62f0d7a",
+    "mode": 493
+  },
+  "omni.ja": {
+    "size": 52373948,
+    "sha256": "ce486a6a3734064a037bbc18e0a9942a0989b7c086858fabfeea2c8f75dd265a",
+    "mode": 420
+  },
+  "pingsender": {
+    "size": 908168,
+    "sha256": "63e261e33feeed855aa7c125cd68a69eaea2d543c193d8820fa1ac07fd146e3a",
+    "mode": 493
+  },
+  "platform.ini": {
+    "size": 49,
+    "sha256": "80c92a0b9eb73468e8de746570b3af07880bc262e4dc5414add7b71ce82b5f6e",
+    "mode": 420
+  },
+  "precomplete": {
+    "size": 1423,
+    "sha256": "1770d49e7aae25382cccd956e76df421f32c59d296c5ebcb959393995e0cb0f2",
+    "mode": 420
+  },
+  "removed-files": {
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "mode": 420
+  },
+  "umbrafox": {
+    "size": 812400,
+    "sha256": "bcfbc211e0d70550596a7c8370193ee519d4c6ab365fbf9ff569faaaf1d72220",
+    "mode": 493
+  },
+  "umbrafox-bin": {
+    "size": 812400,
+    "sha256": "bcfbc211e0d70550596a7c8370193ee519d4c6ab365fbf9ff569faaaf1d72220",
+    "mode": 493
+  },
+  "update-settings.ini": {
+    "size": 113,
+    "sha256": "c574f9f109b4dca4a6ab379167cd47a6bbee66c0a9640b1d19232da337202707",
+    "mode": 420
+  },
+  "updater": {
+    "size": 1106776,
+    "sha256": "4196ebe6fc5e820f14ba6a33b0021f55ae78b8489285eeb1f90887618d5e0504",
+    "mode": 493
+  },
+  "updater.ini": {
+    "size": 634,
+    "sha256": "060c20f2ae6fedb169adbda6d2fbe380ada8251142cd19cac18bc9bc9e9efd52",
+    "mode": 420
+  }
+}

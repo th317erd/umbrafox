@@ -1,0 +1,23 @@
+ 0:00.26 W Warnings in third-party code are being suppressed from the terminal output. Use --show-all-warnings or --verbose to see them.
+ 0:00.26 W All warnings will still be dumped to /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/warnings_*.json at the end of the build.
+ 0:00.41 Clobber not needed.
+ 0:00.46 W Adding make options from /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozconfig
+    MOZ_OBJDIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+    OBJDIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+    FOUND_MOZCONFIG=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozconfig
+    export FOUND_MOZCONFIG
+ 0:00.46 /usr/bin/make -f client.mk -j2 -s
+ 0:01.32 ./buildid.h.stub
+ 0:01.32 ./source-repo.h.stub
+ 0:01.52 config/makefiles/xpidl/editor.xpt
+ 0:01.53 config/makefiles/xpidl/widget.xpt
+ 0:02.28 config/makefiles/xpidl/xptdata.stub
+ 0:08.56 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/widget/PClipboardReadRequest.ipdl:19: error: Unknown sync IPC message PClipboardReadRequest::CheckClipboardOverrideValidity
+ 0:08.56 E Error: New sync IPC messages must be reviewed by an IPC peer and recorded in /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/ipc/ipdl/sync-messages.ini
+ 0:09.15 E make[4]: *** [Makefile:31: ipdl.track] Error 1
+ 0:09.15 E make[3]: *** [/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/config/recurse.mk:103: ipc/ipdl/export] Error 2
+ 0:09.15 E make[2]: *** [/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/config/recurse.mk:34: export] Error 2
+ 0:09.15 E make[1]: *** [/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/config/rules.mk:315: default] Error 2
+ 0:09.15 E make: *** [client.mk:58: build] Error 2
+ 0:09.25 W 0 compiler warnings present.
+Streaming resource usage profile to: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/profile_log_20261015_170729.json

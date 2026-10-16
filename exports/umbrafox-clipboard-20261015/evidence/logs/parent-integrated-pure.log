@@ -1,0 +1,58 @@
+(node:1046162) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ default, No and dismissal preserve permissions and never allow (16.901769ms)
+✔ only explicit strict-false native retry shows an owned neutral failure hint (10.925253ms)
+✔ failure feedback suppresses unsafe state and never replaces another hint (15.889679ms)
+✔ failure hint navigation and tab cleanup only close the matching owned hint (15.421638ms)
+✔ an old failure hint timer cannot close a newer hint with the same message (2.433093ms)
+✔ Yes is consumed once and never remembered (2.061813ms)
+✔ Always is exact-origin, operation and origin-attribute scoped, and revocable (2.035932ms)
+✔ private Always expires with the last private context, leaving normal grants (2.456583ms)
+✔ stale requests and TTL expire without an allow or grant (12.127624ms)
+✔ concurrent requests coalesce without replacing the outstanding request (2.323672ms)
+✔ ineligible principals, background requests and existing panels never show (7.80301ms)
+✔ popup failure and callback errors release pending ownership (2.284952ms)
+✔ async validation is awaited and dismissal prevents later display (2.224522ms)
+✔ rejected native retry never persists Always (4.158575ms)
+✔ duplicate choices during async validation or retry execute once (3.001504ms)
+✔ dismissal and expiry during retry prohibit persistence (5.812467ms)
+✔ PopupNotifications action removal does not cancel an owned async retry (2.643263ms)
+✔ standard permission listing preserves container keys and revokes frame origins (4.537315ms)
+✔ known frame grants do not carry over navigation; private types stay out of generic editor (5.251036ms)
+✔ validation failure and malformed grant keys fail closed (3.016933ms)
+✔ current frame principals rediscover saved grants after reload without actor traffic (5.312727ms)
+(node:1046163) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ rejects malformed and wrong-window native notifications (11.081003ms)
+✔ uses native token, exact inner window, and authoritative frame principal (2.784763ms)
+✔ Yes is one-shot even when called concurrently (2.345423ms)
+✔ No and actor destruction discard without retry (4.332075ms)
+✔ expiry, navigation, background tab, and inactive frame fail closed (10.498292ms)
+✔ changed native target or missing native acceptance never succeeds (5.508867ms)
+✔ request identity mismatch cannot validate, retry or clear another request (2.464173ms)
+✔ pagehide invalidates pending state without document clipboard listeners (2.268153ms)
+✔ saved explicit grant retries with no new prompt (3.631564ms)
+✔ custom replacement still offers notice when native replay is stale (2.061473ms)
+✔ current retry failure reaches UI completion without premature cancellation (8.58513ms)
+✔ lost frame during retry still cancels UI even without didDestroy (6.703728ms)
+✔ saved-grant retry failure releases actors without creating UI (2.011182ms)
+✔ in-flight retry expiry or replacement cancels only its own UI once (4.077005ms)
+✔ UI cancellation ownership survives asynchronous successful retry (2.414143ms)
+✔ navigation while retry is in flight prevents successful grant result (3.406514ms)
+✔ timer expiry clears both actors and notice (2.656133ms)
+✔ new native request invalidates old notice without accepting old callback (2.145563ms)
+✔ malformed parent messages and mismatched callbacks leave active request intact (1.881872ms)
+✔ inactive owner window blocks saved-grant retry (1.961903ms)
+✔ actor IPC and UI failures release pending state without retry (5.812726ms)
+✔ toolkit applications without browser UI fail closed (2.156982ms)
+✔ untrusted lifecycle event cannot invalidate native pending state (2.823704ms)
+✔ missing native observer or property-bag factory never offers a notice (5.422146ms)
+✔ non-web principals cannot produce browser permission notices (6.449528ms)
+ℹ tests 46
+ℹ suites 0
+ℹ pass 46
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 185.190828

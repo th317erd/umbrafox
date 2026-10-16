@@ -1,0 +1,13 @@
+✔ newer nightly supersedes an older dated installation (50.865359ms)
+✔ actual BuildID wins over directory name (50.880649ms)
+✔ unpublished staging and incomplete or mismatched installs are ignored (48.078617ms)
+✔ nightly wins equal BuildIDs without injecting a profile argument (32.574505ms)
+✔ duplicate BuildIDs and missing installations fail closed (24.409028ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 292.254952

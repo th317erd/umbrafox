@@ -1,0 +1,14 @@
+{
+  "status": "installed-inactive",
+  "target": "/home/wyatt/Programs/umbrafox-nightly",
+  "backup": "/home/wyatt/Programs/umbrafox-nightly.before-clipboard-20261015",
+  "stage": "/home/wyatt/Programs/.umbrafox-clipboard-stage-c8z2czsf",
+  "archiveSHA256": "b4db996ef95a01d5e967126f874ced3a21e429dc4983c013b52dd7f5579ace9a",
+  "buildID": "20261015235226",
+  "files": 48,
+  "purgeCaches": true,
+  "launcherUnchangedSHA256": "36b8df60cd05fea0f50fbb92ea0fe9433ddf0c9910c0df89d15cd3e07854c0cd",
+  "profileMappingChanged": false,
+  "ownerBrowserRestarted": false,
+  "activationPending": true
+}

@@ -1,0 +1,279 @@
+ 0:00.26 W Warnings in third-party code are being suppressed from the terminal output. Use --show-all-warnings or --verbose to see them.
+ 0:00.26 W All warnings will still be dumped to /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/warnings_*.json at the end of the build.
+ 0:00.39 Clobber not needed.
+ 0:00.44 W Adding make options from /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozconfig
+    MOZ_OBJDIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+    OBJDIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+    FOUND_MOZCONFIG=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozconfig
+    export FOUND_MOZCONFIG
+ 0:00.44 /usr/bin/make -f client.mk -j2 -s
+ 0:01.35 ./buildid.h.stub
+ 0:01.35 ./source-repo.h.stub
+ 0:08.45 toolkit/library/rust/libgkrust.a
+ 0:08.64 browser/app
+ 0:09.12 accessible/aom
+ 0:13.44    Compiling xpcom_macros v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/xpcom/rust/xpcom/xpcom_macros)
+ 0:15.38 W warning: swgl@0.1.0: clang++: warning: overriding '-ffast-math' option with '-ffp-contract=off' [-Woverriding-option]
+ 0:15.38    Compiling style v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/servo/components/style)
+ 0:15.75    Compiling xpcom v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/xpcom/rust/xpcom)
+ 0:21.83    Compiling moz_task v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/xpcom/rust/moz_task)
+ 0:22.40    Compiling firefox-on-glean v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/glean/api)
+ 0:25.59    Compiling storage_variant v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/storage/variant)
+ 0:25.91    Compiling kvstore v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/kvstore)
+ 0:28.55    Compiling fluent-ffi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/intl/l10n/rust/fluent-ffi)
+ 0:32.94    Compiling l10nregistry-ffi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/intl/l10n/rust/l10nregistry-ffi)
+ 0:34.09    Compiling lockstore_rs v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/lockstore/lockstore_rs)
+ 0:35.39    Compiling storage v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/storage/rust)
+ 0:35.72    Compiling mozurl v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/base/mozurl)
+ 0:36.12    Compiling geckoservo v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/servo/ports/geckolib)
+ 0:36.48    Compiling uritemplate_glue v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/base/uritemplate_glue)
+ 0:36.82    Compiling crypto_hash v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/crypto_hash)
+ 0:37.33    Compiling bookmark_sync v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/places/bookmark_sync)
+ 0:38.34    Compiling urlpattern_glue v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/base/urlpattern_glue)
+ 0:39.40    Compiling lockstore_ffi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/lockstore/lockstore_ffi)
+ 0:39.90    Compiling localization-ffi v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/intl/l10n/rust/localization-ffi)
+ 0:40.75    Compiling mls_gk v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/mls/mls_gk)
+ 0:41.39    Compiling noise v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/noise)
+ 0:41.99    Compiling cert_storage v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/cert_storage)
+ 0:43.39    Compiling content_classifier_engine v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/content-classifier/content_classifier_engine)
+ 0:43.79    Compiling cascade_bloom_filter v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/cascade_bloom_filter)
+ 0:44.08    Compiling authrs_bridge v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/webauthn/authrs_bridge)
+ 0:47.67    Compiling jxl_decoder v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/image/rust/jxl)
+ 0:48.21    Compiling oblivious_http v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/protocol/http/oblivious_http)
+ 0:48.73    Compiling xdg_alerts v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/system/gnome/rust)
+ 0:49.24    Compiling http_sfv v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/base/http-sfv)
+ 0:50.41    Compiling abridged_certs v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/abridged_certs)
+ 0:50.99    Compiling sitecategories v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/sitecategories)
+ 0:51.59    Compiling binary_http v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/protocol/http/binary_http)
+ 0:52.16    Compiling processtools v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/processtools)
+ 0:52.56 accessible/atk
+ 1:11.19    Compiling wr_glyph_rasterizer v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/gfx/wr/wr_glyph_rasterizer)
+ 1:12.24    Compiling webrender v0.62.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/gfx/wr/webrender)
+ 1:42.08    Compiling webrender_bindings v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/gfx/webrender_bindings)
+ 1:44.99    Compiling data_storage v0.0.1 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/security/manager/ssl/data_storage)
+ 1:45.81    Compiling jog v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/glean/bindings/jog)
+ 1:47.62    Compiling fog_control v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/glean)
+ 1:48.27    Compiling happy_eyeballs_glue v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/protocol/http/happy_eyeballs_glue)
+ 1:48.94    Compiling neqo_glue v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/socket/neqo_glue)
+ 1:50.07    Compiling gecko-trace v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/components/gecko-trace)
+ 1:50.85    Compiling wgpu_bindings v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/gfx/wgpu_bindings)
+ 1:54.05    Compiling gkrust-shared v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/library/rust/shared)
+ 1:54.51    Compiling gkrust v0.1.0 (/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/toolkit/library/rust)
+ 2:03.96     Finished `release` profile [optimized] target(s) in 1m 55s
+ 2:05.71 accessible/base
+ 2:20.40 accessible/generic
+ 2:35.05 accessible/html
+ 2:39.29 accessible/ipc
+ 2:45.48 accessible/pdf
+ 2:57.27 accessible/xpcom
+ 2:58.07 accessible/xul
+ 3:08.90 browser/components/about
+ 3:10.58 browser/components/shell
+ 3:17.99 W 1 warning generated.
+ 3:18.02 caps
+ 3:19.23 chrome
+ 3:32.74 devtools/shared/heapsnapshot
+ 3:42.98 docshell/base
+ 3:55.26 docshell/shistory
+ 4:12.42 dom/animation
+ 4:31.31 dom/bindings
+ 4:51.34 dom/broadcastchannel
+ 5:45.79 dom/cache
+ 6:43.64 dom/canvas
+ 8:55.97 dom/clients/manager
+ 9:38.53 dom/cookiestore
+10:00.91 dom/documentpip
+10:08.55 dom/events
+10:39.40 dom/fetch
+11:14.01 dom/file/ipc
+11:16.35 dom/file/uri
+11:30.35 dom/filesystem
+11:30.93 dom/fs/child
+11:46.36 dom/fs/parent/datamodel
+11:48.74 dom/fs/parent
+12:06.17 dom/gamepad
+12:07.02 dom/geolocation
+12:34.51 dom/html
+12:56.91 dom/indexedDB
+14:14.79 dom/ipc/jsactor
+14:44.37 dom/ipc
+14:45.76 dom/jsurl
+16:22.05 dom/l10n
+16:33.69 dom/localstorage
+16:56.10 dom/mathml
+17:02.70 dom/media/eme
+17:03.26 dom/media/gmp
+17:36.01 dom/media/ipc
+18:08.19 dom/media/mediacontrol
+18:24.54 dom/media/mediaelement
+18:29.25 dom/media/systemservices
+18:58.11 dom/media/webaudio
+19:14.13 dom/media/webrtc/jsapi
+20:10.86 W 2 warnings generated.
+20:11.10 dom/media/webrtc
+20:12.03 W 2 warnings generated.
+20:12.22 dom/media/webrtc/transport/ipc
+20:35.22 dom/media/webspeech/recognition
+21:01.65 W 2 warnings generated.
+21:01.82 dom/media/webspeech/synth
+21:21.87 dom/messagechannel
+21:24.93 dom/midi
+21:38.32 dom/network
+21:51.35 dom/notification
+21:57.74 dom/onnx
+22:18.44 dom/payments/ipc
+22:22.93 dom/payments
+22:30.15 dom/performance
+22:36.37 dom/permission
+22:45.81 dom/power
+22:50.97 dom/promise
+22:58.33 dom/prototype
+23:06.01 dom/quota
+23:53.60 dom/script
+24:11.90 dom/security
+24:25.75 dom/serializers
+24:35.18 dom/serviceworkers
+25:18.02 dom/simpledb
+25:26.44 dom/smil
+25:37.65 dom/storage
+25:54.73 dom/svg
+26:19.98 dom/view-transitions
+26:20.06 dom/vr
+26:31.48 dom/webauthn
+26:35.66 dom/webbrowserpersist
+26:56.25 dom/webgpu
+26:59.29 dom/webserial
+27:17.87 dom/webtransport/parent
+27:19.58 dom/workers/remoteworkers
+27:38.34 dom/workers/sharedworkers
+27:42.88 dom/workers
+27:57.52 dom/xhr
+28:10.16 dom/xml
+28:18.36 dom/xul
+28:33.02 editor/composer
+28:33.40 editor/libeditor
+29:13.71 editor/spellchecker
+29:22.71 editor/txmgr
+29:29.20 extensions/permissions
+29:31.33 extensions/spellcheck/ipc
+29:44.64 extensions/spellcheck/src
+29:45.05 gfx/config
+29:56.96 gfx/ipc
+30:09.88 gfx/layers
+30:56.93 gfx/src
+32:00.70 gfx/vr
+32:32.70 gfx/webrender_bindings
+32:59.70 hal
+33:11.16 image/decoders/icon/gtk
+33:19.49 image/remote
+33:22.24 image
+33:46.71 intl/hyphenation/glue
+33:58.97 intl/l10n
+33:59.90 intl/strres
+34:11.70 ipc/glue
+34:40.00 ipc/ipdl
+34:43.33 ipc/testshell
+34:54.71 js/xpconnect/loader
+34:55.19 js/xpconnect/src
+35:10.38 layout/base
+36:02.38 layout/forms
+36:20.71 layout/generic
+36:46.46 layout/inspector
+37:21.52 layout/ipc
+37:41.01 layout/mathml
+37:54.62 layout/painting
+37:59.78 layout/printing
+38:19.48 layout/svg
+38:50.96 layout/tables
+38:51.54 layout
+39:02.58 layout/xul
+39:08.30 layout/xul/tree
+39:20.93 netwerk/cache2
+39:21.53 netwerk/cookie
+39:37.18 netwerk/dns
+39:52.69 netwerk/ipc
+40:21.12 netwerk/protocol/data
+40:33.14 netwerk/protocol/file
+40:33.74 netwerk/protocol/http
+41:20.56 netwerk/protocol/res
+41:34.16 netwerk/protocol/websocket
+41:43.58 netwerk/url-classifier
+41:51.02 parser/html
+42:01.08 security/sandbox/linux/glue
+42:06.33 toolkit/components/antitracking
+42:12.23 toolkit/components/backgroundhangmonitor
+42:24.57 toolkit/components/browser
+42:25.48 toolkit/components/contentanalysis
+42:35.91 toolkit/components/extensions
+42:51.93 toolkit/components/extensions/webrequest
+42:54.70 toolkit/components/find
+43:09.12 toolkit/components/gecko-trace
+43:16.44 toolkit/components/geolocation
+43:26.71 toolkit/components/ml/backends/llama
+43:28.32 toolkit/components/places
+43:41.19 toolkit/components/resistfingerprinting
+43:53.02 toolkit/components/satchel
+44:05.13 toolkit/components/sessionstore
+44:09.91 toolkit/components/typeaheadfind
+44:24.42 toolkit/components/url-classifier
+44:40.56 toolkit/components/windowwatcher
+45:03.94 toolkit/library/buildid.cpp.stub
+45:04.43 toolkit/xre
+45:24.20 tools/performance
+45:26.53 uriloader/base
+45:39.03 uriloader/exthandler
+45:50.46 widget/gtk
+46:14.67 widget/headless
+46:43.73 widget
+47:44.03 xpcom/base
+47:59.51 xpcom/components
+48:13.43 xpcom/reflect/xptinfo
+48:17.36 xpcom/threads
+48:26.15 xpfe/appshell
+48:28.44 dom/base
+49:31.26 dom/media
+52:57.86 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/base/UmbrafoxClipboard.cpp:56:37: error: no member named 'IsContentPrincipal' in 'nsIPrincipal'
+52:57.86 E    56 |          document->NodePrincipal()->IsContentPrincipal() &&
+52:57.86 E       |          ~~~~~~~~~~~~~~~~~~~~~~~~~  ^
+52:57.86 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/base/UmbrafoxClipboard.cpp:67:3: error: static assertion failed due to requirement 'std::is_convertible_v<mozilla::PendingClipboardRequest *, nsINamed *>': nsITimerCallback implementations must also implement nsINamed
+52:57.86 E    67 |   NS_DECL_NSITIMERCALLBACK
+52:57.86 E       |   ^~~~~~~~~~~~~~~~~~~~~~~~
+52:57.86 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/include/nsITimer.h:387:19: note: expanded from macro 'NS_DECL_NSITIMERCALLBACK'
+52:57.86 E   387 |     static_assert(std::is_convertible_v<decltype(this), nsINamed*>,     \
+52:57.86 E       |                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+52:57.86 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/base/UmbrafoxClipboard.cpp:366:56: error: member access into incomplete type 'InternalEditorInputEvent'
+52:57.86 E   366 |                             aEvent.AsEditorInputEvent()->mInputType ==
+52:57.86 E       |                                                        ^
+52:57.86 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/widget/EventClassList.inc:27:1: note: forward declaration of 'mozilla::InternalEditorInputEvent'
+52:57.86 E    27 | NS_EVENT_CLASS(Internal, EditorInputEvent)
+52:57.86 E       | ^
+52:57.86 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/widget/EventForwards.h:490:46: note: expanded from macro 'NS_EVENT_CLASS'
+52:57.86 E   490 | #define NS_EVENT_CLASS(aPrefix, aName) class aPrefix##aName;
+52:57.86 E       |                                              ^
+52:57.86 E <scratch space>:182:1: note: expanded from here
+52:57.86 E   182 | InternalEditorInputEvent
+52:57.86 E       | ^
+52:57.86 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/dom/base/UmbrafoxClipboard.cpp:369:55: error: member access into incomplete type 'InternalLegacyTextEvent'
+52:57.86 E   369 |                             aEvent.AsLegacyTextEvent()->mInputType ==
+52:57.86 E       |                                                       ^
+52:57.86 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/widget/EventClassList.inc:28:1: note: forward declaration of 'mozilla::InternalLegacyTextEvent'
+52:57.86 E    28 | NS_EVENT_CLASS(Internal, LegacyTextEvent)
+52:57.86 E       | ^
+52:57.86 E /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/widget/EventForwards.h:490:46: note: expanded from macro 'NS_EVENT_CLASS'
+52:57.86 E   490 | #define NS_EVENT_CLASS(aPrefix, aName) class aPrefix##aName;
+52:57.86 E       |                                              ^
+52:57.86 E <scratch space>:183:1: note: expanded from here
+52:57.86 E   183 | InternalLegacyTextEvent
+52:57.86 E       | ^
+52:57.86 E 4 errors generated.
+52:57.86 E make[4]: *** [/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/config/rules.mk:620: Unified_cpp_dom_base8.o] Error 1
+52:57.86 E make[4]: *** Waiting for unfinished jobs....
+52:57.94 gfx/thebes
+53:25.14 E make[3]: *** [/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/config/recurse.mk:79: dom/base/target-objects] Error 2
+53:25.14 E make[3]: *** Waiting for unfinished jobs....
+54:03.33 E make[2]: *** [/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/config/recurse.mk:34: compile] Error 2
+54:03.37 E make[1]: *** [/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/config/rules.mk:315: default] Error 2
+54:03.41 E make: *** [client.mk:58: build] Error 2
+54:03.52 W 6 compiler warnings present.
+54:03.64 /usr/bin/notify-send '--app-name=Mozilla Build System' 'Mozilla Build System' 'Build failed'
+Streaming resource usage profile to: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/profile_log_20261015_170821.json

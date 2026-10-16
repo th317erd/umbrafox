@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+set -euo pipefail
+
+programs_dir="$HOME/Programs"
+latest=""
+latest_build_id=""
+
+build_id() {
+  awk -v section="$2" '
+    { sub(/\r$/, "") }
+    /^\[/ { selected = ($0 == "[" section "]") }
+    selected && /^BuildID=/ {
+      count++
+      value = substr($0, 9)
+    }
+    END {
+      if (count != 1 || length(value) != 14 || value ~ /[^0-9]/) exit 1
+      print value
+    }
+  ' "$1"
+}
+
+if [[ -d "$programs_dir" ]]; then
+  while IFS= read -r -d '' candidate; do
+    installation_name="${candidate##*/}"
+    [[ "$installation_name" == "umbrafox-nightly" ||
+       "$installation_name" =~ ^umbrafox-[0-9]{8}-[0-9]{6}-[0-9]+[.]0a1$ ]] || continue
+    [[ -f "$candidate/umbrafox" && -x "$candidate/umbrafox" &&
+       -f "$candidate/application.ini" &&
+       -f "$candidate/platform.ini" ]] || continue
+    app_id="$(build_id "$candidate/application.ini" App)" || continue
+    platform_id="$(build_id "$candidate/platform.ini" Build)" || continue
+    [[ "$app_id" == "$platform_id" ]] || continue
+    if [[ "$app_id" > "$latest_build_id" ||
+          ( "$app_id" == "$latest_build_id" &&
+            "$candidate" == "$programs_dir/umbrafox-nightly" ) ]]; then
+      latest="$candidate"
+      latest_build_id="$app_id"
+    fi
+  done < <(find "$programs_dir" -maxdepth 1 -mindepth 1 -type d \
+    \( -name 'umbrafox-[0-9]*' -o -name 'umbrafox-nightly' \) -print0)
+fi
+
+if [[ -z "$latest" ]]; then
+  echo "No complete Umbrafox installation found in $programs_dir" >&2
+  exit 1
+fi
+
+exec "$latest/umbrafox" "$@"

@@ -1,0 +1,49 @@
+(node:1081338) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ rejects malformed and wrong-window native notifications (8.912159ms)
+✔ uses native token, exact inner window, and authoritative frame principal (2.414447ms)
+✖ missing embedder document global fails closed (2.214495ms)
+✔ Yes is one-shot even when called concurrently (2.778134ms)
+✔ No and actor destruction discard without retry (4.350678ms)
+✔ expiry, navigation, background tab, and inactive frame fail closed (14.687858ms)
+✔ changed native target or missing native acceptance never succeeds (6.239207ms)
+✔ request identity mismatch cannot validate, retry or clear another request (2.070012ms)
+✔ pagehide invalidates pending state without document clipboard listeners (2.994917ms)
+✔ saved explicit grant retries with no new prompt (2.138484ms)
+✔ custom replacement still offers notice when native replay is stale (2.132913ms)
+✔ current retry failure reaches UI completion without premature cancellation (7.536637ms)
+✔ lost frame during retry still cancels UI even without didDestroy (6.361369ms)
+✔ saved-grant retry failure releases actors without creating UI (1.847509ms)
+✔ in-flight retry expiry or replacement cancels only its own UI once (3.734468ms)
+✔ UI cancellation ownership survives asynchronous successful retry (2.119323ms)
+✔ navigation while retry is in flight prevents successful grant result (2.004421ms)
+✔ timer expiry clears both actors and notice (1.92677ms)
+✔ new native request invalidates old notice without accepting old callback (2.018722ms)
+✔ malformed parent messages and mismatched callbacks leave active request intact (1.97444ms)
+✔ inactive owner window blocks saved-grant retry (1.826638ms)
+✔ actor IPC and UI failures release pending state without retry (4.026252ms)
+✔ toolkit applications without browser UI fail closed (1.958931ms)
+✔ untrusted lifecycle event cannot invalidate native pending state (1.981381ms)
+✔ missing native observer or property-bag factory never offers a notice (6.307688ms)
+✔ non-web principals cannot produce browser permission notices (9.812513ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 25
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 165.98478
+
+✖ failing tests:
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:240:1
+✖ missing embedder document global fails closed (2.214495ms)
+  TypeError: Cannot read properties of undefined (reading 'closed')
+      at #current (vm:module(2):115:39)
+      at #validate (vm:module(2):122:43)
+      at UmbrafoxClipboardParent.receiveMessage (vm:module(2):64:31)
+      at Object.notify (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:170:25)
+      at TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:243:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)

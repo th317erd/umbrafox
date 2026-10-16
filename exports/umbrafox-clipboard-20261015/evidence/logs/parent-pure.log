@@ -1,0 +1,364 @@
+✖ default, No and dismissal preserve permissions and never allow (7.696278ms)
+✖ Yes is consumed once and never remembered (1.878449ms)
+✖ Always is exact-origin, operation and origin-attribute scoped, and revocable (1.280463ms)
+✖ private Always expires with the last private context, leaving normal grants (1.349772ms)
+✖ stale requests and TTL expire without an allow or grant (1.344293ms)
+✖ concurrent requests coalesce without replacing the outstanding request (1.193904ms)
+✖ ineligible principals, background requests and existing panels never show (1.244333ms)
+✖ popup failure and callback errors release pending ownership (1.310903ms)
+✖ async validation is awaited and dismissal prevents later display (1.283443ms)
+✖ rejected native retry never persists Always (1.411162ms)
+✖ duplicate choices during async validation or retry execute once (1.479862ms)
+✖ dismissal and expiry during retry prohibit persistence (2.229098ms)
+✖ PopupNotifications action removal does not cancel an owned async retry (1.212343ms)
+✖ standard permission listing preserves container keys and revokes frame origins (1.121444ms)
+✖ known frame grants do not carry over navigation; private types stay out of generic editor (1.211494ms)
+✖ validation failure and malformed grant keys fail closed (1.347782ms)
+✖ rejects malformed and wrong-window native notifications (8.106705ms)
+✖ uses native token, exact inner window, and authoritative frame principal (1.86118ms)
+✖ Yes is one-shot even when called concurrently (1.273973ms)
+✖ No and actor destruction discard without retry (1.260683ms)
+✖ expiry, navigation, background tab, and inactive frame fail closed (1.396482ms)
+✖ changed native target or missing native acceptance never succeeds (1.232073ms)
+✖ request identity mismatch cannot validate, retry or clear another request (1.189034ms)
+✖ pagehide invalidates pending state without document clipboard listeners (1.976709ms)
+✖ saved explicit grant retries with no new prompt (1.891949ms)
+✖ custom replacement still offers notice when native replay is stale (1.877139ms)
+✖ UI cancellation ownership survives asynchronous successful retry (1.75053ms)
+✖ navigation while retry is in flight prevents successful grant result (2.954004ms)
+✖ timer expiry clears both actors and notice (1.350113ms)
+✖ new native request invalidates old notice without accepting old callback (1.639471ms)
+✖ malformed parent messages and mismatched callbacks leave active request intact (1.78691ms)
+✖ inactive owner window blocks saved-grant retry (1.271813ms)
+✖ actor IPC and UI failures release pending state without retry (1.188374ms)
+✖ toolkit applications without browser UI fail closed (1.248904ms)
+✖ untrusted lifecycle event cannot invalidate native pending state (1.140794ms)
+✖ missing native observer or property-bag factory never offers a notice (1.415542ms)
+✖ non-web principals cannot produce browser permission notices (1.006664ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 0
+ℹ fail 37
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 102.539029
+
+✖ failing tests:
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:273:1
+✖ default, No and dismissal preserve permissions and never allow (7.696278ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at setup (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:218:18)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:275:15)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:294:1
+✖ Yes is consumed once and never remembered (1.878449ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at setup (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:218:18)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:295:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:306:1
+✖ Always is exact-origin, operation and origin-attribute scoped, and revocable (1.280463ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at setup (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:218:18)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:307:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:333:1
+✖ private Always expires with the last private context, leaving normal grants (1.349772ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at setup (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:218:18)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:334:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:354:1
+✖ stale requests and TTL expire without an allow or grant (1.344293ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at setup (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:218:18)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:363:15)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:391:1
+✖ concurrent requests coalesce without replacing the outstanding request (1.193904ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at setup (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:218:18)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:392:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:403:1
+✖ ineligible principals, background requests and existing panels never show (1.244333ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at setup (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:218:18)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:412:15)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:438:1
+✖ popup failure and callback errors release pending ownership (1.310903ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at setup (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:218:18)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:439:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:461:1
+✖ async validation is awaited and dismissal prevents later display (1.283443ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at setup (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:218:18)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:462:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:476:1
+✖ rejected native retry never persists Always (1.411162ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at setup (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:218:18)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:478:15)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:487:1
+✖ duplicate choices during async validation or retry execute once (1.479862ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at setup (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:218:18)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:488:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:510:1
+✖ dismissal and expiry during retry prohibit persistence (2.229098ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at setup (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:218:18)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:512:15)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:536:1
+✖ PopupNotifications action removal does not cancel an owned async retry (1.212343ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at setup (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:218:18)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:537:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:546:1
+✖ standard permission listing preserves container keys and revokes frame origins (1.121444ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at setup (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:194:31)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:547:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:573:1
+✖ known frame grants do not carry over navigation; private types stay out of generic editor (1.211494ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at setup (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:194:31)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:574:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:594:1
+✖ validation failure and malformed grant keys fail closed (1.347782ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at setup (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:194:31)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs:595:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:206:1
+✖ rejects malformed and wrong-window native notifications (8.106705ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:207:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:225:1
+✖ uses native token, exact inner window, and authoritative frame principal (1.86118ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:226:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:238:1
+✖ Yes is one-shot even when called concurrently (1.273973ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:239:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:257:1
+✖ No and actor destruction discard without retry (1.260683ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:259:15)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:275:1
+✖ expiry, navigation, background tab, and inactive frame fail closed (1.396482ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:291:15)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:302:1
+✖ changed native target or missing native acceptance never succeeds (1.232073ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:308:15)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:318:1
+✖ request identity mismatch cannot validate, retry or clear another request (1.189034ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:319:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:336:1
+✖ pagehide invalidates pending state without document clipboard listeners (1.976709ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:337:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:351:1
+✖ saved explicit grant retries with no new prompt (1.891949ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:352:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:359:1
+✖ custom replacement still offers notice when native replay is stale (1.877139ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:360:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:372:1
+✖ UI cancellation ownership survives asynchronous successful retry (1.75053ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:373:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:392:1
+✖ navigation while retry is in flight prevents successful grant result (2.954004ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:393:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:408:1
+✖ timer expiry clears both actors and notice (1.350113ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:409:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:424:1
+✖ new native request invalidates old notice without accepting old callback (1.639471ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:425:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:442:1
+✖ malformed parent messages and mismatched callbacks leave active request intact (1.78691ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:443:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:460:1
+✖ inactive owner window blocks saved-grant retry (1.271813ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:461:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:469:1
+✖ actor IPC and UI failures release pending state without retry (1.188374ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:482:15)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:490:1
+✖ toolkit applications without browser UI fail closed (1.248904ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:491:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:498:1
+✖ untrusted lifecycle event cannot invalidate native pending state (1.140794ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:499:13)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:512:1
+✖ missing native observer or property-bag factory never offers a notice (1.415542ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:522:15)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:531:1
+✖ non-web principals cannot produce browser permission notices (1.006664ms)
+  TypeError: vm.SourceTextModule is not a constructor
+      at load (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:117:20)
+      at async fixture (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:145:17)
+      at async TestContext.<anonymous> (file:///home/wyatt/Projects/umbrafox-workspace/umbrafox/toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs:543:15)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)

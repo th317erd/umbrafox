@@ -1,0 +1,14 @@
+ 0:00.27 W Warnings in third-party code are being suppressed from the terminal output. Use --show-all-warnings or --verbose to see them.
+ 0:00.27 W All warnings will still be dumped to /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/warnings_*.json at the end of the build.
+ 0:00.43 Clobber not needed.
+ 0:00.48 Parallelism determined by memory: using 16 jobs for 16 cores based on 62.7 GiB RAM and estimated job size of 1.0 GiB
+ 0:00.48 /usr/bin/make -C faster -j16 -s
+ 0:00.71 Elapsed: 0.03s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/gmp-clearkey/0.1: Kept 0 existing; Added/updated 1; Removed 0 files and 0 directories.
+ 0:02.48 Elapsed: 0.14s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin: Kept 2048 existing; Added/updated 24; Removed 0 files and 0 directories.
+ 0:02.61 Elapsed: 0.27s; From /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/browser: Kept 4966 existing; Added/updated 25; Removed 0 files and 0 directories.
+ 0:02.74 W 0 compiler warnings present.
+ 0:02.76 W Overall system resources - Wall time: 2s; CPU: 74%; Read bytes: 82755584; Write bytes: 73203712; Read time: 3082; Write time: 2679
+ 0:02.76 W Swap in/out (MB): 0.46484375/1.7265625
+ 0:02.76 To view a profile of the build, run |mach resource-usage|.
+ 0:02.76 Your build was successful!
+Streaming resource usage profile to: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/profile_log_20261015_182741.json

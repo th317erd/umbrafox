@@ -1,0 +1,929 @@
+Skipping test file installation (up to date). Run with --force to force reinstallation.
+Streaming resource usage profile to: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/test/profile_log_20261015_181811.json
+ 0:00.20 INFO These variables are available in the mozinfo environment and can be used to skip tests conditionally:
+ 0:00.20 INFO     a11y_checks: False
+ 0:00.20 INFO     android: False
+ 0:00.20 INFO     apple_catalina: False
+ 0:00.20 INFO     apple_silicon: False
+ 0:00.20 INFO     appname: umbrafox
+ 0:00.20 INFO     arch: x86_64
+ 0:00.20 INFO     artifact: False
+ 0:00.20 INFO     asan: False
+ 0:00.20 INFO     automation: False
+ 0:00.20 INFO     bin_suffix: 
+ 0:00.20 INFO     bits: 64
+ 0:00.20 INFO     buildapp: browser
+ 0:00.20 INFO     buildtype: opt
+ 0:00.20 INFO     buildtype_guess: opt
+ 0:00.20 INFO     cc_type: clang
+ 0:00.20 INFO     ccov: False
+ 0:00.20 INFO     condprof: False
+ 0:00.20 INFO     coverage: False
+ 0:00.20 INFO     crashreporter: True
+ 0:00.20 INFO     datareporting: True
+ 0:00.20 INFO     dbus_enabled: True
+ 0:00.20 INFO     debug: False
+ 0:00.20 INFO     devedition: False
+ 0:00.20 INFO     display: wayland
+ 0:00.20 INFO     e10s: True
+ 0:00.20 INFO     early_beta_or_earlier: True
+ 0:00.20 INFO     enterprise: False
+ 0:00.20 INFO     fission: True
+ 0:00.20 INFO     has_sandbox: True
+ 0:00.20 INFO     headless: True
+ 0:00.20 INFO     healthreport: True
+ 0:00.20 INFO     http2: False
+ 0:00.20 INFO     http3: False
+ 0:00.20 INFO     inc_origin_init: False
+ 0:00.20 INFO     is_emulator: False
+ 0:00.20 INFO     is_ubuntu: False
+ 0:00.20 INFO     isolated_process: False
+ 0:00.20 INFO     linux_distro: Omarchy
+ 0:00.20 INFO     macos_vm: False
+ 0:00.20 INFO     mda_gpu: False
+ 0:00.20 INFO     mingw: False
+ 0:00.20 INFO     mozconfig: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozconfig
+ 0:00.20 INFO     msix: False
+ 0:00.20 INFO     nightly_build: True
+ 0:00.20 INFO     nogpu: False
+ 0:00.20 INFO     normandy: True
+ 0:00.20 INFO     nova: True
+ 0:00.20 INFO     official: False
+ 0:00.20 INFO     opt: True
+ 0:00.20 INFO     os: linux
+ 0:00.20 INFO     os_version: 4.0.4
+ 0:00.20 INFO     pgo: False
+ 0:00.20 INFO     platform_guess: linux64
+ 0:00.20 INFO     processor: x86_64
+ 0:00.20 INFO     release_or_beta: False
+ 0:00.20 INFO     require_signing: False
+ 0:00.20 INFO     sessionHistoryInParent: True
+ 0:00.20 INFO     socketprocess_e10s: False
+ 0:00.20 INFO     socketprocess_networking: False
+ 0:00.20 INFO     standalone: False
+ 0:00.20 INFO     stylo: True
+ 0:00.20 INFO     swgl: False
+ 0:00.20 INFO     sync: True
+ 0:00.20 INFO     telemetry: False
+ 0:00.20 INFO     tests_enabled: True
+ 0:00.20 INFO     toolkit: gtk
+ 0:00.20 INFO     topobjdir: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+ 0:00.20 INFO     topsrcdir: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source
+ 0:00.20 INFO     tsan: False
+ 0:00.20 INFO     ubsan: False
+ 0:00.20 INFO     updater: True
+ 0:00.20 INFO     verify: False
+ 0:00.20 INFO     verify_fission: False
+ 0:00.20 INFO     version: Omarchy 4.0.4
+ 0:00.20 INFO     vertical_tab: False
+ 0:00.20 INFO     win10_2009: False
+ 0:00.20 INFO     win11_2009: False
+ 0:00.20 INFO     wmfme: 0
+ 0:00.20 INFO     xorigin: False
+ 0:00.20 INFO Checking for ssltunnel processes...
+ 0:00.24 INFO Checking for xpcshell processes...
+ 0:00.26 SUITE_START: mochitest-browser - running 6 tests
+ 0:00.26 INFO Running manifest: dom/events/test/clipboard/browser.toml
+ 0:00.32 pid:1098645 Full command: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/pk12util -i /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/build/pgo/certs/mochitest.client -w /tmp/tmp8hzpwuld.mozrunner/.crtdbpw -d /tmp/tmp8hzpwuld.mozrunner
+pid:1098645 pk12util: PKCS12 IMPORT SUCCESSFUL
+
+ 0:00.39 INFO MochitestServer : launching ['/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/xpcshell', '-g', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin', '-e', "const _PROFILE_PATH = '/tmp/tmp8hzpwuld.mozrunner'; const _SERVER_PORT = '8888'; const _SERVER_ADDR = '127.0.0.1'; const _TEST_PREFIX = undefined; const _DISPLAY_RESULTS = false; const _HTTPD_PATH = '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/components'; ", '-f', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/testing/mochitest/server.js']
+ 0:00.39 INFO runtests.py | Server pid: 1098667
+ 0:00.39 INFO runtests.py | Websocket server pid: 1098668
+ 0:00.39 INFO runtests.py | SSL tunnel pid: 1098669
+ 0:00.49 INFO use http3 server: False
+ 0:00.49 INFO Use build node at /home/wyatt/.mozbuild/node/bin/node
+ 0:00.49 INFO mozserve | Found moz-http2 server path: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/testing/mochitest/xpcshell/moz-http2/moz-http2.js
+ 0:00.49 INFO Found node at /home/wyatt/.mozbuild/node/bin/node
+ 0:00.56 INFO mozserve | moz-http2 server msg: HTTP2 server listening on ports 41301,40861
+
+ 0:00.56 INFO moz-http2 server started on ports 41301, 40861
+ 0:00.56 INFO node moz-http2 [stderr] (node:1098713) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+
+ 0:00.56 INFO node moz-http2 [stderr] (Use `node --trace-deprecation ...` to show where the warning was created)
+
+ 0:00.56 INFO runtests.py | Running with scheme: http
+ 0:00.56 INFO runtests.py | Running with e10s: True
+ 0:00.56 INFO runtests.py | Running with fission: True
+ 0:00.56 INFO runtests.py | Running with cross-origin iframes: False
+ 0:00.56 INFO runtests.py | Running with socketprocess_e10s: False
+ 0:00.56 INFO runtests.py | Running http tests: start.
+
+ 0:00.58 INFO Application command: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/umbrafox -marionette -foreground -profile /tmp/tmp8hzpwuld.mozrunner
+ 0:00.59 INFO runtests.py | Application pid: 1098722
+ 0:00.59 Started process `GECKO(1098722)`
+ 0:00.63 GECKO(1098722) *** You are running in headless mode.
+ 0:00.69 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_socket_pid1098763.log
+ 0:00.97 GECKO(1098722) 1792113492766	Marionette	INFO	Marionette enabled
+ 0:00.97 GECKO(1098722) 1792113492767	Marionette	TRACE	Received observer notification final-ui-startup
+ 0:00.97 GECKO(1098722) 1792113492767	Marionette	DEBUG	Initializing Marionette
+ 0:01.03 GECKO(1098722) console.error: "Warning: unrecognized command line flag" "-foreground"
+ 0:01.05 GECKO(1098722) 1792113492845	Marionette	INFO	Listening on port 2828
+ 0:01.05 GECKO(1098722) 1792113492846	Marionette	DEBUG	Marionette is listening
+ 0:01.06 GECKO(1098722) 1792113492857	Marionette	DEBUG	Accepted connection 0 from 127.0.0.1:57936
+ 0:01.07 GECKO(1098722) 1792113492864	Marionette	DEBUG	Closed connection 0
+ 0:01.07 GECKO(1098722) 1792113492864	Marionette	DEBUG	Accepted connection 1 from 127.0.0.1:57948
+ 0:01.15 GECKO(1098722) 1792113492945	Marionette	DEBUG	1 -> [0,1,"WebDriver:NewSession",{"strictFileInteractability":true}]
+ 0:01.16 GECKO(1098722) 1792113492953	Marionette	DEBUG	Waiting for initial application window
+ 0:01.32 GECKO(1098722) [Parent 1098722: Main Thread]: I/SlowChromeEvent Please do not use mouseenter/leave events in chrome. They are slower than mouseover/out! chrome://browser/content/tabbrowser/tabs.mjs:61:10
+ 0:01.44 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1098826.log
+ 0:01.44 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1098826.log
+ 0:01.44 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_rdd_pid1098836.log
+ 0:01.44 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_rdd_pid1098836.log
+ 0:01.50 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1098865.log
+ 0:01.50 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1098865.log
+ 0:01.57 GECKO(1098722) [GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
+ 0:01.96 GECKO(1098722) console.error: services.settings:
+ 0:01.96 GECKO(1098722)   Message: EmptyDatabaseError: "main/nimbus-desktop-experiments" has not been synced yet
+ 0:01.96 GECKO(1098722)   Stack:
+ 0:01.96 GECKO(1098722)     EmptyDatabaseError@resource://services-settings/Database.sys.mjs:19:5
+ 0:01.96 GECKO(1098722) list@resource://services-settings/Database.sys.mjs:96:13
+ 0:01.96 GECKO(1098722) async*get@resource://services-settings/RemoteSettingsClient.sys.mjs:570:28
+ 0:01.96 GECKO(1098722) async*getRecipesFromCollection/recipes<@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:792:16
+ 0:01.96 GECKO(1098722) #raceShutdown@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:748:34
+ 0:01.96 GECKO(1098722) getRecipesFromCollection@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:791:41
+ 0:01.96 GECKO(1098722) getRecipesFromAllCollections@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:647:39
+ 0:01.96 GECKO(1098722) #updateImpl@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:517:33
+ 0:01.96 GECKO(1098722) async*updateRecipes/<@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:434:55
+ 0:01.96 GECKO(1098722) LockGrantedCallback*withUpdateLock@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:370:26
+ 0:01.96 GECKO(1098722) updateRecipes@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:434:18
+ 0:01.96 GECKO(1098722) enable@resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs:322:16
+ 0:01.96 GECKO(1098722) #init@resource://nimbus/ExperimentAPI.sys.mjs:325:28
+ 0:01.96 GECKO(1098722) async*init@resource://nimbus/ExperimentAPI.sys.mjs:264:49
+ 0:01.96 GECKO(1098722) finishInit@resource://normandy/Normandy.sys.mjs:80:30
+ 0:01.96 GECKO(1098722) init@resource://normandy/Normandy.sys.mjs:58:16
+ 0:01.96 GECKO(1098722) async*fn@resource://gre/modules/BrowserUtils.sys.mjs:83:33
+ 0:01.96 GECKO(1098722) callSingleListener@resource://gre/modules/BrowserUtils.sys.mjs:828:15
+ 0:01.96 GECKO(1098722) callModulesFromCategory@resource://gre/modules/BrowserUtils.sys.mjs:883:23
+ 0:01.96 GECKO(1098722) BG__beforeUIStartup@moz-src:///browser/components/BrowserGlue.sys.mjs:441:23
+ 0:01.96 GECKO(1098722) BG_observe@moz-src:///browser/components/BrowserGlue.sys.mjs:208:14
+ 0:02.15 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_utility_pid1098928.log
+ 0:02.15 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_utility_pid1098928.log
+ 0:02.20 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1098939.log
+ 0:02.20 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1098939.log
+ 0:02.20 GECKO(1098722) 1792113494000	Marionette	TRACE	Received observer notification browser-idle-startup-tasks-finished
+ 0:02.38 GECKO(1098722) 1792113494177	RemoteAgent	TRACE	[4] ProgressListener Start: expectNavigation=false resolveWhenStarted=false unloadTimeout=5000 waitForExplicitStart=false
+ 0:02.38 GECKO(1098722) 1792113494177	RemoteAgent	TRACE	[4] ProgressListener Setting unload timer (5000ms)
+ 0:02.38 GECKO(1098722) 1792113494178	RemoteAgent	TRACE	[4] Wait for initial navigation: isUncommittedInitial=false, isLoadingDocument=false
+ 0:02.38 GECKO(1098722) 1792113494178	RemoteAgent	TRACE	[4] Document already finished loading: about:blank
+ 0:02.38 GECKO(1098722) 1792113494178	RemoteAgent	TRACE	[4] ProgressListener Stop: has error=false url=about:blank
+ 0:02.39 GECKO(1098722) 1792113494190	Marionette	DEBUG	1 <- [1,1,null,{"sessionId":"47aa443f-93c4-468c-91d0-2b6c869b0b79","capabilities":{"acceptInsecureCerts":false,"browserName":"umbrafox","browserVersion":"160.0a1","platformName":"linux","setWindowRect":true,"unhandledPromptBehavior":"dismiss and notify","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:160.0) Gecko/20100101 Firefox/160.0","moz:buildID":"20261015235226","moz:headless":true,"moz:platformVersion":"7.2.5-3-omarchy","moz:processID":1098722,"moz:profile":"/tmp/tmp8hzpwuld.mozrunner","moz:shutdownTimeout":73000,"pageLoadStrategy":"normal","timeouts":{"implicit":0,"pageLoad":300000,"script":30000},"strictFileInteractability":true,"moz:accessibilityChecks":false,"moz:webdriverClick":true,"moz:windowless":false,"proxy":{}}}]
+ 0:02.40 GECKO(1098722) 1792113494203	Marionette	DEBUG	1 -> [0,2,"Addon:Install",{"temporary":false,"path":"/tmp/tmpmz7vgl2p.zip"}]
+ 0:02.44 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099011.log
+ 0:02.44 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099011.log
+ 0:02.45 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099017.log
+ 0:02.45 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099017.log
+ 0:02.46 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099025.log
+ 0:02.46 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099025.log
+ 0:02.47 GECKO(1098722) 1792113494266	Marionette	DEBUG	1 <- [1,2,null,{"value":"special-powers@mozilla.org"}]
+ 0:02.49 GECKO(1098722) 1792113494288	Marionette	DEBUG	1 -> [0,3,"Addon:Install",{"temporary":false,"path":"/tmp/tmp2hqfyojl.zip"}]
+ 0:02.50 GECKO(1098722) 1792113494303	Marionette	DEBUG	1 <- [1,3,null,{"value":"mochikit@mozilla.org"}]
+ 0:02.51 GECKO(1098722) 1792113494304	Marionette	DEBUG	1 -> [0,4,"Marionette:GetContext",{}]
+ 0:02.51 GECKO(1098722) 1792113494305	Marionette	DEBUG	1 <- [1,4,null,{"value":"content"}]
+ 0:02.51 GECKO(1098722) 1792113494305	Marionette	DEBUG	1 -> [0,5,"Marionette:SetContext",{"value":"chrome"}]
+ 0:02.51 GECKO(1098722) 1792113494305	Marionette	DEBUG	1 <- [1,5,null,{"value":null}]
+ 0:02.51 GECKO(1098722) 1792113494307	Marionette	DEBUG	1 -> [0,6,"WebDriver:ExecuteScript",{"script":"/* This Source Code Form is subject to the terms of the Mozilla Public\n * License, v. 2.0. If a copy of the MPL was not distr ... \n// the flavor and url to load.\nlet ev = new CustomEvent(\"mochitest-load\", { detail: [flavor, url] });\nwin.dispatchEvent(ev);","args":[{"flavor":"browser-chrome","testUrl":"about:blank"}],"newSandbox":true,"sandbox":"default","line":2381,"filename":"_tests/testing/mochitest/runtests.py"}]
+ 0:02.51 GECKO(1098722) 1792113494310	RemoteAgent	TRACE	WebDriverProcessData actor created for PID 1098722
+ 0:02.51 GECKO(1098722) 1792113494311	Marionette	TRACE	[1] MarionetteCommands actor created for window id 2
+ 0:02.53 GECKO(1098722) 1792113494327	Marionette	DEBUG	1 <- [1,6,null,{"value":null}]
+ 0:02.54 GECKO(1098722) 1792113494342	Marionette	DEBUG	1 -> [0,7,"Marionette:SetContext",{"value":"content"}]
+ 0:02.54 GECKO(1098722) 1792113494342	Marionette	DEBUG	1 <- [1,7,null,{"value":null}]
+ 0:02.56 GECKO(1098722) 1792113494361	Marionette	DEBUG	1 -> [0,8,"WebDriver:DeleteSession",{}]
+ 0:02.56 GECKO(1098722) 1792113494361	Marionette	TRACE	[1] MarionetteCommands actor destroyed for window id 2
+ 0:02.56 GECKO(1098722) 1792113494362	Marionette	DEBUG	1 <- [1,8,null,{"value":null}]
+ 0:02.56 INFO runtests.py | Waiting for browser...
+ 0:02.57 GECKO(1098722) 1792113494364	Marionette	DEBUG	Closed connection 1
+ 0:02.61 INFO *** Start BrowserChrome Test Results ***
+ 0:02.61 INFO checking for open sidebars
+ 0:02.61 INFO checking window state
+ 0:02.75 TEST_START: dom/events/test/clipboard/browser_document_command_copy.js
+ 0:02.75 INFO Entering test dom.allow_cut_copy=true / set preference
+ 0:02.75 INFO dom.allow_cut_copy=true / set preference
+ 0:02.76 INFO Leaving test dom.allow_cut_copy=true / set preference
+ 0:02.76 INFO Entering test dom.allow_cut_copy=true / called from system principal
+ 0:02.76 INFO dom.allow_cut_copy=true / called from system principal
+ 0:02.76 INFO Leaving test dom.allow_cut_copy=true / called from system principal
+ 0:02.76 INFO Entering test dom.allow_cut_copy=true / called from web content
+ 0:02.77 INFO dom.allow_cut_copy=true / called from web content
+ 0:02.91 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "https://example.com/browser/dom/events/test/clipboard/simple_page_ext.html" line: 0}]
+ 0:02.91 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "https://example.com/browser/dom/events/test/clipboard/simple_page_ext.html" line: 0}]
+ 0:02.92 INFO Leaving test dom.allow_cut_copy=true / called from web content
+ 0:02.92 INFO Entering test dom.allow_cut_copy=true / extension with clipboardWrite permission / called from content script
+ 0:02.92 INFO dom.allow_cut_copy=true / extension with clipboardWrite permission / called from content script
+ 0:02.92 INFO Extension loaded
+ 0:02.99 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:03.11 INFO Leaving test dom.allow_cut_copy=true / extension with clipboardWrite permission / called from content script
+ 0:03.11 INFO Entering test dom.allow_cut_copy=true / extension with clipboardWrite permission / called from content script when editing
+ 0:03.11 INFO dom.allow_cut_copy=true / extension with clipboardWrite permission / called from content script when editing
+ 0:03.11 INFO Extension loaded
+ 0:03.13 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099127.log
+ 0:03.13 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099127.log
+ 0:03.34 INFO Leaving test dom.allow_cut_copy=true / extension with clipboardWrite permission / called from content script when editing
+ 0:03.34 INFO Entering test dom.allow_cut_copy=true / extension with clipboardWrite permission / called from background script
+ 0:03.34 INFO dom.allow_cut_copy=true / extension with clipboardWrite permission / called from background script
+ 0:03.34 INFO Extension loaded
+ 0:03.36 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:03.38 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099165.log
+ 0:03.38 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099165.log
+ 0:03.50 INFO Leaving test dom.allow_cut_copy=true / extension with clipboardWrite permission / called from background script
+ 0:03.50 INFO Entering test dom.allow_cut_copy=true / extension without clipboardWrite permission / called from content script
+ 0:03.50 INFO dom.allow_cut_copy=true / extension without clipboardWrite permission / called from content script
+ 0:03.50 INFO Extension loaded
+ 0:03.51 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099201.log
+ 0:03.51 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099201.log
+ 0:03.52 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:03.62 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099238.log
+ 0:03.62 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099238.log
+ 0:03.64 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://b4a2ca63-a20e-42d9-b76d-38f25aabad2f/sharedScript.js" line: 6}]
+ 0:03.65 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099259.log
+ 0:03.65 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099259.log
+ 0:03.65 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099264.log
+ 0:03.65 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099264.log
+ 0:03.72 INFO Leaving test dom.allow_cut_copy=true / extension without clipboardWrite permission / called from content script
+ 0:03.72 INFO Entering test dom.allow_cut_copy=true / extension without clipboardWrite permission / called from content script when editing
+ 0:03.72 INFO dom.allow_cut_copy=true / extension without clipboardWrite permission / called from content script when editing
+ 0:03.72 INFO Extension loaded
+ 0:03.77 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099340.log
+ 0:03.77 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099340.log
+ 0:03.84 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://113a6970-7bea-4c30-8bdd-7327730c4374/sharedScript.js" line: 6}]
+ 0:03.87 INFO Leaving test dom.allow_cut_copy=true / extension without clipboardWrite permission / called from content script when editing
+ 0:03.87 INFO Entering test dom.allow_cut_copy=true / extension without clipboardWrite permission / called from background script
+ 0:03.87 INFO dom.allow_cut_copy=true / extension without clipboardWrite permission / called from background script
+ 0:03.87 INFO Extension loaded
+ 0:03.88 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:03.91 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://7345ba5b-04e0-4fc3-82a4-9e09e51dcbb3/%7B4b46a6c1-e676-40c8-94d2-3075a397e8f2%7D.js" line: 6}]
+ 0:03.96 INFO Leaving test dom.allow_cut_copy=true / extension without clipboardWrite permission / called from background script
+ 0:03.96 INFO Entering test dom.allow_cut_copy=false / set preference
+ 0:03.96 INFO dom.allow_cut_copy=false / set preference
+ 0:03.96 INFO Leaving test dom.allow_cut_copy=false / set preference
+ 0:03.96 INFO Entering test dom.allow_cut_copy=false / called from system principal
+ 0:03.96 INFO dom.allow_cut_copy=false / called from system principal
+ 0:03.96 INFO Leaving test dom.allow_cut_copy=false / called from system principal
+ 0:03.96 INFO Entering test dom.allow_cut_copy=false / called from web content
+ 0:03.96 INFO dom.allow_cut_copy=false / called from web content
+ 0:03.99 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099376.log
+ 0:03.99 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099376.log
+ 0:04.01 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099384.log
+ 0:04.01 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099384.log
+ 0:04.07 INFO Leaving test dom.allow_cut_copy=false / called from web content
+ 0:04.07 INFO Entering test dom.allow_cut_copy=false / extension with clipboardWrite permission / called from content script
+ 0:04.07 INFO dom.allow_cut_copy=false / extension with clipboardWrite permission / called from content script
+ 0:04.07 INFO Extension loaded
+ 0:04.07 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "https://example.com/browser/dom/events/test/clipboard/simple_page_ext.html" line: 0}]
+ 0:04.07 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "https://example.com/browser/dom/events/test/clipboard/simple_page_ext.html" line: 0}]
+ 0:04.07 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "https://example.com/browser/dom/events/test/clipboard/simple_page_ext.html" line: 0}]
+ 0:04.08 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "https://example.com/browser/dom/events/test/clipboard/simple_page_ext.html" line: 0}]
+ 0:04.11 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:04.21 INFO Leaving test dom.allow_cut_copy=false / extension with clipboardWrite permission / called from content script
+ 0:04.21 INFO Entering test dom.allow_cut_copy=false / extension with clipboardWrite permission / called from content script when editing
+ 0:04.21 INFO dom.allow_cut_copy=false / extension with clipboardWrite permission / called from content script when editing
+ 0:04.21 INFO Extension loaded
+ 0:04.24 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:04.24 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099452.log
+ 0:04.24 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099452.log
+ 0:04.25 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099460.log
+ 0:04.25 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099460.log
+ 0:04.40 INFO Leaving test dom.allow_cut_copy=false / extension with clipboardWrite permission / called from content script when editing
+ 0:04.40 INFO Entering test dom.allow_cut_copy=false / extension with clipboardWrite permission / called from background script
+ 0:04.40 INFO dom.allow_cut_copy=false / extension with clipboardWrite permission / called from background script
+ 0:04.40 INFO Extension loaded
+ 0:04.45 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:04.46 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099524.log
+ 0:04.46 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099524.log
+ 0:04.52 INFO Leaving test dom.allow_cut_copy=false / extension with clipboardWrite permission / called from background script
+ 0:04.52 INFO Entering test dom.allow_cut_copy=false / extension without clipboardWrite permission / called from content script
+ 0:04.52 INFO dom.allow_cut_copy=false / extension without clipboardWrite permission / called from content script
+ 0:04.52 INFO Extension loaded
+ 0:04.59 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099563.log
+ 0:04.59 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099563.log
+ 0:04.61 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://dd6845a5-d380-451c-a4ac-db7894a0e794/sharedScript.js" line: 6}]
+ 0:04.64 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://dd6845a5-d380-451c-a4ac-db7894a0e794/sharedScript.js" line: 6}]
+ 0:04.66 INFO Leaving test dom.allow_cut_copy=false / extension without clipboardWrite permission / called from content script
+ 0:04.66 INFO Entering test dom.allow_cut_copy=false / extension without clipboardWrite permission / called from content script when editing
+ 0:04.66 INFO dom.allow_cut_copy=false / extension without clipboardWrite permission / called from content script when editing
+ 0:04.66 INFO Extension loaded
+ 0:04.68 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:04.74 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099599.log
+ 0:04.74 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099599.log
+ 0:04.79 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://c13adf58-42c8-41d1-9099-6fdc306a8c53/sharedScript.js" line: 6}]
+ 0:04.81 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://c13adf58-42c8-41d1-9099-6fdc306a8c53/sharedScript.js" line: 6}]
+ 0:04.82 INFO Leaving test dom.allow_cut_copy=false / extension without clipboardWrite permission / called from content script when editing
+ 0:04.82 INFO Entering test dom.allow_cut_copy=false / extension without clipboardWrite permission / called from background script
+ 0:04.82 INFO dom.allow_cut_copy=false / extension without clipboardWrite permission / called from background script
+ 0:04.82 INFO Extension loaded
+ 0:04.85 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:04.85 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://eb230e3d-0643-4d66-8fce-c5a84e941b02/%7Ba8bf697a-da1a-4094-a5a7-82d7190b0162%7D.js" line: 6}]
+ 0:04.90 INFO Leaving test dom.allow_cut_copy=false / extension without clipboardWrite permission / called from background script
+ 0:04.90 INFO checking for open popups
+ 0:04.91 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099633.log
+ 0:04.91 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099633.log
+ 0:05.26 GECKO(1098722) MEMORY STAT vsizeMaxContiguous not supported in this build configuration.
+ 0:05.26 GECKO(1098722) MEMORY STAT | vsize 19598MB | residentFast 501MB | heapAllocated 326MB
+ 0:05.26 INFO checking for open sidebars
+ 0:05.26 INFO checking window state
+ 0:05.26 TEST_END: Test PASS. Subtests passed 80/81. Unexpected 0
+ 0:05.37 TEST_START: dom/events/test/clipboard/browser_document_command_cut.js
+ 0:05.37 INFO Entering test dom.allow_cut_copy=true / set preference
+ 0:05.37 INFO dom.allow_cut_copy=true / set preference
+ 0:05.38 INFO Leaving test dom.allow_cut_copy=true / set preference
+ 0:05.38 INFO Entering test dom.allow_cut_copy=true / called from system principal
+ 0:05.38 INFO dom.allow_cut_copy=true / called from system principal
+ 0:05.38 INFO Leaving test dom.allow_cut_copy=true / called from system principal
+ 0:05.38 INFO Entering test dom.allow_cut_copy=true / called from web content
+ 0:05.38 INFO dom.allow_cut_copy=true / called from web content
+ 0:05.46 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099673.log
+ 0:05.46 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099673.log
+ 0:05.51 INFO Leaving test dom.allow_cut_copy=true / called from web content
+ 0:05.51 INFO Entering test dom.allow_cut_copy=true / extension with clipboardWrite permission / called from content script
+ 0:05.51 INFO dom.allow_cut_copy=true / extension with clipboardWrite permission / called from content script
+ 0:05.51 INFO Extension loaded
+ 0:05.52 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "https://example.com/browser/dom/events/test/clipboard/simple_page_ext.html" line: 0}]
+ 0:05.52 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "https://example.com/browser/dom/events/test/clipboard/simple_page_ext.html" line: 0}]
+ 0:05.55 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:05.56 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099707.log
+ 0:05.56 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099707.log
+ 0:05.67 INFO Leaving test dom.allow_cut_copy=true / extension with clipboardWrite permission / called from content script
+ 0:05.67 INFO Entering test dom.allow_cut_copy=true / extension with clipboardWrite permission / called from content script when editing
+ 0:05.67 INFO dom.allow_cut_copy=true / extension with clipboardWrite permission / called from content script when editing
+ 0:05.67 INFO Extension loaded
+ 0:05.71 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:05.71 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099743.log
+ 0:05.71 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099743.log
+ 0:05.85 INFO Leaving test dom.allow_cut_copy=true / extension with clipboardWrite permission / called from content script when editing
+ 0:05.85 INFO Entering test dom.allow_cut_copy=true / extension with clipboardWrite permission / called from background script
+ 0:05.85 INFO dom.allow_cut_copy=true / extension with clipboardWrite permission / called from background script
+ 0:05.85 INFO Extension loaded
+ 0:05.87 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:05.95 INFO Leaving test dom.allow_cut_copy=true / extension with clipboardWrite permission / called from background script
+ 0:05.95 INFO Entering test dom.allow_cut_copy=true / extension without clipboardWrite permission / called from content script
+ 0:05.95 INFO dom.allow_cut_copy=true / extension without clipboardWrite permission / called from content script
+ 0:05.95 INFO Extension loaded
+ 0:05.98 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:06.04 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://9f95c2ad-a081-4888-b5cf-042328ce61b9/sharedScript.js" line: 6}]
+ 0:06.09 INFO Leaving test dom.allow_cut_copy=true / extension without clipboardWrite permission / called from content script
+ 0:06.09 INFO Entering test dom.allow_cut_copy=true / extension without clipboardWrite permission / called from content script when editing
+ 0:06.09 INFO dom.allow_cut_copy=true / extension without clipboardWrite permission / called from content script when editing
+ 0:06.09 INFO Extension loaded
+ 0:06.12 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:06.22 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://961091b0-aacd-4765-b77f-2bd346e92e89/sharedScript.js" line: 6}]
+ 0:06.25 INFO Leaving test dom.allow_cut_copy=true / extension without clipboardWrite permission / called from content script when editing
+ 0:06.25 INFO Entering test dom.allow_cut_copy=true / extension without clipboardWrite permission / called from background script
+ 0:06.25 INFO dom.allow_cut_copy=true / extension without clipboardWrite permission / called from background script
+ 0:06.25 INFO Extension loaded
+ 0:06.28 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099786.log
+ 0:06.28 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099786.log
+ 0:06.29 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://e7a8a737-f34f-4228-a7b1-86055f873798/%7Bc742218a-3247-4478-bf9d-9c0672f3adcc%7D.js" line: 6}]
+ 0:06.29 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:06.39 INFO Leaving test dom.allow_cut_copy=true / extension without clipboardWrite permission / called from background script
+ 0:06.39 INFO Entering test dom.allow_cut_copy=false / set preference
+ 0:06.39 INFO dom.allow_cut_copy=false / set preference
+ 0:06.39 INFO Leaving test dom.allow_cut_copy=false / set preference
+ 0:06.39 INFO Entering test dom.allow_cut_copy=false / called from system principal
+ 0:06.39 INFO dom.allow_cut_copy=false / called from system principal
+ 0:06.39 INFO Leaving test dom.allow_cut_copy=false / called from system principal
+ 0:06.39 INFO Entering test dom.allow_cut_copy=false / called from web content
+ 0:06.39 INFO dom.allow_cut_copy=false / called from web content
+ 0:06.40 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099820.log
+ 0:06.40 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099820.log
+ 0:06.54 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099856.log
+ 0:06.54 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099856.log
+ 0:06.54 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099861.log
+ 0:06.54 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099861.log
+ 0:06.54 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099867.log
+ 0:06.54 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099867.log
+ 0:06.56 INFO Leaving test dom.allow_cut_copy=false / called from web content
+ 0:06.56 INFO Entering test dom.allow_cut_copy=false / extension with clipboardWrite permission / called from content script
+ 0:06.56 INFO dom.allow_cut_copy=false / extension with clipboardWrite permission / called from content script
+ 0:06.56 INFO Extension loaded
+ 0:06.57 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "https://example.com/browser/dom/events/test/clipboard/simple_page_ext.html" line: 0}]
+ 0:06.57 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "https://example.com/browser/dom/events/test/clipboard/simple_page_ext.html" line: 0}]
+ 0:06.57 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "https://example.com/browser/dom/events/test/clipboard/simple_page_ext.html" line: 0}]
+ 0:06.57 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "https://example.com/browser/dom/events/test/clipboard/simple_page_ext.html" line: 0}]
+ 0:06.60 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:06.69 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099959.log
+ 0:06.69 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099959.log
+ 0:06.75 INFO Leaving test dom.allow_cut_copy=false / extension with clipboardWrite permission / called from content script
+ 0:06.75 INFO Entering test dom.allow_cut_copy=false / extension with clipboardWrite permission / called from content script when editing
+ 0:06.75 INFO dom.allow_cut_copy=false / extension with clipboardWrite permission / called from content script when editing
+ 0:06.75 INFO Extension loaded
+ 0:06.89 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099996.log
+ 0:06.90 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1099996.log
+ 0:06.96 INFO Leaving test dom.allow_cut_copy=false / extension with clipboardWrite permission / called from content script when editing
+ 0:06.96 INFO Entering test dom.allow_cut_copy=false / extension with clipboardWrite permission / called from background script
+ 0:06.96 INFO dom.allow_cut_copy=false / extension with clipboardWrite permission / called from background script
+ 0:06.96 INFO Extension loaded
+ 0:07.04 INFO Leaving test dom.allow_cut_copy=false / extension with clipboardWrite permission / called from background script
+ 0:07.04 INFO Entering test dom.allow_cut_copy=false / extension without clipboardWrite permission / called from content script
+ 0:07.04 INFO dom.allow_cut_copy=false / extension without clipboardWrite permission / called from content script
+ 0:07.04 INFO Extension loaded
+ 0:07.06 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:07.11 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100035.log
+ 0:07.11 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100035.log
+ 0:07.11 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100040.log
+ 0:07.11 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100040.log
+ 0:07.13 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://3b71ec32-be4a-454d-94a8-cb69cbe13f84/sharedScript.js" line: 6}]
+ 0:07.16 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://3b71ec32-be4a-454d-94a8-cb69cbe13f84/sharedScript.js" line: 6}]
+ 0:07.17 INFO Leaving test dom.allow_cut_copy=false / extension without clipboardWrite permission / called from content script
+ 0:07.17 INFO Entering test dom.allow_cut_copy=false / extension without clipboardWrite permission / called from content script when editing
+ 0:07.17 INFO dom.allow_cut_copy=false / extension without clipboardWrite permission / called from content script when editing
+ 0:07.17 INFO Extension loaded
+ 0:07.19 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:07.30 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://5f1c23d2-6dc8-4d69-b3e9-637d737ff1c2/sharedScript.js" line: 6}]
+ 0:07.32 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://5f1c23d2-6dc8-4d69-b3e9-637d737ff1c2/sharedScript.js" line: 6}]
+ 0:07.33 INFO Leaving test dom.allow_cut_copy=false / extension without clipboardWrite permission / called from content script when editing
+ 0:07.33 INFO Entering test dom.allow_cut_copy=false / extension without clipboardWrite permission / called from background script
+ 0:07.33 INFO dom.allow_cut_copy=false / extension without clipboardWrite permission / called from background script
+ 0:07.33 INFO Extension loaded
+ 0:07.36 INFO Console message: [JavaScript Warning: "document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://70f51caa-45b2-4957-a11d-6773227d20bd/%7B85349bef-4c50-428a-b924-53f5076e6cc7%7D.js" line: 6}]
+ 0:07.36 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:07.37 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100105.log
+ 0:07.37 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100105.log
+ 0:07.39 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100113.log
+ 0:07.39 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100113.log
+ 0:07.45 INFO Leaving test dom.allow_cut_copy=false / extension without clipboardWrite permission / called from background script
+ 0:07.45 INFO checking for open popups
+ 0:07.88 GECKO(1098722) MEMORY STAT | vsize 19680MB | residentFast 520MB | heapAllocated 362MB
+ 0:07.88 INFO checking for open sidebars
+ 0:07.88 INFO checking window state
+ 0:07.88 TEST_END: Test PASS. Subtests passed 80/80. Unexpected 0
+ 0:07.97 TEST_START: dom/events/test/clipboard/browser_document_command_paste.js
+ 0:07.97 INFO Entering setup bound init
+ 0:07.98 INFO Leaving setup bound init
+ 0:07.98 INFO Entering test dom.execCommand.paste.enabled=true / set preference
+ 0:07.98 INFO dom.execCommand.paste.enabled=true / set preference
+ 0:07.98 INFO Leaving test dom.execCommand.paste.enabled=true / set preference
+ 0:07.98 INFO Entering test dom.execCommand.paste.enabled=true / test paste comment / called from system principal
+ 0:07.98 INFO dom.execCommand.paste.enabled=true / test paste comment / called from system principal
+ 0:07.98 INFO Write random text to clipboard
+ 0:07.98 INFO Leaving test dom.execCommand.paste.enabled=true / test paste comment / called from system principal
+ 0:07.98 INFO Entering test dom.execCommand.paste.enabled=true / test paste comment / called from web content
+ 0:07.98 INFO dom.execCommand.paste.enabled=true / test paste comment / called from web content
+ 0:07.98 INFO Write random text to clipboard
+ 0:08.03 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100173.log
+ 0:08.03 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100173.log
+ 0:08.06 INFO Console message: [JavaScript Warning: "document.execCommand(‘paste’) was denied because it was not called from inside a short running user-generated event handler." {file: "https://example.com/browser/dom/events/test/clipboard/simple_page_ext.html" line: 0}]
+ 0:08.10 INFO Console message: [JavaScript Warning: "document.execCommand(‘paste’) was denied because it was not called from inside a short running user-generated event handler." {file: "https://example.com/browser/dom/events/test/clipboard/simple_page_ext.html" line: 0}]
+ 0:08.11 INFO Leaving test dom.execCommand.paste.enabled=true / test paste comment / called from web content
+ 0:08.11 INFO Entering test dom.execCommand.paste.enabled=true / test paste comment / extension with clipboardRead permission / called from content script
+ 0:08.11 INFO dom.execCommand.paste.enabled=true / test paste comment / extension with clipboardRead permission / called from content script
+ 0:08.11 INFO Write random text to clipboard
+ 0:08.12 INFO Extension loaded
+ 0:08.15 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:08.19 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100214.log
+ 0:08.19 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100214.log
+ 0:08.26 INFO Leaving test dom.execCommand.paste.enabled=true / test paste comment / extension with clipboardRead permission / called from content script
+ 0:08.26 INFO Entering test dom.execCommand.paste.enabled=true / test paste comment / extension with clipboardRead permission / called from content script when editing
+ 0:08.26 INFO dom.execCommand.paste.enabled=true / test paste comment / extension with clipboardRead permission / called from content script when editing
+ 0:08.26 INFO Write random text to clipboard
+ 0:08.26 INFO Extension loaded
+ 0:08.29 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:08.35 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100263.log
+ 0:08.35 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100263.log
+ 0:08.46 INFO Leaving test dom.execCommand.paste.enabled=true / test paste comment / extension with clipboardRead permission / called from content script when editing
+ 0:08.46 INFO Entering test dom.execCommand.paste.enabled=true / test paste comment / extension with clipboardRead permission / called from background script
+ 0:08.46 INFO dom.execCommand.paste.enabled=true / test paste comment / extension with clipboardRead permission / called from background script
+ 0:08.46 INFO Write random text to clipboard
+ 0:08.46 INFO Extension loaded
+ 0:08.55 INFO Leaving test dom.execCommand.paste.enabled=true / test paste comment / extension with clipboardRead permission / called from background script
+ 0:08.55 INFO Entering test dom.execCommand.paste.enabled=true / test paste comment / extension without clipboardRead permission / called from content script
+ 0:08.55 INFO dom.execCommand.paste.enabled=true / test paste comment / extension without clipboardRead permission / called from content script
+ 0:08.55 INFO Write random text to clipboard
+ 0:08.55 INFO Extension loaded
+ 0:08.58 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:08.65 INFO Console message: [JavaScript Warning: "document.execCommand(‘paste’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://e136a41c-67f0-4328-b5a1-c1eeec35d207/sharedScript.js" line: 6}]
+ 0:08.69 INFO Leaving test dom.execCommand.paste.enabled=true / test paste comment / extension without clipboardRead permission / called from content script
+ 0:08.69 INFO Entering test dom.execCommand.paste.enabled=true / test paste comment / extension without clipboardRead permission / called from content script when editing
+ 0:08.69 INFO dom.execCommand.paste.enabled=true / test paste comment / extension without clipboardRead permission / called from content script when editing
+ 0:08.69 INFO Write random text to clipboard
+ 0:08.69 INFO Extension loaded
+ 0:08.72 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:08.82 INFO Console message: [JavaScript Warning: "document.execCommand(‘paste’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://a49f4714-ee12-453a-b5ad-3a3695f05855/sharedScript.js" line: 6}]
+ 0:08.85 INFO Leaving test dom.execCommand.paste.enabled=true / test paste comment / extension without clipboardRead permission / called from content script when editing
+ 0:08.85 INFO Entering test dom.execCommand.paste.enabled=true / test paste comment / extension without clipboardRead permission / called from background script
+ 0:08.85 INFO dom.execCommand.paste.enabled=true / test paste comment / extension without clipboardRead permission / called from background script
+ 0:08.86 INFO Write random text to clipboard
+ 0:08.86 INFO Extension loaded
+ 0:08.88 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100336.log
+ 0:08.88 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100336.log
+ 0:08.90 INFO Console message: [JavaScript Warning: "document.execCommand(‘paste’) was denied because it was not called from inside a short running user-generated event handler." {file: "moz-extension://aa5f71a1-8056-41c6-beef-7061c0dbccd3/%7B42a30218-3999-4698-889b-6e378cb14777%7D.js" line: 6}]
+ 0:08.90 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:09.00 INFO Leaving test dom.execCommand.paste.enabled=true / test paste comment / extension without clipboardRead permission / called from background script
+ 0:09.00 INFO Entering test dom.execCommand.paste.enabled=false / set preference
+ 0:09.00 INFO dom.execCommand.paste.enabled=false / set preference
+ 0:09.00 INFO Leaving test dom.execCommand.paste.enabled=false / set preference
+ 0:09.00 INFO Entering test dom.execCommand.paste.enabled=false / test paste comment / called from system principal
+ 0:09.00 INFO dom.execCommand.paste.enabled=false / test paste comment / called from system principal
+ 0:09.00 INFO Write random text to clipboard
+ 0:09.00 INFO Leaving test dom.execCommand.paste.enabled=false / test paste comment / called from system principal
+ 0:09.00 INFO Entering test dom.execCommand.paste.enabled=false / test paste comment / called from web content
+ 0:09.00 INFO dom.execCommand.paste.enabled=false / test paste comment / called from web content
+ 0:09.00 INFO Write random text to clipboard
+ 0:09.01 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100372.log
+ 0:09.01 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100372.log
+ 0:09.14 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100421.log
+ 0:09.14 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100421.log
+ 0:09.14 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100426.log
+ 0:09.14 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100426.log
+ 0:09.15 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100433.log
+ 0:09.15 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100433.log
+ 0:09.18 INFO Leaving test dom.execCommand.paste.enabled=false / test paste comment / called from web content
+ 0:09.18 INFO Entering test dom.execCommand.paste.enabled=false / test paste comment / extension with clipboardRead permission / called from content script
+ 0:09.18 INFO dom.execCommand.paste.enabled=false / test paste comment / extension with clipboardRead permission / called from content script
+ 0:09.18 INFO Write random text to clipboard
+ 0:09.18 INFO Extension loaded
+ 0:09.21 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:09.29 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100523.log
+ 0:09.29 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100523.log
+ 0:09.35 INFO Leaving test dom.execCommand.paste.enabled=false / test paste comment / extension with clipboardRead permission / called from content script
+ 0:09.35 INFO Entering test dom.execCommand.paste.enabled=false / test paste comment / extension with clipboardRead permission / called from content script when editing
+ 0:09.35 INFO dom.execCommand.paste.enabled=false / test paste comment / extension with clipboardRead permission / called from content script when editing
+ 0:09.35 INFO Write random text to clipboard
+ 0:09.35 INFO Extension loaded
+ 0:09.48 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100571.log
+ 0:09.49 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100571.log
+ 0:09.54 INFO Leaving test dom.execCommand.paste.enabled=false / test paste comment / extension with clipboardRead permission / called from content script when editing
+ 0:09.54 INFO Entering test dom.execCommand.paste.enabled=false / test paste comment / extension with clipboardRead permission / called from background script
+ 0:09.54 INFO dom.execCommand.paste.enabled=false / test paste comment / extension with clipboardRead permission / called from background script
+ 0:09.54 INFO Write random text to clipboard
+ 0:09.54 INFO Extension loaded
+ 0:09.59 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100605.log
+ 0:09.59 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100605.log
+ 0:09.65 INFO Leaving test dom.execCommand.paste.enabled=false / test paste comment / extension with clipboardRead permission / called from background script
+ 0:09.65 INFO Entering test dom.execCommand.paste.enabled=false / test paste comment / extension without clipboardRead permission / called from content script
+ 0:09.65 INFO dom.execCommand.paste.enabled=false / test paste comment / extension without clipboardRead permission / called from content script
+ 0:09.65 INFO Write random text to clipboard
+ 0:09.65 INFO Extension loaded
+ 0:09.71 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100641.log
+ 0:09.71 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100641.log
+ 0:09.79 INFO Leaving test dom.execCommand.paste.enabled=false / test paste comment / extension without clipboardRead permission / called from content script
+ 0:09.79 INFO Entering test dom.execCommand.paste.enabled=false / test paste comment / extension without clipboardRead permission / called from content script when editing
+ 0:09.79 INFO dom.execCommand.paste.enabled=false / test paste comment / extension without clipboardRead permission / called from content script when editing
+ 0:09.79 INFO Write random text to clipboard
+ 0:09.79 INFO Extension loaded
+ 0:09.81 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:09.94 INFO Leaving test dom.execCommand.paste.enabled=false / test paste comment / extension without clipboardRead permission / called from content script when editing
+ 0:09.94 INFO Entering test dom.execCommand.paste.enabled=false / test paste comment / extension without clipboardRead permission / called from background script
+ 0:09.94 INFO dom.execCommand.paste.enabled=false / test paste comment / extension without clipboardRead permission / called from background script
+ 0:09.94 INFO Write random text to clipboard
+ 0:09.94 INFO Extension loaded
+ 0:09.96 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100678.log
+ 0:09.96 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100678.log
+ 0:09.96 INFO Console message: [JavaScript Error: "can't access property "id", extension is null" {file: "resource://gre/modules/ExtensionProcessScript.sys.mjs" line: 115}]
+initExtensionPolicy@resource://gre/modules/ExtensionProcessScript.sys.mjs:115:45
+initExtension@resource://gre/modules/ExtensionProcessScript.sys.mjs:223:23
+receiveMessage@resource://gre/modules/ExtensionProcessScript.sys.mjs:242:16
+MessageListener.receiveMessage*init@resource://gre/modules/ExtensionProcessScript.sys.mjs:58:19
+@resource://gre/modules/ExtensionProcessScript.sys.mjs:550:18
+@resource://gre/modules/extensionProcessScriptLoader.js:7:13
+
+ 0:10.03 INFO Leaving test dom.execCommand.paste.enabled=false / test paste comment / extension without clipboardRead permission / called from background script
+ 0:10.03 INFO checking for open popups
+ 0:10.04 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100712.log
+ 0:10.04 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100712.log
+ 0:10.46 GECKO(1098722) MEMORY STAT | vsize 19746MB | residentFast 560MB | heapAllocated 407MB
+ 0:10.46 INFO checking for open sidebars
+ 0:10.46 INFO checking window state
+ 0:10.46 TEST_END: Test PASS. Subtests passed 80/80. Unexpected 0
+ 0:10.55 TEST_START: dom/events/test/clipboard/browser_umbrafox_clipboard.js
+ 0:10.56 INFO Entering test test_private_clipboard_action_rejects_unknown_token
+ 0:10.60 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100748.log
+ 0:10.60 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100748.log
+ 0:10.67 INFO Leaving test test_private_clipboard_action_rejects_unknown_token
+ 0:10.67 INFO Entering test test_native_cancellation_notice
+ 0:10.72 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100783.log
+ 0:10.72 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100783.log
+ 0:10.89 INFO Leaving test test_native_cancellation_notice
+ 0:10.90 INFO checking for open popups
+ 0:11.23 GECKO(1098722) MEMORY STAT | vsize 19754MB | residentFast 549MB | heapAllocated 403MB
+ 0:11.23 INFO checking for open sidebars
+ 0:11.23 INFO checking window state
+ 0:11.23 TEST_END: Test PASS. Subtests passed 4/4. Unexpected 0
+ 0:11.30 TEST_START: dom/events/test/clipboard/browser_umbrafox_clipboard_override.js
+ 0:11.31 INFO Entering test test_real_actor_notice_and_yes_retry_copy_and_paste
+ 0:11.38 GECKO(1098722) must wait for focus in content
+ 0:11.57 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100825.log
+ 0:11.57 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100825.log
+ 0:11.69 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100860.log
+ 0:11.69 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100860.log
+ 0:11.70 GECKO(1098722) must wait for focus in content
+ 0:11.96 INFO Leaving test test_real_actor_notice_and_yes_retry_copy_and_paste
+ 0:11.96 INFO Entering test test_real_always_autoretry_and_standard_revocation
+ 0:12.04 GECKO(1098722) must wait for focus in content
+ 0:12.32 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100900.log
+ 0:12.32 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100900.log
+ 0:12.46 GECKO(1098722) must wait for focus in content
+ 0:12.58 GECKO(1098722) must wait for focus in content
+ 0:12.78 GECKO(1098722) must wait for focus in content
+ 0:12.97 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100938.log
+ 0:12.97 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100938.log
+ 0:13.23 GECKO(1098722) must wait for focus in content
+ 0:13.35 GECKO(1098722) must wait for focus in content
+ 0:13.48 INFO Leaving test test_real_always_autoretry_and_standard_revocation
+ 0:13.48 INFO Entering test test_real_stale_always_never_saves_copy_or_paste_grants
+ 0:13.55 GECKO(1098722) must wait for focus in content
+ 0:13.72 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100980.log
+ 0:13.72 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1100980.log
+ 0:14.15 GECKO(1098722) must wait for focus in content
+ 0:14.49 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101021.log
+ 0:14.49 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101021.log
+ 0:14.71 INFO Leaving test test_real_stale_always_never_saves_copy_or_paste_grants
+ 0:14.71 INFO Entering test test_existing_snapshot_xpidl_methods_and_private_helper_shape
+ 0:14.81 INFO Leaving test test_existing_snapshot_xpidl_methods_and_private_helper_shape
+ 0:14.81 INFO Entering test test_native_copy_default_and_one_shot_retry
+ 0:14.88 GECKO(1098722) must wait for focus in content
+ 0:15.02 GECKO(1098722) must wait for focus in content
+ 0:15.08 INFO Leaving test test_native_copy_default_and_one_shot_retry
+ 0:15.08 INFO Entering test test_native_paste_and_beforeinput_default_and_retry
+ 0:15.09 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101067.log
+ 0:15.09 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101067.log
+ 0:15.18 GECKO(1098722) must wait for focus in content
+ 0:15.29 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101102.log
+ 0:15.29 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101102.log
+ 0:15.39 GECKO(1098722) must wait for focus in content
+ 0:15.49 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101138.log
+ 0:15.49 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101138.log
+ 0:15.59 GECKO(1098722) must wait for focus in content
+ 0:15.68 INFO Leaving test test_native_paste_and_beforeinput_default_and_retry
+ 0:15.68 INFO Entering test test_stale_clipboard_rejects_paste_without_exposing_new_data
+ 0:15.69 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101173.log
+ 0:15.69 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101173.log
+ 0:15.78 GECKO(1098722) must wait for focus in content
+ 0:15.82 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101209.log
+ 0:15.82 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101209.log
+ 0:15.82 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101214.log
+ 0:15.83 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101214.log
+ 0:15.83 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101220.log
+ 0:15.83 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101220.log
+ 0:15.95 GECKO(1098722) must wait for focus in content
+ 0:15.96 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101310.log
+ 0:15.96 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101310.log
+ 0:16.05 INFO Leaving test test_stale_clipboard_rejects_paste_without_exposing_new_data
+ 0:16.05 INFO Entering test test_stale_clipboard_rejects_copy_before_page_dispatch
+ 0:16.13 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101346.log
+ 0:16.13 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101346.log
+ 0:16.14 GECKO(1098722) must wait for focus in content
+ 0:16.21 INFO Leaving test test_stale_clipboard_rejects_copy_before_page_dispatch
+ 0:16.21 INFO Entering test test_native_window_operation_and_discard_are_exact
+ 0:16.28 GECKO(1098722) must wait for focus in content
+ 0:16.35 INFO Leaving test test_native_window_operation_and_discard_are_exact
+ 0:16.35 INFO checking for open popups
+ 0:16.37 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101386.log
+ 0:16.37 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101386.log
+ 0:16.78 GECKO(1098722) MEMORY STAT | vsize 19938MB | residentFast 636MB | heapAllocated 544MB
+ 0:16.78 INFO checking for open sidebars
+ 0:16.78 INFO checking window state
+ 0:16.78 TEST_END: Test PASS. Subtests passed 170/170. Unexpected 0
+ 0:16.87 TEST_START: dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js
+ 0:16.87 INFO Entering test test_script_and_synthetic_events_have_no_native_authority
+ 0:16.91 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101433.log
+ 0:16.91 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101433.log
+ 0:16.95 GECKO(1098722) must wait for focus in content
+ 0:17.08 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101471.log
+ 0:17.08 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101471.log
+ 0:17.08 GECKO(1098722) must wait for focus in content
+ 0:17.22 GECKO(1098722) must wait for focus in content
+ 0:17.25 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101511.log
+ 0:17.25 GECKO(1098722) ### XPCOM_MEM_BLOAT_LOG defined -- logging bloat/leaks to /tmp/tmp8hzpwuld.mozrunner/runtests_leaks_tab_pid1101511.log
+ 0:36.89 TEST_END: Test TIMEOUT, expected PASS. Subtests passed 13/14. Unexpected 1
+FAIL test_script_and_synthetic_events_have_no_native_authority - Test timed outTIMEOUT dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js - Test timed out
+ 0:36.89 GECKO(1098722) Completed ShutdownLeaks collections in process 1098722
+ 0:36.89 INFO TEST-START | Shutdown
+ 0:36.89 INFO Browser Chrome Test Summary
+ 0:36.89 INFO Passed:  427
+ 0:36.89 INFO Failed:  1
+ 0:36.89 INFO Todo:    1
+ 0:36.89 INFO Mode:    e10s
+ 0:36.89 INFO *** End BrowserChrome Test Results ***
+ 0:36.94 GECKO(1098722) Exiting due to channel error.
+ 0:36.95 GECKO(1098722) Exiting due to channel error.
+ 0:36.95 GECKO(1098722) Exiting due to channel error.
+ 0:36.95 GECKO(1098722) Exiting due to channel error.
+ 0:36.95 GECKO(1098722) Exiting due to channel error.
+ 0:36.95 GECKO(1098722) Exiting due to channel error.
+ 0:36.95 GECKO(1098722) Exiting due to channel error.
+ 0:36.95 GECKO(1098722) Exiting due to channel error.
+ 0:36.96 Main app process: exit 0
+ 0:36.96 INFO runtests.py | Main app process exited normally
+ 0:36.96 INFO runtests.py | Application ran for: 0:00:36.373325
+ 0:36.96 INFO zombiecheck | Reading PID log: /tmp/tmp83_2gr60pidlog
+ 0:36.96 INFO ==> process 1098722 launched child process 1098763
+ 0:36.96 INFO ==> process 1098722 launched child process 1098821
+ 0:36.96 INFO zombiecheck | Checking for orphan process with PID: 1098763
+ 0:36.96 INFO zombiecheck | Checking for orphan process with PID: 1098821
+ 0:36.96 INFO runtests.py | Running http tests: end. status: 0
+ 0:36.96 INFO Stopping web server
+ 0:36.97 INFO Server shut down.
+ 0:36.97 INFO Web server killed.
+ 0:36.97 INFO Stopping web socket server
+ 0:36.97 INFO Stopping ssltunnel
+ 0:36.97 WARNING leakcheck | refcount logging is off, so leaks can't be detected!
+ 0:36.98 INFO Buffered messages finished
+TEST-INFO | checking window state
+Browser Chrome Test Summary
+	Passed: 427
+	Failed: 1
+	Todo: 1
+	Retried: 0
+	Mode: e10s
+*** End BrowserChrome Test Results ***
+ 0:36.98 INFO Buffered messages finished
+ 0:36.98 SUITE_END
+ 0:36.98 
+Overall Summary
+===============
+
+mochitest-browser
+~~~~~~~~~~~~~~~~~
+Ran 435 checks (429 subtests, 6 tests)
+Expected results: 433
+Unexpected results: 2
+  test: 1 (1 timeout)
+  subtest: 1 (1 fail)
+
+Error Summary
+-------------
+dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js
+  FAIL test_script_and_synthetic_events_have_no_native_authority - Test timed out
+  TIMEOUT dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js - Test timed out

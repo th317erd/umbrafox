@@ -3,10 +3,14 @@
 ## Outcome
 
 The Linux prototype implements the agreed Firefox-default, explicit-override
-policy. Native compilation, real browser integration, clipboard snapshot
+policy in commit `47e6fdeb78fee3bde3447b348f49244025b0b738`.
+Native compilation, real browser integration, clipboard snapshot
 regressions and permission storage tests pass. Packaging and inactive installation
-are recorded separately in `exports/umbrafox-clipboard-20261015/`; do not infer
-daily-browser activation from an installation receipt.
+are recorded separately in `exports/umbrafox-clipboard-20261015/`. The verified
+self-contained package is installed inactive at `~/Programs/umbrafox-nightly`,
+with the previous installation retained and an isolated successful version check.
+Launcher/profile activation is pending owner close consent; do not infer it from
+the installation receipt.
 
 Three scoped subagents handled permission UI, the private actor bridge and
 independent review. The coordinator implemented native command/retry handling,

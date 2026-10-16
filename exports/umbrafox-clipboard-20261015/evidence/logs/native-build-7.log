@@ -1,0 +1,194 @@
+ 0:00.32 W Warnings in third-party code are being suppressed from the terminal output. Use --show-all-warnings or --verbose to see them.
+ 0:00.32 W All warnings will still be dumped to /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/warnings_*.json at the end of the build.
+ 0:00.46 Clobber not needed.
+ 0:00.61 /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/backend.RecursiveMakeBackend is out of date with respect to /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/browser/modules/test/browser/browser.toml
+ 0:00.61 Build configuration changed. Regenerating backend.
+ 0:00.61 /home/wyatt/.mozbuild/srcdirs/source-38eb0eaf04cc/_virtualenvs/build/bin/python /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/config.status
+Reticulating splines...
+Finished reading 2824 moz.build files in 2.79s
+Read 58 gyp files in parallel contributing 0.00s to total wall time
+Processed into 22415 build config descriptors in 1.65s
+RecursiveMake backend executed in 3.11s
+  6106 total backend files; 0 created; 4 updated; 6102 unchanged; 0 deleted; 12 -> 2280 Makefile
+FasterMake backend executed in 0.17s
+  96 total backend files; 0 created; 3 updated; 93 unchanged; 0 deleted
+Clangd backend executed in 1.70s
+  1374 total backend files; 0 created; 3 updated; 1371 unchanged; 0 deleted
+Total wall time: 9.75s; CPU time: 8.77s; Efficiency: 90%; Untracked: 0.33s
+ 0:12.23 W Adding make options from /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozconfig
+    MOZ_OBJDIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+    OBJDIR=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+    FOUND_MOZCONFIG=/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozconfig
+    export FOUND_MOZCONFIG
+ 0:12.23 /usr/bin/make -f client.mk -j2 -s
+ 0:13.59 Elapsed: 0.55s; From dist/bin: Kept 3299 existing; Added/updated 3; Removed 0 files and 0 directories.
+ 0:13.71 ./buildid.h.stub
+ 0:13.71 ./source-repo.h.stub
+ 0:20.87 toolkit/library/buildid.cpp.stub
+ 0:21.79 layout/style
+ 0:21.82 dom/base
+ 1:20.06 netwerk/base
+ 1:40.23 toolkit/components/glean
+ 1:54.79 toolkit/components/telemetry
+ 2:08.69 toolkit/library/buildid.cpp.stub
+ 2:08.86 toolkit/library
+ 2:09.01 xpcom/build
+ 2:12.97 media/ffvpx/libavutil
+ 2:13.48 W 3 warnings generated.
+ 2:13.77 W 2 warnings generated.
+ 2:15.03 W 1 warning generated.
+ 2:15.64 W 1 warning generated.
+ 2:16.26 memory/build/test/TestMozJemallocUtils
+ 2:16.51 memory/replace/dmd/test/SmokeDMD
+ 2:16.78 memory/replace/logalloc/replay/logalloc-replay
+ 2:17.09 mfbt/tests/TestArray
+ 2:17.09 mfbt/tests/TestArrayUtils
+ 2:17.33 mfbt/tests/TestAtomicBitfields
+ 2:17.57 mfbt/tests/TestAtomics
+ 2:17.82 mfbt/tests/TestBinarySearch
+ 2:18.05 mfbt/tests/TestBitSet
+ 2:18.29 mfbt/tests/TestBloomFilter
+ 2:18.53 mfbt/tests/TestBufferList
+ 2:18.77 mfbt/tests/TestCasting
+ 2:19.02 mfbt/tests/TestCeilingFloor
+ 2:19.25 mfbt/tests/TestCheckedInt
+ 2:19.49 mfbt/tests/TestCompactPair
+ 2:19.73 mfbt/tests/TestCumulativeAverage
+ 2:19.98 mfbt/tests/TestDefineEnum
+ 2:20.22 mfbt/tests/TestDoublyLinkedList
+ 2:20.46 mfbt/tests/TestEndian
+ 2:20.70 mfbt/tests/TestEnumeratedArray
+ 2:20.94 mfbt/tests/TestEnumSet
+ 2:21.18 mfbt/tests/TestEnumTypeTraits
+ 2:21.42 mfbt/tests/TestFastBernoulliTrial
+ 2:21.67 mfbt/tests/TestFloatingPoint
+ 2:21.91 mfbt/tests/TestFunctionRef
+ 2:22.14 mfbt/tests/TestFunctionTypeTraits
+ 2:22.38 mfbt/tests/TestHashTable
+ 2:22.39 mfbt/tests/TestIntegerRange
+ 2:22.63 modules/libmar/tool/mar
+ 2:22.63 mfbt/tests/TestJSONWriter
+ 2:22.71 mfbt/tests/TestLinkedList
+ 2:22.87 mozglue/tests/ShowSSEConfig
+ 2:22.87 mozglue/tests/TestBaseProfiler
+ 2:22.94 mfbt/tests/TestMacroArgs
+ 2:23.11 mozglue/tests/TestIntegerPrintfMacros
+ 2:23.18 mfbt/tests/TestMacroForEach
+ 2:23.36 mozglue/tests/TestPrintf
+ 2:23.42 mfbt/tests/TestMathAlgorithms
+ 2:23.67 mfbt/tests/TestMaybe
+ 2:23.85 mfbt/tests/TestNonDereferenceable
+ 2:23.91 other-licenses/bsdiff/mbsdiff
+ 2:23.99 mfbt/tests/TestNotNull
+ 2:24.09 security/manager/ssl/tests/unit/pkcs11testmodule/dynamic-library
+ 2:24.14 mfbt/tests/TestRandomNum
+ 2:24.25 security/manager/ssl/tests/unit/test_trust_anchors/dynamic-library
+ 2:24.31 mfbt/tests/TestRange
+ 2:24.40 mfbt/tests/TestRefPtr
+ 2:24.55 security/nss/lib/freebl
+ 2:24.64 mfbt/tests/TestResult
+ 2:24.67 mfbt/tests/TestRollingMean
+ 2:24.88 mfbt/tests/TestSaturate
+ 2:24.93 mfbt/tests/TestScopeExit
+ 2:25.12 testing/tools/screenshot/screentopng
+ 2:25.16 mfbt/tests/TestSegmentedVector
+ 2:25.36 mfbt/tests/TestSHA1
+ 2:25.42 third_party/zucchini/executable/zucchini
+ 2:25.60 mfbt/tests/TestSIMD
+ 2:25.70 mfbt/tests/TestSmallPointerArray
+ 2:25.87 third_party/zucchini/tests/gtest/zucchini-gtest
+ 2:25.94 mfbt/tests/TestSplayTree
+ 2:26.18 mfbt/tests/TestTextUtils
+ 2:26.19 toolkit/components/ctypes/tests/libjsctypes-test.so
+ 2:26.41 mfbt/tests/TestTiedFields
+ 2:26.44 mfbt/tests/TestTypedEnum
+ 2:26.65 toolkit/components/telemetry/pingsender/pingsender
+ 2:26.68 mfbt/tests/TestUniquePtr
+ 2:26.90 mfbt/tests/TestVariant
+ 2:26.91 toolkit/components/telemetry/tests/libmodules-test.so
+ 2:27.13 mfbt/tests/TestVector
+ 2:27.15 mfbt/tests/TestWeakPtr
+ 2:27.37 toolkit/crashreporter/crash_helper/crashhelper
+ 2:27.39 mfbt/tests/TestWrappingOperations
+ 2:27.62 mfbt/tests/TestXorShift128PlusRNG
+ 2:27.85 mfbt/tests/TestBoundedMPSCQueue
+ 2:28.04 mfbt/tests/TestSPSCQueue
+ 2:28.09 toolkit/library/gtest/libxul_broken_buildid
+ 2:28.14 mfbt/tests/TestThreadSafeWeakPtr
+ 2:28.29 mfbt/tests/TestMozCrash
+ 2:28.39 toolkit/library/gtest/libxul_correct_buildid
+ 2:28.45 mfbt/tests/TestUtf8
+ 2:28.53 toolkit/library/gtest/libxul_missing_buildid/libxul_missing_buildid.so
+ 2:28.68 mfbt/tests/TestPoisonArea
+ 2:28.93 toolkit/mozapps/update/tests/gtest/update-gtest
+ 2:29.04 toolkit/mozapps/update/tests/TestAUSHelper
+ 2:29.04 toolkit/mozapps/update/tests/TestAUSReadStrings
+ 2:29.28 toolkit/xre/gfxtest/gfxtest
+ 2:29.45 tools/power/rapl
+ 2:29.51 xpcom/tests/TestArguments
+ 2:29.51 xpcom/tests/TestBlockingProcess
+ 2:29.68 xpcom/tests/TestPRIntN
+ 2:29.76 xpcom/tests/TestQuickReturn
+ 2:29.92 config/external/sqlite/libmozsqlite3.so
+ 2:30.00 xpcom/tests/TestUnicodeArguments
+ 2:30.17 xpcom/tests/TestMemoryPressureWatcherLinux
+ 2:30.24 config/external/nspr/pr/libnspr4.so
+ 2:30.49 browser/app/umbrafox
+ 2:30.65 config/external/mozinference/libmozinference.so
+ 2:30.93 layout/build
+ 2:31.20 third_party/angle/translator_gn/libtranslator_gn.a
+ 2:31.26 toolkit/library/gtest/libxul_broken_buildid/libxul_broken_buildid.so
+ 2:31.52 toolkit/library/gtest/libxul_correct_buildid/libxul_correct_buildid.so
+ 2:31.78 config/external/nspr/ds/libplds4.so
+ 2:32.03 config/external/nspr/libc/libplc4.so
+ 2:32.31 media/libsoundtouch/src
+ 2:33.61 js/src/build/libjs_static.a
+ 2:34.52 security/sandbox/linux/libmozsandbox.so
+ 2:34.82 media/ffvpx/libavutil/libmozavutil.so
+ 2:35.07 security/nss/lib/freebl/libfreebl3.so
+ 2:35.34 security/nss/lib/freebl/libfreeblpriv3.so
+ 2:35.63 uriloader/exthandler/tests/WriteArgument
+ 2:35.88 security/nss/lib/util/libnssutil3.so
+ 2:36.12 config/external/lgpllibs/liblgpllibs.so
+ 2:36.43 media/ffvpx/libavcodec/libmozavcodec.so
+ 2:36.77 security/manager/ssl/tests/unit/test_trust_anchors/dynamic-library/libtest_trust_anchors.so
+ 2:37.04 security/nss/lib/softoken/libsoftokn3.so
+ 2:37.30 security/nss/lib/nss/libnss3.so
+ 2:37.57 security/manager/ssl/tests/unit/pkcs11testmodule/dynamic-library/libpkcs11testmodule.so
+ 2:37.93 security/manager/ssl/tests/unit/tlsserver/cmd/BadCertAndPinningServer
+ 2:37.93 security/manager/ssl/tests/unit/tlsserver/cmd/DelegatedCredentialsServer
+ 2:38.21 security/manager/ssl/tests/unit/tlsserver/cmd/EncryptedClientHelloServer
+ 2:38.46 security/manager/ssl/tests/unit/tlsserver/cmd/GenerateOCSPResponse
+ 2:38.71 security/manager/ssl/tests/unit/tlsserver/cmd/OCSPStaplingServer
+ 2:38.96 security/manager/ssl/tests/unit/tlsserver/cmd/SanctionsTestServer
+ 2:39.21 security/manager/ssl/tests/unit/tlsserver/cmd/FaultyServer
+ 2:39.46 security/manager/ssl/tests/unit/tlsserver/cmd/ZeroRttAcceptServer
+ 2:39.98 security/nss/lib/smime/libsmime3.so
+ 2:40.25 security/nss/lib/ssl/libssl3.so
+ 2:40.51 media/gmp-clearkey/0.1/libclearkey.so
+ 2:40.77 modules/libmar/tool/signmar
+ 2:41.01 security/nss/cmd/certutil/certutil
+ 2:41.25 security/nss/cmd/pk12util/pk12util
+ 2:41.49 testing/mochitest/ssltunnel/ssltunnel
+ 2:41.74 toolkit/mozapps/update/updater/updater
+ 2:42.00 toolkit/mozapps/update/updater/updater-dep/updater-dep
+ 2:42.27 toolkit/mozapps/update/updater/updater-xpcshell/updater-xpcshell
+ 2:47.45 toolkit/library/build/libxul.so
+ 2:59.97 ipc/app/plugin-container
+ 2:59.97 js/xpconnect/shell/xpcshell
+ 3:00.22 toolkit/crashreporter/test/libtestcrasher.so
+ 3:00.88 ./newtab-sources.stamp.stub
+ 3:03.87 ./dependentlibs.list.stub
+ 3:04.37 ./buildid.h.stub
+ 3:04.37 ./source-repo.h.stub
+ 3:04.65 ./built_in_addons.json.stub
+ 3:16.24 Packaging newtab@mozilla.org.xpi...
+ 3:16.52 W 7 compiler warnings present.
+ 3:16.54 W Overall system resources - Wall time: 196s; CPU: 35%; Read bytes: 15664504832; Write bytes: 15788998656; Read time: 413825; Write time: 673444
+ 3:16.54 W Swap in/out (MB): 25.1015625/0.0
+ 3:16.54 W (suppressed 7 warnings in third-party code)
+ 3:16.54 To view a profile of the build, run |mach resource-usage|.
+ 3:16.54 Your build was successful!
+ 3:16.54 To take your build for a test drive, run: |mach run|
+ 3:16.54 For more information on what to do now, see https://firefox-source-docs.mozilla.org/setup/contributing_code.html
+Streaming resource usage profile to: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/build/profile_log_20261015_180334.json

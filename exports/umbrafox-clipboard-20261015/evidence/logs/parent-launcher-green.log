@@ -1,0 +1,24 @@
+✔ newer nightly supersedes an older dated installation (28.610843ms)
+✔ a published dated installation launches without nightly (14.729856ms)
+✔ actual BuildID wins over directory name (24.261527ms)
+✔ unpublished staging and incomplete or mismatched installs are ignored (24.313858ms)
+✔ nightly wins equal BuildIDs without injecting a profile argument (19.310522ms)
+✔ duplicate BuildIDs and missing installations fail closed (16.270338ms)
+✔ ignores unpublished directory umbrafox-20261016-010000-160.0a1.next-staging (12.730384ms)
+✔ ignores unpublished directory umbrafox-20261016-010000-160.0a1.before-upgrade (15.923469ms)
+✔ ignores unpublished directory umbrafox-20261016 (14.903507ms)
+✔ ignores unpublished directory umbrafox-20261016-010000-160x0a1 (15.599928ms)
+✔ ignores unpublished directory umbrafox-20261016-010000-160.0a1-extra (13.194775ms)
+✔ ignores unpublished directory umbrafox-2garbage (13.031075ms)
+✔ ignores a newer candidate with a directory instead of an executable (13.638886ms)
+✔ preserves arguments verbatim including explicit profile arguments (15.000887ms)
+✔ beta enables only the two opted-in graphics optimizations (6.261407ms)
+✔ normal builds retain default-off experimental graphics preferences (10.551743ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 304.44718

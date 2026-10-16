@@ -1,0 +1,378 @@
+{
+  "version": 1,
+  "buildID": "20261015235226",
+  "experimental": true,
+  "sourceRevision": "d43214d6704182dabefff44b772764db04e386f1",
+  "sourceInputs": {
+    "base": "d43214d6704182dabefff44b772764db04e386f1",
+    "trackedChanges": [
+      "browser/components/customkeys/CustomKeys.sys.mjs",
+      "browser/components/customkeys/CustomKeysParent.sys.mjs",
+      "browser/components/customkeys/content/customkeys-sidebar.mjs",
+      "browser/components/customkeys/content/customkeys.js",
+      "browser/components/customkeys/tests/browser/browser.toml",
+      "browser/locales/en-US/browser/confirmationHints.ftl",
+      "browser/locales/en-US/browser/customkeys.ftl",
+      "browser/locales/en-US/browser/sitePermissions.ftl",
+      "browser/modules/SitePermissions.sys.mjs",
+      "browser/modules/moz.build",
+      "browser/modules/test/browser/browser.toml",
+      "browser/modules/test/unit/xpcshell.toml",
+      "dom/base/Document.cpp",
+      "dom/base/UmbrafoxUserlandMutation.cpp",
+      "dom/base/moz.build",
+      "dom/base/nsContentUtils.cpp",
+      "dom/base/nsCopySupport.cpp",
+      "dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp",
+      "dom/canvas/gtest/TestDMABufReadback.cpp",
+      "dom/commandhandler/nsBaseCommandController.cpp",
+      "dom/events/test/clipboard/browser.toml",
+      "dom/media/AudioStream.h",
+      "dom/media/gtest/TestAudioSinkWrapper.cpp",
+      "dom/media/mediasink/AudioSink.h",
+      "dom/media/mediasink/AudioSinkWrapper.cpp",
+      "editor/libeditor/EditorBase.cpp",
+      "ipc/ipdl/sync-messages.ini",
+      "toolkit/actors/moz.build",
+      "toolkit/modules/ActorManagerParent.sys.mjs",
+      "toolkit/modules/RemotePageAccessManager.sys.mjs",
+      "widget/ClipboardReadRequestParent.cpp",
+      "widget/ClipboardReadRequestParent.h",
+      "widget/PClipboardReadRequest.ipdl",
+      "widget/nsBaseClipboard.cpp",
+      "widget/nsClipboardProxy.cpp",
+      "widget/nsIClipboard.idl"
+    ],
+    "newFiles": [
+      "browser/components/customkeys/tests/browser/browser_ChromePreset.js",
+      "browser/modules/UmbrafoxClipboardProtection.sys.mjs",
+      "browser/modules/test/browser/browser_UmbrafoxClipboardProtection.js",
+      "browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js",
+      "browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs",
+      "dom/base/UmbrafoxClipboard.cpp",
+      "dom/base/UmbrafoxClipboard.h",
+      "dom/events/test/clipboard/browser_umbrafox_clipboard.js",
+      "dom/events/test/clipboard/browser_umbrafox_clipboard_override.js",
+      "dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js",
+      "toolkit/actors/UmbrafoxClipboardChild.sys.mjs",
+      "toolkit/actors/UmbrafoxClipboardParent.sys.mjs",
+      "toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs"
+    ],
+    "fileSHA256": {
+      "browser/components/customkeys/CustomKeys.sys.mjs": "2d8a1c67a2d94b3851ae5292ab1bcc56e3796b9fad94bb54e28260a99d0310d9",
+      "browser/components/customkeys/CustomKeysParent.sys.mjs": "0b47fd9e72ea5f4e38bb6cb2947528d025e98455577f248ff78266cfa9190e20",
+      "browser/components/customkeys/content/customkeys-sidebar.mjs": "3c7824de8330cb6fa00840d45b58f9897bc0cfbac1eae60103ef98352ff4ce69",
+      "browser/components/customkeys/content/customkeys.js": "d78769e1a4f7051cb3eac8c0803a501e650701c79e4ddfb1ee00c0de9ebb9e93",
+      "browser/components/customkeys/tests/browser/browser.toml": "cdc4a35859a6c51fcea6ed00b770c3f4f57d3df983d52c4d9972e1ce64828973",
+      "browser/components/customkeys/tests/browser/browser_ChromePreset.js": "933f4159320d093e6adb66de53759e8d74a736ac08b63c0a4210e6b46d1d44a7",
+      "browser/locales/en-US/browser/confirmationHints.ftl": "46eef29bde87300180c5f7748b9e3799de1aae96a9449ce0e54db2aa502a7881",
+      "browser/locales/en-US/browser/customkeys.ftl": "09fe16afd3deeec1706d4a047be99022cb2d7728ff6972666fc24e327e20a251",
+      "browser/locales/en-US/browser/sitePermissions.ftl": "4839e8b3962465995af5f33f07ed1a7f4eb9da8e9f12bb4a7ce72cb0b0b9f791",
+      "browser/modules/SitePermissions.sys.mjs": "137b2d8625481f124a1a6a10299a4d4a34e8e2e8dabd49b8a104390c6d91b0b6",
+      "browser/modules/UmbrafoxClipboardProtection.sys.mjs": "6a8a35bb44c7973610ad0a99902e20bbfc4a48f60174410d93a3bc31442ca598",
+      "browser/modules/moz.build": "222094239476d2c9b61a156575c4c7f947d9c72b603b257f20bf6d9e4345474d",
+      "browser/modules/test/browser/browser.toml": "2f6dec71be9bdcab83a2fa403b2403aaa09d85e794343645037b11eac9a59e67",
+      "browser/modules/test/browser/browser_UmbrafoxClipboardProtection.js": "c6edb1119f75c3b7310e32ccc14f144dbcacfc11ecd4f6d9f3f751b44f39a37c",
+      "browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js": "af1c2bc822c394d171c5ba7ca10469c4ea0d8c13722014ba8c0cb6b902944e33",
+      "browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs": "057a1bc70ac4e3eb16e4d5939089f7ddc3773f2359e9624d499f4a963d1acd4e",
+      "browser/modules/test/unit/xpcshell.toml": "38df7d22311ac1de739d2c8fd393905520ecac28e60e985ce1b24c1bb8f3bc87",
+      "dom/base/Document.cpp": "f45e7c482d451a3336730a64f2a12a4c49090e61823ca60babb00e01541a439c",
+      "dom/base/UmbrafoxClipboard.cpp": "707301b8a6065c94379c472ccafc8495173f548726d779787b0fe748867efb96",
+      "dom/base/UmbrafoxClipboard.h": "07a9c24acb57a184eb2881bb3ad7bf5f31b5a223be7ef0241b13870be392c829",
+      "dom/base/UmbrafoxUserlandMutation.cpp": "dbf3419a9c9e6e1e2718cea6923f3045fe80c3afe5281888fb1a9e99ffb29985",
+      "dom/base/moz.build": "e47dbfaefba86d6edc636da7e4c61230ed6f05a204d137f7e56fb323e9861472",
+      "dom/base/nsContentUtils.cpp": "6bee96ebd334e1b08071eada84b631eee6698d728dda78127d8964f492504441",
+      "dom/base/nsCopySupport.cpp": "f153566f067de33adcc58c35ad3112dab5d2b4ba7f8b4e2e7c75fe0235636123",
+      "dom/canvas/gtest/TestCanvasVideoSurfaceCache.cpp": "1aadbbac82a41a140e88b1a31e7272a4797bda636f5317ace22746d4beae1b5c",
+      "dom/canvas/gtest/TestDMABufReadback.cpp": "60ea045843fe5a1e3884bc16f16134a3446b4dfb7fc3f10a4f104100749ded4d",
+      "dom/commandhandler/nsBaseCommandController.cpp": "500e573f9b645a09a94550161ce744dcb39ce553defc31670b1e6104ed08fefc",
+      "dom/events/test/clipboard/browser.toml": "2498120cbaf8bf4c757716ec0aad9d8feb2f4c8664c9f6f86b7a5826287c0e6a",
+      "dom/events/test/clipboard/browser_umbrafox_clipboard.js": "de91e046c388c2a6902a7965a140eb46b3974248f2e622797af3c1e0d689bd26",
+      "dom/events/test/clipboard/browser_umbrafox_clipboard_override.js": "35555c190af51d147c605ad11ad23796c9834d2705a1208931ab17db45ed093f",
+      "dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js": "6bc6321a5126a545042c5aabe932578c4edeb797301f01f5e1ca1812ddc70023",
+      "dom/media/AudioStream.h": "24986797a74e816282c8733379bef4eec4b4fe6cecb61060dcf0edb76a1506e9",
+      "dom/media/gtest/TestAudioSinkWrapper.cpp": "dac8b94924d2167da17a5010bc4b10a317c9612b70429397e0843ea5a9b87cd8",
+      "dom/media/mediasink/AudioSink.h": "239ef7a7b0bfa0739ce1d85c5e27036856425f984a298548ee98c3b8128daf3a",
+      "dom/media/mediasink/AudioSinkWrapper.cpp": "7eb328f2c1af3ac07f048a9841977a68ad141d3e10d427ef39671cb6ba1d0003",
+      "editor/libeditor/EditorBase.cpp": "da274755a66a87c5d94c712b0666cf5213175b35e8ed6ab931ebf07975fb890a",
+      "ipc/ipdl/sync-messages.ini": "bc881255425b2ee54b17cc361ec9dc19f0a5608f60894558bc853b317a640fdc",
+      "toolkit/actors/UmbrafoxClipboardChild.sys.mjs": "99b9ed5a862ce2425f15d81aa1ccb71cbc80b1b4a0f89efc6dbe47e9a7f7daf9",
+      "toolkit/actors/UmbrafoxClipboardParent.sys.mjs": "6ea8c5e05d82176fc60e258749f27fbdcac11d24f328a2e5c136e1240640642d",
+      "toolkit/actors/moz.build": "ca04a5aa0bafebd832b7c30cb6dcd385813d544dee8daff8c65d2bfa3f81e721",
+      "toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs": "6e3f832c98127314ab5bb4bb189374e3d6bb06c6dab2653e3c0f027900478c9a",
+      "toolkit/modules/ActorManagerParent.sys.mjs": "717c188e2c7e7360ff8f6630e319d89d463ebec27294377a6ed8b5d67e96d1fb",
+      "toolkit/modules/RemotePageAccessManager.sys.mjs": "01e09da5bf18196cb14231f21121705a586fae0fc67665e735ea466df6f0dadb",
+      "widget/ClipboardReadRequestParent.cpp": "8c3fe3af600ccca7a0d6b8c7cd6416355ebce7ecaf64c11e43c24ef1a2674666",
+      "widget/ClipboardReadRequestParent.h": "209cede25e4c3f6dc55ae49cf08d57623ab0b5c96288e69ec3db60d53516abf5",
+      "widget/PClipboardReadRequest.ipdl": "84b3f4446ad76ed7d13bf29655adb2e35a18cc7bc5c475d20ad70d0266648688",
+      "widget/nsBaseClipboard.cpp": "64213857adc0ee97b489453944bd201d13add8ccbad086a66ad408ea7d7f93e0",
+      "widget/nsClipboardProxy.cpp": "91f79772446128840a98283dad3084a4e59603d71ff18bbf31a2aaeedcd6ef78",
+      "widget/nsIClipboard.idl": "de91f0d4803366b54514790d734c1f6ecadb56fcdd6ade59fea211e6a9afa119"
+    }
+  },
+  "sourcePatchSHA256": "bc532424c6807f569613ebcc68fe9e1b2c79d729be3c2f48ee06f9edf207bf83",
+  "sourceSupplementSHA256": "8370b764fd9817aab07d3e64caddcaf2228b5d9f80a659b20085c86b1651f252",
+  "configuration": {
+    "MOZ_APP_UA_NAME": "Firefox",
+    "MOZ_APP_VERSION": "160.0a1",
+    "MOZ_OPTIMIZE": "1",
+    "MOZ_OPTIMIZE_FLAGS": [
+      "-O2"
+    ],
+    "MOZ_DEBUG": null,
+    "MOZ_UMBRA_PERF_PROBES": null,
+    "MOZ_UPDATE_CHANNEL": "default",
+    "TARGET_CPU": "x86_64"
+  },
+  "mozconfigSHA256": "2ba70ee7f27e74d504ff7c7d83e827318cf8211e78ece86b8b1e0734489babc0",
+  "configStatusSHA256": "4b363483ea0ca77fcc224eda98ef71263952183848c7650ae44c228c8a47cb7d",
+  "baseArchiveSHA256": "74ec5e39e103313be042a01fe625a29d1bfe961b5c38849a4f129f1354fafb1a",
+  "archive": {
+    "name": "umbrafox-clipboard-20261015235226-linux-x86_64.tar.xz",
+    "size": 119460288,
+    "sha256": "b4db996ef95a01d5e967126f874ced3a21e429dc4983c013b52dd7f5579ace9a"
+  },
+  "overlaySHA256": "4278e82f4538bf4058aefd3b488e77069be9c7edd1e36791456c194e79967eb2",
+  "files": {
+    "application.ini": {
+      "sha256": "c03b29f49f6bdce32785762b30126ae62b2dcf686efcc388327215d334634b81",
+      "size": 792,
+      "mode": 420
+    },
+    "browser/chrome/icons/default/default128.png": {
+      "sha256": "91b49d610d9004ecc22f5300695e4dcb469b8b0bbc2aca6021bd789b8a31e7e0",
+      "size": 6972,
+      "mode": 420
+    },
+    "browser/chrome/icons/default/default16.png": {
+      "sha256": "31733dc5da1d48b13b7e2b9db0888be6e4569441901cbca6e2575e282b2edf20",
+      "size": 703,
+      "mode": 420
+    },
+    "browser/chrome/icons/default/default32.png": {
+      "sha256": "6257a79303dfe9d1dc9dbce593358803a4ff99458c60a726455854d9fb51c593",
+      "size": 1364,
+      "mode": 420
+    },
+    "browser/chrome/icons/default/default48.png": {
+      "sha256": "6316fd42aae42b0c0bb4d96076782d7d0016dd8ae0f3d1b1df72e2974405d9f2",
+      "size": 2197,
+      "mode": 420
+    },
+    "browser/chrome/icons/default/default64.png": {
+      "sha256": "a7d162363ae9441367c52f1b83894275c5468aeaa376c3f888da606c435b0c54",
+      "size": 2968,
+      "mode": 420
+    },
+    "browser/omni.ja": {
+      "sha256": "0e8476a9e000d58e416e8adf4189f149128f0d37ab01d7888df4669894c323fc",
+      "size": 55031709,
+      "mode": 420
+    },
+    "crashhelper": {
+      "sha256": "8efed753548d300a419f8774569cfe10ba789d280b0ca390a3b0d712661e3d89",
+      "size": 5256032,
+      "mode": 493
+    },
+    "crashreporter": {
+      "sha256": "419f0dff4ef889e0299bf6fc9dd8c44c393682cfba65fe9aa560ea859a5f51a1",
+      "size": 6231768,
+      "mode": 493
+    },
+    "defaults/pref/channel-prefs.js": {
+      "sha256": "ef9fba57b2c3755b630b44ccfe703e2753d538fa50e3c52fc279c29e6db8200f",
+      "size": 429,
+      "mode": 420
+    },
+    "defaults/pref/umbrafox-beta.js": {
+      "sha256": "4278e82f4538bf4058aefd3b488e77069be9c7edd1e36791456c194e79967eb2",
+      "size": 348,
+      "mode": 420
+    },
+    "dependentlibs.list": {
+      "sha256": "621f575eaaf819dd0b18976c6a8a94d1caae95a9c748f4c9058a052395a4d173",
+      "size": 189,
+      "mode": 420
+    },
+    "fonts/TwemojiMozilla.ttf": {
+      "sha256": "6d90152ee0d29e82fe2a87793af5aa4b7ad13e6538360889e141e81ed299ee8e",
+      "size": 1474284,
+      "mode": 420
+    },
+    "gfxtest": {
+      "sha256": "1f630b448ddb2d00a12cfee6ccbd65035cb836c9ff01d6cae337841ac4bc8c25",
+      "size": 50488,
+      "mode": 493
+    },
+    "gmp-clearkey/0.1/libclearkey.so": {
+      "sha256": "0a4461e4078a84145fb858d909efad3af929f055a5a86cdbb494dedf5a9b8370",
+      "size": 107768,
+      "mode": 493
+    },
+    "gmp-clearkey/0.1/manifest.json": {
+      "sha256": "b7d65e60cccb80ffb2e95b5ae7e355d2c8c37575e886eef4325ca04fa7ba68fc",
+      "size": 225,
+      "mode": 420
+    },
+    "icons/updater.png": {
+      "sha256": "cab5e9bc9511b0690e696b378efa6753705b1182660d9829f5b3dc9f0398e5cc",
+      "size": 2153,
+      "mode": 420
+    },
+    "libfreeblpriv3.so": {
+      "sha256": "cf8011da6a846a9c73d0b3915c13a0820473cedc6540085e2cea50335aab5237",
+      "size": 1531984,
+      "mode": 493
+    },
+    "libgkcodecs.so": {
+      "sha256": "abfbf6160304541becb726d6ef12fb04e2f416bbbb4a67a99fd58cdabc710a00",
+      "size": 11044032,
+      "mode": 493
+    },
+    "liblgpllibs.so": {
+      "sha256": "7a7fdf2a670e88c22aca426002ed0d09fc8bde789a6d6ab202d4acf8c8607136",
+      "size": 361168,
+      "mode": 493
+    },
+    "libmozavcodec.so": {
+      "sha256": "29a4930b0cb6a26d5970778a30d4850043a6c9bef96b6caff34f24e29968959f",
+      "size": 5637048,
+      "mode": 493
+    },
+    "libmozavutil.so": {
+      "sha256": "4a9986cfbb2a3f91102c8b9fb817c3f31f9b5af350d0dab7940296be868bf56a",
+      "size": 873488,
+      "mode": 493
+    },
+    "libmozgtk.so": {
+      "sha256": "3dd5926088f710b6aee0689486a31ce5df697c4714aa9438dc29678b9d3f1b3a",
+      "size": 5960,
+      "mode": 493
+    },
+    "libmozinference.so": {
+      "sha256": "a727bd219e71a7fcfb610845105852f2065b49698936d07b03bb793754ec908c",
+      "size": 4169536,
+      "mode": 493
+    },
+    "libmozsandbox.so": {
+      "sha256": "cb94bdf66e07a191cbac28dab982de67e0dd0cd3b170505bdd0824a20e6664aa",
+      "size": 671848,
+      "mode": 493
+    },
+    "libmozsqlite3.so": {
+      "sha256": "74e0386f831c0c9400a53f5ffbbff16a5b901e4a3e552ca8860c75f601998a24",
+      "size": 1665776,
+      "mode": 493
+    },
+    "libmozwayland.so": {
+      "sha256": "5c8b0cd7e370599e1c28745cccfe895e5406d06c30b7e4e510af9fdbc23c87da",
+      "size": 19720,
+      "mode": 493
+    },
+    "libnspr4.so": {
+      "sha256": "460b08ed5435d1ae34686c6ea0fe35fbcecdd39b6c19b400fdda11f49320d23e",
+      "size": 268864,
+      "mode": 493
+    },
+    "libnss3.so": {
+      "sha256": "12d4be4088f636de56024dc87cc3fc7baf92fec221f97aba5b62eeaa0f28604d",
+      "size": 871864,
+      "mode": 493
+    },
+    "libnssutil3.so": {
+      "sha256": "587cbd8adcaab604f9b337d37cd2825e11ee1365fc1de1476f64b61c261342c9",
+      "size": 221960,
+      "mode": 493
+    },
+    "libonnxruntime.so": {
+      "sha256": "a52bd0845f7f928554b189b1eb1a67f8ddd72cf681ac4fa9067913c7a04e3165",
+      "size": 14468128,
+      "mode": 493
+    },
+    "libplc4.so": {
+      "sha256": "d387e8f9e1641f1c9da65af795e964b44a383fca71ce0df85ed5499eeafef115",
+      "size": 21856,
+      "mode": 493
+    },
+    "libplds4.so": {
+      "sha256": "1c75d4370dac422b5938240ff5065e9204abc36fda6d02f60a9620f419f599cb",
+      "size": 15568,
+      "mode": 493
+    },
+    "libsmime3.so": {
+      "sha256": "975d2a3f659cd88d0cbe94a0c73ba244092afcf2d4d526edbc99cd54ea3fe6d3",
+      "size": 217488,
+      "mode": 493
+    },
+    "libsoftokn3.so": {
+      "sha256": "2af2bffbf6a4317033dbc9f5744e5433bd8eb0e42b362099cd67b9850980e3e6",
+      "size": 449384,
+      "mode": 493
+    },
+    "libssl3.so": {
+      "sha256": "0c0ad15e04ae73a0a399bb817c28484d79e2e7370067f1ffa0588312554c65f6",
+      "size": 542408,
+      "mode": 493
+    },
+    "libxul.so": {
+      "sha256": "80b16aee72b03f711a27d15f43cb1ecb10b05fdc172d69e2194c7b70c62f0d7a",
+      "size": 310539016,
+      "mode": 493
+    },
+    "omni.ja": {
+      "sha256": "ce486a6a3734064a037bbc18e0a9942a0989b7c086858fabfeea2c8f75dd265a",
+      "size": 52373948,
+      "mode": 420
+    },
+    "pingsender": {
+      "sha256": "63e261e33feeed855aa7c125cd68a69eaea2d543c193d8820fa1ac07fd146e3a",
+      "size": 908168,
+      "mode": 493
+    },
+    "platform.ini": {
+      "sha256": "80c92a0b9eb73468e8de746570b3af07880bc262e4dc5414add7b71ce82b5f6e",
+      "size": 49,
+      "mode": 420
+    },
+    "precomplete": {
+      "sha256": "1770d49e7aae25382cccd956e76df421f32c59d296c5ebcb959393995e0cb0f2",
+      "size": 1423,
+      "mode": 420
+    },
+    "removed-files": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0,
+      "mode": 420
+    },
+    "umbrafox": {
+      "sha256": "bcfbc211e0d70550596a7c8370193ee519d4c6ab365fbf9ff569faaaf1d72220",
+      "size": 812400,
+      "mode": 493
+    },
+    "umbrafox-bin": {
+      "sha256": "bcfbc211e0d70550596a7c8370193ee519d4c6ab365fbf9ff569faaaf1d72220",
+      "size": 812400,
+      "mode": 493
+    },
+    "update-settings.ini": {
+      "sha256": "c574f9f109b4dca4a6ab379167cd47a6bbee66c0a9640b1d19232da337202707",
+      "size": 113,
+      "mode": 420
+    },
+    "updater": {
+      "sha256": "4196ebe6fc5e820f14ba6a33b0021f55ae78b8489285eeb1f90887618d5e0504",
+      "size": 1106776,
+      "mode": 493
+    },
+    "updater.ini": {
+      "sha256": "060c20f2ae6fedb169adbda6d2fbe380ada8251142cd19cac18bc9bc9e9efd52",
+      "size": 634,
+      "mode": 420
+    }
+  },
+  "iniBuildIDs": {
+    "application.ini": "20261015235226",
+    "platform.ini": "20261015235226"
+  },
+  "nativeBuildID": "20261015235226"
+}

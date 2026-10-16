@@ -1,5 +1,169 @@
 # Umbrafox Codex Details
 
+## October 15 Clipboard Prototype Installed, Activation Held
+
+Implementation committed as47e6fdeb78fee3bde3447b348f49244025b0b738;
+installation-evidence/continuity milestone follows separately. Do not confuse
+that main commit with the isolated native base+patch provenance below.
+
+Source/native/runtime gates now pass. Actual final browser7files808PASS/0fail/
+2expected migration TODOs; sync+async snapshots668PASS; permission-store new+
+existing2files148PASS; UI/actor pure51PASS; package/install combined12PASS;
+launcher/beta16PASS; final exact12file JS lint0. Native build8 passed1m43,
+standard mach package32s. BuildID20261015235226 in libxul and both INIs.
+Report bot-docs/reports/2026-10-15-clipboard-protection.md; canonical recipe19
+and full file inventory updated. Raw failures/results/reviews preserved in
+exports/umbrafox-clipboard-20261015/evidence. Three worker lanes closed and
+owned monitor1092091 exited143 after TERM. All recorded test/helper/monitor/
+version PIDs absent in owned-cleanup-check.json; no unrecorded-process claim.
+
+Installed verified self-contained package to ~/Programs/umbrafox-nightly;
+rollback ~/Programs/umbrafox-nightly.before-clipboard-20261015. Archive119460288B
+SHA b4db996ef95a01d5e967126f874ced3a21e429dc4983c013b52dd7f5579ace9a.
+47 payload files + private .purgecaches marker all verified. Isolated installed
+--version PASS Umbrafox160.0a1, exit0, PID1143453 absent. No daily browser or
+personal clipboard/profile touched; installed launcher unchanged SHA36b8df60...
+ACTIVATION HELD: nightly maps kvm20oct.default-default-1, owner dated build maps
+cjmrhtcu.default-default-2. Await owner close/mapping consent before installing
+tested new launcher or changing install profile mapping. Do not copy profiles,
+restart automatically or say the current launcher selects the new package.
+
+Actual integration fixed readonly-at-beforeinput no-op falsely counted success
+and late loaded frame grant icon hidden after reload. Grant-gated private WGP
+observer now refreshes chrome only for explicit exact grants/current frames;
+no default per-frame observer/IPC. Runtime fixtures corrected obsolete ownerGlobal
+to documentGlobal and separated unactivated script paste denial from explicitly
+test-permitted script paste. Xpcshell app-dir crashes preserved: appname-derived
+umbrafox-appdir=browser needed in manifest; CLI app-path overwritten per test.
+Existing SitePermissions failed before/passed after, not a daily-browser crash.
+Source packet base d43214d6 plus exact36tracked13new patch+supplement retained;
+never substitute mainHEAD alone. No exhaustive cross-platform/default-timing,
+physical-keyboard, shadow-case or refcount-leak acceptance claim.
+
+## October 15 Clipboard Runtime Integration
+
+Build7 PASSED in3m16 after build6 compile errors. Current BuildID pin remains
+20261015235226; C++/Rust2jobs/nice10. Source is isolated Oct12 worktree based on
+d43214d6704182dabefff44b772764db04e386f1, not main25de5d0b. Package adapter
+records full exact36tracked+13new file closure and supplemental source archive.
+Do not claim mainHEAD alone describes the build. No package/install yet.
+
+First actual integration419PASS/12FAIL/2TODO: real native copy/paste Yes/Always,
+subsequent saved retry, standard revoke, stale clipboard rejection, no grant on
+failure, dismissed-notice event/focus/pointerlock checks pass. Failures retained
+in /tmp/codex/clipboard-20261015/browser-integrated-1.log. Most failures are
+fixture cleanup using obsolete ownerGlobal; module/actor/tests now documentGlobal
+(47pure tests passed after parent correction). Remaining substantive fixes:
+native paste Fresh must reject readonly changes made during beforeinput; saved
+cross-origin frame grant lists after reload but real permission icon stays hidden.
+Parent readonly fix is in main and isolated source; build8 now running with log
+native-build-8.log. UI Galileo resumed for real frame-icon lifecycle fix, no
+browser authority. Exact same DB/bus/task; coordinator monitor restarted.
+Do not weaken tests to manually refresh permission UI or report native success
+on noop. Daily browser/profile/clipboard remain untouched.
+
+Package adapter7tests and installer5tests pass, plus reused archive5/install4.
+Launcher candidate16tests pass but activation still HELD: installed nightly and
+owner dated browser map to different profiles. Preserve installed launcher and
+registries until owner closes browser/consents; inactive verified package install
+only. Full runtime regression, package, version, install, docs/commit gates remain.
+
+## October 15 Clipboard Native Build And UI Review Continuation
+
+Latest native build6 uses full mach build -j2, CARGO_BUILD_JOBS2/nice10,
+MOZ_BUILD_DATE20261015235226, same isolated source/obj as below; log
+/tmp/codex/clipboard-20261015/native-build-6.log. Earlier builds preserved:
+build2 wrong TextControlElement include; build3 binaries skipped IDL generation;
+build4 XPIDL rejected raw C++ virtual; build5 required sync-messages.ini entry.
+Current helper is noscript/notxpcom/nostdcall appended after existing4 methods,
+with private generation-check IPC used only for explicit retries. Final main
+snapshot checks the native sequence directly without owner callbacks; proxy
+checks parent; populated snapshot fails closed. Main also guards copy snapshot
+acquisition when Content Analysis might be active and retains a local snapshot
+in the parent IPC handler. These three changes need post-build6 synchronization.
+Existing GetValid unchanged. Stale retry never falls back to newer clipboard.
+Compilation/runtime gates still pending; no installation or parity claim.
+
+Independent UI review found automatic XUL popup changes Escape/pointer-lock
+behavior before consent. Parent informed user and directed dismissed-only
+permission anchor, explicit click opens No/Yes/Always; no shared popup changes.
+UI agent owns this and revocation discovery from current frame principals.
+Frame enumeration is O(current frames), private cleanup O(saved permissions),
+not a fixed-count bound. Actual No/Yes/Always and native-to-actor-to-UI retry tests
+are authored but runtime is pending. Actor false-retry completion is being fixed
+to let UI show a brief explicit-choice failure hint without saving a grant.
+Bridge agent additionally owns new browser_umbrafox_clipboard_safety.js negatives;
+UI owns browser_umbrafox_clipboard_override.js positives/staleness. Parent owns
+manifests and all actual isolated runtime. Never touch daily browser/clipboard.
+Native review still checking lifecycle and private synchronous IPC. DB/bus and
+three agent IDs in next section remain authoritative. Coordinator monitor active.
+
+Prototype packaging adapter in exports/umbrafox-clipboard-20261015/evidence
+reuses the tested archive validator; five source-input and five archive tests
+pass. No package exists yet. Launcher candidate is repo-only, reviewed dated
+staging-name/regular-file bugs now assigned to reviewer for failing-first fixes.
+DO NOT install it yet: metadata inspection found nightly Install301410E7660F9C94
+maps to kvm20oct.default-default-1, while owner dated Install197AAA31A9321E77 maps
+to cjmrhtcu.default-default-2. PID3651740 still runs dated Oct1. User informed
+final launcher/profile mapping switch needs browser closed; no response yet.
+Inactive nightly package install is authorized; active browser/profile/launcher
+must remain untouched until separate close/mapping consent. Do not copy profiles.
+
+## October 15 Clipboard Implementation In Progress
+
+Owner authorized three sub-agents and a tested prototype install afterward;
+do not close/restart the active daily browser. Session clipboard-20261015 DB/bus
+under /tmp/codex/clipboard-20261015. Native agent IDs: UI Galileo
+01a141ee-93c7-7cd0-afad-00400c493027, bridge Descartes
+01a141ee-94df-7d43-9500-c85992fe0c37, reviewer McClintock
+01a141ee-95ad-7182-a038-3027510d7ff1. Shared-tree scoped writes; no staging yet.
+Controller provenance + explicit Document::ExecCommand suspension; native draft
+dom/base/UmbrafoxClipboard.{h,cpp}, hooks nsCopySupport/nsContentUtils/EditorBase
+and nsBaseCommandController. Private observer topics, no new web IDL. Initial
+nsICommandParams factory assumption disproven by native baseline: use existing
+writable hash property bag with decimal innerWindowId, token/op/action and
+accepted=false. UI supports async validate (notice eligibility only) and retry
+(native freshness), stores Always only after accepted retry. One pending native
+request per process, <=30s, single-range replay; no personal clipboard in IPC/JS.
+UI/bridge pure suites16/21 pass; browser/xpcshell tests still pending. Native
+baseline unknown action rejection PASS, canceled real Copy notice RED0vs1.
+Current isolated source/obj ~/.cache/codex/umbrafox-beta-20261012-nYSBPOWS reused,
+native build logs in task scratch. Build1 backend sorted-list error preserved;
+build2 pins actual start BuildID20261015235226, C++/Rust2jobs/nice10. Native draft
+still under review/compilation; reviewer empty copy snapshot flavor and nested
+controller authority fixes are in main and must be resynced after build2 ends.
+No completed clipboard implementation, packaging, installation or default parity
+claim yet. Existing shortcut 25de5d0b remains pushed and preserved.
+
+## October 15 Shortcut Publication And Clipboard Scope
+
+Chrome preset milestone committed/pushed as 25de5d0b584d; origin/main exact SHA
+verified by ls-remote. No package/install or daily-browser activation. Only the
+14 reviewed preset/test/context/report paths were staged; unrelated files left.
+Canonical upstream-differences guide now indexes recipe18 (implemented Chrome
+preset, exact commit/files/tests) and recipe19 (planned clipboard override only).
+README/current-state/changed-files distinguish implemented from planned; update
+recipe19 with actual source/tests/commits when clipboard work lands.
+
+Next owner request: copy/paste protection, with contenteditable editors exempt.
+LATEST DECISION supersedes default-on proposal: retain Firefox default behavior;
+discuss browser-owned per-site No/Yes/Always prompt after cancellation. No blanket
+parity exception authorized. Cancellation is not proof of failure: native copy
+can use replacement DataTransfer data and paste can be manually handled by site.
+OWNER CLARIFICATION: outside contenteditable, defaultPrevented from content on a
+genuine user copy/paste attempt is sufficient to offer the override anyway. No
+intent/success heuristic; legitimate custom handlers may prompt. Propagation stop
+alone must not trigger. No/default dismissal preserves the original result.
+Explicit override may differ, but default observation/prompt must not alter page
+events or steal focus. Safe retry, frame/origin/operation scope, private/container
+isolation and prompt spam remain design gates, not implemented. Plan
+bot-docs/plans/clipboard-protection.md records source map and revised proposal.
+Read-only source inspection and planning only so far;
+no clipboard code/pref/profile/personal clipboard change. Existing clipboardevents
+pref alone misses beforeinput and earlier keyboard cancellation. Inputs/textareas
+are NOT the requested contenteditable exemption. Preserve clipboard permission,
+activation, password/read-only and privileged cancellation safeguards.
+
 ## October 15 Chrome Preset Implemented
 
 Owner approved a partial first pass; full Chrome parity is aspirational and

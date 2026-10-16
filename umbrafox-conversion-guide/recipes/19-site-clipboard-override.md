@@ -12,9 +12,9 @@ cross-platform release acceptance.
 
 Canonical design/source map:
 [clipboard protection plan](../../bot-docs/plans/clipboard-protection.md).
-That plan retains the owner's decisions and superseded proposals. The
-implementation revision is recorded in the export README after committing this
-coherent source/test milestone.
+That plan retains the owner's decisions and superseded proposals. Implementation
+commit: `47e6fdeb78fee3bde3447b348f49244025b0b738`. The export README records the
+separate package provenance and installation receipt.
 
 ## Goal and agreed behavior
 

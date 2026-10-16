@@ -1,0 +1,593 @@
+Skipping test file installation (up to date). Run with --force to force reinstallation.
+Streaming resource usage profile to: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozbuild/logs/test/profile_log_20261015_182759.json
+ 0:00.11 INFO Using harness timeout of 30s (base=30s, factor=1.0)
+ 0:00.11 INFO These variables are available in the mozinfo environment and can be used to skip tests conditionally:
+ 0:00.11 INFO     appname: umbrafox
+ 0:00.11 INFO     artifact: False
+ 0:00.11 INFO     asan: False
+ 0:00.11 INFO     automation: False
+ 0:00.11 INFO     bin_suffix: 
+ 0:00.11 INFO     bits: 64
+ 0:00.11 INFO     buildapp: browser
+ 0:00.11 INFO     buildtype: opt
+ 0:00.11 INFO     buildtype_guess: opt
+ 0:00.11 INFO     cc_type: clang
+ 0:00.11 INFO     ccov: False
+ 0:00.11 INFO     condprof: False
+ 0:00.11 INFO     crashreporter: True
+ 0:00.11 INFO     datareporting: True
+ 0:00.11 INFO     dbus_enabled: True
+ 0:00.11 INFO     debug: False
+ 0:00.11 INFO     devedition: False
+ 0:00.11 INFO     e10s: False
+ 0:00.11 INFO     early_beta_or_earlier: True
+ 0:00.11 INFO     enterprise: False
+ 0:00.11 INFO     fission: True
+ 0:00.11 INFO     healthreport: True
+ 0:00.11 INFO     inc_origin_init: False
+ 0:00.11 INFO     is_ubuntu: False
+ 0:00.11 INFO     isolated_process: False
+ 0:00.11 INFO     mingw: False
+ 0:00.11 INFO     mozconfig: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/.mozconfig
+ 0:00.11 INFO     msix: False
+ 0:00.11 INFO     nightly_build: True
+ 0:00.11 INFO     normandy: True
+ 0:00.11 INFO     official: False
+ 0:00.11 INFO     opt: True
+ 0:00.11 INFO     os: linux
+ 0:00.11 INFO     pgo: False
+ 0:00.11 INFO     platform_guess: linux64
+ 0:00.11 INFO     privateBrowsing: False
+ 0:00.11 INFO     processor: x86_64
+ 0:00.11 INFO     release_or_beta: False
+ 0:00.11 INFO     require_signing: False
+ 0:00.11 INFO     sessionHistoryInParent: True
+ 0:00.11 INFO     socketprocess_networking: False
+ 0:00.11 INFO     stylo: True
+ 0:00.11 INFO     sync: True
+ 0:00.11 INFO     telemetry: False
+ 0:00.11 INFO     tests_enabled: True
+ 0:00.11 INFO     toolkit: gtk
+ 0:00.11 INFO     topobjdir: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj
+ 0:00.11 INFO     topsrcdir: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source
+ 0:00.11 INFO     tsan: False
+ 0:00.11 INFO     ubsan: False
+ 0:00.11 INFO     updater: True
+ 0:00.11 INFO     verify: False
+ 0:00.11 INFO Found node at /home/wyatt/.mozbuild/node/bin/node
+ 0:00.11 INFO mozserve | Found moz-http2 server path: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/xpcshell/moz-http2/moz-http2.js
+ 0:00.11 INFO Found node at /home/wyatt/.mozbuild/node/bin/node
+ 0:00.17 INFO mozserve | moz-http2 server msg: HTTP2 server listening on ports 41217,36681
+
+ 0:00.17 INFO moz-http2 server started on ports 41217, 36681
+ 0:00.18 INFO node moz-http2 [stderr] (node:1134701) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+
+ 0:00.18 INFO node moz-http2 [stderr] (Use `node --trace-deprecation ...` to show where the warning was created)
+
+ 0:00.18 INFO mozserve | Found Http3Server path: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/http3server
+ 0:00.18 INFO mozserve | cert db path: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/netwerk/test/http3serverDB
+ 0:00.18 INFO mozserve | http3 server msg: HTTP3 server listening on ports 60417, 39042, 34900, 44131, 34412 and 52031. EchConfig is @AE3+DQBJBwAgACA+uwbk51YYfDOv1GK+y/YLdtqBhhiHx2Wd/6dUmdpVVAAQAAEAAQABAAMAAgABAAIAA0AOcHVibGljLmV4YW1wbGUAAA==@
+
+ 0:00.81 INFO Running tests sequentially.
+ 0:00.81 SUITE_START: xpcshell - running 2 tests
+ 0:00.81 TEST_START: browser/modules/test/unit/test_SitePermissions.js
+ 0:08.20 mozcrash INFO Copy/paste: /home/wyatt/.mozbuild/minidump-stackwalk/minidump-stackwalk --cyborg=/tmp/4f991d3e-518c-9cf7-f497-c86376661441.json --brief --use-local-debuginfo /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-other-b9m2kbxb/4f991d3e-518c-9cf7-f497-c86376661441.dmp /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/crashreporter-symbols
+ 0:09.98 CRASH: pid:1134758. Process type: main. Test:browser/modules/test/unit/test_SitePermissions.js. Minidump analysed:False. Signature:[@ mozilla::net::CheckForBrokenChromeURL]
+Mozilla crash reason: Missing chrome or resource URLs: resource:///modules/SitePermissions.sys.mjs
+Crash dump filename: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-other-b9m2kbxb/4f991d3e-518c-9cf7-f497-c86376661441.dmp
+Operating system: Linux
+                  7.2.5-3-omarchy #1 SMP PREEMPT_DYNAMIC Mon, 14 Sep 2026 19:55:01 +0000
+CPU: amd64
+     family 23 model 113 stepping 0
+     16 CPUs
+Linux Arch rolling -  (Arch Linux)
+
+Crash reason:  SIGSEGV / SEGV_MAPERR
+Crash address: 0x0000000000000000 **
+    ** Null pointer detected with offset: 0x0000000000000000
+Crashing instruction: `mov qword [rbx], rax`
+Memory accessed by instruction:
+  0. Address: 0x0000000000000000
+     Size: 8
+     Access type: Write
+No instruction pointer update by instruction
+Process uptime: not available
+
+Linux memory map count: 605
+
+Thread 0 xpcshell (crashed) - tid: 1134758
+ 0  libxul.so!MOZ_CrashSequence(void*, long) [Assertions.h : 261]
+    Found by: inlining
+ 1  libxul.so!MOZ_Crash(char const*, int, char const*) [Assertions.h : 402]
+    Found by: inlining
+ 2  libxul.so!mozilla::net::CheckForBrokenChromeURL(nsILoadInfo*, nsIURI*) [nsNetUtil.cpp : 4309 + 0x3bd]
+     rax = 0x00000000000010d5    rdx = 0x000000000000002b
+     rcx = 0x000055ecebfaef70    rbx = 0x0000000000000000
+     rsi = 0x0000779e35b144f9    rdi = 0x00007fff5b75c040
+     rbp = 0x00007fff5b75c5f0    rsp = 0x00007fff5b75c490
+      r8 = 0xffffffffffffffff     r9 = 0x000055ecebf260c8
+     r10 = 0x0000000000000011    r11 = 0x0000000000000002
+     r12 = 0x0003001100000000    r13 = 0x0002002100000017
+     r14 = 0x00007fff5b75c4a8    r15 = 0x0000000000000000
+     rip = 0x0000779e3a28393d
+    Found by: given as instruction pointer in context
+ 3  libxul.so!mozJSModuleLoader::GetScriptForLocation(JSContext*, ModuleLoaderInfo&, nsIFile*, bool, JS::MutableHandle<JSObject*>, char**) [mozJSModuleLoader.cpp : 958 + 0x335]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75c7e0
+     rsp = 0x00007fff5b75c600    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e3abe64b6
+    Found by: call frame info
+ 4  libxul.so!mozJSModuleLoader::LoadSingleModule(mozilla::loader::SyncModuleLoader*, JSContext*, JS::loader::ModuleLoadRequest*, JS::MutableHandle<JSObject*>) [mozJSModuleLoader.cpp : 753 + 0x2ee]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75c950
+     rsp = 0x00007fff5b75c7f0    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e3abe5baf
+    Found by: call frame info
+ 5  libxul.so!mozilla::loader::SyncModuleLoader::StartFetch(JS::loader::ModuleLoadRequest*) [SyncModuleLoader.cpp : 149 + 0xcc]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75ca90
+     rsp = 0x00007fff5b75c960    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e3abf02fd
+    Found by: call frame info
+ 6  libxul.so!JS::loader::ModuleLoaderBase::StartOrRestartModuleLoad(JS::loader::ModuleLoadRequest*, JS::loader::ModuleLoaderBase::RestartRequest) [ModuleLoaderBase.cpp : 612 + 0x131]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75cb30
+     rsp = 0x00007fff5b75caa0    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e3abce012
+    Found by: call frame info
+ 7  libxul.so!JS::loader::ModuleLoadRequest::StartModuleLoad() [ModuleLoadRequest.h : 99]
+    Found by: inlining
+ 8  libxul.so!mozJSModuleLoader::ImportESModule(JSContext*, nsTSubstring<char> const&, JS::MutableHandle<JSObject*>) [mozJSModuleLoader.cpp : 1214 + 0x38a]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75cc60
+     rsp = 0x00007fff5b75cb40    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e3abe748b
+    Found by: call frame info
+ 9  libxul.so!mozilla::dom::ChromeUtils::ImportESModule(mozilla::dom::GlobalObject const&, nsTSubstring<char16_t> const&, mozilla::dom::ImportESModuleOptionsDictionary const&, JS::MutableHandle<JSObject*>, mozilla::ErrorResult&) [ChromeUtils.cpp : 853 + 0x1f6]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75cdc0
+     rsp = 0x00007fff5b75cc70    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e3bb0db77
+    Found by: call frame info
+10  libxul.so!mozilla::dom::ChromeUtils_Binding::importESModule(JSContext*, unsigned int, JS::Value*) [ChromeUtilsBinding.cpp : 4979 + 0x202]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75cf20
+     rsp = 0x00007fff5b75cdd0    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e3c752573
+    Found by: call frame info
+11  libxul.so!CallJSNative(JSContext*, bool (*)(JSContext*, unsigned int, JS::Value*), js::CallReason, JS::CallArgs const&) [Interpreter.cpp : 530]
+    Found by: inlining
+12  libxul.so!js::InternalCallOrConstruct(JSContext*, JS::CallArgs const&, js::MaybeConstruct, js::CallReason) [Interpreter.cpp : 626 + 0x1f4]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75cfc0
+     rsp = 0x00007fff5b75cf30    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e40197fe5
+    Found by: call frame info
+13  libxul.so!InternalCall(JSContext*, js::AnyInvokeArgs const&, js::CallReason) [Interpreter.cpp : 693]
+    Found by: inlining
+14  libxul.so!js::CallFromStack(JSContext*, JS::CallArgs const&, js::CallReason) [Interpreter.cpp : 698]
+    Found by: inlining
+15  libxul.so!js::Interpret(JSContext*, js::RunState&) [Interpreter.cpp : 3280 + 0x741b]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75d340
+     rsp = 0x00007fff5b75cfd0    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e401a1cac
+    Found by: call frame info
+16  libxul.so!MaybeEnterInterpreterTrampoline(JSContext*, js::RunState&) [Interpreter.cpp : 421]
+    Found by: inlining
+17  libxul.so!js::RunScript(JSContext*, js::RunState&) [Interpreter.cpp : 500 + 0x35b]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75d3e0
+     rsp = 0x00007fff5b75d350    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e40197cfc
+    Found by: call frame info
+18  libxul.so!js::ExecuteKernel(JSContext*, JS::Handle<JSScript*>, JS::Handle<JSObject*>, js::AbstractFramePtr, JS::MutableHandle<JS::Value>) [Interpreter.cpp : 890]
+    Found by: inlining
+19  libxul.so!js::Execute(JSContext*, JS::Handle<JSScript*>, JS::Handle<JSObject*>, JS::MutableHandle<JS::Value>) [Interpreter.cpp : 920 + 0x159]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75d450
+     rsp = 0x00007fff5b75d3f0    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e4019917a
+    Found by: call frame info
+20  libxul.so!JS_ExecuteScript(JSContext*, JS::Handle<JSScript*>) [CompilationAndEvaluation.cpp : 568 + 0x7c]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75d4a0
+     rsp = 0x00007fff5b75d460    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e402ecdbd
+    Found by: call frame info
+21  libxul.so!Load(JSContext*, unsigned int, JS::Value*) [XPCShellImpl.cpp : 378 + 0x1ee]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75d590
+     rsp = 0x00007fff5b75d4b0    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e3ac48b2f
+    Found by: call frame info
+22  libxul.so!CallJSNative(JSContext*, bool (*)(JSContext*, unsigned int, JS::Value*), js::CallReason, JS::CallArgs const&) [Interpreter.cpp : 530]
+    Found by: inlining
+23  libxul.so!js::InternalCallOrConstruct(JSContext*, JS::CallArgs const&, js::MaybeConstruct, js::CallReason) [Interpreter.cpp : 626 + 0x1f4]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75d630
+     rsp = 0x00007fff5b75d5a0    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e40197fe5
+    Found by: call frame info
+24  libxul.so!InternalCall(JSContext*, js::AnyInvokeArgs const&, js::CallReason) [Interpreter.cpp : 693]
+    Found by: inlining
+25  libxul.so!js::CallFromStack(JSContext*, JS::CallArgs const&, js::CallReason) [Interpreter.cpp : 698]
+    Found by: inlining
+26  libxul.so!js::Interpret(JSContext*, js::RunState&) [Interpreter.cpp : 3280 + 0x741b]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75d9b0
+     rsp = 0x00007fff5b75d640    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e401a1cac
+    Found by: call frame info
+27  libxul.so!MaybeEnterInterpreterTrampoline(JSContext*, js::RunState&) [Interpreter.cpp : 421]
+    Found by: inlining
+28  libxul.so!js::RunScript(JSContext*, js::RunState&) [Interpreter.cpp : 500 + 0x35b]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75da50
+     rsp = 0x00007fff5b75d9c0    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e40197cfc
+    Found by: call frame info
+29  libxul.so!js::ExecuteKernel(JSContext*, JS::Handle<JSScript*>, JS::Handle<JSObject*>, js::AbstractFramePtr, JS::MutableHandle<JS::Value>) [Interpreter.cpp : 890]
+    Found by: inlining
+30  libxul.so!js::Execute(JSContext*, JS::Handle<JSScript*>, JS::Handle<JSObject*>, JS::MutableHandle<JS::Value>) [Interpreter.cpp : 920 + 0x159]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75dac0
+     rsp = 0x00007fff5b75da60    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e4019917a
+    Found by: call frame info
+31  libxul.so!EvaluateSourceBuffer<mozilla::Utf8Unit>(JSContext*, js::ScopeKind, JS::Handle<JSObject*>, JS::ReadOnlyCompileOptions const&, JS::SourceText<mozilla::Utf8Unit>&, JS::MutableHandle<JS::Value>) [CompilationAndEvaluation.cpp : 608]
+    Found by: inlining
+32  libxul.so!JS::Evaluate(JSContext*, JS::ReadOnlyCompileOptions const&, JS::SourceText<mozilla::Utf8Unit>&, JS::MutableHandle<JS::Value>) [CompilationAndEvaluation.cpp : 616 + 0x265]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75dc60
+     rsp = 0x00007fff5b75dad0    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e402ed1b6
+    Found by: call frame info
+33  libxul.so!ProcessArgs(mozilla::dom::AutoJSAPI&, char**, int, XPCShellDirProvider*) [XPCShellImpl.cpp : 937 + 0x3ba]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75dd80
+     rsp = 0x00007fff5b75dc70    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e3ac37afb
+    Found by: call frame info
+34  libxul.so!XRE_XPCShellMain(int, char**, char**, XREShellData const*) [XPCShellImpl.cpp : 1366 + 0xac4]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75e010
+     rsp = 0x00007fff5b75dd90    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e3ac36965
+    Found by: call frame info
+35  xpcshell!main [xpcshell.cpp : 83 + 0x74]
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75e060
+     rsp = 0x00007fff5b75e020    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x000055ecebf384e5
+    Found by: call frame info
+36  libc.so.6!fun_27700 + 0x80
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75e110
+     rsp = 0x00007fff5b75e070    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e34627781
+    Found by: call frame info
+37  libc.so.6!_libc_start_main + 0x88
+     rbx = 0x0000000000000000    rbp = 0x00007fff5b75e170
+     rsp = 0x00007fff5b75e120    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x0000779e346278b9
+    Found by: call frame info
+38  xpcshell!start + 0x28
+     rbx = 0x0000000000000000    rbp = 0x0000000000000000
+     rsp = 0x00007fff5b75e180    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007fff5b75c4a8
+     r15 = 0x0000000000000000    rip = 0x000055ecebf383a9
+    Found by: call frame info
+
+
+stderr from minidump-stackwalk:
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/923e285e415b1073c8df160bee08820f-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/locale-archive: Unknown file magic
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/f2e43df3287529323e79e7929dc44cc9-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/a9166a13c4a4e072c9ea2dae19ae425f-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/491f45a0a771fef1c10b9b647a97fb82-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/b67b32625a2bb51b023d3814a918f351-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /var/cache/fontconfig/f6b893a7224233d96cb72fd88691c0b4-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/4b31aef11cb0687b6d280d34cbe23592-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /var/cache/fontconfig/7491cb2ac7fc5b2a9d11049a14736625-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/ec9db0aec63b087e87fa5135389d951c-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/061e4bb214a55cfecd58789ba388a75a-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/fd83b6e2c7d8d128fbe98b6df25c9ed4-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/b9978c646b00c63beacdfaeab7e07e72-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_CTYPE: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_NUMERIC: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_TIME: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_COLLATE: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_MONETARY: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_MESSAGES/SYS_LC_MESSAGES: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_PAPER: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_NAME: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_ADDRESS: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/gconv/gconv-modules.cache: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_TELEPHONE: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_MEASUREMENT: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_IDENTIFICATION: Unknown file magic
+[31mERROR[0m failed to parse file kind for /etc/ld.so.cache: Unknown file magic
+
+ 0:09.98 TEST_END: CRASH, expected PASS - Test crashed
+ 0:09.98 INFO >>>>>>> Begin of full log for browser/modules/test/unit/test_SitePermissions.js
+ 0:00.91 INFO "CONSOLE_MESSAGE: (info) No chrome package registered for chrome://branding/locale/brand.properties"
+ 0:00.91 pid:1134758 Full command: ['/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/xpcshell', '-g', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin', '-a', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin', '-m', '-e', 'const _HEAD_JS_PATH = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/xpcshell/head.js";', '-e', 'const _MOZINFO_JS_PATH = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-profile-mr1t22fx/mozinfo.json";', '-e', 'const _PREFS_FILE = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/user.js";', '-e', 'const _TESTING_MODULES_DIR = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/modules/";', '-f', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/xpcshell/head.js', '-e', 'const _HEAD_FILES = [];', '-e', 'const _JSDEBUGGER_PORT = 0;', '-e', 'const _TEST_FILE = ["/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/xpcshell/browser/modules/test/unit/test_SitePermissions.js"];', '-e', 'const _TEST_NAME = "browser/modules/test/unit/test_SitePermissions.js";', '-e', 'const _EXPECTED = "pass";', '-e', '_execute_test(); quit(0);']
+pid:1134758 ExceptionHandler::GenerateDump attempting to generate:\x00/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-other-b9m2kbxb/4f991d3e-518c-9cf7-f497-c86376661441.dmp
+ 0:00.91 pid:1134758 ExceptionHandler::GenerateDump cloned child 1134808
+ 0:00.91 pid:1134758 ExceptionHandler::SendContinueSignalToChild sent continue signal to child
+ 0:00.91 pid:1134758 ExceptionHandler::WaitForContinueSignal waiting for continue signal...
+ 0:01.08 pid:1134758 ExceptionHandler::GenerateDump minidump generation \x00succeeded
+ 0:08.20 pid:1134758 \x00
+ 0:09.98 INFO <<<<<<< End of full log for browser/modules/test/unit/test_SitePermissions.js
+ 0:09.98 TEST_START: browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js
+ 0:12.38 mozcrash INFO Copy/paste: /home/wyatt/.mozbuild/minidump-stackwalk/minidump-stackwalk --cyborg=/tmp/43a950be-84ce-0152-e43d-f32bd9abb262.json --brief --use-local-debuginfo /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-other-k0lgogvf/43a950be-84ce-0152-e43d-f32bd9abb262.dmp /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/crashreporter-symbols
+ 0:13.14 CRASH: pid:1135800. Process type: main. Test:browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js. Minidump analysed:False. Signature:[@ mozilla::net::CheckForBrokenChromeURL]
+Mozilla crash reason: Missing chrome or resource URLs: resource:///modules/UmbrafoxClipboardProtection.sys.mjs
+Crash dump filename: /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-other-k0lgogvf/43a950be-84ce-0152-e43d-f32bd9abb262.dmp
+Operating system: Linux
+                  7.2.5-3-omarchy #1 SMP PREEMPT_DYNAMIC Mon, 14 Sep 2026 19:55:01 +0000
+CPU: amd64
+     family 23 model 113 stepping 0
+     16 CPUs
+Linux Arch rolling -  (Arch Linux)
+
+Crash reason:  SIGSEGV / SEGV_MAPERR
+Crash address: 0x0000000000000000 **
+    ** Null pointer detected with offset: 0x0000000000000000
+Crashing instruction: `mov qword [rbx], rax`
+Memory accessed by instruction:
+  0. Address: 0x0000000000000000
+     Size: 8
+     Access type: Write
+No instruction pointer update by instruction
+Process uptime: not available
+
+Linux memory map count: 609
+
+Thread 0 xpcshell (crashed) - tid: 1135800
+ 0  libxul.so!MOZ_CrashSequence(void*, long) [Assertions.h : 261]
+    Found by: inlining
+ 1  libxul.so!MOZ_Crash(char const*, int, char const*) [Assertions.h : 402]
+    Found by: inlining
+ 2  libxul.so!mozilla::net::CheckForBrokenChromeURL(nsILoadInfo*, nsIURI*) [nsNetUtil.cpp : 4309 + 0x3bd]
+     rax = 0x00000000000010d5    rdx = 0x0000000000000037
+     rcx = 0x00005f0dcf8adf70    rbx = 0x0000000000000000
+     rsi = 0x00007d7e5ef144f9    rdi = 0x00007ffe01439f00
+     rbp = 0x00007ffe0143a4b0    rsp = 0x00007ffe0143a350
+      r8 = 0xffffffffffffffff     r9 = 0x00005f0dcf8250c8
+     r10 = 0x0000000000000011    r11 = 0x0000000000000002
+     r12 = 0x0003001100000000    r13 = 0x0002002100000017
+     r14 = 0x00007ffe0143a368    r15 = 0x0000000000000000
+     rip = 0x00007d7e6368393d
+    Found by: given as instruction pointer in context
+ 3  libxul.so!mozJSModuleLoader::GetScriptForLocation(JSContext*, ModuleLoaderInfo&, nsIFile*, bool, JS::MutableHandle<JSObject*>, char**) [mozJSModuleLoader.cpp : 958 + 0x335]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143a6a0
+     rsp = 0x00007ffe0143a4c0    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e63fe64b6
+    Found by: call frame info
+ 4  libxul.so!mozJSModuleLoader::LoadSingleModule(mozilla::loader::SyncModuleLoader*, JSContext*, JS::loader::ModuleLoadRequest*, JS::MutableHandle<JSObject*>) [mozJSModuleLoader.cpp : 753 + 0x2ee]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143a810
+     rsp = 0x00007ffe0143a6b0    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e63fe5baf
+    Found by: call frame info
+ 5  libxul.so!mozilla::loader::SyncModuleLoader::StartFetch(JS::loader::ModuleLoadRequest*) [SyncModuleLoader.cpp : 149 + 0xcc]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143a950
+     rsp = 0x00007ffe0143a820    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e63ff02fd
+    Found by: call frame info
+ 6  libxul.so!JS::loader::ModuleLoaderBase::StartOrRestartModuleLoad(JS::loader::ModuleLoadRequest*, JS::loader::ModuleLoaderBase::RestartRequest) [ModuleLoaderBase.cpp : 612 + 0x131]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143a9f0
+     rsp = 0x00007ffe0143a960    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e63fce012
+    Found by: call frame info
+ 7  libxul.so!JS::loader::ModuleLoadRequest::StartModuleLoad() [ModuleLoadRequest.h : 99]
+    Found by: inlining
+ 8  libxul.so!mozJSModuleLoader::ImportESModule(JSContext*, nsTSubstring<char> const&, JS::MutableHandle<JSObject*>) [mozJSModuleLoader.cpp : 1214 + 0x38a]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143ab20
+     rsp = 0x00007ffe0143aa00    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e63fe748b
+    Found by: call frame info
+ 9  libxul.so!mozilla::dom::ChromeUtils::ImportESModule(mozilla::dom::GlobalObject const&, nsTSubstring<char16_t> const&, mozilla::dom::ImportESModuleOptionsDictionary const&, JS::MutableHandle<JSObject*>, mozilla::ErrorResult&) [ChromeUtils.cpp : 853 + 0x1f6]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143ac80
+     rsp = 0x00007ffe0143ab30    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e64f0db77
+    Found by: call frame info
+10  libxul.so!mozilla::dom::ChromeUtils_Binding::importESModule(JSContext*, unsigned int, JS::Value*) [ChromeUtilsBinding.cpp : 4979 + 0x202]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143ade0
+     rsp = 0x00007ffe0143ac90    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e65b52573
+    Found by: call frame info
+11  libxul.so!CallJSNative(JSContext*, bool (*)(JSContext*, unsigned int, JS::Value*), js::CallReason, JS::CallArgs const&) [Interpreter.cpp : 530]
+    Found by: inlining
+12  libxul.so!js::InternalCallOrConstruct(JSContext*, JS::CallArgs const&, js::MaybeConstruct, js::CallReason) [Interpreter.cpp : 626 + 0x1f4]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143ae80
+     rsp = 0x00007ffe0143adf0    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e69597fe5
+    Found by: call frame info
+13  libxul.so!InternalCall(JSContext*, js::AnyInvokeArgs const&, js::CallReason) [Interpreter.cpp : 693]
+    Found by: inlining
+14  libxul.so!js::CallFromStack(JSContext*, JS::CallArgs const&, js::CallReason) [Interpreter.cpp : 698]
+    Found by: inlining
+15  libxul.so!js::Interpret(JSContext*, js::RunState&) [Interpreter.cpp : 3280 + 0x741b]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143b200
+     rsp = 0x00007ffe0143ae90    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e695a1cac
+    Found by: call frame info
+16  libxul.so!MaybeEnterInterpreterTrampoline(JSContext*, js::RunState&) [Interpreter.cpp : 421]
+    Found by: inlining
+17  libxul.so!js::RunScript(JSContext*, js::RunState&) [Interpreter.cpp : 500 + 0x35b]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143b2a0
+     rsp = 0x00007ffe0143b210    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e69597cfc
+    Found by: call frame info
+18  libxul.so!js::ExecuteKernel(JSContext*, JS::Handle<JSScript*>, JS::Handle<JSObject*>, js::AbstractFramePtr, JS::MutableHandle<JS::Value>) [Interpreter.cpp : 890]
+    Found by: inlining
+19  libxul.so!js::Execute(JSContext*, JS::Handle<JSScript*>, JS::Handle<JSObject*>, JS::MutableHandle<JS::Value>) [Interpreter.cpp : 920 + 0x159]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143b310
+     rsp = 0x00007ffe0143b2b0    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e6959917a
+    Found by: call frame info
+20  libxul.so!JS_ExecuteScript(JSContext*, JS::Handle<JSScript*>) [CompilationAndEvaluation.cpp : 568 + 0x7c]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143b360
+     rsp = 0x00007ffe0143b320    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e696ecdbd
+    Found by: call frame info
+21  libxul.so!Load(JSContext*, unsigned int, JS::Value*) [XPCShellImpl.cpp : 378 + 0x1ee]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143b450
+     rsp = 0x00007ffe0143b370    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e64048b2f
+    Found by: call frame info
+22  libxul.so!CallJSNative(JSContext*, bool (*)(JSContext*, unsigned int, JS::Value*), js::CallReason, JS::CallArgs const&) [Interpreter.cpp : 530]
+    Found by: inlining
+23  libxul.so!js::InternalCallOrConstruct(JSContext*, JS::CallArgs const&, js::MaybeConstruct, js::CallReason) [Interpreter.cpp : 626 + 0x1f4]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143b4f0
+     rsp = 0x00007ffe0143b460    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e69597fe5
+    Found by: call frame info
+24  libxul.so!InternalCall(JSContext*, js::AnyInvokeArgs const&, js::CallReason) [Interpreter.cpp : 693]
+    Found by: inlining
+25  libxul.so!js::CallFromStack(JSContext*, JS::CallArgs const&, js::CallReason) [Interpreter.cpp : 698]
+    Found by: inlining
+26  libxul.so!js::Interpret(JSContext*, js::RunState&) [Interpreter.cpp : 3280 + 0x741b]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143b870
+     rsp = 0x00007ffe0143b500    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e695a1cac
+    Found by: call frame info
+27  libxul.so!MaybeEnterInterpreterTrampoline(JSContext*, js::RunState&) [Interpreter.cpp : 421]
+    Found by: inlining
+28  libxul.so!js::RunScript(JSContext*, js::RunState&) [Interpreter.cpp : 500 + 0x35b]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143b910
+     rsp = 0x00007ffe0143b880    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e69597cfc
+    Found by: call frame info
+29  libxul.so!js::ExecuteKernel(JSContext*, JS::Handle<JSScript*>, JS::Handle<JSObject*>, js::AbstractFramePtr, JS::MutableHandle<JS::Value>) [Interpreter.cpp : 890]
+    Found by: inlining
+30  libxul.so!js::Execute(JSContext*, JS::Handle<JSScript*>, JS::Handle<JSObject*>, JS::MutableHandle<JS::Value>) [Interpreter.cpp : 920 + 0x159]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143b980
+     rsp = 0x00007ffe0143b920    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e6959917a
+    Found by: call frame info
+31  libxul.so!EvaluateSourceBuffer<mozilla::Utf8Unit>(JSContext*, js::ScopeKind, JS::Handle<JSObject*>, JS::ReadOnlyCompileOptions const&, JS::SourceText<mozilla::Utf8Unit>&, JS::MutableHandle<JS::Value>) [CompilationAndEvaluation.cpp : 608]
+    Found by: inlining
+32  libxul.so!JS::Evaluate(JSContext*, JS::ReadOnlyCompileOptions const&, JS::SourceText<mozilla::Utf8Unit>&, JS::MutableHandle<JS::Value>) [CompilationAndEvaluation.cpp : 616 + 0x265]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143bb20
+     rsp = 0x00007ffe0143b990    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e696ed1b6
+    Found by: call frame info
+33  libxul.so!ProcessArgs(mozilla::dom::AutoJSAPI&, char**, int, XPCShellDirProvider*) [XPCShellImpl.cpp : 937 + 0x3ba]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143bc40
+     rsp = 0x00007ffe0143bb30    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e64037afb
+    Found by: call frame info
+34  libxul.so!XRE_XPCShellMain(int, char**, char**, XREShellData const*) [XPCShellImpl.cpp : 1366 + 0xac4]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143bed0
+     rsp = 0x00007ffe0143bc50    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e64036965
+    Found by: call frame info
+35  xpcshell!main [xpcshell.cpp : 83 + 0x74]
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143bf20
+     rsp = 0x00007ffe0143bee0    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00005f0dcf8374e5
+    Found by: call frame info
+36  libc.so.6!fun_27700 + 0x80
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143bfd0
+     rsp = 0x00007ffe0143bf30    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e5da27781
+    Found by: call frame info
+37  libc.so.6!_libc_start_main + 0x88
+     rbx = 0x0000000000000000    rbp = 0x00007ffe0143c030
+     rsp = 0x00007ffe0143bfe0    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00007d7e5da278b9
+    Found by: call frame info
+38  xpcshell!start + 0x28
+     rbx = 0x0000000000000000    rbp = 0x0000000000000000
+     rsp = 0x00007ffe0143c040    r12 = 0x0003001100000000
+     r13 = 0x0002002100000017    r14 = 0x00007ffe0143a368
+     r15 = 0x0000000000000000    rip = 0x00005f0dcf8373a9
+    Found by: call frame info
+
+
+stderr from minidump-stackwalk:
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/923e285e415b1073c8df160bee08820f-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/locale-archive: Unknown file magic
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/f2e43df3287529323e79e7929dc44cc9-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/a9166a13c4a4e072c9ea2dae19ae425f-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/491f45a0a771fef1c10b9b647a97fb82-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/b67b32625a2bb51b023d3814a918f351-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /var/cache/fontconfig/f6b893a7224233d96cb72fd88691c0b4-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/4b31aef11cb0687b6d280d34cbe23592-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /var/cache/fontconfig/7491cb2ac7fc5b2a9d11049a14736625-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/ec9db0aec63b087e87fa5135389d951c-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/061e4bb214a55cfecd58789ba388a75a-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/fd83b6e2c7d8d128fbe98b6df25c9ed4-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /home/wyatt/.cache/fontconfig/b9978c646b00c63beacdfaeab7e07e72-le64.cache-12: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_CTYPE: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_NUMERIC: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_TIME: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_COLLATE: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_MONETARY: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_MESSAGES/SYS_LC_MESSAGES: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_PAPER: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_NAME: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_ADDRESS: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_TELEPHONE: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/gconv/gconv-modules.cache: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_MEASUREMENT: Unknown file magic
+[31mERROR[0m failed to parse file kind for /usr/lib/locale/C.utf8/LC_IDENTIFICATION: Unknown file magic
+[31mERROR[0m failed to parse file kind for /etc/ld.so.cache: Unknown file magic
+
+ 0:13.14 TEST_END: CRASH, expected PASS - Test crashed
+ 0:13.14 INFO >>>>>>> Begin of full log for browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js
+ 0:10.07 INFO "CONSOLE_MESSAGE: (info) No chrome package registered for chrome://branding/locale/brand.properties"
+ 0:10.07 pid:1135800 Full command: ['/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin/xpcshell', '-g', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin', '-a', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/dist/bin', '-m', '-e', 'const _HEAD_JS_PATH = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/xpcshell/head.js";', '-e', 'const _MOZINFO_JS_PATH = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-profile-khryg07z/mozinfo.json";', '-e', 'const _PREFS_FILE = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/user.js";', '-e', 'const _TESTING_MODULES_DIR = "/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/modules/";', '-f', '/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/source/testing/xpcshell/head.js', '-e', 'const _HEAD_FILES = [];', '-e', 'const _JSDEBUGGER_PORT = 0;', '-e', 'const _TEST_FILE = ["/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/_tests/xpcshell/browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js"];', '-e', 'const _TEST_NAME = "browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js";', '-e', 'const _EXPECTED = "pass";', '-e', '_execute_test(); quit(0);']
+pid:1135800 ExceptionHandler::GenerateDump attempting to generate:\x00/home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/obj/temp/xpc-other-k0lgogvf/43a950be-84ce-0152-e43d-f32bd9abb262.dmp
+ 0:10.08 pid:1135800 ExceptionHandler::GenerateDump cloned child 1135845
+ 0:10.08 pid:1135800 ExceptionHandler::SendContinueSignalToChild sent continue signal to child
+ 0:10.08 pid:1135800 ExceptionHandler::WaitForContinueSignal waiting for continue signal...
+ 0:10.23 pid:1135800 ExceptionHandler::GenerateDump minidump generation \x00succeeded
+ 0:12.37 pid:1135800 \x00
+ 0:13.14 INFO <<<<<<< End of full log for browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js
+ 0:13.14 INFO INFO | Result summary:
+ 0:13.14 INFO INFO | Passed: 0
+ 0:13.14 INFO INFO | Failed: 2
+ 0:13.14 INFO INFO | Todo: 0
+ 0:13.14 INFO INFO | Retried: 0
+ 0:13.14 SUITE_END
+
+xpcshell
+~~~~~~~~
+Ran 2 checks (2 tests)
+Expected results: 0
+Unexpected results: 2
+  test: 2 (2 crash)
+
+Error Summary
+-------------
+CRASH browser/modules/test/unit/test_SitePermissions.js - Test crashed
+CRASH browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js - Test crashed
+ 0:13.14 INFO http3Server server shutting down ...
