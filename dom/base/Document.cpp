@@ -32,6 +32,7 @@
 #include "SharedLcpMarkerState.h"
 #include "StorageAccessPermissionRequest.h"
 #include "ThirdPartyUtil.h"
+#include "UmbrafoxClipboard.h"
 #include "domstubs.h"
 #include "gfxPlatform.h"
 #include "imgIContainer.h"
@@ -5927,6 +5928,7 @@ static bool IsExecCommandPasteAllowed(Document* aDocument,
 bool Document::ExecCommand(const nsAString& aHTMLCommandName, bool aShowUI,
                            const TrustedHTMLOrString& aValue,
                            nsIPrincipal& aSubjectPrincipal, ErrorResult& aRv) {
+  AutoSuspendClipboardCommand suspendClipboardCommand;
   // Only allow on HTML documents.
   if (!IsHTMLOrXHTML()) {
     aRv.ThrowInvalidStateError(

@@ -663,6 +663,19 @@ let JSWINDOWACTORS = {
     safeForUntrustedWebProcess: true,
   },
 
+  UmbrafoxClipboard: {
+    parent: {
+      esModuleURI: "moz-src:///toolkit/actors/UmbrafoxClipboardParent.sys.mjs",
+    },
+    child: {
+      esModuleURI: "moz-src:///toolkit/actors/UmbrafoxClipboardChild.sys.mjs",
+      observers: ["umbrafox-clipboard-canceled"],
+    },
+    messageManagerGroups: ["browsers"],
+    allFrames: true,
+    safeForUntrustedWebProcess: true,
+  },
+
   UmbrafoxUserland: {
     parent: {
       esModuleURI: "moz-src:///toolkit/actors/UmbrafoxUserlandParent.sys.mjs",

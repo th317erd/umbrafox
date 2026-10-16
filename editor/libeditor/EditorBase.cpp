@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "EditorBase.h"
+#include "UmbrafoxClipboard.h"
 
 #include <stdio.h>   // for nullptr, stdout
 #include <string.h>  // for strcmp
@@ -7701,6 +7702,7 @@ nsresult EditorBase::AutoEditActionDataSetter::MaybeDispatchBeforeInputEvent(
   status = nsEventStatus_eIgnore;
   rv = AsyncEventDispatcher::RunDOMEventWhenSafe(*targetElement, textEvent,
                                                  &status);
+  AutoClipboardCommand::AfterEvent(*targetElement, textEvent, status);
   if (NS_WARN_IF(mEditorBase.Destroyed())) {
     return NS_ERROR_EDITOR_DESTROYED;
   }
@@ -8127,7 +8129,8 @@ nsresult EditorBase::GetDataFromDataTransferOrClipboard(
       return NS_OK;
     }();
     // If the operation failed, only fall back to the clipboard if indicated.
-    if (NS_SUCCEEDED(rv) || !readFromClipboard) {
+    if (NS_SUCCEEDED(rv) || !readFromClipboard ||
+        AutoClipboardCommand::IsRetryingPaste()) {
       return rv;
     }
   }

@@ -2,6 +2,62 @@
 
 This inventory was generated from the current working tree when the guide was written. It should be refreshed when the conversion is committed or expanded.
 
+## Chrome-style Linux shortcut preset
+
+Implemented in `25de5d0b584d`; see
+[recipe 18](../recipes/18-chrome-shortcut-preset.md). Defaults remain Firefox's.
+
+- `browser/components/customkeys/CustomKeys.sys.mjs`
+- `browser/components/customkeys/CustomKeysParent.sys.mjs`
+- `browser/components/customkeys/content/customkeys-sidebar.mjs`
+- `browser/components/customkeys/content/customkeys.js`
+- `browser/components/customkeys/tests/browser/browser.toml`
+- `browser/components/customkeys/tests/browser/browser_ChromePreset.js`
+- `browser/locales/en-US/browser/customkeys.ftl`
+- `toolkit/modules/RemotePageAccessManager.sys.mjs`
+- `tools/umbrafox/tests/keyboard/preset-spec.mjs`
+
+## Clipboard override prototype
+
+[Recipe 19](../recipes/19-site-clipboard-override.md) records the compiled and
+Linux integration-tested implementation, defaults, explicit differences and
+remaining platform/route limits.
+
+- `dom/base/UmbrafoxClipboard.h`
+- `dom/base/UmbrafoxClipboard.cpp`
+- `dom/base/Document.cpp`
+- `dom/base/nsCopySupport.cpp`
+- `dom/base/nsContentUtils.cpp`
+- `dom/base/moz.build`
+- `dom/commandhandler/nsBaseCommandController.cpp`
+- `editor/libeditor/EditorBase.cpp`
+- `widget/nsIClipboard.idl`
+- `widget/nsBaseClipboard.cpp`
+- `widget/nsClipboardProxy.cpp`
+- `widget/PClipboardReadRequest.ipdl`
+- `widget/ClipboardReadRequestParent.h`
+- `widget/ClipboardReadRequestParent.cpp`
+- `ipc/ipdl/sync-messages.ini`
+- `toolkit/actors/UmbrafoxClipboardChild.sys.mjs`
+- `toolkit/actors/UmbrafoxClipboardParent.sys.mjs`
+- `toolkit/actors/moz.build`
+- `toolkit/actors/tests/test_umbrafox_clipboard_bridge.mjs`
+- `toolkit/modules/ActorManagerParent.sys.mjs`
+- `browser/modules/UmbrafoxClipboardProtection.sys.mjs`
+- `browser/modules/SitePermissions.sys.mjs`
+- `browser/modules/moz.build`
+- `browser/locales/en-US/browser/sitePermissions.ftl`
+- `browser/locales/en-US/browser/confirmationHints.ftl`
+- `browser/modules/test/browser/browser_UmbrafoxClipboardProtection.js`
+- `browser/modules/test/browser/browser.toml`
+- `browser/modules/test/unit/test_UmbrafoxClipboardPermissions.js`
+- `browser/modules/test/unit/test_UmbrafoxClipboardProtection.mjs`
+- `browser/modules/test/unit/xpcshell.toml`
+- `dom/events/test/clipboard/browser_umbrafox_clipboard.js`
+- `dom/events/test/clipboard/browser_umbrafox_clipboard_override.js`
+- `dom/events/test/clipboard/browser_umbrafox_clipboard_safety.js`
+- `dom/events/test/clipboard/browser.toml`
+
 ## Core app identity and startup/default prefs
 
 - `browser/app/profile/firefox.js`

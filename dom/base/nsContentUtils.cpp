@@ -29,6 +29,7 @@
 #include "ReferrerInfo.h"
 #include "ScopedNSSTypes.h"
 #include "ThirdPartyUtil.h"
+#include "UmbrafoxClipboard.h"
 #include "Units.h"
 #include "chrome/common/ipc_message.h"
 #include "gfxDrawable.h"
@@ -6512,8 +6513,13 @@ nsresult nsContentUtils::DispatchInputEvent(
            YesOrNo(nsContentUtils::IsSafeToRunScript()),
            ToString(inputEvent.mInputType).c_str(), aEditorBase,
            ToString(RefPtr{aEventTargetElement}).c_str()));
-  return AsyncEventDispatcher::RunDOMEventWhenSafe(*aEventTargetElement,
-                                                   inputEvent, aEventStatus);
+  nsresult rv = AsyncEventDispatcher::RunDOMEventWhenSafe(
+      *aEventTargetElement, inputEvent, aEventStatus);
+  if (aEventStatus && aEventMessage == eEditorBeforeInput) {
+    AutoClipboardCommand::AfterEvent(*aEventTargetElement, inputEvent,
+                                     *aEventStatus);
+  }
+  return rv;
 }
 
 nsresult nsContentUtils::DispatchChromeEvent(

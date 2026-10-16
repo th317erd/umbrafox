@@ -4,6 +4,7 @@
 
 #include "nsCopySupport.h"
 
+#include "UmbrafoxClipboard.h"
 #include "imgIContainer.h"
 #include "imgIRequest.h"
 #include "mozilla/ScopeExit.h"
@@ -860,6 +861,11 @@ bool nsCopySupport::FireClipboardEvent(
     InternalClipboardEvent evt(true, originalEventMessage);
     evt.mClipboardData = clipboardData;
 
+    if (sel) {
+      AutoClipboardCommand::BeforeClipboardEvent(
+          *targetElement, *sel, clipboardData, originalEventMessage);
+    }
+
     {
       AutoHandlingPasteEvent autoHandlingPasteEvent(
           nsGlobalWindowInner::Cast(doc->GetInnerWindow()), clipboardData,
@@ -869,6 +875,8 @@ bool nsCopySupport::FireClipboardEvent(
       EventDispatcher::Dispatch(targetElement, presContext, &evt, nullptr,
                                 &status);
     }
+
+    AutoClipboardCommand::AfterEvent(*targetElement, evt, status);
 
     // If the event was cancelled, don't do the clipboard operation
     doDefault = (status != nsEventStatus_eConsumeNoDefault);
@@ -906,6 +914,10 @@ bool nsCopySupport::FireClipboardEvent(
   // see bug 602231.
   presShell->FlushPendingNotifications(FlushType::Frames);
   if (presShell->IsDestroying()) {
+    return false;
+  }
+
+  if (!AutoClipboardCommand::CanContinueCopy()) {
     return false;
   }
 

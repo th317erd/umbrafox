@@ -13,3 +13,20 @@ site-permissions-open-blocked-popups =
 
 # This string is used to display the option to unblock a third-party redirect.
 site-permissions-unblock-redirect = Unblock third-party redirect…
+
+umbrafox-clipboard-copy-prompt = This site canceled the browser's standard copy. Copy using the browser instead? This override may change how the site works.
+umbrafox-clipboard-paste-prompt = This site canceled the browser's standard paste. Paste using the browser instead? This override may change how the site works.
+umbrafox-clipboard-no =
+    .label = No
+    .accesskey = N
+umbrafox-clipboard-yes =
+    .label = Yes
+    .accesskey = Y
+umbrafox-clipboard-always =
+    .label = Always
+    .accesskey = A
+
+# Variables:
+#   $origin (String) - The requesting site's origin, including scheme and port.
+umbrafox-clipboard-copy-permission = Override canceled copy ({ $origin })
+umbrafox-clipboard-paste-permission = Override canceled paste ({ $origin })

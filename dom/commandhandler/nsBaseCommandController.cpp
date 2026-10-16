@@ -4,6 +4,7 @@
 
 #include "nsBaseCommandController.h"
 
+#include "UmbrafoxClipboard.h"
 #include "mozilla/ControllerCommand.h"
 #include "nsControllerCommandTable.h"
 #include "nsIWeakReferenceUtils.h"
@@ -51,6 +52,7 @@ nsBaseCommandController::DoCommand(const char* aCommand) {
   RefPtr<nsControllerCommandTable> table = mCommandTable;
   nsDependentCString command(aCommand);
   if (RefPtr handler = table->FindCommandHandler(command)) {
+    mozilla::AutoClipboardCommand clipboardCommand(command);
     return handler->DoCommand(command, nullptr, context);
   }
   return NS_OK;
@@ -66,6 +68,7 @@ nsBaseCommandController::DoCommandWithParams(const char* aCommand,
   RefPtr<nsControllerCommandTable> table = mCommandTable;
   nsDependentCString command(aCommand);
   if (RefPtr handler = table->FindCommandHandler(command)) {
+    mozilla::AutoClipboardCommand clipboardCommand(command);
     handler->DoCommand(command, aParams, context);
   }
   return NS_OK;

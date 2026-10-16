@@ -109,3 +109,9 @@ skip-if = [
 
 ["browser_navigator_clipboard_touch.js"]
 support-files = ["simple_navigator_clipboard_readText.html"]
+
+["browser_umbrafox_clipboard.js"]
+
+["browser_umbrafox_clipboard_override.js"]
+
+["browser_umbrafox_clipboard_safety.js"]

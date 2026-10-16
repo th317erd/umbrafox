@@ -47,10 +47,20 @@ When new Firefox source arrives:
    - `recipes/15-umbralink-diagnostics.md`
    - `recipes/16-linux-dmabuf-video-canvas-readback.md`
    - `recipes/17-performance-engineering.md`
+   - `recipes/18-chrome-shortcut-preset.md`
+   - `recipes/19-site-clipboard-override.md`
 7. Use `reference/changed-files.md` as the file-level checklist.
 8. Use `reference/known-gotchas.md` before deciding a rebase is done.
 9. Use `reference/web-identity-leak-log.md` to preserve every web-visible
    identity leak fix and its verification command.
+
+## Clipboard Prototype
+
+- [Site clipboard override](recipes/19-site-clipboard-override.md) is compiled
+  and integration-tested on Linux. Preserve the dismissed initial indicator,
+  Firefox defaults and exact safe-retry/grant boundaries. Packaging and daily
+  profile activation are separate from source acceptance; consult its report
+  and installation receipt. Cross-platform release acceptance is not claimed.
 
 ## Mandatory rules
 

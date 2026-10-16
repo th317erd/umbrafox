@@ -4,6 +4,23 @@
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  UmbrafoxClipboardProtection:
+    "resource:///modules/UmbrafoxClipboardProtection.sys.mjs",
+});
+ChromeUtils.defineLazyGetter(
+  lazy,
+  "clipboardL10n",
+  () => new Localization(["browser/sitePermissions.ftl"], true)
+);
+
+function isClipboardPermission(permissionID) {
+  return ["umbrafox-clipboard-copy", "umbrafox-clipboard-paste"].includes(
+    permissionID.split("^")[0]
+  );
+}
+
 var gStringBundle = Services.strings.createBundle(
   "chrome://browser/locale/sitePermissions.properties"
 );
@@ -190,6 +207,12 @@ export var SitePermissions = {
           return false;
         }
         let type = entry.id;
+        if (
+          isClipboardPermission(type) &&
+          permission.type !== `${type}^${encodeURIComponent(principal.origin)}`
+        ) {
+          return false;
+        }
 
         /* Hide persistent storage permission when extension principal
          * have WebExtensions-unlimitedStorage permission. */
@@ -261,6 +284,12 @@ export var SitePermissions = {
     }
 
     for (let permission of this.getAllByPrincipal(browser.contentPrincipal)) {
+      permissions[permission.id] = permission;
+    }
+
+    for (let permission of lazy.UmbrafoxClipboardProtection.getGrantsForBrowser(
+      browser
+    )) {
       permissions[permission.id] = permission;
     }
 
@@ -464,6 +493,12 @@ export var SitePermissions = {
     }
     let defaultState = this.getDefault(permissionID);
     let result = { state: defaultState, scope: this.SCOPE_PERSISTENT };
+    if (
+      isClipboardPermission(permissionID) &&
+      permissionID.split("^")[1] !== encodeURIComponent(principal?.origin)
+    ) {
+      return result;
+    }
     if (this.isSupportedPrincipal(principal)) {
       let permission = null;
       if (
@@ -638,6 +673,19 @@ export var SitePermissions = {
         "Atleast one of the arguments, either principal or browser should not be null."
       );
     }
+    if (isClipboardPermission(permissionID)) {
+      const grantPrincipal =
+        lazy.UmbrafoxClipboardProtection.getGrantPrincipal(permissionID);
+      if (grantPrincipal) {
+        Services.perms.removeFromPrincipal(grantPrincipal, permissionID);
+        if (browser?.documentGlobal) {
+          browser.dispatchEvent(
+            new browser.documentGlobal.CustomEvent("PermissionStateChange")
+          );
+        }
+      }
+      return;
+    }
     if (this.isSupportedPrincipal(principal)) {
       Services.perms.removeFromPrincipal(principal, permissionID);
     }
@@ -705,6 +753,16 @@ export var SitePermissions = {
     if (!gPermissions.has(id)) {
       // Permission can't be found.
       return null;
+    }
+    if (isClipboardPermission(id)) {
+      const principal =
+        lazy.UmbrafoxClipboardProtection.getGrantPrincipal(permissionID);
+      if (!principal) {
+        return null;
+      }
+      return lazy.clipboardL10n.formatValueSync(`${id}-permission`, {
+        origin: principal.originNoSuffix,
+      });
     }
     if (
       "labelID" in gPermissions.get(id) &&
@@ -835,7 +893,8 @@ let gPermissions = {
 
   getEnabledPermissions() {
     return Object.keys(this._permissions).filter(
-      id => !this._permissions[id].disabled
+      id =>
+        !this._permissions[id].disabled && !this._permissions[id].browserOnly
     );
   },
 
@@ -860,10 +919,31 @@ let gPermissions = {
    *    Array of permission states to be exposed to the user.
    *    Defaults to ALLOW, BLOCK and the default state (see getDefault).
    *
+   *  - browserOnly
+   *    Excludes internal, request-keyed controls from Page Info's generic editor.
+   *
    *  - getMultichoiceStateLabel
    *    Optional method to overwrite SitePermissions#getMultichoiceStateLabel with custom label logic.
    */
   _permissions: {
+    "umbrafox-clipboard-copy": {
+      exactHostMatch: true,
+      browserOnly: true,
+      getDefault() {
+        return SitePermissions.UNKNOWN;
+      },
+      states: [SitePermissions.UNKNOWN, SitePermissions.ALLOW],
+    },
+
+    "umbrafox-clipboard-paste": {
+      exactHostMatch: true,
+      browserOnly: true,
+      getDefault() {
+        return SitePermissions.UNKNOWN;
+      },
+      states: [SitePermissions.UNKNOWN, SitePermissions.ALLOW],
+    },
+
     "autoplay-media": {
       exactHostMatch: true,
       getDefault() {

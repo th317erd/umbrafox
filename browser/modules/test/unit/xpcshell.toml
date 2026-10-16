@@ -4,6 +4,7 @@ run-if = [
 ]
 head =  ''
 firefox-appdir = "browser"
+umbrafox-appdir = "browser"
 tags = "os_integration"
 
 ["test_ContextId_LegacyBackend.js"]
@@ -63,6 +64,8 @@ run-if = [
 ["test_SitePermissions_temporary.js"]
 
 ["test_TabUnloader.js"]
+
+["test_UmbrafoxClipboardPermissions.js"]
 
 ["test_UpdatePolicyEnforcer.js"]
 head =  "../../../../toolkit/components/enterprisepolicies/tests/xpcshell/head.js"

@@ -16,6 +16,7 @@ sync protocol PClipboardReadRequest {
   manager PContent;
 
  parent:
+  sync CheckClipboardOverrideValidity() returns (bool valid);
   async GetData(nsCString[] aFlavors) returns (IPCTransferableDataOrError aTransferableData);
   sync GetDataSync(nsCString[] aFlavors) returns (IPCTransferableDataOrError aTransferableData);
 

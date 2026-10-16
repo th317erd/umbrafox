@@ -62,6 +62,8 @@ support-files = [
 
 ["browser_UIDensityTelemetry.js"]
 
+["browser_UmbrafoxClipboardProtection.js"]
+
 ["browser_URILoadingHelper_chromeless.js"]
 
 ["browser_UnsubmittedCrashHandler.js"]

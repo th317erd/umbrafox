@@ -131,6 +131,7 @@ EXPORTS.mozilla += [
     "SelectionChangeEventDispatcher.h",
     "SourceLocation.h",
     "TextInputProcessor.h",
+    "UmbrafoxClipboard.h",
     "UseCounter.h",
 ]
 
@@ -513,6 +514,7 @@ UNIFIED_SOURCES += [
     "TimeoutManager.cpp",
     "TreeWalker.cpp",
     "UIDirectionManager.cpp",
+    "UmbrafoxClipboard.cpp",
     "UmbrafoxUserlandMutation.cpp",
     "UserActivation.cpp",
     "ViewportMetaData.cpp",

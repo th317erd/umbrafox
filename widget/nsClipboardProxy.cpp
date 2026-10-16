@@ -251,6 +251,12 @@ class ClipboardDataSnapshotProxy final : public nsIClipboardDataSnapshot {
 
 NS_IMPL_ISUPPORTS(ClipboardDataSnapshotProxy, nsIClipboardDataSnapshot)
 
+bool ClipboardDataSnapshotProxy::IsCurrentForClipboardOverride() {
+  bool valid = false;
+  return mActor->CanSend() &&
+         mActor->SendCheckClipboardOverrideValidity(&valid) && valid;
+}
+
 NS_IMETHODIMP ClipboardDataSnapshotProxy::GetValid(bool* aOutResult) {
   MOZ_ASSERT(mActor);
   *aOutResult = mActor->CanSend();

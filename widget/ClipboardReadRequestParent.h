@@ -23,6 +23,7 @@ class ClipboardReadRequestParent final : public PClipboardReadRequestParent {
   NS_INLINE_DECL_REFCOUNTING(ClipboardReadRequestParent, override)
 
   // PClipboardReadRequestParent
+  IPCResult RecvCheckClipboardOverrideValidity(bool* aValid);
   IPCResult RecvGetData(const nsTArray<nsCString>& aFlavors,
                         GetDataResolver&& aResolver);
   IPCResult RecvGetDataSync(

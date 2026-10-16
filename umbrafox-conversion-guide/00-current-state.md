@@ -23,6 +23,28 @@ Umbrafox currently changes Firefox in these broad ways:
 15. Browser chrome panels ignore ordinary keydown events, survive GTK native focus-out caused by non-Escape keyboard shortcuts, and close from keyboard input only on Escape keyup, so extension and permission panels remain usable while typing.
 16. The app menu exposes a browser-chrome-only "UmbraLink" toggle for the local `umbrafox-control` WebSocket service; the service still does not require Marionette, WebDriver BiDi, or Remote Agent.
 17. Inline tab mute buttons/click targets are not created in the tab strip. Tab audio state remains intact, and tab muting remains available from the tab context menu and keyboard shortcut.
+18. Linux `about:keyboard` offers an explicit Chrome-style shortcut preset via
+    the existing CustomKeys store. Firefox defaults remain unchanged until
+    opt-in. Implemented in `25de5d0b584d`; see
+    [recipe 18](recipes/18-chrome-shortcut-preset.md) for exact scope and tests.
+
+## Clipboard override prototype, October 15, 2026
+
+The owner approved the policy of offering No / Yes / Always when a website
+cancels a genuine user copy/paste attempt outside contenteditable. Propagation
+stopping alone does not trigger it. Without an explicit override, Firefox's
+normal behavior remains. The earlier default-on proposal was withdrawn.
+
+Native, actor and permission UI now pass the Linux integrated gate: 808 browser
+assertions, 668 existing snapshot assertions, 148 permission-storage assertions
+and 51 pure UI/actor tests. The initial notice is a dismissed indicator; explicit
+click opens choices. Always saves only after safe native success, with exact
+origin/operation/attributes and standard revocation including reloaded frames.
+Preserve the source map, rebase checks and limits in
+[recipe 19](recipes/19-site-clipboard-override.md). Do not flip the global
+clipboard-events preference. Prototype installation and profile activation are
+separate: the current daily browser must not be interrupted, and its profile
+mapping must be preserved. See the export's receipt for actual installation state.
 
 ## Userland scripts state
 

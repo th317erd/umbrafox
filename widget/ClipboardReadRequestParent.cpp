@@ -68,6 +68,13 @@ static Result<nsCOMPtr<nsITransferable>, nsresult> CreateTransferable(
 
 }  // namespace
 
+IPCResult ClipboardReadRequestParent::RecvCheckClipboardOverrideValidity(
+    bool* aValid) {
+  nsCOMPtr snapshot = mClipboardDataSnapshot;
+  *aValid = snapshot && snapshot->IsCurrentForClipboardOverride();
+  return IPC_OK();
+}
+
 IPCResult ClipboardReadRequestParent::RecvGetData(
     const nsTArray<nsCString>& aFlavors, GetDataResolver&& aResolver) {
   bool valid = false;

@@ -144,6 +144,7 @@ EXTRA_JS_MODULES += [
     "SiteDataManager.sys.mjs",
     "SitePermissions.sys.mjs",
     "TransientPrefs.sys.mjs",
+    "UmbrafoxClipboardProtection.sys.mjs",
     "UpdatePolicyEnforcer.sys.mjs",
     "URILoadingHelper.sys.mjs",
     "webrtcUI.sys.mjs",

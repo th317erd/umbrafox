@@ -1418,6 +1418,14 @@ nsresult nsBaseClipboard::SanitizeForClipboard(nsITransferable* aTransferable) {
 NS_IMPL_ISUPPORTS(nsBaseClipboard::ClipboardDataSnapshot,
                   nsIClipboardDataSnapshot)
 
+bool nsBaseClipboard::ClipboardDataSnapshot::IsCurrentForClipboardOverride() {
+  if (!mClipboard) {
+    return false;
+  }
+  auto sequence = mClipboard->GetNativeClipboardSequenceNumber(mClipboardType);
+  return sequence.isOk() && sequence.unwrap() == mSequenceNumber;
+}
+
 nsBaseClipboard::ClipboardDataSnapshot::ClipboardDataSnapshot(
     nsIClipboard::ClipboardType aClipboardType, int32_t aSequenceNumber,
     nsTArray<nsCString>&& aFlavors, bool aFromCache,
@@ -1696,6 +1704,11 @@ void nsBaseClipboard::ClipboardDataSnapshot::GetDataInternal(
 
 NS_IMPL_ISUPPORTS(nsBaseClipboard::ClipboardPopulatedDataSnapshot,
                   nsIClipboardDataSnapshot)
+
+bool nsBaseClipboard::ClipboardPopulatedDataSnapshot::
+    IsCurrentForClipboardOverride() {
+  return false;
+}
 
 nsBaseClipboard::ClipboardPopulatedDataSnapshot::ClipboardPopulatedDataSnapshot(
     nsITransferable* aTransferable)

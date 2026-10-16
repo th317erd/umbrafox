@@ -89,6 +89,7 @@ interface nsIClipboardDataSnapshot : nsISupports {
    * @result NS_OK if no errors
    */
   void getDataSync(in nsITransferable aTransferable);
+  [noscript, notxpcom, nostdcall] boolean isCurrentForClipboardOverride();
 };
 
 [scriptable, uuid(ce23c1c4-58fd-4c33-8579-fa0796d9652c)]
