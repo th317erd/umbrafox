@@ -1,5 +1,19 @@
 # Hardware video decode on the Pi 4 (L8ROS request, 2026-10-21)
 
+> **ASSIGNED TO UMBRAFOX** by the owner (2026-10-21): "Yes please. Instruct the Umbrafox bot to work on
+> this." Umbrafox owns browser source/build/artifact for the Pi, so this task is theirs end to end.
+> Deliver a packaged aarch64 tarball; l8ros will flash/deploy and run the acceptance below.
+
+## Task list (Umbrafox)
+
+1. Vendor `libavcodec/v4l2_m2m.c`, `v4l2_m2m_dec.c`, `v4l2_context.c`, `v4l2_fmt.c` and their headers into
+   `media/ffvpx/libavcodec/`, and add them to `media/ffvpx/libavcodec/moz.build` (they need `libdrm`).
+2. Flip `CONFIG_V4L2_M2M` and `CONFIG_LIBDRM` to 1 for aarch64 in `media/ffvpx/config_unix_aarch64.h`.
+3. Wire the libdrm include/link flags (the VA-API path already carries `MOZ_DRM_CFLAGS`; reuse it).
+4. Confirm `h264_v4l2m2m` is exported and selected by `FindVideoHardwareAVCodec()`.
+5. Keep software H.264 as a fallback when `/dev/video10` is missing or busy.
+6. Package and hand back the tarball path plus a one-line summary of what changed.
+
 ## Correction first: there is no hardware VP9 decoder on a Pi 4
 
 BCM VideoCore VI (Pi 4 / BCM2711) decodes **H.264, MPEG-2, MPEG-4 and HEVC** in hardware. It does **not**
