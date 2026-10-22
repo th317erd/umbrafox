@@ -1,0 +1,80 @@
+diff --git i/gfx/wr/webrender/src/renderer/composite.rs w/gfx/wr/webrender/src/renderer/composite.rs
+index e687ef1..47aee2e 100644
+--- i/gfx/wr/webrender/src/renderer/composite.rs
++++ w/gfx/wr/webrender/src/renderer/composite.rs
+@@ -328,6 +328,12 @@ impl Renderer {
+                     )
+                 }
+                 CompositeTileSurface::ExternalSurface { external_surface_index } => {
++                    if std::path::Path::new("/etc/l8ros-session/video-subsurface").exists() {
++                        let es = &external_surfaces[external_surface_index.0];
++                        if es.external_image_id.is_some() && es.update_params.is_none() {
++                            continue;
++                        }
++                    }
+                     let surface = &external_surfaces[external_surface_index.0];
+ 
+                     match surface.color_data {
+diff --git i/gfx/wr/webrender/src/tile_cache/mod.rs w/gfx/wr/webrender/src/tile_cache/mod.rs
+index f15af98..460b751 100644
+--- i/gfx/wr/webrender/src/tile_cache/mod.rs
++++ w/gfx/wr/webrender/src/tile_cache/mod.rs
+@@ -1913,7 +1913,16 @@ impl TileCacheInstance {
+         // image generation(s) of the planes have changed since last composite.
+         let (native_surface_id, update_params) = match composite_state.compositor_kind {
+             CompositorKind::Draw { .. } | CompositorKind::Layer { .. } => {
+-                (None, None)
++                let hybrid =
++                    std::path::Path::new("/etc/l8ros-session/video-subsurface").exists();
++                match external_image_id {
++                    Some(external_image) if hybrid => {
++                        let id = resource_cache.create_compositor_external_surface(is_opaque);
++                        resource_cache.attach_compositor_external_image(id, external_image);
++                        (Some(id), None)
++                    }
++                    _ => (None, None),
++                }
+             }
+             CompositorKind::Native { .. } => {
+                 let native_surface_size = surface_size.to_i32();
+diff --git i/widget/gtk/nsWindowWayland.cpp w/widget/gtk/nsWindowWayland.cpp
+index e45d513..94dd563 100644
+--- i/widget/gtk/nsWindowWayland.cpp
++++ w/widget/gtk/nsWindowWayland.cpp
+@@ -4,6 +4,10 @@
+ 
+ #include "nsWindowWayland.h"
+ 
++#include <fstream>
++
++#include "SoftwareVsyncSource.h"
++
+ #include <dlfcn.h>
+ 
+ #include "WaylandVsyncSource.h"
+@@ -2123,6 +2127,25 @@ void nsWindowWayland::CreateNative() {
+     mWaylandVsyncSource->Init();
+     mWaylandVsyncDispatcher = new VsyncDispatcher(mWaylandVsyncSource);
+     mWaylandVsyncSource->EnableVSyncSource();
++
++    // L8ROS: when video is scanned out from a promoted surface, WebRender composites rarely, so
++    // this dispatcher - which is what the content process's VsyncParent follows - only ticks on
++    // those rare frames. Measured: ~6 ticks/s instead of 60, which shows up as bursty rAF,
++    // stutter, and YouTube abandoning playback after ~30 s. Swap the dispatcher onto a 60 Hz
++    // software source so content keeps ticking at display rate; the Wayland frame callbacks are
++    // still what paces the compositor's own swaps.
++    if (std::ifstream marker("/etc/l8ros-session/vsync-pump"); marker.good()) {
++      static RefPtr<gfx::SoftwareVsyncSource> sL8ROSSource;
++      if (!sL8ROSSource) {
++        // 1000/60.2 keeps ticks just ahead of a 59.94 Hz panel.
++        sL8ROSSource =
++            new gfx::SoftwareVsyncSource(TimeDuration::FromMilliseconds(1000.0 / 60.2));
++        sL8ROSSource->EnableVsync();
++      }
++      mWaylandVsyncDispatcher->SetVsyncSource(sL8ROSSource);
++      LOG_VSYNC("  L8ROS: swapped widget vsync dispatcher to software 60 Hz");
++      fprintf(stderr, "L8ROS_VSYNC_PUMP widget dispatcher -> software 60Hz\n");
++    }
+   }
+ 
+   if (WaylandPipEnabled()) {
