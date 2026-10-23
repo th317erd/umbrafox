@@ -1,0 +1,10 @@
+--- a/gfx/wr/example-compositor/compositor/src/main.rs
++++ b/gfx/wr/example-compositor/compositor/src/main.rs
+@@ -432,6 +432,7 @@
+             max_partial_present_rects: 0,
+             draw_previous_partial_present_regions: false,
+             partial_present: None,
++            external_compositor: None,
+         }
+     };
+     let opts = webrender::WebRenderOptions {

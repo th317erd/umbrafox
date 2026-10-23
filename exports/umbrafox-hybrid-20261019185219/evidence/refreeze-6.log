@@ -1,0 +1,2 @@
+Checking full source inventory
+{"path": "/home/public/wyatt-desktop/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1/evidence/source-freeze-6.json", "sha256": "c347f71a91b42ef11b94f529de2672be5700216a380b1946ea8535594727bda7", "changed": ["widget/gtk/WaylandSurface.cpp"]}

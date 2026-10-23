@@ -1,0 +1,45 @@
+{
+  "argv": [
+    "./mach",
+    "configure"
+  ],
+  "cwd": "/home/public/wyatt-desktop/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1/source",
+  "deadlineSeconds": 600,
+  "elapsedSeconds": 18.00315533694811,
+  "env": {
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "HOME": "/home/wyatt",
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "LOGNAME": "wyatt",
+    "MOZBUILD_STATE_PATH": "/home/wyatt/.mozbuild",
+    "MOZCONFIG": "/home/public/wyatt-desktop/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1/mozconfig",
+    "MOZ_BUILD_DATE": "20261019185219",
+    "MOZ_MAKE_FLAGS": "-j2",
+    "PATH": "/home/wyatt/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:/home/wyatt/.mozbuild/clang/bin:/home/wyatt/.mozbuild/cbindgen:/home/wyatt/.mozbuild/nasm:/home/wyatt/.mozbuild/node/bin:/usr/bin:/bin",
+    "SHELL": "/bin/bash",
+    "USER": "wyatt"
+  },
+  "error": null,
+  "kind": "hybrid-build-step",
+  "logSHA256": "a9ff844cb77b396ad76a65f7b7c3ef5d5b581721a0a3c49f92b4b4dd4f746a74",
+  "mozconfigSHA256": "cce1b309c9536cc20821a9523d0ba000f955f871e7736b2398e9e6e80fae5843",
+  "processGroupPolicy": "TERM then 30s; no SIGKILL",
+  "residualProcessGroup": false,
+  "resourcesAfter": {
+    "availableMemoryBytes": 34899722240,
+    "freeDiskBytes": 1116010303488
+  },
+  "resourcesBefore": {
+    "availableMemoryBytes": 34621091840,
+    "freeDiskBytes": 1116010483712
+  },
+  "returncode": 0,
+  "runnerSHA256": "cd6ad1f1ad44e4a9667606214559aba5b79ca811246a92db459c6253144d4b4d",
+  "sourceFreezePath": "/home/public/wyatt-desktop/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1/evidence/source-freeze-6.json",
+  "sourceFreezeSHA256": "c347f71a91b42ef11b94f529de2672be5700216a380b1946ea8535594727bda7",
+  "step": "configure",
+  "utcStart": "2026-10-19T18:54:05.928799+00:00",
+  "version": 1
+}

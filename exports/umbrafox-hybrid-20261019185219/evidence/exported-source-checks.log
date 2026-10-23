@@ -1,0 +1,19 @@
+test_removed_lifecycle_guards_are_detected (test_egl_vsync_controls.EGLVsyncContractControls.test_removed_lifecycle_guards_are_detected) ... ok
+test_disabled_parent_does_not_arm_initial_child (test_egl_vsync_source.EGLVsyncSourceContract.test_disabled_parent_does_not_arm_initial_child) ... ok
+test_existing_root_handlers_are_not_replaced (test_egl_vsync_source.EGLVsyncSourceContract.test_existing_root_handlers_are_not_replaced) ... ok
+test_no_native_root_takeover_or_forced_composition (test_egl_vsync_source.EGLVsyncSourceContract.test_no_native_root_takeover_or_forced_composition) ... ok
+test_obsolete_protocol_callback_cannot_consume_replacement (test_egl_vsync_source.EGLVsyncSourceContract.test_obsolete_protocol_callback_cannot_consume_replacement) ... ok
+test_parent_observer_state_is_mirrored (test_egl_vsync_source.EGLVsyncSourceContract.test_parent_observer_state_is_mirrored) ... ok
+test_rejection_and_clear_retire_source (test_egl_vsync_source.EGLVsyncSourceContract.test_rejection_and_clear_retire_source) ... ok
+test_routed_callback_checks_lifecycle_and_unlocks_before_delivery (test_egl_vsync_source.EGLVsyncSourceContract.test_routed_callback_checks_lifecycle_and_unlocks_before_delivery) ... ok
+test_same_child_keeps_pending_callback (test_egl_vsync_source.EGLVsyncSourceContract.test_same_child_keeps_pending_callback) ... ok
+test_source_requires_a_parent_consumer (test_egl_vsync_source.EGLVsyncSourceContract.test_source_requires_a_parent_consumer) ... ok
+test_successful_egl_swap_records_attachment_without_visibility (test_egl_vsync_source.EGLVsyncSourceContract.test_successful_egl_swap_records_attachment_without_visibility) ... ok
+test_successful_prepare_registers_child_after_attach (test_egl_vsync_source.EGLVsyncSourceContract.test_successful_prepare_registers_child_after_attach) ... ok
+test_unmap_and_shutdown_retire_registration (test_egl_vsync_source.EGLVsyncSourceContract.test_unmap_and_shutdown_retire_registration) ... ok
+test_unregister_disables_before_releasing_handler (test_egl_vsync_source.EGLVsyncSourceContract.test_unregister_disables_before_releasing_handler) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.031s
+
+OK

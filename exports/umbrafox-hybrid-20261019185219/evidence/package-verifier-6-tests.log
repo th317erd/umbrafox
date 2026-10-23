@@ -1,0 +1,12 @@
+test_bad_archives (__main__.VerificationTests.test_bad_archives) ... ok
+test_candidate_configuration (__main__.VerificationTests.test_candidate_configuration) ... ok
+test_exact_build_id (__main__.VerificationTests.test_exact_build_id) ... ok
+test_share_root_alias_preserves_strict_payload_checks (__main__.VerificationTests.test_share_root_alias_preserves_strict_payload_checks) ... ok
+test_source_pin_loss_and_drift (__main__.VerificationTests.test_source_pin_loss_and_drift) ... ok
+test_step_receipt_requires_exact_freeze_and_clean_exit (__main__.VerificationTests.test_step_receipt_requires_exact_freeze_and_clean_exit) ... ok
+test_unmodified_archive_source_drift (__main__.VerificationTests.test_unmodified_archive_source_drift) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.016s
+
+OK

@@ -1,0 +1,286 @@
+{
+  "base": "9a9057291b5b5dd1c1362a2cc58551990532a6f6",
+  "baseArchive": {
+    "mode": 420,
+    "sha256": "0244490743a9556a438d133040b84383b0ca360357f70ff7914b22e2ce9bd37a",
+    "size": 4058378240
+  },
+  "changedSincePredecessor": [
+    "widget/tests/gtest/TestDMABufSurface.cpp"
+  ],
+  "correction": "Advertised all-plane modifier preflight, synchronized feedback snapshot, YUV params cleanup; native regression fixtures not yet executed",
+  "kind": "hybrid-source-freeze",
+  "limitations": [
+    "uncommitted owned patch",
+    "no hardware acceptance",
+    "default-off feature"
+  ],
+  "modePolicy": "Git archive modes masked by extraction umask 022; owner worktree group-write bits not source content",
+  "ownedFiles": {
+    "gfx/layers/NativeLayerWayland.cpp": {
+      "mode": 420,
+      "sha256": "752e22e1fe6cc0174c8127cf7afceb0a9ed169446adb33fa5593cdd70825cc72",
+      "size": 63233
+    },
+    "gfx/layers/NativeLayerWayland.h": {
+      "mode": 420,
+      "sha256": "841d068498f34072514739da1ebf4e14fc5417448ee0f85ea1541be8eaa1014f",
+      "size": 16880
+    },
+    "gfx/webrender_bindings/RenderCompositor.cpp": {
+      "mode": 420,
+      "sha256": "33c10a1055afac4cf880cccd83092d26968d94778b03f1e3a23e7bce514c45d3",
+      "size": 13416
+    },
+    "gfx/webrender_bindings/RenderCompositor.h": {
+      "mode": 420,
+      "sha256": "b095c1f0b83b523a3b5ec3c9264de02fd48ef688c7c1900e3f5d20e251cb4341",
+      "size": 10601
+    },
+    "gfx/webrender_bindings/RenderCompositorEGL.cpp": {
+      "mode": 420,
+      "sha256": "2ce9a4df9963ac23460d54fb57ce49277c80f6aa3f635fc1325b85b59b1e331c",
+      "size": 16025
+    },
+    "gfx/webrender_bindings/RenderCompositorEGL.h": {
+      "mode": 420,
+      "sha256": "66020e44b3161510bba3e6366416e4ac164296a8a901104f79d054c6a12f7059",
+      "size": 3193
+    },
+    "gfx/webrender_bindings/RendererOGL.cpp": {
+      "mode": 420,
+      "sha256": "f3d0389e34f6b4ef7d554439cb988fedfbbfd51889bdca7244f8d2aef211d9b8",
+      "size": 20498
+    },
+    "gfx/webrender_bindings/WebRenderAPI.cpp": {
+      "mode": 420,
+      "sha256": "bb66ec58f43d20a489f9330b8fc22243a5875235eb3b0fb38310793479a16db7",
+      "size": 73883
+    },
+    "gfx/webrender_bindings/src/bindings.rs": {
+      "mode": 420,
+      "sha256": "8e6de5c6fd38bca2afcf2eccc387b0f5b9fccf3f0388fa5ab979be775622000f",
+      "size": 152723
+    },
+    "gfx/wr/webrender/src/composite.rs": {
+      "mode": 420,
+      "sha256": "10ecf64750e252bf814a0650daf95311615cc7205168af0d88e2d700eb043774",
+      "size": 74889
+    },
+    "gfx/wr/webrender/src/composite/draw_external.rs": {
+      "mode": 420,
+      "sha256": "bc21803d71c4003fcc52a66b8b2a42e412dac4419614d0369254ec9c5a01bf47",
+      "size": 13218
+    },
+    "gfx/wr/webrender/src/lib.rs": {
+      "mode": 420,
+      "sha256": "94f6daa3aad63025442e5637985ca0bdf8aeb59a6456c927c1ffd730b29cb9ec",
+      "size": 9017
+    },
+    "gfx/wr/webrender/src/renderer/composite.rs": {
+      "mode": 420,
+      "sha256": "92a152641a284ceb6181a32466dce02f220ac07d431678d2a73998db37ee586f",
+      "size": 73898
+    },
+    "modules/libpref/init/StaticPrefList.yaml": {
+      "mode": 420,
+      "sha256": "baa3cdcf981e825c9e20d7cf91ad481eddaae6d2d8fa98083e35b5ea51f6c104",
+      "size": 640885
+    },
+    "widget/gtk/DMABufFormats.cpp": {
+      "mode": 420,
+      "sha256": "1a503d80246c947835e22eb2ad7a855a1229ed6eeb3894bcbb8c6d213adf1001",
+      "size": 18824
+    },
+    "widget/gtk/DMABufFormats.h": {
+      "mode": 420,
+      "sha256": "38e1f19d27474ac0e99cb5eafe73f2bdc5062ab22eb21d8ce2b2160f0dee33a0",
+      "size": 4481
+    },
+    "widget/gtk/DMABufSurface.cpp": {
+      "mode": 420,
+      "sha256": "35b7e6b7775016a13785b150591ebe6de5a33debd2169f6d70d62df361732596",
+      "size": 100484
+    },
+    "widget/gtk/DMABufSurface.h": {
+      "mode": 420,
+      "sha256": "469718ba1bdc837be6cc96bd6dadc8f507c8cc6b28c34f8a23a55686bff445f6",
+      "size": 16270
+    },
+    "widget/gtk/GtkCompositorWidget.cpp": {
+      "mode": 420,
+      "sha256": "4bbf91a5593ac586c648c13434bd2c12428dd694b52c7ae43096d8d9d5325cea",
+      "size": 5920
+    },
+    "widget/gtk/GtkCompositorWidget.h": {
+      "mode": 420,
+      "sha256": "4ee27046d9a8effb09d5b8a5aafb717305ab4294aaeeaa5bad63194eb9430048",
+      "size": 3847
+    },
+    "widget/gtk/WaylandSurface.cpp": {
+      "mode": 420,
+      "sha256": "613dc5665e6a9ef2230814f509b05b4f11863e04e9c7bf9825da9b176ec4d2a3",
+      "size": 64592
+    },
+    "widget/gtk/WaylandSurface.h": {
+      "mode": 420,
+      "sha256": "6c69aa0bcbf4c47c9e6efea02d3be082ba6677d65aec8916e4140d946ef6a40e",
+      "size": 25451
+    },
+    "widget/gtk/nsWindow.cpp": {
+      "mode": 420,
+      "sha256": "886a0bfbc47b1edb8815b30a3e2258d072329e4bc9409261f8b00970651ca713",
+      "size": 269901
+    },
+    "widget/gtk/nsWindow.h": {
+      "mode": 420,
+      "sha256": "60cdecad6ab01af4beb9decbb8983ab1536a3edb0f6f02fdfde2240a57b81645",
+      "size": 33673
+    },
+    "widget/tests/gtest/TestDMABufSurface.cpp": {
+      "mode": 420,
+      "sha256": "de201d28f85d3ff69fce59c11b900a04e2fc9a70016edd88b610740522bd99aa",
+      "size": 8955
+    }
+  },
+  "patch": {
+    "mode": 420,
+    "sha256": "f9a4859abf93c938b800f86f9355aa007195e40c91f2e765083853337ee964ed",
+    "size": 58597
+  },
+  "patchFile": "hybrid-source-3.patch",
+  "predecessorFreezeSHA256": "a84170998a5c187baeb937eb015df2c56eb719db81f7966ca69302287fc79700",
+  "revision": 3,
+  "source": "/home/public/wyatt-desktop/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1/source",
+  "sourceVerification": "all archive entries plus exact owned delta",
+  "unchangedArchiveFilesChecked": 485132,
+  "verificationResumedAfterTimeout": false,
+  "version": 1,
+  "worktreeFiles": {
+    "gfx/layers/NativeLayerWayland.cpp": {
+      "mode": 420,
+      "sha256": "752e22e1fe6cc0174c8127cf7afceb0a9ed169446adb33fa5593cdd70825cc72",
+      "size": 63233
+    },
+    "gfx/layers/NativeLayerWayland.h": {
+      "mode": 436,
+      "sha256": "841d068498f34072514739da1ebf4e14fc5417448ee0f85ea1541be8eaa1014f",
+      "size": 16880
+    },
+    "gfx/webrender_bindings/RenderCompositor.cpp": {
+      "mode": 436,
+      "sha256": "33c10a1055afac4cf880cccd83092d26968d94778b03f1e3a23e7bce514c45d3",
+      "size": 13416
+    },
+    "gfx/webrender_bindings/RenderCompositor.h": {
+      "mode": 436,
+      "sha256": "b095c1f0b83b523a3b5ec3c9264de02fd48ef688c7c1900e3f5d20e251cb4341",
+      "size": 10601
+    },
+    "gfx/webrender_bindings/RenderCompositorEGL.cpp": {
+      "mode": 420,
+      "sha256": "2ce9a4df9963ac23460d54fb57ce49277c80f6aa3f635fc1325b85b59b1e331c",
+      "size": 16025
+    },
+    "gfx/webrender_bindings/RenderCompositorEGL.h": {
+      "mode": 436,
+      "sha256": "66020e44b3161510bba3e6366416e4ac164296a8a901104f79d054c6a12f7059",
+      "size": 3193
+    },
+    "gfx/webrender_bindings/RendererOGL.cpp": {
+      "mode": 436,
+      "sha256": "f3d0389e34f6b4ef7d554439cb988fedfbbfd51889bdca7244f8d2aef211d9b8",
+      "size": 20498
+    },
+    "gfx/webrender_bindings/WebRenderAPI.cpp": {
+      "mode": 436,
+      "sha256": "bb66ec58f43d20a489f9330b8fc22243a5875235eb3b0fb38310793479a16db7",
+      "size": 73883
+    },
+    "gfx/webrender_bindings/src/bindings.rs": {
+      "mode": 436,
+      "sha256": "8e6de5c6fd38bca2afcf2eccc387b0f5b9fccf3f0388fa5ab979be775622000f",
+      "size": 152723
+    },
+    "gfx/wr/webrender/src/composite.rs": {
+      "mode": 436,
+      "sha256": "10ecf64750e252bf814a0650daf95311615cc7205168af0d88e2d700eb043774",
+      "size": 74889
+    },
+    "gfx/wr/webrender/src/composite/draw_external.rs": {
+      "mode": 420,
+      "sha256": "bc21803d71c4003fcc52a66b8b2a42e412dac4419614d0369254ec9c5a01bf47",
+      "size": 13218
+    },
+    "gfx/wr/webrender/src/lib.rs": {
+      "mode": 436,
+      "sha256": "94f6daa3aad63025442e5637985ca0bdf8aeb59a6456c927c1ffd730b29cb9ec",
+      "size": 9017
+    },
+    "gfx/wr/webrender/src/renderer/composite.rs": {
+      "mode": 436,
+      "sha256": "92a152641a284ceb6181a32466dce02f220ac07d431678d2a73998db37ee586f",
+      "size": 73898
+    },
+    "modules/libpref/init/StaticPrefList.yaml": {
+      "mode": 436,
+      "sha256": "baa3cdcf981e825c9e20d7cf91ad481eddaae6d2d8fa98083e35b5ea51f6c104",
+      "size": 640885
+    },
+    "widget/gtk/DMABufFormats.cpp": {
+      "mode": 436,
+      "sha256": "1a503d80246c947835e22eb2ad7a855a1229ed6eeb3894bcbb8c6d213adf1001",
+      "size": 18824
+    },
+    "widget/gtk/DMABufFormats.h": {
+      "mode": 436,
+      "sha256": "38e1f19d27474ac0e99cb5eafe73f2bdc5062ab22eb21d8ce2b2160f0dee33a0",
+      "size": 4481
+    },
+    "widget/gtk/DMABufSurface.cpp": {
+      "mode": 420,
+      "sha256": "35b7e6b7775016a13785b150591ebe6de5a33debd2169f6d70d62df361732596",
+      "size": 100484
+    },
+    "widget/gtk/DMABufSurface.h": {
+      "mode": 420,
+      "sha256": "469718ba1bdc837be6cc96bd6dadc8f507c8cc6b28c34f8a23a55686bff445f6",
+      "size": 16270
+    },
+    "widget/gtk/GtkCompositorWidget.cpp": {
+      "mode": 420,
+      "sha256": "4bbf91a5593ac586c648c13434bd2c12428dd694b52c7ae43096d8d9d5325cea",
+      "size": 5920
+    },
+    "widget/gtk/GtkCompositorWidget.h": {
+      "mode": 436,
+      "sha256": "4ee27046d9a8effb09d5b8a5aafb717305ab4294aaeeaa5bad63194eb9430048",
+      "size": 3847
+    },
+    "widget/gtk/WaylandSurface.cpp": {
+      "mode": 420,
+      "sha256": "613dc5665e6a9ef2230814f509b05b4f11863e04e9c7bf9825da9b176ec4d2a3",
+      "size": 64592
+    },
+    "widget/gtk/WaylandSurface.h": {
+      "mode": 420,
+      "sha256": "6c69aa0bcbf4c47c9e6efea02d3be082ba6677d65aec8916e4140d946ef6a40e",
+      "size": 25451
+    },
+    "widget/gtk/nsWindow.cpp": {
+      "mode": 420,
+      "sha256": "886a0bfbc47b1edb8815b30a3e2258d072329e4bc9409261f8b00970651ca713",
+      "size": 269901
+    },
+    "widget/gtk/nsWindow.h": {
+      "mode": 436,
+      "sha256": "60cdecad6ab01af4beb9decbb8983ab1536a3edb0f6f02fdfde2240a57b81645",
+      "size": 33673
+    },
+    "widget/tests/gtest/TestDMABufSurface.cpp": {
+      "mode": 420,
+      "sha256": "de201d28f85d3ff69fce59c11b900a04e2fc9a70016edd88b610740522bd99aa",
+      "size": 8955
+    }
+  }
+}

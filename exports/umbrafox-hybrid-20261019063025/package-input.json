@@ -1,0 +1,330 @@
+{
+  "archive": {
+    "path": "/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/exports/umbrafox-hybrid-20261019063025/umbrafox-hybrid-20261019063025-linux-aarch64.tar.xz",
+    "sha256": "fac5017606879b8ed8b9dd4f7490df95a85a2bec8c3a1892cb283352e459a515",
+    "size": 100325400
+  },
+  "baseRevision": "9a9057291b5b5dd1c1362a2cc58551990532a6f6",
+  "buildID": "20261019063025",
+  "dependencies": [
+    "libnspr4.so",
+    "libplc4.so",
+    "libplds4.so",
+    "libmozsandbox.so",
+    "libgkcodecs.so",
+    "liblgpllibs.so",
+    "libnssutil3.so",
+    "libnss3.so",
+    "libsmime3.so",
+    "libmozsqlite3.so",
+    "libssl3.so",
+    "libmozgtk.so",
+    "libmozwayland.so",
+    "libxul.so"
+  ],
+  "elfFiles": [
+    "crashhelper",
+    "crashreporter",
+    "gfxtest",
+    "gmp-clearkey/0.1/libclearkey.so",
+    "libfreeblpriv3.so",
+    "libgkcodecs.so",
+    "liblgpllibs.so",
+    "libmozavcodec.so",
+    "libmozavutil.so",
+    "libmozgtk.so",
+    "libmozinference.so",
+    "libmozsandbox.so",
+    "libmozsqlite3.so",
+    "libmozwayland.so",
+    "libnspr4.so",
+    "libnss3.so",
+    "libnssutil3.so",
+    "libonnxruntime.so",
+    "libplc4.so",
+    "libplds4.so",
+    "libsmime3.so",
+    "libsoftokn3.so",
+    "libssl3.so",
+    "libxul.so",
+    "pingsender",
+    "umbrafox",
+    "umbrafox-bin",
+    "updater"
+  ],
+  "featureDefault": false,
+  "featurePref": "gfx.webrender.compositor.external-surfaces-in-draw",
+  "files": {
+    "application.ini": {
+      "mode": 420,
+      "sha256": "ec7a7fca25dba62966891dc3287b1d18249a200685125579d588d3b74c79f021",
+      "size": 792
+    },
+    "browser/chrome/icons/default/default128.png": {
+      "mode": 420,
+      "sha256": "91b49d610d9004ecc22f5300695e4dcb469b8b0bbc2aca6021bd789b8a31e7e0",
+      "size": 6972
+    },
+    "browser/chrome/icons/default/default16.png": {
+      "mode": 420,
+      "sha256": "31733dc5da1d48b13b7e2b9db0888be6e4569441901cbca6e2575e282b2edf20",
+      "size": 703
+    },
+    "browser/chrome/icons/default/default32.png": {
+      "mode": 420,
+      "sha256": "6257a79303dfe9d1dc9dbce593358803a4ff99458c60a726455854d9fb51c593",
+      "size": 1364
+    },
+    "browser/chrome/icons/default/default48.png": {
+      "mode": 420,
+      "sha256": "6316fd42aae42b0c0bb4d96076782d7d0016dd8ae0f3d1b1df72e2974405d9f2",
+      "size": 2197
+    },
+    "browser/chrome/icons/default/default64.png": {
+      "mode": 420,
+      "sha256": "a7d162363ae9441367c52f1b83894275c5468aeaa376c3f888da606c435b0c54",
+      "size": 2968
+    },
+    "browser/omni.ja": {
+      "mode": 420,
+      "sha256": "2e94653643b0705b1d44d16e0a1d1325c9bfd59ea067d45575573132788cf425",
+      "size": 55031071
+    },
+    "crashhelper": {
+      "mode": 493,
+      "sha256": "56885bc15735081d7d989e42d3cc9a048823341e6d783b87c49bd0bf9d5801a0",
+      "size": 5707728
+    },
+    "crashreporter": {
+      "mode": 493,
+      "sha256": "d33319316a247c569063a0b848a6dce9d2b2596e1769788040f027e5e7478720",
+      "size": 6651576
+    },
+    "defaults/pref/channel-prefs.js": {
+      "mode": 420,
+      "sha256": "ef9fba57b2c3755b630b44ccfe703e2753d538fa50e3c52fc279c29e6db8200f",
+      "size": 429
+    },
+    "dependentlibs.list": {
+      "mode": 420,
+      "sha256": "621f575eaaf819dd0b18976c6a8a94d1caae95a9c748f4c9058a052395a4d173",
+      "size": 189
+    },
+    "fonts/TwemojiMozilla.ttf": {
+      "mode": 420,
+      "sha256": "6d90152ee0d29e82fe2a87793af5aa4b7ad13e6538360889e141e81ed299ee8e",
+      "size": 1474284
+    },
+    "gfxtest": {
+      "mode": 493,
+      "sha256": "26db7b0c2ce48a4e9e9f9e2c7098e1e4f0b89a8f3a3f4af735be21e50698a524",
+      "size": 54928
+    },
+    "gmp-clearkey/0.1/libclearkey.so": {
+      "mode": 493,
+      "sha256": "1c682db2454aa241b635394760f2b2173b4c9fed9a34fac4ffc09a3491dd5340",
+      "size": 109216
+    },
+    "gmp-clearkey/0.1/manifest.json": {
+      "mode": 420,
+      "sha256": "b7d65e60cccb80ffb2e95b5ae7e355d2c8c37575e886eef4325ca04fa7ba68fc",
+      "size": 225
+    },
+    "icons/updater.png": {
+      "mode": 420,
+      "sha256": "cab5e9bc9511b0690e696b378efa6753705b1182660d9829f5b3dc9f0398e5cc",
+      "size": 2153
+    },
+    "libfreeblpriv3.so": {
+      "mode": 493,
+      "sha256": "66f36103922c339dcc8535d6e5c36a8271c4180c71c2e2a647aab21795ab7d4f",
+      "size": 1165952
+    },
+    "libgkcodecs.so": {
+      "mode": 493,
+      "sha256": "190d4d724f1c776e65b49ce7486fc8bc7eba302452fe9369464e3e90a94e3ce6",
+      "size": 6806832
+    },
+    "liblgpllibs.so": {
+      "mode": 493,
+      "sha256": "3245a6368cfe34ab36659b0ea814254b7066c97df76e9c2c07291bf15c692347",
+      "size": 341840
+    },
+    "libmozavcodec.so": {
+      "mode": 493,
+      "sha256": "10b02a2e3a82d543978bc561fd2f4610e383999f49a2916fa2df08afb65c7118",
+      "size": 2852704
+    },
+    "libmozavutil.so": {
+      "mode": 493,
+      "sha256": "110c13bd108ca05cc0b4394597cdda5415cd62ba6e4bd7727f2fa1061674b1e2",
+      "size": 712776
+    },
+    "libmozgtk.so": {
+      "mode": 493,
+      "sha256": "f967c536a519a616aac3ddd0e18d7741be3a40670de76e898810600cd0c3cea1",
+      "size": 6312
+    },
+    "libmozinference.so": {
+      "mode": 493,
+      "sha256": "9219ce271e0c19f6907eafef3d108a635719e4f18b352a357ef15b870d191df9",
+      "size": 3664368
+    },
+    "libmozsandbox.so": {
+      "mode": 493,
+      "sha256": "bc8f05aa2b9d7890f31caf4c425f68ebbd2f06a427504aee1bfff5c209e657a3",
+      "size": 674792
+    },
+    "libmozsqlite3.so": {
+      "mode": 493,
+      "sha256": "0c70ffe776a61b1dd44e7eef62db08ed60c0b3985048d77165084e4c40ef95c7",
+      "size": 1618768
+    },
+    "libmozwayland.so": {
+      "mode": 493,
+      "sha256": "894d5afe212cec57bf9c1e173ab1b6f6eec9f5d0af93e29c4fed4c19696c6d24",
+      "size": 18656
+    },
+    "libnspr4.so": {
+      "mode": 493,
+      "sha256": "b840ed8aaba9d5650bf15086bdd19f7c3661c306ccab61a1aa1879de9bea8023",
+      "size": 269144
+    },
+    "libnss3.so": {
+      "mode": 493,
+      "sha256": "c60ae08c8a42005996e8573243685139b7e430a0c4fac6bc1a36d12cdaa61caa",
+      "size": 849088
+    },
+    "libnssutil3.so": {
+      "mode": 493,
+      "sha256": "850e302de05b3de3f0b8880d258d41a33edd1ae6488c074d6ac88951a64c020f",
+      "size": 219960
+    },
+    "libonnxruntime.so": {
+      "mode": 493,
+      "sha256": "af10f911cdba823295e31d6aa2fce45ff4888d98a875445c3ff80c6f5e3f9c11",
+      "size": 13545544
+    },
+    "libplc4.so": {
+      "mode": 493,
+      "sha256": "5049c96f1575cb5fecfa475c0b448a8fdb0549d2ba59ebdc543bceefff3a4a58",
+      "size": 22880
+    },
+    "libplds4.so": {
+      "mode": 493,
+      "sha256": "7801baa1a28e6e116fa3d1181545617b7c89c7b77afe656c18f49fee6596c0a9",
+      "size": 16608
+    },
+    "libsmime3.so": {
+      "mode": 493,
+      "sha256": "5321c860a950d3e0e1801fd05b940dc121ca19ff43bb2e2004fcf62e6c6659a4",
+      "size": 219240
+    },
+    "libsoftokn3.so": {
+      "mode": 493,
+      "sha256": "af990f71ef744dadf7198c9a437f954c99eec749683c946b985ee9e88db1deee",
+      "size": 437240
+    },
+    "libssl3.so": {
+      "mode": 493,
+      "sha256": "c52bd5e15a85d6f2e6ebb7e958e54d9f5aad055d75d2543f7ea45ba95347b99c",
+      "size": 538120
+    },
+    "libxul.so": {
+      "mode": 493,
+      "sha256": "696e4539897390cb83bff3f7981ff12cddc1ec4f06f0b5dafec6868cd652f6fe",
+      "size": 319700952
+    },
+    "omni.ja": {
+      "mode": 420,
+      "sha256": "d0d2eed3060dba30eaa9c32cfe9873b7ae3db82dffb164c8897bc5547b7fc336",
+      "size": 52373985
+    },
+    "pingsender": {
+      "mode": 493,
+      "sha256": "7034d284fb2e0ac04c3cbe1c02b7bb912be91bbdee488bd7c8ca80d000be04ff",
+      "size": 902032
+    },
+    "platform.ini": {
+      "mode": 420,
+      "sha256": "b100c92ae065caecabacb2fd9dcdf0164d5d6bf6899e12cf0423e8413b357153",
+      "size": 49
+    },
+    "precomplete": {
+      "mode": 420,
+      "sha256": "1770d49e7aae25382cccd956e76df421f32c59d296c5ebcb959393995e0cb0f2",
+      "size": 1423
+    },
+    "removed-files": {
+      "mode": 420,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    "umbrafox": {
+      "mode": 493,
+      "sha256": "8b7d487e0202db3a670393ddcea9bdcd7f7b6f8dc011a79479167503de6c8267",
+      "size": 809560
+    },
+    "umbrafox-bin": {
+      "mode": 493,
+      "sha256": "8b7d487e0202db3a670393ddcea9bdcd7f7b6f8dc011a79479167503de6c8267",
+      "size": 809560
+    },
+    "update-settings.ini": {
+      "mode": 420,
+      "sha256": "c574f9f109b4dca4a6ab379167cd47a6bbee66c0a9640b1d19232da337202707",
+      "size": 113
+    },
+    "updater": {
+      "mode": 493,
+      "sha256": "5f3eee09769701e3a07bba5ef07330763199e743ff28d97202ca3749c2dd4a74",
+      "size": 1097696
+    },
+    "updater.ini": {
+      "mode": 420,
+      "sha256": "060c20f2ae6fedb169adbda6d2fbe380ada8251142cd19cac18bc9bc9e9efd52",
+      "size": 634
+    }
+  },
+  "frontendArchiveEntries": {
+    "browser/omni.ja": 5359,
+    "omni.ja": 2718
+  },
+  "hardwareExecuted": false,
+  "iniBuildIDs": {
+    "application.ini": "20261019063025",
+    "platform.ini": "20261019063025"
+  },
+  "inputs": {
+    "/home/public/wyatt-desktop/.cache/codex/seek-audio-fix-20261014-5oJiex/package_candidate.py": "d75e3ae653854b8d03bcefceeb506151d18da831a3ae4ed861d0b7113d1093ef",
+    "/home/public/wyatt-desktop/.cache/codex/umbrafox-arm-20261014-gZmxuBOR/verify_arm.py": "f08239785c5b5f53911630d51465e3dab92d4eed59ecde4d738e599d20cffeb5",
+    "/home/public/wyatt-desktop/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1/base.tar": "0244490743a9556a438d133040b84383b0ca360357f70ff7914b22e2ce9bd37a",
+    "/home/public/wyatt-desktop/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1/evidence/build-3-exit.json": "7aee1226b7436f77e19245928fc771a1c31263ac49a98d58d306cfd08f1284d5",
+    "/home/public/wyatt-desktop/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1/evidence/configure-3-exit.json": "98e9f1d8a6e60aaf26b1e002247ffd91dc03d15dd42ae885f7af79ea26f25ab2",
+    "/home/public/wyatt-desktop/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1/evidence/hybrid-source-3.patch": "f9a4859abf93c938b800f86f9355aa007195e40c91f2e765083853337ee964ed",
+    "/home/public/wyatt-desktop/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1/evidence/package-3-exit.json": "a5d46e2944f6e9ceadf8b18ba650a582709feb7e333273537d300f488f1c749a",
+    "/home/public/wyatt-desktop/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1/evidence/source-freeze-3.json": "0961885084d21c511294e4576dcb1facc38e376b8e6738651399654a0172a441",
+    "/home/public/wyatt-desktop/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1/mozconfig": "cce1b309c9536cc20821a9523d0ba000f955f871e7736b2398e9e6e80fae5843",
+    "/home/public/wyatt-desktop/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1/obj/config.status.json": "abdcb186ce90d78f39f54a98ec9070b0cf4b5f8246096ab32548c54893359c81",
+    "/home/wyatt/Projects/umbrafox-workspace/umbrafox/artifacts/umbralink-control/producer-fence-native/package_buildid.py": "c1da2a1f0b86c8816e2507b9580f6b18fd0705ad792f46dc6c61ee5a020463b5",
+    "/home/wyatt/Projects/umbrafox-workspace/umbrafox/artifacts/umbralink-control/request-artifact.py": "d3815b6262e06e6d2130d3974a24de7aafd8ca8623aa08b7c9d4ac58cb169a2b",
+    "/tmp/codex/umbra-hybrid-20261019/verify_package.py": "63c9e2b54703c3908bf257d6079a820c4547e249827dc5422b5ea710799f455e"
+  },
+  "installed": false,
+  "kind": "experimental-hybrid-package",
+  "limitations": [
+    "No Pi lifecycle/color/performance acceptance yet",
+    "Default-off experimental optimization",
+    "Color-representation protocol and explicit matching modifiers required",
+    "create_immed/local attachment is not server import acknowledgment",
+    "Native gtest fixtures require execution on a suitable host",
+    "No release signing or whole-link diagnostic certification"
+  ],
+  "nativeBuildID": "20261019063025",
+  "productionAcceptance": false,
+  "scope": "fullscreen opaque identity SDR8 BT709 limited NV12/I420; color representation required",
+  "sourceFreezeSHA256": "0961885084d21c511294e4576dcb1facc38e376b8e6738651399654a0172a441",
+  "sourcePatchSHA256": "f9a4859abf93c938b800f86f9355aa007195e40c91f2e765083853337ee964ed",
+  "unchangedSourceFilesVerified": 485132,
+  "version": 1
+}

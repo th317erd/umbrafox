@@ -1,0 +1,1669 @@
+diff --git a/gfx/layers/NativeLayerWayland.cpp b/gfx/layers/NativeLayerWayland.cpp
+index 52c22aa109bc..3dd1d346c6c0 100644
+--- a/gfx/layers/NativeLayerWayland.cpp
++++ b/gfx/layers/NativeLayerWayland.cpp
+@@ -110,6 +110,75 @@ already_AddRefed<NativeLayerRootWayland> NativeLayerRootWayland::Create(
+   return MakeAndAddRef<NativeLayerRootWayland>(std::move(aWaylandSurface));
+ }
+ 
++/* static */
++already_AddRefed<NativeLayerRootWayland> NativeLayerRootWayland::CreateForEGL(
++    WaylandSurfaceLock& aProofOfLock) {
++  RefPtr parent = aProofOfLock.GetWaylandSurface();
++  parent->AssertCurrentThreadOwnsMutex();
++  RefPtr root = new NativeLayerRootWayland(parent, true);
++  root->mEGLExternalLayer = new NativeLayerWaylandExternal(root, true);
++  parent->SetEGLExternalRootLocked(aProofOfLock, root);
++  return root.forget();
++}
++
++bool NativeLayerRootWayland::PrepareForEGL(WaylandSurfaceLock& aProofOfLock,
++                                           RenderTextureHost* aExternalImage,
++                                           const IntSize& aSize) {
++  MOZ_RELEASE_ASSERT(mForEGL && mRootSurface && mEGLExternalLayer);
++  MOZ_RELEASE_ASSERT(aProofOfLock.GetWaylandSurface() == mRootSurface);
++  mRootSurface->AssertCurrentThreadOwnsMutex();
++
++  auto* host =
++      aExternalImage ? aExternalImage->AsRenderDMABUFTextureHost() : nullptr;
++  RefPtr<DMABufSurface> surface = host ? host->GetSurface() : nullptr;
++  auto formats = WaylandDisplayGet()->GetDMABufFormats();
++  if (!surface || !surface->GetAsDMABufSurfaceYUV() || !mGL ||
++      !mRootSurface->IsMapped() || !mRootSurface->HasEGLWindow() ||
++      mRootSurface->GetScale() != 1.0 || aSize.IsEmpty() ||
++      surface->GetSize() != aSize ||
++      surface->GetColorDepth() != gfx::ColorDepth::COLOR_8 ||
++      surface->GetYUVColorSpace() != gfx::YUVColorSpace::BT709 ||
++      surface->GetTransferFunction() != gfx::TransferFunction::BT709 ||
++      surface->IsFullRange() || surface->IsHDRSurface() ||
++      (surface->GetFormat() != gfx::SurfaceFormat::NV12 &&
++       surface->GetFormat() != gfx::SurfaceFormat::YUV420) ||
++      !formats ||
++      !surface->GetAsDMABufSurfaceYUV()->IsWlBufferFormatSupported(*formats) ||
++      !WaylandDisplayGet()->GetColorRepresentationManager() ||
++      !WaylandDisplayGet()->GetColorRange(surface->GetWLColorCoeficients(),
++                                          false)) {
++    mRootSurface->SetEGLVSyncSourceLocked(aProofOfLock, nullptr);
++    mEGLExternalLayer->HideForEGL();
++    return false;
++  }
++  const bool prepared =
++      mEGLExternalLayer->PrepareForEGL(aProofOfLock, aExternalImage, aSize);
++  mRootSurface->SetEGLVSyncSourceLocked(
++      aProofOfLock,
++      prepared ? mEGLExternalLayer->GetWaylandSurface() : nullptr);
++  if (!prepared && !mEGLExternalLayer->IsMapped()) {
++    // Failed subsurface creation can leave partial parent state behind.
++    mEGLExternalLayer = new NativeLayerWaylandExternal(this, true);
++  }
++  return prepared;
++}
++
++void NativeLayerRootWayland::ClearForEGL(WaylandSurfaceLock& aProofOfLock) {
++  MOZ_RELEASE_ASSERT(mForEGL && mRootSurface && mEGLExternalLayer);
++  MOZ_RELEASE_ASSERT(aProofOfLock.GetWaylandSurface() == mRootSurface);
++  mRootSurface->AssertCurrentThreadOwnsMutex();
++  mRootSurface->SetEGLVSyncSourceLocked(aProofOfLock, nullptr);
++  mEGLExternalLayer->ClearForEGL();
++}
++
++void NativeLayerRootWayland::ShutdownForEGL(WaylandSurfaceLock& aProofOfLock) {
++  RefPtr<NativeLayerRootWayland> self = this;
++  ClearForEGL(aProofOfLock);
++  mRootSurface->SetEGLExternalRootLocked(aProofOfLock, nullptr);
++  mEGLExternalLayer = nullptr;
++  mRootSurface = nullptr;
++}
++
+ void NativeLayerRootWayland::SetDRMFormat(DRMFormat* aFormat) {
+   if (aFormat) {
+     aFormat->AddRef();
+@@ -152,6 +221,7 @@ void NativeLayerRootWayland::ConfigureScaleLocked(
+ }
+ 
+ void NativeLayerRootWayland::Init() {
++  MOZ_RELEASE_ASSERT(!mForEGL);
+   LOG("NativeLayerRootWayland::Init");
+   mTmpBuffer = widget::WaylandBuffer::CreateSHM(LayoutDeviceIntSize(1, 1));
+ 
+@@ -283,6 +353,7 @@ void NativeLayerRootWayland::Init() {
+ }
+ 
+ void NativeLayerRootWayland::Shutdown() {
++  MOZ_RELEASE_ASSERT(!mForEGL);
+   LOG("NativeLayerRootWayland::Shutdown()");
+   AssertIsOnMainThread();
+ 
+@@ -305,16 +376,18 @@ void NativeLayerRootWayland::Shutdown() {
+ }
+ 
+ NativeLayerRootWayland::NativeLayerRootWayland(
+-    RefPtr<WaylandSurface> aWaylandSurface)
+-    : mRootSurface(aWaylandSurface) {
++    RefPtr<WaylandSurface> aWaylandSurface, bool aForEGL)
++    : mRootSurface(aWaylandSurface), mForEGL(aForEGL) {
+ #ifdef MOZ_LOGGING
+   mLoggingWidget = mRootSurface->GetLoggingWidget();
+-  mRootSurface->SetLoggingWidget(this);
++  if (!mForEGL) {
++    mRootSurface->SetLoggingWidget(this);
++  }
+   LOG("NativeLayerRootWayland::NativeLayerRootWayland() nsWindow [%p] mapped "
+       "%d",
+       mLoggingWidget, mRootSurface->IsMapped());
+ #endif
+-  if (!WaylandSurface::IsOpaqueRegionEnabled()) {
++  if (!mForEGL && !WaylandSurface::IsOpaqueRegionEnabled()) {
+     NS_WARNING(
+         "Wayland opaque region disabled, expect poor rendering performance!");
+   }
+@@ -1518,6 +1591,85 @@ NativeLayerWaylandExternal::NativeLayerWaylandExternal(
+     NativeLayerRootWayland* aRootLayer, bool aIsOpaque)
+     : NativeLayerWayland(aRootLayer, IntSize(), aIsOpaque) {}
+ 
++bool NativeLayerWaylandExternal::PrepareForEGL(
++    WaylandSurfaceLock& aParentProofOfLock, RenderTextureHost* aExternalImage,
++    const IntSize& aSize) {
++  WaylandSurfaceLock lock(mSurface);
++  RefPtr surface = aExternalImage->AsRenderDMABUFTextureHost()->GetSurface();
++  MOZ_RELEASE_ASSERT(!mSurface->IsPendingGdkCleanup());
++
++  if (mSurface->IsMapped() &&
++      mEGLChromaLocation != surface->GetWPChromaLocation()) {
++    HideForEGLLocked(lock);
++    return false;
++  }
++  if (!mSurface->IsMapped()) {
++    if (!mSurface->MapLocked(lock, &aParentProofOfLock, DesktopIntPoint())) {
++      HideForEGLLocked(lock);
++      return false;
++    }
++    mSurface->DisableUserInputLocked(lock);
++    mSurface->SetOpaqueForEGLLocked(lock);
++    mSurface->SetColorRepresentationLocked(
++        lock, surface->GetWLColorCoeficients(), false,
++        surface->GetWPChromaLocation());
++    mEGLChromaLocation = surface->GetWPChromaLocation();
++  }
++
++  if (!mFrontBuffer ||
++      mLastSurface != reinterpret_cast<uintptr_t>(surface.get())) {
++    mFrontBuffer = widget::WaylandBuffer::Create(surface);
++  }
++  if (!mFrontBuffer) {
++    HideForEGLLocked(lock);
++    return false;
++  }
++
++  mSize = aSize;
++  mDisplayRect = IntRect(IntPoint(), aSize);
++  mSurface->SetViewPortSourceRectLocked(
++      lock, DesktopRect(0, 0, aSize.width, aSize.height));
++  mSurface->SetViewPortDestLocked(lock,
++                                  DesktopIntSize(aSize.width, aSize.height));
++  mSurface->InvalidateLocked(lock);
++  surface->FenceWait(mRootLayer->gl());
++  if (!mSurface->AttachLocked(lock, mFrontBuffer)) {
++    HideForEGLLocked(lock);
++    return false;
++  }
++
++  mTextureHost = aExternalImage;
++  mLastSurface = reinterpret_cast<uintptr_t>(surface.get());
++  mState.mIsVisible = true;
++  mState.mIsRendered = true;
++  mState.mRenderedLastCycle = true;
++  return true;
++}
++
++void NativeLayerWaylandExternal::HideForEGLLocked(
++    const WaylandSurfaceLock& aProofOfLock) {
++  if (mSurface->IsMapped()) {
++    mSurface->RemoveAttachedBufferLocked(aProofOfLock);
++  }
++  DiscardBackbuffersLocked(aProofOfLock, false);
++  mState.InvalidateAll();
++}
++
++void NativeLayerWaylandExternal::HideForEGL() {
++  WaylandSurfaceLock lock(mSurface);
++  HideForEGLLocked(lock);
++}
++
++void NativeLayerWaylandExternal::ClearForEGL() {
++  WaylandSurfaceLock lock(mSurface);
++  mSurface->UnmapLocked(lock);
++  DiscardBackbuffersLocked(lock, false);
++  mState.InvalidateAll();
++  mEGLChromaLocation = 0;
++  MOZ_RELEASE_ASSERT(!mSurface->IsPendingGdkCleanup());
++  MOZ_RELEASE_ASSERT(mNeedsMainThreadUpdate == MainThreadUpdate::None);
++}
++
+ void NativeLayerWaylandExternal::AttachExternalImage(
+     RenderTextureHost* aExternalImage) {
+   WaylandSurfaceLock lock(mSurface);
+diff --git a/gfx/layers/NativeLayerWayland.h b/gfx/layers/NativeLayerWayland.h
+index b581a2f6d41e..fdc5614abda0 100644
+--- a/gfx/layers/NativeLayerWayland.h
++++ b/gfx/layers/NativeLayerWayland.h
+@@ -17,6 +17,7 @@ class DMABufSurfaceRGBA;
+ 
+ namespace mozilla::wr {
+ class RenderDMABUFTextureHost;
++class RenderTextureHost;
+ }  // namespace mozilla::wr
+ 
+ namespace mozilla::widget {
+@@ -64,6 +65,15 @@ class NativeLayerRootWayland final : public NativeLayerRoot {
+  public:
+   static already_AddRefed<NativeLayerRootWayland> Create(
+       RefPtr<widget::WaylandSurface> aWaylandSurface);
++  static already_AddRefed<NativeLayerRootWayland> CreateForEGL(
++      widget::WaylandSurfaceLock& aProofOfLock);
++
++  // The caller retains the root lock through EGL swap or frame cancellation.
++  bool PrepareForEGL(widget::WaylandSurfaceLock& aProofOfLock,
++                     wr::RenderTextureHost* aExternalImage,
++                     const gfx::IntSize& aSize);
++  void ClearForEGL(widget::WaylandSurfaceLock& aProofOfLock);
++  void ShutdownForEGL(widget::WaylandSurfaceLock& aProofOfLock);
+ 
+   // Overridden methods
+   NativeLayerRootWayland* AsNativeLayerRootWayland() override { return this; }
+@@ -111,7 +121,7 @@ class NativeLayerRootWayland final : public NativeLayerRoot {
+       const widget::WaylandSurfaceLock& aProofOfLock);
+ 
+   explicit NativeLayerRootWayland(
+-      RefPtr<widget::WaylandSurface> aWaylandSurface);
++      RefPtr<widget::WaylandSurface> aWaylandSurface, bool aForEGL = false);
+ 
+   void NotifyFullscreenChanged(bool aIsFullscreen) {
+     mIsFullscreen = aIsFullscreen;
+@@ -150,6 +160,8 @@ class NativeLayerRootWayland final : public NativeLayerRoot {
+   // We also use widget::WaylandSurfaceLock for locking whole layer for
+   // read/write.
+   RefPtr<widget::WaylandSurface> mRootSurface;
++  const bool mForEGL;
++  RefPtr<NativeLayerWaylandExternal> mEGLExternalLayer;
+ 
+   // Copy of DRM format we use to create DMABuf surfaces
+   Atomic<widget::DRMFormat*> mDRMFormat{nullptr};
+@@ -384,6 +396,8 @@ class NativeLayerWaylandRender final : public NativeLayerWayland {
+ };
+ 
+ class NativeLayerWaylandExternal final : public NativeLayerWayland {
++  friend class NativeLayerRootWayland;
++
+  public:
+   // Overridden methods
+   NativeLayerWaylandExternal* AsNativeLayerWaylandExternal() override {
+@@ -408,6 +422,13 @@ class NativeLayerWaylandExternal final : public NativeLayerWayland {
+  private:
+   ~NativeLayerWaylandExternal() override;
+ 
++  bool PrepareForEGL(widget::WaylandSurfaceLock& aParentProofOfLock,
++                     wr::RenderTextureHost* aExternalImage,
++                     const gfx::IntSize& aSize);
++  void HideForEGL();
++  void ClearForEGL();
++  void HideForEGLLocked(const widget::WaylandSurfaceLock& aProofOfLock);
++
+   void DiscardBackbuffersLocked(const widget::WaylandSurfaceLock& aProofOfLock,
+                                 bool aForce) override;
+   void FreeUnusedBackBuffers();
+@@ -416,6 +437,7 @@ class NativeLayerWaylandExternal final : public NativeLayerWayland {
+ 
+   uintptr_t mLastSurface = 0;
+   RefPtr<wr::RenderTextureHost> mTextureHost;
++  uint32_t mEGLChromaLocation = 0;
+ };
+ 
+ class NativeLayerRootSnapshotterWayland final
+diff --git a/gfx/webrender_bindings/RenderCompositor.cpp b/gfx/webrender_bindings/RenderCompositor.cpp
+index ae078aa7b4db..4112ab483c2c 100644
+--- a/gfx/webrender_bindings/RenderCompositor.cpp
++++ b/gfx/webrender_bindings/RenderCompositor.cpp
+@@ -36,6 +36,12 @@
+ 
+ namespace mozilla::wr {
+ 
++bool wr_compositor_prepare_draw_external_surface(
++    void* aCompositor, const wr::DrawExternalSurface* aSurface) {
++  return static_cast<RenderCompositor*>(aCompositor)
++      ->PrepareDrawExternalSurface(aSurface);
++}
++
+ void wr_compositor_add_surface(void* aCompositor, wr::NativeSurfaceId aId,
+                                const wr::CompositorSurfaceTransform* aTransform,
+                                wr::DeviceIntRect aClipRect,
+diff --git a/gfx/webrender_bindings/RenderCompositor.h b/gfx/webrender_bindings/RenderCompositor.h
+index 45a64f308924..05528f8a656c 100644
+--- a/gfx/webrender_bindings/RenderCompositor.h
++++ b/gfx/webrender_bindings/RenderCompositor.h
+@@ -123,6 +123,11 @@ class RenderCompositor {
+ 
+   virtual bool UseLayerCompositor() const { return false; }
+ 
++  virtual bool SupportsDrawExternalSurface() const { return false; }
++  virtual bool PrepareDrawExternalSurface(const wr::DrawExternalSurface*) {
++    return false;
++  }
++
+   // Request RenderCompositor to enable taking screenshot
+   // In WebRender layer compositor case, taking screenshot will be ready in at
+   // most one WebRender composition.
+diff --git a/gfx/webrender_bindings/RenderCompositorEGL.cpp b/gfx/webrender_bindings/RenderCompositorEGL.cpp
+index 59f68e5e9f2e..12fd908e27a0 100644
+--- a/gfx/webrender_bindings/RenderCompositorEGL.cpp
++++ b/gfx/webrender_bindings/RenderCompositorEGL.cpp
+@@ -20,6 +20,12 @@
+ #  include "mozilla/widget/GtkCompositorWidget.h"
+ #endif
+ 
++#ifdef MOZ_WAYLAND
++#  include "mozilla/layers/NativeLayerWayland.h"
++#  include "mozilla/webrender/RenderDMABUFTextureHost.h"
++#  include "mozilla/widget/WaylandSurface.h"
++#endif
++
+ #ifdef MOZ_WIDGET_ANDROID
+ #  include <android/native_window.h>
+ #  include <android/native_window_jni.h>
+@@ -89,6 +95,8 @@ RenderCompositorEGL::RenderCompositorEGL(
+ 
+     const int interval = gfx::gfxVars::SwapIntervalEGL() ? 1 : 0;
+     egl->fSwapInterval(interval);
++    mDrawExternalEnabled = StaticPrefs::
++        gfx_webrender_compositor_external_surfaces_in_draw_AtStartup();
+   }
+ #endif
+ }
+@@ -97,15 +105,100 @@ RenderCompositorEGL::~RenderCompositorEGL() {
+   LOG("RenderCompositorEGL::~RenderCompositorEGL()");
+ #ifdef MOZ_WIDGET_ANDROID
+   java::GeckoSurfaceTexture::DestroyUnused((int64_t)gl());
++#endif
++#ifdef MOZ_WAYLAND
++  CancelFrame();
++  if (mDrawExternalRoot) {
++    widget::WaylandSurfaceLock lock(mDrawExternalRoot->GetRootWaylandSurface(),
++                                    true);
++    mDrawExternalRoot->ShutdownForEGL(lock);
++    mDrawExternalRoot = nullptr;
++  }
+ #endif
+   DestroyEGLSurface();
+ }
+ 
++bool RenderCompositorEGL::SupportsDrawExternalSurface() const {
++  return mDrawExternalEnabled;
++}
++
++bool RenderCompositorEGL::EnableAsyncScreenshot() {
++  mDrawExternalReadback = true;
++  return !mDrawExternalActive;
++}
++
++bool RenderCompositorEGL::PrepareDrawExternalSurface(
++    const wr::DrawExternalSurface* aSurface) {
++#ifdef MOZ_WAYLAND
++  if (!mDrawExternalEnabled || !mDrawFrameInProgress) {
++    CancelFrame();
++    return false;
++  }
++  mDrawExternalPrepared = true;
++  if (!mDrawExternalLock) {
++    mDrawExternalLock = mWidget->AsGTK()->LockSurface(true);
++  }
++  if (!mDrawExternalLock) {
++    CancelFrame();
++    return false;
++  }
++  auto* parent = mDrawExternalLock->GetWaylandSurface();
++  if (!mDrawExternalRoot && parent->IsMapped()) {
++    mDrawExternalRoot =
++        layers::NativeLayerRootWayland::CreateForEGL(*mDrawExternalLock);
++    if (mDrawExternalRoot) {
++      mDrawExternalRoot->SetGLContext(gl());
++    }
++  }
++  if (!mDrawExternalRoot) {
++    return false;
++  }
++
++  RefPtr<RenderTextureHost> host;
++  gfx::IntSize size;
++  if (aSurface && !mDrawExternalReadback && !mWidget->IsHidden() &&
++      parent->IsMapped() && parent->GetScale() == 1.0) {
++    size = gfx::IntSize(aSurface->size.width, aSurface->size.height);
++    host = RenderThread::Get()->GetRenderTexture(aSurface->external_image_id);
++    auto* dmabuf = host ? host->AsRenderDMABUFTextureHost() : nullptr;
++    auto buffer = dmabuf ? dmabuf->GetSurface() : nullptr;
++    if (!buffer || !buffer->GetAsDMABufSurfaceYUV() || buffer->IsHDRSurface() ||
++        buffer->IsFullRange() ||
++        buffer->GetYUVColorSpace() != gfx::YUVColorSpace::BT709 ||
++        buffer->GetSize(0) != size || size != GetBufferSize().ToUnknownSize()) {
++      host = nullptr;
++    }
++  }
++  mDrawExternalActive =
++      mDrawExternalRoot->PrepareForEGL(*mDrawExternalLock, host, size);
++  return mDrawExternalActive;
++#else
++  return false;
++#endif
++}
++
++void RenderCompositorEGL::CancelFrame() {
++#ifdef MOZ_WAYLAND
++  if (mDrawExternalRoot) {
++    if (!mDrawExternalLock) {
++      mDrawExternalLock = MakeUnique<widget::WaylandSurfaceLock>(
++          mDrawExternalRoot->GetRootWaylandSurface(), true);
++    }
++    mDrawExternalRoot->ClearForEGL(*mDrawExternalLock);
++  }
++  mDrawExternalLock = nullptr;
++#endif
++  mDrawExternalActive = false;
++  mDrawFrameInProgress = false;
++  mDrawExternalPrepared = false;
++}
++
+ bool RenderCompositorEGL::BeginFrame() {
+   LOG("RenderCompositorEGL::BeginFrame()");
+   if (kIsLinux && mEGLSurface == EGL_NO_SURFACE) {
+     gfxCriticalNote
+         << "We don't have EGLSurface to draw into. Called too early?";
++    CancelFrame();
+     return false;
+   }
+ #ifdef MOZ_WAYLAND
+@@ -115,6 +208,7 @@ bool RenderCompositorEGL::BeginFrame() {
+ #endif
+   if (!MakeCurrent()) {
+     gfxCriticalNote << "Failed to make render context current, can't draw.";
++    CancelFrame();
+     return false;
+   }
+ 
+@@ -123,12 +217,17 @@ bool RenderCompositorEGL::BeginFrame() {
+   gl()->MakeCurrent();  // DestroyUnused can change the current context!
+ #endif
+ 
++  mDrawFrameInProgress = true;
++  mDrawExternalPrepared = false;
+   return true;
+ }
+ 
+ RenderedFrameId RenderCompositorEGL::EndFrame(
+     const nsTArray<DeviceIntRect>& aDirtyRects) {
+   LOG("RenderCompositorEGL::EndFrame()");
++  if (mDrawExternalEnabled && !mDrawExternalPrepared) {
++    PrepareDrawExternalSurface(nullptr);
++  }
+ #ifdef MOZ_WIDGET_ANDROID
+   const auto& gle = gl::GLContextEGL::Cast(gl());
+   const auto& egl = gle->mEgl;
+@@ -151,6 +250,7 @@ RenderedFrameId RenderCompositorEGL::EndFrame(
+   RenderedFrameId frameId = GetNextRenderFrameId();
+ #ifdef MOZ_WIDGET_GTK
+   if (mWidget->IsHidden()) {
++    CancelFrame();
+     return frameId;
+   }
+ #endif
+@@ -178,15 +278,33 @@ RenderedFrameId RenderCompositorEGL::EndFrame(
+   // wayland surface is also used by main thread so lock it before
+   // we paint at SwapBuffers().
+   UniquePtr<widget::WaylandSurfaceLock> lock;
+-  if (auto* gtkWidget = mWidget->AsGTK()) {
+-    lock = gtkWidget->LockSurface();
++  if (!mDrawExternalLock) {
++    if (auto* gtkWidget = mWidget->AsGTK()) {
++      lock = gtkWidget->LockSurface();
++    }
+   }
+ #endif
+-  gl()->SwapBuffers();
++  [[maybe_unused]] const bool swapped = gl()->SwapBuffers();
++#ifdef MOZ_WAYLAND
++  if (mDrawExternalLock) {
++    if (swapped) {
++      mDrawExternalLock->GetWaylandSurface()->NotifyEGLSwapLocked(
++          *mDrawExternalLock);
++      mDrawExternalLock = nullptr;
++    } else {
++      CancelFrame();
++    }
++  }
++#endif
++  mDrawExternalReadback = false;
++  mDrawFrameInProgress = false;
+   return frameId;
+ }
+ 
+ void RenderCompositorEGL::Pause() {
++  if (mDrawExternalEnabled) {
++    CancelFrame();
++  }
+   if (kIsAndroid) {
+     DestroyEGLSurface();
+   }
+diff --git a/gfx/webrender_bindings/RenderCompositorEGL.h b/gfx/webrender_bindings/RenderCompositorEGL.h
+index 70674b59ba8c..60583fa1f815 100644
+--- a/gfx/webrender_bindings/RenderCompositorEGL.h
++++ b/gfx/webrender_bindings/RenderCompositorEGL.h
+@@ -13,6 +13,13 @@
+ 
+ namespace mozilla {
+ 
++namespace layers {
++class NativeLayerRootWayland;
++}
++namespace widget {
++class WaylandSurfaceLock;
++}
++
+ namespace wr {
+ 
+ class RenderCompositorEGL : public RenderCompositor {
+@@ -25,6 +32,7 @@ class RenderCompositorEGL : public RenderCompositor {
+   virtual ~RenderCompositorEGL();
+ 
+   bool BeginFrame() override;
++  void CancelFrame() override;
+   RenderedFrameId EndFrame(const nsTArray<DeviceIntRect>& aDirtyRects) final;
+   void Pause() override;
+   bool Resume() override;
+@@ -34,6 +42,10 @@ class RenderCompositorEGL : public RenderCompositor {
+ 
+   bool MakeCurrent() override;
+ 
++  bool SupportsDrawExternalSurface() const override;
++  bool PrepareDrawExternalSurface(const wr::DrawExternalSurface*) override;
++  bool EnableAsyncScreenshot() override;
++
+   bool UseANGLE() const override { return false; }
+ 
+   LayoutDeviceIntSize GetBufferSize() override;
+@@ -58,6 +70,16 @@ class RenderCompositorEGL : public RenderCompositor {
+ 
+   RefPtr<gl::GLContext> mGL;
+ 
++#ifdef MOZ_WAYLAND
++  RefPtr<layers::NativeLayerRootWayland> mDrawExternalRoot;
++  UniquePtr<widget::WaylandSurfaceLock> mDrawExternalLock;
++#endif
++  bool mDrawExternalEnabled = false;
++  bool mDrawExternalActive = false;
++  bool mDrawExternalReadback = false;
++  bool mDrawFrameInProgress = false;
++  bool mDrawExternalPrepared = false;
++
+   EGLSurface mEGLSurface;
+ 
+   // Whether we are in the process of handling a NEW_SURFACE error. On Android
+diff --git a/gfx/webrender_bindings/RendererOGL.cpp b/gfx/webrender_bindings/RendererOGL.cpp
+index 8d570e1dcf6e..05faf31e6761 100644
+--- a/gfx/webrender_bindings/RendererOGL.cpp
++++ b/gfx/webrender_bindings/RendererOGL.cpp
+@@ -190,14 +190,19 @@ RenderedFrameId RendererOGL::UpdateAndRender(
+     if (!mCompositor->GetWidget()->PreRender(&widgetContext)) {
+       // XXX This could cause oom in webrender since pending_texture_updates is
+       // not handled. It needs to be addressed.
++      if (mCompositor->SupportsDrawExternalSurface()) {
++        mCompositor->CancelFrame();
++      }
+       return RenderedFrameId();
+     }
+     needPostRenderCall = true;
+ 
+     // XXX set clear color if MOZ_WIDGET_ANDROID is defined.
+ 
+-    if (aReadbackBuffer.isSome() || layers::ProfilerScreenshots::IsEnabled()) {
+-      if (mCompositor->UseLayerCompositor()) {
++    if (aReadbackBuffer.isSome() || layers::ProfilerScreenshots::IsEnabled() ||
++        (mCompositionRecorder && mCompositor->SupportsDrawExternalSurface())) {
++      if (mCompositor->UseLayerCompositor() ||
++          mCompositor->SupportsDrawExternalSurface()) {
+         mCompositor->EnableAsyncScreenshot();
+       }
+     }
+@@ -215,10 +220,16 @@ RenderedFrameId RendererOGL::UpdateAndRender(
+     }
+   } else if (!mCompositor->MakeCurrent()) {
+     // MakeCurrent is otherwise called by mCompositor->BeginFrame above.
++    if (present && mCompositor->SupportsDrawExternalSurface()) {
++      mCompositor->CancelFrame();
++    }
+     return RenderedFrameId();
+   }
+ 
+   if (!beginFrame) {
++    if (present && mCompositor->SupportsDrawExternalSurface()) {
++      mCompositor->CancelFrame();
++    }
+     CheckGraphicsResetStatus(gfx::DeviceResetDetectPlace::WR_BEGIN_FRAME,
+                              /* aForce */ true);
+     if (needPostRenderCall) {
+@@ -325,7 +336,8 @@ RenderedFrameId RendererOGL::UpdateAndRender(
+ }
+ 
+ bool RendererOGL::EnsureAsyncScreenshot() {
+-  if (mCompositor->UseLayerCompositor()) {
++  if (mCompositor->UseLayerCompositor() ||
++      mCompositor->SupportsDrawExternalSurface()) {
+     return mCompositor->EnableAsyncScreenshot();
+   }
+   if (mCompositor->SupportAsyncScreenshot()) {
+diff --git a/gfx/webrender_bindings/WebRenderAPI.cpp b/gfx/webrender_bindings/WebRenderAPI.cpp
+index 2e092e2f38a9..8c6ab87cd985 100644
+--- a/gfx/webrender_bindings/WebRenderAPI.cpp
++++ b/gfx/webrender_bindings/WebRenderAPI.cpp
+@@ -311,7 +311,8 @@ RefPtr<WebRenderAPI::CreatePromise> WebRenderAPI::Create(
+                 StaticPrefs::gfx_webrender_max_shared_surface_size_AtStartup(),
+                 StaticPrefs::gfx_webrender_enable_subpixel_aa_AtStartup(),
+                 compositor->ShouldUseLayerCompositor(),
+-                limitSdrYuvExternalComposites)) {
++                limitSdrYuvExternalComposites,
++                compositor->SupportsDrawExternalSurface())) {
+           // wr_window_new puts a message into gfxCriticalNote if it returns
+           // false
+           MOZ_ASSERT(errorMessage);
+diff --git a/gfx/webrender_bindings/src/bindings.rs b/gfx/webrender_bindings/src/bindings.rs
+index f25679f0c6ed..0cb95ce75da9 100644
+--- a/gfx/webrender_bindings/src/bindings.rs
++++ b/gfx/webrender_bindings/src/bindings.rs
+@@ -30,6 +30,7 @@ use std::{env, mem, ptr, slice};
+ use thin_vec::ThinVec;
+ use webrender::glyph_rasterizer::{GlyphRasterThread, SharedFontResources};
+ use webrender::ChunkPool;
++use webrender::{DrawExternalCompositor, DrawExternalSurface};
+ 
+ use euclid::SideOffsets2D;
+ use moz2d_renderer::Moz2dBlobImageHandler;
+@@ -1456,6 +1457,10 @@ extern "C" {
+         tile_size: DeviceIntSize,
+         is_opaque: bool,
+     );
++    fn wr_compositor_prepare_draw_external_surface(
++        compositor: *mut c_void,
++        surface: Option<&DrawExternalSurface>,
++    ) -> bool;
+     fn wr_compositor_create_swapchain_surface(
+         compositor: *mut c_void,
+         id: NativeSurfaceId,
+@@ -2065,6 +2070,14 @@ impl MappableCompositor for WrCompositor {
+     }
+ }
+ 
++struct WrDrawExternalCompositor(*mut c_void);
++
++impl DrawExternalCompositor for WrDrawExternalCompositor {
++    fn prepare(&mut self, surface: Option<&DrawExternalSurface>) -> bool {
++        unsafe { wr_compositor_prepare_draw_external_surface(self.0, surface) }
++    }
++}
++
+ pub struct WrPartialPresentCompositor(*mut c_void);
+ 
+ impl PartialPresentCompositor for WrPartialPresentCompositor {
+@@ -2157,6 +2170,7 @@ pub extern "C" fn wr_window_new(
+     enable_subpixel_aa: bool,
+     use_layer_compositor: bool,
+     limit_sdr_yuv_external_composites: bool,
++    use_draw_external_compositor: bool,
+ ) -> bool {
+     assert!(unsafe { is_in_render_thread() });
+ 
+@@ -2235,6 +2249,11 @@ pub extern "C" fn wr_window_new(
+         CompositorConfig::Draw {
+             max_partial_present_rects,
+             draw_previous_partial_present_regions,
++            external_compositor: if use_draw_external_compositor {
++                Some(Box::new(WrDrawExternalCompositor(compositor)))
++            } else {
++                None
++            },
+             partial_present: if use_partial_present {
+                 Some(Box::new(WrPartialPresentCompositor(compositor)))
+             } else {
+diff --git a/gfx/wr/webrender/src/composite.rs b/gfx/wr/webrender/src/composite.rs
+index e439ebbf8a76..a1f79bca35d8 100644
+--- a/gfx/wr/webrender/src/composite.rs
++++ b/gfx/wr/webrender/src/composite.rs
+@@ -24,6 +24,9 @@ use crate::space::SpaceMapper;
+ use std::{ops, os::raw::c_void, hash};
+ use std::num::NonZeroUsize;
+ 
++mod draw_external;
++pub use self::draw_external::{DrawExternalCompositor, DrawExternalSurface};
++
+ #[cfg(feature = "replay")]
+ fn white_modulation() -> api::PremultipliedColorF {
+     api::PremultipliedColorF::WHITE
+@@ -342,6 +345,7 @@ pub enum CompositorConfig {
+         /// A client provided interface to a compositor handling partial present.
+         /// Required if webrender must query the backbuffer's age.
+         partial_present: Option<Box<dyn PartialPresentCompositor>>,
++        external_compositor: Option<Box<dyn DrawExternalCompositor>>,
+     },
+     Layer {
+         /// If supplied, composite the frame using the new experimental compositing
+@@ -359,6 +363,13 @@ pub enum CompositorConfig {
+ }
+ 
+ impl CompositorConfig {
++    pub fn draw_external_compositor(&mut self) -> Option<&mut Box<dyn DrawExternalCompositor>> {
++        match self {
++            CompositorConfig::Draw { external_compositor, .. } => external_compositor.as_mut(),
++            _ => None,
++        }
++    }
++
+     pub fn compositor(&mut self) -> Option<&mut Box<dyn Compositor>> {
+         match self {
+             CompositorConfig::Native { ref mut compositor, .. } => {
+@@ -406,6 +417,7 @@ impl Default for CompositorConfig {
+             max_partial_present_rects: 0,
+             draw_previous_partial_present_regions: false,
+             partial_present: None,
++            external_compositor: None,
+         }
+     }
+ }
+diff --git a/gfx/wr/webrender/src/lib.rs b/gfx/wr/webrender/src/lib.rs
+index b64b96bb50f7..ff353b59cb1d 100644
+--- a/gfx/wr/webrender/src/lib.rs
++++ b/gfx/wr/webrender/src/lib.rs
+@@ -230,6 +230,7 @@ extern crate webrender_build;
+ #[doc(hidden)]
+ pub use crate::composite::{LayerCompositor, CompositorInputConfig, CompositorSurfaceUsage, ClipRadius};
+ pub use crate::composite::{CompositorConfig, Compositor, CompositorCapabilities, CompositorSurfaceTransform};
++pub use crate::composite::{DrawExternalCompositor, DrawExternalSurface};
+ pub use crate::composite::{NativeSurfaceId, NativeTileId, NativeSurfaceHandle, NativeSurfaceInfo, PartialPresentCompositor};
+ pub use crate::composite::{MappableCompositor, MappedTileInfo, SWGLCompositeSurfaceInfo, WindowVisibility, WindowProperties};
+ pub use crate::device::{UploadMethod, VertexUsageHint, get_unoptimized_shader_source};
+diff --git a/gfx/wr/webrender/src/renderer/composite.rs b/gfx/wr/webrender/src/renderer/composite.rs
+index 7a650612e101..e687ef1251b4 100644
+--- a/gfx/wr/webrender/src/renderer/composite.rs
++++ b/gfx/wr/webrender/src/renderer/composite.rs
+@@ -608,6 +608,20 @@ impl Renderer {
+         let _gm = self.gpu_profiler.start_marker("framebuffer");
+         let _timer = self.gpu_profiler.start_timer(GPU_TAG_COMPOSITE);
+ 
++        if let Some(compositor) = self.compositor_config.draw_external_compositor() {
++            let allowed = self.debug_flags.is_empty()
++                && !self.debug_overlay_state.is_enabled
++                && device_size == frame_device_size
++                && matches!(fb_draw_target, DrawTarget::Default { rect, .. } if rect.min == FramebufferIntPoint::zero());
++            if composite_state.prepare_draw_external_surface(
++                frame_device_size, allowed, compositor.as_mut(),
++            ).is_some()
++            {
++                // The accepted frontmost opaque surface covers every lower tile.
++                return;
++            }
++        }
++
+         let num_tiles = composite_state.tiles.len();
+         self.profile.set(profiler::PICTURE_TILES, num_tiles);
+ 
+@@ -1555,6 +1569,7 @@ impl Renderer {
+ 
+             let can_use_partial_present = composite_state.dirty_rects_are_valid
+                 && !self.force_redraw
++                && self.compositor_config.draw_external_compositor().is_none()
+                 && !(prev_frames_damage_rect.is_none() && draw_previous_partial_present_regions)
+                 && !self.debug_overlay_state.is_enabled;
+ 
+diff --git a/modules/libpref/init/StaticPrefList.yaml b/modules/libpref/init/StaticPrefList.yaml
+index fb4452104d13..ff03e53a2d41 100644
+--- a/modules/libpref/init/StaticPrefList.yaml
++++ b/modules/libpref/init/StaticPrefList.yaml
+@@ -8599,6 +8599,11 @@
+   value: false
+   mirror: once
+ 
++- name: gfx.webrender.compositor.external-surfaces-in-draw
++  type: bool
++  value: false
++  mirror: once
++
+ - name: gfx.webrender.compositor.max_update_rects
+   type: uint32_t
+   value: 1
+diff --git a/widget/gtk/DMABufFormats.cpp b/widget/gtk/DMABufFormats.cpp
+index 9622ac05e427..d48cba2a9a18 100644
+--- a/widget/gtk/DMABufFormats.cpp
++++ b/widget/gtk/DMABufFormats.cpp
+@@ -205,7 +205,10 @@ DMABufFeedback* DMABufFormats::GetPendingDMABufFeedback() {
+ }
+ 
+ void DMABufFormats::PendingDMABufFeedbackDone() {
+-  mDMABufFeedback = std::move(mPendingDMABufFeedback);
++  {
++    MutexAutoLock lock(mFeedbackMutex);
++    mDMABufFeedback = std::move(mPendingDMABufFeedback);
++  }
+   if (mFormatRefreshCallback) {
+     mFormatRefreshCallback(this);
+   }
+@@ -366,6 +369,15 @@ DRMFormat* DMABufFormats::GetFormat(uint32_t aFormat,
+   return mDMABufFeedback->GetFormat(aFormat, aRequestScanoutFormat);
+ }
+ 
++RefPtr<DRMFormat> DMABufFormats::GetFormatSnapshot(uint32_t aFormat) {
++  MutexAutoLock lock(mFeedbackMutex);
++  if (!mDMABufFeedback) {
++    return nullptr;
++  }
++  DRMFormat* format = mDMABufFeedback->GetFormat(aFormat, false);
++  return format ? MakeRefPtr<DRMFormat>(*format) : nullptr;
++}
++
+ void DMABufFormats::EnsureBasicFormat(uint32_t aDrmFourcc) {
+   MOZ_DIAGNOSTIC_ASSERT(mDMABufFeedback);
+   if (!GetFormat(aDrmFourcc)) {
+@@ -377,6 +389,7 @@ void DMABufFormats::EnsureBasicFormat(uint32_t aDrmFourcc) {
+ }
+ 
+ void DMABufFormats::EnsureBasicFormats() {
++  MutexAutoLock lock(mFeedbackMutex);
+   MOZ_DIAGNOSTIC_ASSERT(!mPendingDMABufFeedback,
+                         "Can't add extra formats during init!");
+   if (!mDMABufFeedback) {
+diff --git a/widget/gtk/DMABufFormats.h b/widget/gtk/DMABufFormats.h
+index 0471e548b288..89c3b79c400f 100644
+--- a/widget/gtk/DMABufFormats.h
++++ b/widget/gtk/DMABufFormats.h
+@@ -5,6 +5,7 @@
+ #ifndef MOZ_DMABUF_FORMATS_H_
+ #define MOZ_DMABUF_FORMATS_H_
+ 
++#include "mozilla/Mutex.h"
+ #include "mozilla/gfx/Types.h"
+ #include "nsTArray.h"
+ 
+@@ -84,6 +85,7 @@ class DMABufFormats final {
+   void PendingDMABufFeedbackDone();
+ 
+   DRMFormat* GetFormat(uint32_t aFormat, bool aRequestScanoutFormat = false);
++  RefPtr<DRMFormat> GetFormatSnapshot(uint32_t aFormat);
+   DMABufFormats();
+ 
+   void EnsureBasicFormats();
+@@ -94,6 +96,7 @@ class DMABufFormats final {
+   void EnsureBasicFormat(uint32_t aDrmFourcc);
+ 
+   DMABufFormatsCallback mFormatRefreshCallback;
++  Mutex mFeedbackMutex{"DMABufFormats::mFeedbackMutex"};
+ #ifdef MOZ_WAYLAND
+   zwp_linux_dmabuf_feedback_v1* mWaylandFeedback = nullptr;
+ #endif
+diff --git a/widget/gtk/DMABufSurface.cpp b/widget/gtk/DMABufSurface.cpp
+index eda029377eb3..22f16f30c2f7 100644
+--- a/widget/gtk/DMABufSurface.cpp
++++ b/widget/gtk/DMABufSurface.cpp
+@@ -2567,6 +2567,34 @@ void DMABufSurfaceYUV::CopyPlane(int aPlane, char* aData) {
+ }
+ #endif
+ 
++uint32_t DMABufSurfaceYUV::GetWlBufferFormat() const {
++  return GetFOURCCFormat() == VA_FOURCC_I420 ? DRM_FORMAT_YUV420
++                                             : GetFOURCCFormat();
++}
++
++bool DMABufSurfaceYUV::IsWlBufferFormatSupported(
++    DMABufFormats& aFormats) const {
++  const uint32_t format = GetWlBufferFormat();
++  const int planes = format == DRM_FORMAT_NV12     ? 2
++                     : format == DRM_FORMAT_YUV420 ? 3
++                                                   : 0;
++  if (!planes || mBufferPlaneCount != planes) {
++    return false;
++  }
++  auto advertised = aFormats.GetFormatSnapshot(format);
++  if (!advertised) {
++    return false;
++  }
++  for (int i = 0; i < planes; ++i) {
++    if (mBufferModifiers[i] == DRM_FORMAT_MOD_INVALID ||
++        mBufferModifiers[i] != mBufferModifiers[0] ||
++        !advertised->IsFormatModifierSupported(mBufferModifiers[i])) {
++      return false;
++    }
++  }
++  return true;
++}
++
+ #ifdef MOZ_WAYLAND
+ wl_buffer* DMABufSurfaceYUV::CreateWlBuffer() {
+   nsWaylandDisplay* waylandDisplay = widget::WaylandDisplayGet();
+@@ -2583,6 +2611,9 @@ wl_buffer* DMABufSurfaceYUV::CreateWlBuffer() {
+ 
+   struct zwp_linux_buffer_params_v1* params =
+       zwp_linux_dmabuf_v1_create_params(dmabuf);
++  if (!params) {
++    return nullptr;
++  }
+   for (int i = 0; i < GetTextureCount(); i++) {
+     LOGDMABUF("  layer [%d] modifier %" PRIx64, i, mBufferModifiers[i]);
+     zwp_linux_buffer_params_v1_add(
+@@ -2592,10 +2623,7 @@ wl_buffer* DMABufSurfaceYUV::CreateWlBuffer() {
+ 
+   // The format passed to wayland needs to be a DRM_FORMAT_* enum.  These are
+   // largely the same as VA_FOURCC_* values except for I420/YUV420
+-  uint32_t format = GetFOURCCFormat();
+-  if (format == VA_FOURCC_I420) {
+-    format = DRM_FORMAT_YUV420;
+-  }
++  uint32_t format = GetWlBufferFormat();
+ 
+   LOGDMABUF(
+       "  zwp_linux_buffer_params_v1_create_immed() [%d x %d], fourcc [%x]",
+@@ -2609,6 +2637,7 @@ wl_buffer* DMABufSurfaceYUV::CreateWlBuffer() {
+   } else {
+     LOGDMABUF("  created wl_buffer [%p]", buffer);
+   }
++  zwp_linux_buffer_params_v1_destroy(params);
+ 
+   return buffer;
+ }
+diff --git a/widget/gtk/DMABufSurface.h b/widget/gtk/DMABufSurface.h
+index 63210afd6805..928fb98fbd27 100644
+--- a/widget/gtk/DMABufSurface.h
++++ b/widget/gtk/DMABufSurface.h
+@@ -394,6 +394,9 @@ class DMABufSurfaceYUV final : public DMABufSurface {
+ 
+   bool VerifyTextureCreation();
+ 
++  bool IsWlBufferFormatSupported(
++      mozilla::widget::DMABufFormats& aFormats) const;
++
+ #ifdef MOZ_WAYLAND
+   wl_buffer* CreateWlBuffer() override;
+ #endif
+@@ -401,6 +404,8 @@ class DMABufSurfaceYUV final : public DMABufSurface {
+  private:
+   ~DMABufSurfaceYUV();
+ 
++  uint32_t GetWlBufferFormat() const;
++
+   bool CreateTexture(mozilla::gl::GLContext* aGLContext, int aPlane) override;
+ 
+   bool Create(const mozilla::layers::SurfaceDescriptor& aDesc) override;
+diff --git a/widget/gtk/GtkCompositorWidget.cpp b/widget/gtk/GtkCompositorWidget.cpp
+index ec7d9c1e6fd5..df768b1e89ec 100644
+--- a/widget/gtk/GtkCompositorWidget.cpp
++++ b/widget/gtk/GtkCompositorWidget.cpp
+@@ -185,8 +185,9 @@ bool GtkCompositorWidget::IsPopup() {
+ }
+ #endif
+ 
+-UniquePtr<WaylandSurfaceLock> GtkCompositorWidget::LockSurface() {
+-  return mWidget ? mWidget->LockSurface() : nullptr;
++UniquePtr<WaylandSurfaceLock> GtkCompositorWidget::LockSurface(
++    bool aSkipCommit) {
++  return mWidget ? mWidget->LockSurface(aSkipCommit) : nullptr;
+ }
+ 
+ }  // namespace widget
+diff --git a/widget/gtk/GtkCompositorWidget.h b/widget/gtk/GtkCompositorWidget.h
+index 5eaac1d66c35..3ab522cb8660 100644
+--- a/widget/gtk/GtkCompositorWidget.h
++++ b/widget/gtk/GtkCompositorWidget.h
+@@ -87,7 +87,7 @@ class GtkCompositorWidget : public CompositorWidget,
+   void NotifyClientSizeChanged(const LayoutDeviceIntSize& aClientSize) override;
+   void NotifyFullscreenChanged(bool aIsFullscreen) override;
+ 
+-  UniquePtr<WaylandSurfaceLock> LockSurface();
++  UniquePtr<WaylandSurfaceLock> LockSurface(bool aSkipCommit = false);
+ 
+  private:
+ #if defined(MOZ_WAYLAND)
+diff --git a/widget/gtk/WaylandSurface.cpp b/widget/gtk/WaylandSurface.cpp
+index becffd28f40b..64857365407c 100644
+--- a/widget/gtk/WaylandSurface.cpp
++++ b/widget/gtk/WaylandSurface.cpp
+@@ -15,6 +15,7 @@
+ #include "mozilla/ToString.h"
+ #include "mozilla/gfx/Logging.h"
+ #include "mozilla/gfx/gfxVars.h"
++#include "mozilla/layers/NativeLayerWayland.h"
+ #include "nsGtkUtils.h"
+ #include "nsWindow.h"
+ #undef LOG
+@@ -125,6 +126,7 @@ WaylandSurface::~WaylandSurface() {
+ 
+   MOZ_RELEASE_ASSERT(!mIsMapped, "We can't release mapped WaylandSurface!");
+   MOZ_RELEASE_ASSERT(!mSurfaceLock, "We can't release locked WaylandSurface!");
++  MOZ_RELEASE_ASSERT(!mEGLVSyncSource);
+   MOZ_RELEASE_ASSERT(mBufferTransactions.Length() == 0,
+                      "We can't release surface with buffers tracked!");
+   MOZ_RELEASE_ASSERT(!mEmulatedVSyncCallbackTimerID,
+@@ -162,6 +164,10 @@ void WaylandSurface::VSyncCallbackHandler(struct wl_callback* aCallback,
+         "set %d emulated %d routed %d",
+         mVSyncCallbackHandler.IsSet(), aEmulated, aRoutedFromChildSurface);
+ 
++    if (aCallback && mVSyncFrameCallback.get() != aCallback) {
++      return;
++    }
++
+     // It's possible to get regular VSync frame callback right after unmap
+     // if frame callbacks was already in event queue so ignore it.
+     if (!aEmulated && !aRoutedFromChildSurface && !mVSyncFrameCallback) {
+@@ -312,6 +318,9 @@ void WaylandSurface::ClearVSyncCallbackHandlerLocked(
+   LOGVERBOSE("WaylandSurface::ClearVSyncCallbackHandlerLocked()");
+   MOZ_DIAGNOSTIC_ASSERT(&aProofOfLock == mSurfaceLock);
+   mVSyncCallbackHandler = VSyncCallback{};
++  if (mEGLVSyncSource) {
++    SetEGLVSyncSourceLocked(aProofOfLock, nullptr);
++  }
+ }
+ 
+ void WaylandSurface::SetVSyncCallbackHandlerLocked(
+@@ -345,6 +354,10 @@ void WaylandSurface::SetVSyncCallbackStateLocked(
+   if (mVSyncCallbackStateHandler) {
+     mVSyncCallbackStateHandler(aEnabled);
+   }
++  if (mEGLVSyncSource) {
++    WaylandSurfaceLock lock(mEGLVSyncSource);
++    mEGLVSyncSource->SetVSyncCallbackStateLocked(lock, aEnabled);
++  }
+ }
+ 
+ void WaylandSurface::SetVSyncCallbackStateHandlerLocked(
+@@ -561,10 +574,85 @@ void WaylandSurface::ReleaseAllWaylandTransactionsLocked(
+   }
+ }
+ 
++void WaylandSurface::SetEGLExternalRootLocked(
++    const WaylandSurfaceLock& aProofOfLock,
++    layers::NativeLayerRootWayland* aRoot) {
++  MOZ_RELEASE_ASSERT(&aProofOfLock == mSurfaceLock);
++  MOZ_RELEASE_ASSERT(!aRoot || !mEGLExternalRoot);
++  mEGLExternalRoot = aRoot;
++}
++
++void WaylandSurface::NotifyEGLSwapLocked(
++    const WaylandSurfaceLock& aProofOfLock) {
++  MOZ_RELEASE_ASSERT(&aProofOfLock == mSurfaceLock);
++  mBufferAttached = true;
++  mSurfaceNeedsCommit = false;
++}
++
++void WaylandSurface::SetEGLVSyncSourceLocked(
++    const WaylandSurfaceLock& aProofOfLock, RefPtr<WaylandSurface> aSource) {
++  MOZ_RELEASE_ASSERT(&aProofOfLock == mSurfaceLock);
++  MOZ_RELEASE_ASSERT(!aSource || mEGLExternalRoot);
++  MOZ_RELEASE_ASSERT(aSource != this);
++  if (!mVSyncCallbackHandler.IsSet()) {
++    aSource = nullptr;
++  }
++  if (mEGLVSyncSource == aSource) {
++    return;
++  }
++  MOZ_RELEASE_ASSERT(++mEGLVSyncGeneration != 0);
++  if (mEGLVSyncSource) {
++    WaylandSurfaceLock lock(mEGLVSyncSource);
++    mEGLVSyncSource->SetVSyncCallbackStateLocked(lock, false);
++    mEGLVSyncSource->ClearVSyncCallbackHandlerLocked(lock);
++  }
++  mEGLVSyncSource = std::move(aSource);
++  if (!mEGLVSyncSource) {
++    return;
++  }
++
++  WaylandSurfaceLock lock(mEGLVSyncSource);
++  MOZ_RELEASE_ASSERT(mEGLVSyncSource->mParent == this);
++  MOZ_RELEASE_ASSERT(mIsMapped && mEGLVSyncSource->mIsMapped);
++  mEGLVSyncSource->SetVSyncCallbackStateLocked(lock, mVSyncCallbackEnabled);
++  mEGLVSyncSource->SetVSyncCallbackHandlerLocked(
++      lock, [parent = RefPtr{this}, generation = mEGLVSyncGeneration](
++                wl_callback*, uint32_t aTime, bool aEmulated) {
++        MOZ_DIAGNOSTIC_ASSERT(!aEmulated);
++        if (!aEmulated) {
++          parent->EGLVSyncCallbackHandler(generation, aTime);
++        }
++      });
++}
++
++void WaylandSurface::EGLVSyncCallbackHandler(uint64_t aGeneration,
++                                             uint32_t aTime) {
++  AssertIsOnMainThread();
++  VSyncCallback cb;
++  {
++    // Publish the synchronized child's rearmed callback before notifying vsync.
++    // EGL holds this same lock across preparation and swap.
++    WaylandSurfaceLock lock(this);
++    if (!mIsMapped || !mVSyncCallbackEnabled || !mEGLVSyncSource ||
++        aGeneration != mEGLVSyncGeneration) {
++      return;
++    }
++    cb = mVSyncCallbackHandler;
++    SetVSyncCallbackLocked(lock);
++    lock.RequestForceCommit();
++  }
++  if (cb.IsSet()) {
++    cb.mCb(nullptr, aTime, false);
++  }
++}
++
+ void WaylandSurface::UnmapLocked(WaylandSurfaceLock& aSurfaceLock) {
+   if (!mIsMapped) {
+     return;
+   }
++  if (mEGLExternalRoot) {
++    mEGLExternalRoot->ClearForEGL(aSurfaceLock);
++  }
+   mIsMapped = false;
+   mIsVisible = false;
+ 
+@@ -709,6 +797,16 @@ void WaylandSurface::OpaqueCallbackHandler() {
+   ClearOpaqueCallbackLocked(lock);
+ }
+ 
++void WaylandSurface::SetOpaqueForEGLLocked(
++    const WaylandSurfaceLock& aProofOfLock) {
++  MOZ_RELEASE_ASSERT(&aProofOfLock == mSurfaceLock);
++  WUniquePtr<wl_region> region(
++      wl_compositor_create_region(WaylandDisplayGet()->GetCompositor()));
++  wl_region_add(region.get(), 0, 0, INT32_MAX, INT32_MAX);
++  wl_surface_set_opaque_region(mSurface.get(), region.get());
++  mSurfaceNeedsCommit = true;
++}
++
+ void WaylandSurface::SetOpaqueLocked(const WaylandSurfaceLock& aProofOfLock) {
+   MOZ_DIAGNOSTIC_ASSERT(&aProofOfLock == mSurfaceLock);
+   if (!IsOpaqueRegionEnabled()) {
+diff --git a/widget/gtk/WaylandSurface.h b/widget/gtk/WaylandSurface.h
+index e3ffaba7ddd6..016805c1da00 100644
+--- a/widget/gtk/WaylandSurface.h
++++ b/widget/gtk/WaylandSurface.h
+@@ -21,6 +21,10 @@ struct wl_egl_window;
+ 
+ class MessageLoop;
+ 
++namespace mozilla::layers {
++class NativeLayerRootWayland;
++}
++
+ namespace mozilla::widget {
+ 
+ class WaylandBuffer;
+@@ -89,6 +93,12 @@ class WaylandSurface final {
+   wl_egl_window* GetEGLWindow(DesktopIntSize aSize);
+   bool HasEGLWindow() const { return !!mEGLWindow; }
+ 
++  void SetEGLExternalRootLocked(const WaylandSurfaceLock& aProofOfLock,
++                                layers::NativeLayerRootWayland* aRoot);
++  void SetEGLVSyncSourceLocked(const WaylandSurfaceLock& aProofOfLock,
++                               RefPtr<WaylandSurface> aSource);
++  void NotifyEGLSwapLocked(const WaylandSurfaceLock& aProofOfLock);
++
+   // Set WaylandSurface target size (viewport & ELG surface if it's present).
+   void SetSize(DesktopIntSize aSize);
+ 
+@@ -208,6 +218,7 @@ class WaylandSurface final {
+   void SetOpaqueRegionLocked(const WaylandSurfaceLock& aProofOfLock,
+                              const gfx::IntRegion& aRegion);
+   void SetOpaqueLocked(const WaylandSurfaceLock& aProofOfLock);
++  void SetOpaqueForEGLLocked(const WaylandSurfaceLock& aProofOfLock);
+   void ClearOpaqueRegionLocked(const WaylandSurfaceLock& aProofOfLock);
+   void OpaqueCallbackHandler();
+ 
+@@ -378,6 +389,12 @@ class WaylandSurface final {
+  private:
+   ~WaylandSurface();
+ 
++  // Non-owning; the external root unregisters under our mutex before release.
++  layers::NativeLayerRootWayland* mEGLExternalRoot = nullptr;
++  RefPtr<WaylandSurface> mEGLVSyncSource;
++  uint64_t mEGLVSyncGeneration = 0;
++  void EGLVSyncCallbackHandler(uint64_t aGeneration, uint32_t aTime);
++
+   bool MapLocked(const WaylandSurfaceLock& aProofOfLock,
+                  wl_surface* aParentWLSurface,
+                  WaylandSurfaceLock* aParentWaylandSurfaceLock,
+diff --git a/widget/gtk/nsWindow.cpp b/widget/gtk/nsWindow.cpp
+index a57d405fcb33..b765bcbf646e 100644
+--- a/widget/gtk/nsWindow.cpp
++++ b/widget/gtk/nsWindow.cpp
+@@ -7509,12 +7509,13 @@ void nsWindow::SetDragSource(GdkDragContext* aSourceDragContext) {
+   }
+ }
+ 
+-UniquePtr<WaylandSurfaceLock> nsWindow::LockSurface() {
++UniquePtr<WaylandSurfaceLock> nsWindow::LockSurface(bool aSkipCommit) {
+ #ifdef MOZ_WAYLAND
+   if (mIsDestroyed || !mSurface) {
+     return nullptr;
+   }
+-  return MakeUnique<WaylandSurfaceLock>(MOZ_WL_SURFACE(mContainer));
++  return MakeUnique<WaylandSurfaceLock>(MOZ_WL_SURFACE(mContainer),
++                                        aSkipCommit);
+ #else
+   return nullptr;
+ #endif
+diff --git a/widget/gtk/nsWindow.h b/widget/gtk/nsWindow.h
+index 2fac9442be85..44eb3906a356 100644
+--- a/widget/gtk/nsWindow.h
++++ b/widget/gtk/nsWindow.h
+@@ -503,7 +503,8 @@ class nsWindow : public nsIWidget {
+ 
+   static nsWindow* GetFocusedWindow();
+ 
+-  mozilla::UniquePtr<mozilla::widget::WaylandSurfaceLock> LockSurface();
++  mozilla::UniquePtr<mozilla::widget::WaylandSurfaceLock> LockSurface(
++      bool aSkipCommit = false);
+ 
+   bool ApplyEnterLeaveMutterWorkaround();
+ 
+diff --git a/widget/tests/gtest/TestDMABufSurface.cpp b/widget/tests/gtest/TestDMABufSurface.cpp
+index d53649ff1d70..2dbc6576139f 100644
+--- a/widget/tests/gtest/TestDMABufSurface.cpp
++++ b/widget/tests/gtest/TestDMABufSurface.cpp
+@@ -6,6 +6,8 @@
+ #include <gbm.h>
+ #include <unistd.h>
+ 
++#include <thread>
++
+ #include "gtest/gtest.h"
+ #include "mozilla/NotNull.h"
+ #include "mozilla/gfx/FileHandleWrapper.h"
+@@ -157,3 +159,80 @@ TEST(DMABufSurface, YUVRoundtrip)
+   EXPECT_EQ(surface->GetHeight(1), 64);
+   YUVRoundtrip(surface);
+ }
++
++TEST(DMABufSurface, ExplicitWaylandFormatAdmission)
++{
++  auto fd0 = MakeFd();
++  auto fd1 = MakeFd();
++  ASSERT_TRUE(fd0 && fd1);
++  auto descriptor = MakeYUVDescriptor(fd0, fd1);
++  auto formats = MakeRefPtr<widget::DMABufFormats>();
++  auto supported = [&] {
++    RefPtr<DMABufSurface> surface =
++        DMABufSurface::CreateDMABufSurface(descriptor);
++    EXPECT_TRUE(surface);
++    return surface &&
++           surface->GetAsDMABufSurfaceYUV()->IsWlBufferFormatSupported(
++               *formats);
++  };
++  EXPECT_FALSE(supported());
++  formats->EnsureBasicFormats();
++  EXPECT_FALSE(supported());
++  formats->GetFormat(GBM_FORMAT_NV12)->AddModifier(0);
++  EXPECT_TRUE(supported());
++
++  auto& data = descriptor.get_SurfaceDescriptorDMABuf();
++  data.modifier()[1] = 1;
++  EXPECT_FALSE(supported());
++  formats->GetFormat(GBM_FORMAT_NV12)->AddModifier(1);
++  EXPECT_FALSE(supported());
++  data.modifier()[0] = 1;
++  EXPECT_TRUE(supported());
++  data.modifier()[0] = data.modifier()[1] = DRM_FORMAT_MOD_INVALID;
++  EXPECT_FALSE(supported());
++  data.modifier()[0] = data.modifier()[1] = 0;
++
++  data.fourccFormat() = VA_FOURCC_I420;
++  formats->GetFormat(GBM_FORMAT_YUV420)->AddModifier(0);
++  EXPECT_FALSE(supported());
++  data.fds().AppendElement(WrapNotNull(fd0));
++  data.modifier().AppendElement(0);
++  data.width().AppendElement(64);
++  data.height().AppendElement(64);
++  data.widthAligned().AppendElement(64);
++  data.heightAligned().AppendElement(64);
++  data.format().AppendElement(0);
++  data.strides().AppendElement(64);
++  data.offsets().AppendElement(0);
++  EXPECT_TRUE(supported());
++  data.modifier()[2] = 1;
++  EXPECT_FALSE(supported());
++}
++
++TEST(DMABufSurface, WaylandFormatSnapshot)
++{
++  auto formats = MakeRefPtr<widget::DMABufFormats>();
++  EXPECT_FALSE(formats->GetFormatSnapshot(GBM_FORMAT_NV12));
++  formats->EnsureBasicFormats();
++  auto snapshot = formats->GetFormatSnapshot(GBM_FORMAT_NV12);
++  ASSERT_TRUE(snapshot);
++  snapshot->AddModifier(0);
++  EXPECT_FALSE(formats->GetFormatSnapshot(GBM_FORMAT_NV12)
++                   ->IsFormatModifierSupported(0));
++
++  std::thread reader([&] {
++    for (int i = 0; i < 1000; ++i) {
++      auto copy = formats->GetFormatSnapshot(GBM_FORMAT_NV12);
++      if (copy) {
++        EXPECT_TRUE(copy->Matches(GBM_FORMAT_NV12));
++        EXPECT_FALSE(copy->IsFormatModifierSupported(0));
++      }
++    }
++  });
++  for (int i = 0; i < 1000; ++i) {
++    formats->PendingDMABufFeedbackDone();
++    formats->EnsureBasicFormats();
++  }
++  reader.join();
++  EXPECT_TRUE(snapshot->IsFormatModifierSupported(0));
++}
+diff --git a/gfx/wr/webrender/src/composite/draw_external.rs b/gfx/wr/webrender/src/composite/draw_external.rs
+new file mode 100644
+index 000000000000..a6dca60d2ba0
+--- /dev/null
++++ b/gfx/wr/webrender/src/composite/draw_external.rs
+@@ -0,0 +1,345 @@
++/* This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this
++ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
++
++use super::*;
++
++pub trait DrawExternalCompositor {
++    /// Accept a fullscreen opaque surface, or hide the previous surface before
++    /// returning false. None always hides it. EGL retains parent swap ownership.
++    fn prepare(&mut self, surface: Option<&DrawExternalSurface>) -> bool;
++}
++
++#[repr(C)]
++#[derive(Clone, Copy, Debug, PartialEq)]
++pub struct DrawExternalSurface {
++    pub external_image_id: ExternalImageId,
++    pub size: DeviceIntSize,
++}
++
++impl CompositeState {
++    pub(crate) fn draw_external_surface(
++        &self,
++        size: DeviceIntSize,
++    ) -> Option<(ResolvedExternalSurfaceIndex, DrawExternalSurface)> {
++        if !matches!(self.compositor_kind, CompositorKind::Draw { .. })
++            || size.width <= 0
++            || size.height <= 0
++            || size.width > i16::MAX as i32
++            || size.height > i16::MAX as i32
++        {
++            return None;
++        }
++        let tile = self.tiles.first()?;
++        let index = match tile.surface {
++            CompositeTileSurface::ExternalSurface {
++                external_surface_index,
++            } => external_surface_index,
++            _ => return None,
++        };
++        let transform = self.transforms.get(tile.transform_index.0)?;
++        let rect = PictureRect::from_size(size.to_f32().cast_unit());
++        if tile.kind != TileKind::Opaque
++            || tile.clip_index.is_some()
++            || tile.tile_id.is_some()
++            || tile.local_rect != rect
++            || tile.local_valid_rect != rect
++            || tile.device_clip_rect != DeviceRect::from_size(size.to_f32())
++            || transform.local_to_device != ScaleOffset::identity()
++            || transform.local_to_raster != ScaleOffset::identity()
++            || transform.raster_to_device != ScaleOffset::identity()
++        {
++            return None;
++        }
++        let surface = self.external_surfaces.get(index.0)?;
++        if surface.update_params.is_some()
++            || !matches!(
++                surface.color_data,
++                ResolvedExternalSurfaceColorData::Yuv {
++                    channel_bit_depth: 8,
++                    color_space: YuvRangedColorSpace::Rec709Narrow,
++                    format: YuvFormat::NV12 | YuvFormat::PlanarYCbCr,
++                    ..
++                }
++            )
++        {
++            return None;
++        }
++        Some((
++            index,
++            DrawExternalSurface {
++                external_image_id: surface.external_image_id?,
++                size,
++            },
++        ))
++    }
++
++    pub(crate) fn prepare_draw_external_surface(
++        &self,
++        size: DeviceIntSize,
++        allowed: bool,
++        compositor: &mut dyn DrawExternalCompositor,
++    ) -> Option<ResolvedExternalSurfaceIndex> {
++        let candidate = if allowed {
++            self.draw_external_surface(size)
++        } else {
++            None
++        };
++        if compositor.prepare(candidate.as_ref().map(|(_, surface)| surface)) {
++            candidate.map(|(index, _)| index)
++        } else {
++            None
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::bump_allocator::ChunkPool;
++    use crate::internal_types::FrameId;
++    use std::sync::Arc;
++
++    fn with_surface(test: impl FnOnce(&mut CompositeState, DeviceIntSize)) {
++        let memory = FrameMemory::new(Arc::new(ChunkPool::new()), FrameId::first());
++        let mut state = CompositeState::new(CompositorKind::default(), 16, true, false, &memory);
++        let size = DeviceIntSize::new(1920, 1080);
++        let transform_index =
++            state.register_transform(ScaleOffset::identity(), ScaleOffset::identity());
++        state.external_surfaces.push(ResolvedExternalSurface {
++            color_data: ResolvedExternalSurfaceColorData::Yuv {
++                image_dependencies: [ImageDependency::INVALID; 3],
++                planes: [ExternalPlaneDescriptor::invalid(); 3],
++                color_space: YuvRangedColorSpace::Rec709Narrow,
++                format: YuvFormat::NV12,
++                channel_bit_depth: 8,
++            },
++            image_buffer_kind: ImageBufferKind::Texture2D,
++            update_params: None,
++            external_image_id: Some(ExternalImageId(42)),
++        });
++        let rect = PictureRect::from_size(size.to_f32().cast_unit());
++        state.tiles.push(CompositeTile {
++            surface: CompositeTileSurface::ExternalSurface {
++                external_surface_index: ResolvedExternalSurfaceIndex(0),
++            },
++            local_rect: rect,
++            local_valid_rect: rect,
++            local_dirty_rect: rect,
++            device_clip_rect: DeviceRect::from_size(size.to_f32()),
++            z_id: ZBufferId(0),
++            kind: TileKind::Opaque,
++            transform_index,
++            clip_index: None,
++            tile_id: None,
++        });
++        test(&mut state, size);
++    }
++
++    #[test]
++    fn selects_resolved_image_without_descriptor_array() {
++        with_surface(|state, size| {
++            assert!(state.descriptor.surfaces.is_empty());
++            assert_eq!(
++                state.draw_external_surface(size),
++                Some((
++                    ResolvedExternalSurfaceIndex(0),
++                    DrawExternalSurface {
++                        external_image_id: ExternalImageId(42),
++                        size
++                    },
++                ))
++            );
++        });
++    }
++
++    #[test]
++    fn uses_the_exact_resolved_index() {
++        with_surface(|state, size| {
++            state.external_surfaces.push(ResolvedExternalSurface {
++                color_data: state.external_surfaces[0].color_data.clone(),
++                image_buffer_kind: ImageBufferKind::Texture2D,
++                update_params: None,
++                external_image_id: Some(ExternalImageId(99)),
++            });
++            state.tiles[0].surface = CompositeTileSurface::ExternalSurface {
++                external_surface_index: ResolvedExternalSurfaceIndex(1),
++            };
++            assert_eq!(
++                state
++                    .draw_external_surface(size)
++                    .unwrap()
++                    .1
++                    .external_image_id,
++                ExternalImageId(99)
++            );
++        });
++    }
++
++    #[test]
++    fn foreground_content_prevents_handoff() {
++        with_surface(|state, size| {
++            let mut foreground = state.tiles[0].clone();
++            foreground.surface = CompositeTileSurface::Color {
++                color: ColorF::WHITE,
++            };
++            state.tiles.insert(0, foreground);
++            assert!(state.draw_external_surface(size).is_none());
++        });
++    }
++
++    #[test]
++    fn rejects_alpha_clips_and_transforms() {
++        with_surface(|state, size| {
++            state.tiles[0].kind = TileKind::Alpha;
++            assert!(state.draw_external_surface(size).is_none());
++            state.tiles[0].kind = TileKind::Opaque;
++            let clip = state.register_clip(size.to_f32().into(), BorderRadius::zero());
++            state.tiles[0].clip_index = Some(clip);
++            assert!(state.draw_external_surface(size).is_none());
++            state.tiles[0].clip_index = None;
++            state.transforms[0].local_to_device.offset.x = 0.25;
++            assert!(state.draw_external_surface(size).is_none());
++            state.transforms[0].local_to_device.offset.x = 0.0;
++            state.transforms[0].local_to_device.scale.x = -1.0;
++            assert!(state.draw_external_surface(size).is_none());
++        });
++    }
++
++    #[test]
++    fn rejects_crop_nonfullscreen_and_nonfinite_geometry() {
++        with_surface(|state, size| {
++            state.tiles[0].local_valid_rect.max.x -= 1.0;
++            assert!(state.draw_external_surface(size).is_none());
++            state.tiles[0].local_valid_rect = state.tiles[0].local_rect;
++            assert!(state
++                .draw_external_surface(DeviceIntSize::new(1280, 720))
++                .is_none());
++            state.tiles[0].device_clip_rect.max.x = f32::INFINITY;
++            assert!(state.draw_external_surface(size).is_none());
++            state.tiles[0].device_clip_rect.max.x = f32::NAN;
++            assert!(state.draw_external_surface(size).is_none());
++        });
++    }
++
++    #[test]
++    fn rejects_missing_host_invalid_index_and_hdr() {
++        with_surface(|state, size| {
++            state.external_surfaces[0].external_image_id = None;
++            assert!(state.draw_external_surface(size).is_none());
++            state.external_surfaces[0].external_image_id = Some(ExternalImageId(42));
++            if let ResolvedExternalSurfaceColorData::Yuv {
++                channel_bit_depth, ..
++            } = &mut state.external_surfaces[0].color_data
++            {
++                *channel_bit_depth = 10;
++            }
++            assert!(state.draw_external_surface(size).is_none());
++            state.tiles[0].surface = CompositeTileSurface::ExternalSurface {
++                external_surface_index: ResolvedExternalSurfaceIndex(10),
++            };
++            assert!(state.draw_external_surface(size).is_none());
++            state.tiles.clear();
++            assert!(state.draw_external_surface(size).is_none());
++        });
++    }
++
++    #[test]
++    fn does_not_modify_the_other_compositor_modes() {
++        with_surface(|state, size| {
++            state.compositor_kind = CompositorKind::Layer {};
++            assert!(state.draw_external_surface(size).is_none());
++            state.compositor_kind = CompositorKind::Native {
++                capabilities: CompositorCapabilities::default(),
++            };
++            assert!(state.draw_external_surface(size).is_none());
++        });
++    }
++
++    #[test]
++    fn default_configuration_does_not_enable_external_handoff() {
++        let mut config = CompositorConfig::default();
++        assert!(config.draw_external_compositor().is_none());
++        assert!(config.compositor().is_none());
++    }
++
++    #[test]
++    fn rejects_rgb_and_raster_transforms() {
++        with_surface(|state, size| {
++            state.transforms[0].local_to_raster.scale.x = 2.0;
++            assert!(state.draw_external_surface(size).is_none());
++            state.transforms[0].local_to_raster = ScaleOffset::identity();
++            state.transforms[0].raster_to_device.offset.y = 1.0;
++            assert!(state.draw_external_surface(size).is_none());
++            state.transforms[0].raster_to_device = ScaleOffset::identity();
++            state.external_surfaces[0].color_data = ResolvedExternalSurfaceColorData::Rgb {
++                image_dependency: ImageDependency::INVALID,
++                plane: ExternalPlaneDescriptor::invalid(),
++                modulation: api::PremultipliedColorF::WHITE,
++            };
++            assert!(state.draw_external_surface(size).is_none());
++        });
++    }
++
++    #[test]
++    fn rejects_invalid_size_color_and_transform_indices() {
++        with_surface(|state, size| {
++            for bad in [
++                DeviceIntSize::zero(),
++                DeviceIntSize::new(-1, 1080),
++                DeviceIntSize::new(32768, 1080),
++            ] {
++                assert!(state.draw_external_surface(bad).is_none());
++            }
++            if let ResolvedExternalSurfaceColorData::Yuv { color_space, .. } =
++                &mut state.external_surfaces[0].color_data
++            {
++                *color_space = YuvRangedColorSpace::Rec709Full;
++            }
++            assert!(state.draw_external_surface(size).is_none());
++            state.tiles[0].transform_index = CompositorTransformIndex::INVALID;
++            assert!(state.draw_external_surface(size).is_none());
++        });
++    }
++
++    #[test]
++    fn rejected_handoff_and_disabled_path_do_not_omit_video() {
++        struct Backend {
++            accept: bool,
++            requests: Vec<Option<DrawExternalSurface>>,
++        }
++        impl DrawExternalCompositor for Backend {
++            fn prepare(&mut self, surface: Option<&DrawExternalSurface>) -> bool {
++                self.requests.push(surface.copied());
++                self.accept
++            }
++        }
++        with_surface(|state, size| {
++            let mut backend = Backend {
++                accept: false,
++                requests: Vec::new(),
++            };
++            assert!(state
++                .prepare_draw_external_surface(size, true, &mut backend)
++                .is_none());
++            assert_eq!(
++                backend.requests[0].unwrap().external_image_id,
++                ExternalImageId(42)
++            );
++            backend.accept = true;
++            assert_eq!(
++                state.prepare_draw_external_surface(size, true, &mut backend),
++                Some(ResolvedExternalSurfaceIndex(0))
++            );
++            assert!(state
++                .prepare_draw_external_surface(size, false, &mut backend)
++                .is_none());
++            assert_eq!(backend.requests[2], None);
++            state.tiles.clear();
++            assert!(state
++                .prepare_draw_external_surface(size, true, &mut backend)
++                .is_none());
++            assert_eq!(backend.requests[3], None);
++        });
++    }
++}

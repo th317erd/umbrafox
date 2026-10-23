@@ -1,0 +1,134 @@
+{
+  "buildID": "20261019185219",
+  "files": {
+    "attachment-green.log": {
+      "sha256": "64fc8e7df4dba33c7efd735599a8999dd5ffa3435eb94f9b2fed7b990089ae46",
+      "size": 2215
+    },
+    "attachment-red.log": {
+      "sha256": "da74909b1bd648fb7529e0597d735733c249907166f9129db541c55343ce4533",
+      "size": 3027
+    },
+    "build-6-attempt.json": {
+      "sha256": "42d8b21b0be2c9c48a39701d380272737996a1f0fe01ffe06ea13e97b200576a",
+      "size": 1573
+    },
+    "build-6-exit.json": {
+      "sha256": "d75ec0bd669361d83c605379858b4bd2dc99cf274a632cb188ec7313af540039",
+      "size": 1868
+    },
+    "build-6.log": {
+      "sha256": "95d7810ac016ecdba4af8384b667d44ba9538a38c0ca65cff6b4d5f5c87a29ef",
+      "size": 1319546
+    },
+    "build_step6.py": {
+      "sha256": "cd6ad1f1ad44e4a9667606214559aba5b79ca811246a92db459c6253144d4b4d",
+      "size": 4914
+    },
+    "collect_evidence.py": {
+      "sha256": "51948c7871d8641c05e66234388331957daa4979b74f66c3bd16f4ddec285132",
+      "size": 3640
+    },
+    "configure-6-attempt.json": {
+      "sha256": "eccbd6252efab6e64aa8cadbabc1c53afcf477fa40864108b842551562ab65e2",
+      "size": 1521
+    },
+    "configure-6-exit.json": {
+      "sha256": "6c7332eff25532dfebde737510abd3f99ed4da3fd36428c880f27a0f89fd2d23",
+      "size": 1815
+    },
+    "configure-6.log": {
+      "sha256": "a9ff844cb77b396ad76a65f7b7c3ef5d5b581721a0a3c49f92b4b4dd4f746a74",
+      "size": 21276
+    },
+    "consumer-removal-red.log": {
+      "sha256": "8c4bd2cd8a47c340997e106f9f2f8e3a273ea1ec891198838706d58e1966ab4d",
+      "size": 4721
+    },
+    "exported-source-checks.log": {
+      "sha256": "a9a05e66094df2e0c68f45cbf66ad5e5fc670be16bd885a05413e548c4aa01de",
+      "size": 2215
+    },
+    "handoff.md": {
+      "sha256": "a36083006294bdf1646b52afe3a1cbf1316f8309c65b6504079fa8a8b879a8f8",
+      "size": 8759
+    },
+    "native-format-6.log": {
+      "sha256": "7aa466628f1bc3598effbc56c45c51728ee61db623429f343982a8ec0ff5c011",
+      "size": 47
+    },
+    "package-6-attempt.json": {
+      "sha256": "e384f5f465589aa63bb790305d9ebd1613589b0043bb167ccecc1361a3b5ecb7",
+      "size": 1550
+    },
+    "package-6-exit.json": {
+      "sha256": "170c9461564b2cec3aef7b22d8909d0a83f2f78e016c39aa396c42f3d0f60955",
+      "size": 1844
+    },
+    "package-6.log": {
+      "sha256": "1897f259399c86bc7a146888001e43c562bff6825e9093cd4f0776477996e34e",
+      "size": 5417
+    },
+    "package-verifier-6-tests.log": {
+      "sha256": "7238ec560954f7b7c872ba8f8639bf921bd89433380a19ed39ceae0c2f27362f",
+      "size": 838
+    },
+    "plan.md": {
+      "sha256": "1d77b6f4133a9b58adf72b8daa669f1c266508220700adabb48a55ea85de1f15",
+      "size": 7958
+    },
+    "python-lint-6.log": {
+      "sha256": "7aa466628f1bc3598effbc56c45c51728ee61db623429f343982a8ec0ff5c011",
+      "size": 47
+    },
+    "refreeze-6.log": {
+      "sha256": "ab0fe4394929cf30ee48b5d0f9ea91df440db333527388133c93b37a10bc42b0",
+      "size": 277
+    },
+    "review-races-red.log": {
+      "sha256": "b61c029ce3a6ec9571018ffe1ce617ed254d4946b8c71c45e997cfb2503a64d2",
+      "size": 5698
+    },
+    "source-contract-red.log": {
+      "sha256": "b76a5e39579229a6289bfca5e4a19a64162b2083e078160ec2416ac27f0f89a5",
+      "size": 141407
+    },
+    "source-contract/gfx/layers/NativeLayerWayland.cpp": {
+      "sha256": "c5bd82db0cad4acf17233284c72e61f7c66b259960d4e02c161b7ea327de09ba",
+      "size": 63492
+    },
+    "source-contract/gfx/webrender_bindings/RenderCompositorEGL.cpp": {
+      "sha256": "2ce9a4df9963ac23460d54fb57ce49277c80f6aa3f635fc1325b85b59b1e331c",
+      "size": 16025
+    },
+    "source-contract/tools/umbrafox/tests/hybrid/test_egl_vsync_controls.py": {
+      "sha256": "9aec0c42933ff92ccc46952ca90ed13aa65e5e75ca757ad6622c31c6bcf37329",
+      "size": 2329
+    },
+    "source-contract/tools/umbrafox/tests/hybrid/test_egl_vsync_source.py": {
+      "sha256": "0c06c175c7a05ffeb2f61c06d887f913b7f159419da46cb784b688a2fb616ada",
+      "size": 7346
+    },
+    "source-contract/widget/gtk/WaylandSurface.cpp": {
+      "sha256": "4cc97b2fc6fb236c10ee6123dfbd219a1916fc37fac1ac42d3bbc90a2248497d",
+      "size": 66915
+    },
+    "test_verify_package6.py": {
+      "sha256": "4be9ec39c61437a0766d5c061d633d5596baf2c881938a561477e2b54fd3c363",
+      "size": 5888
+    },
+    "verify-6.log": {
+      "sha256": "829ee56b252920b8bf1a77c1d75e1d16e865d98a4d972ee8fbe9e3a379a43c23",
+      "size": 2224
+    },
+    "verify_package6.py": {
+      "sha256": "7c7e9aa8ebdfa2fdad5d408b3251abf1f023a0650680a6789135b706236d0b7a",
+      "size": 10531
+    }
+  },
+  "hardwareExecuted": false,
+  "kind": "egl-child-vsync-verification-evidence",
+  "packageReceiptSHA256": "8b6f9078c640116441ec6f6d42d0a135aa4c7525b87629a5a9d1c59766113b58",
+  "sourceChecksAreRuntimeTests": false,
+  "version": 1
+}

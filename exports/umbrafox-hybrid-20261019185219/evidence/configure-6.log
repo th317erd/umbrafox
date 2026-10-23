@@ -1,0 +1,259 @@
+ 0:00.77 Using Python 3.14.7 from /home/wyatt/.mozbuild/srcdirs/source-beb08013f83d/_virtualenvs/build/bin/python
+ 0:00.77 Adding configure options from /home/public/wyatt-desktop/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1/mozconfig
+ 0:00.77   --target=aarch64-linux-gnu
+ 0:00.77   --enable-bootstrap=no-update
+ 0:00.77   --without-ccache
+ 0:00.77   --enable-optimize
+ 0:00.77   --disable-debug
+ 0:00.77   --disable-umbra-perf-probes
+ 0:00.77 checking for vcs source checkout... no
+ 0:00.81 checking for a shell... /usr/bin/sh
+ 0:00.87 checking for host system type... x86_64-pc-linux-gnu
+ 0:00.88 checking for target system type... aarch64-unknown-linux-gnu
+ 0:01.20 checking whether cross compiling... yes
+ 0:01.28 checking if configuration file confvars.sh exists... /home/wyatt/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1/source/browser/confvars.sh
+ 0:01.28 checking if configuration file configure.sh exists... /home/wyatt/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1/source/browser/branding/unofficial/configure.sh
+ 0:02.39 checking for bootstrappable toolchains... 232 found
+ 0:02.39 checking for the target C compiler... /home/wyatt/.mozbuild/clang/bin/clang
+ 0:02.39 checking for ccache... not found
+ 0:02.39 Using target sysroot in /home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu
+ 0:02.41 checking whether the target C compiler can be used... yes
+ 0:02.41 checking for the target C++ compiler... /home/wyatt/.mozbuild/clang/bin/clang++
+ 0:02.43 checking whether the target C++ compiler can be used... yes
+ 0:02.43 checking for unwind.h... yes
+ 0:02.46 checking for target linker... lld
+ 0:02.46 checking for _Unwind_Backtrace... yes
+ 0:02.47 checking for Python 3... /home/wyatt/.mozbuild/srcdirs/source-beb08013f83d/_virtualenvs/build/bin/python (3.14.7)
+ 0:02.47 Using host sysroot in /home/wyatt/.mozbuild/sysroot-x86_64-linux-gnu
+ 0:02.47 checking the target C compiler version... 22.1.8
+ 0:02.47 checking the target C compiler works... yes
+ 0:02.47 checking the target C++ compiler version... 22.1.8
+ 0:02.47 checking the target C++ compiler works... yes
+ 0:02.47 checking for the host C compiler... /home/wyatt/.mozbuild/clang/bin/clang
+ 0:02.47 checking whether the host C compiler can be used... yes
+ 0:02.47 checking the host C compiler version... 22.1.8
+ 0:02.47 checking the host C compiler works... yes
+ 0:02.47 checking for the host C++ compiler... /home/wyatt/.mozbuild/clang/bin/clang++
+ 0:02.47 checking whether the host C++ compiler can be used... yes
+ 0:02.48 checking the host C++ compiler version... 22.1.8
+ 0:02.48 checking the host C++ compiler works... yes
+ 0:02.50 checking for host linker... lld
+ 0:02.51 checking for 64-bit OS... yes
+ 0:02.51 checking for new enough STL headers from libstdc++... yes
+ 0:02.52 checking for __thread keyword for TLS variables... yes
+ 0:02.52 checking for the assembler... /home/wyatt/.mozbuild/clang/bin/clang
+ 0:02.54 checking for llvm-objdump... /home/wyatt/.mozbuild/clang/bin/llvm-objdump
+ 0:02.55 checking for ar... /home/wyatt/.mozbuild/clang/bin/llvm-ar
+ 0:02.60 checking whether ar supports response files... yes
+ 0:02.62 checking for host_ar... /home/wyatt/.mozbuild/clang/bin/llvm-ar
+ 0:02.64 checking for nm... /home/wyatt/.mozbuild/clang/bin/llvm-nm
+ 0:02.64 checking for i8mm target feature... yes
+ 0:02.64 checking for ARM SVE2 target feature... yes
+ 0:02.64 checking for ARM dotprod target feature... yes
+ 0:02.64 checking for pkg_config... /home/wyatt/.mozbuild/pkgconf/pkg-config
+ 0:02.64 checking for pkg-config version... 3.0.7
+ 0:02.64 checking whether pkg-config is pkgconf... yes
+ 0:02.64 checking for strndup... yes
+ 0:02.64 checking for posix_memalign... yes
+ 0:02.64 checking for memalign... yes
+ 0:02.64 checking for malloc_usable_size... yes
+ 0:02.64 checking for malloc.h... yes
+ 0:02.64 checking whether malloc_usable_size definition can use const argument... no
+ 0:02.64 checking for stdint.h... yes
+ 0:02.64 checking for inttypes.h... yes
+ 0:02.64 checking for alloca.h... yes
+ 0:02.64 checking for sys/byteorder.h... no
+ 0:02.64 checking for getopt.h... yes
+ 0:02.64 checking for unistd.h... yes
+ 0:02.64 checking for nl_types.h... yes
+ 0:02.64 checking for cpuid.h... no
+ 0:02.64 checking for fts.h... yes
+ 0:02.64 checking for sys/statvfs.h... yes
+ 0:02.64 checking for sys/statfs.h... yes
+ 0:02.64 checking for sys/vfs.h... yes
+ 0:02.64 checking for sys/mount.h... yes
+ 0:02.65 checking for sys/quota.h... yes
+ 0:02.65 checking for linux/quota.h... yes
+ 0:02.65 checking for linux/if_addr.h... yes
+ 0:02.65 checking for linux/rtnetlink.h... yes
+ 0:02.65 checking for sys/queue.h... yes
+ 0:02.65 checking for sys/types.h... yes
+ 0:02.65 checking for netinet/in.h... yes
+ 0:02.65 checking for byteswap.h... yes
+ 0:02.65 checking for memfd_create in sys/mman.h... yes
+ 0:02.65 checking for clock_gettime(CLOCK_MONOTONIC)... yes
+ 0:02.65 checking for res_ninit()... yes
+ 0:02.65 checking for dladdr... no
+ 0:02.65 checking for dladdr in -ldl... yes
+ 0:02.65 checking for dlfcn.h... yes
+ 0:02.65 checking for dlopen in -ldl... yes
+ 0:02.65 checking for gethostbyname_r in -lc_r... no
+ 0:02.65 checking for socket in -lsocket... no
+ 0:02.65 checking for pthread_create... no
+ 0:02.65 checking for pthread_create in -lpthread... yes
+ 0:02.65 checking for pthread.h... yes
+ 0:02.65 checking whether the C compiler supports -pthread... yes
+ 0:02.65 checking whether 64-bits std::atomic requires -latomic... no
+ 0:02.65 checking whether the C++ compiler supports -Wdeprecated-literal-operator... yes
+ 0:02.65 checking whether the C compiler supports -Winvalid-utf8... yes
+ 0:02.65 checking whether the C++ compiler supports -Winvalid-utf8... yes
+ 0:02.67 checking whether the C compiler supports -Wformat... yes
+ 0:02.67 checking whether the C++ compiler supports -Wformat... yes
+ 0:02.68 checking whether the C++ compiler supports -fno-sized-deallocation... yes
+ 0:02.68 checking whether the C++ compiler supports -fno-aligned-new... yes
+ 0:03.08 checking whether we're trying to statically link with libstdc++... no
+ 0:03.08 checking whether the C compiler supports -fdiagnostics-absolute-paths... yes
+ 0:03.08 checking whether the C++ compiler supports -fdiagnostics-absolute-paths... yes
+ 0:03.08 checking whether the C linker supports -Wl,--build-id=uuid... yes
+ 0:03.08 checking whether the C assembler supports -Wa,--noexecstack... yes
+ 0:03.08 checking whether the C linker supports -Wl,-z,noexecstack... yes
+ 0:03.08 checking whether the C linker supports -Wl,-z,text... yes
+ 0:03.08 checking whether the C linker supports -Wl,-z,relro... yes
+ 0:03.08 checking whether the C linker supports -Wl,-z,now... yes
+ 0:03.08 checking whether the C linker supports -Wl,-z,nocopyreloc... yes
+ 0:03.08 checking whether the C assembler supports -fPIC... yes
+ 0:03.08 checking whether the C compiler supports -fPIC... yes
+ 0:03.08 checking whether the C++ compiler supports -fPIC... yes
+ 0:03.14 checking what kind of list files are supported by the linker... linkerlist
+ 0:03.14 checking for llvm_profdata... /home/wyatt/.mozbuild/clang/bin/llvm-profdata
+ 0:03.14 checking whether the linker supports call-graph profile sorting... yes
+ 0:03.18 checking for readelf... /home/wyatt/.mozbuild/clang/bin/llvm-readelf
+ 0:03.21 checking for objcopy... /home/wyatt/.mozbuild/clang/bin/llvm-objcopy
+ 0:03.21 checking for alsa... yes
+ 0:03.21 checking MOZ_ALSA_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/alsa
+ 0:03.21 checking MOZ_ALSA_LIBS... -L/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu -lasound
+ 0:03.22 checking for libpulse... yes
+ 0:03.22 checking MOZ_PULSEAUDIO_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include -D_REENTRANT
+ 0:03.22 checking MOZ_PULSEAUDIO_LIBS... -L/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu -lpulse
+ 0:03.22 checking for rustc... /home/wyatt/.cargo/bin/rustc
+ 0:03.22 checking for cargo... /home/wyatt/.cargo/bin/cargo
+ 0:03.26 Actually using '/home/wyatt/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc' as rustc
+ 0:03.28 Actually using '/home/wyatt/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo' as cargo
+ 0:03.29 checking rustc version... 1.94.0
+ 0:03.32 checking cargo version... 1.94.0
+ 0:03.42 checking for rust host triplet... x86_64-unknown-linux-gnu
+ 0:03.54 checking for rust target triplet... aarch64-unknown-linux-gnu
+ 0:03.54 checking for rustdoc... /home/wyatt/.cargo/bin/rustdoc
+ 0:03.55 checking for cbindgen... /home/wyatt/.mozbuild/cbindgen/cbindgen
+ 0:03.55 checking for rustfmt... /home/wyatt/.cargo/bin/rustfmt
+ 0:03.55 checking for clang for bindgen... /home/wyatt/.mozbuild/clang/bin/clang++
+ 0:03.57 checking for libclang for bindgen... /home/wyatt/.mozbuild/clang/lib/libclang.so
+ 0:03.58 checking that libclang is new enough... yes
+ 0:03.58 checking bindgen cflags... ['-x', 'c++', '-fno-sized-deallocation', '-fno-aligned-new', '-DTRACING=1', '-DIMPL_LIBXUL', '-DMOZILLA_INTERNAL_API', '-DRUST_BINDGEN', '--sysroot', '/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu', '-std=gnu++20', '--target=aarch64-linux-gnu']
+ 0:03.58 checking for tm_zone and tm_gmtoff in struct tm... yes
+ 0:03.59 checking for getpagesize... yes
+ 0:03.59 checking for gmtime_r... yes
+ 0:03.59 checking for localtime_r... yes
+ 0:03.59 checking for gettid... no
+ 0:03.59 checking for setpriority... yes
+ 0:03.59 checking for syscall... yes
+ 0:03.59 checking for getc_unlocked... yes
+ 0:03.59 checking for pthread_getname_np... no
+ 0:03.59 checking for pthread_get_name_np... no
+ 0:03.59 checking for nl_langinfo and CODESET... yes
+ 0:03.59 checking for __cxa_demangle... yes
+ 0:03.59 checking for _getc_nolock... no
+ 0:03.59 checking for localeconv... yes
+ 0:03.60 checking for nodejs... /home/wyatt/.mozbuild/node/bin/node (22.16.0)
+ 0:03.60 checking for gtk+-wayland-3.0 >= 3.14 xkbcommon >= 0.4.1... yes
+ 0:03.61 checking MOZ_WAYLAND_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/gtk-3.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/pango-1.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/cairo -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/pixman-1 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/gdk-pixbuf-2.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/atk-1.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/at-spi2-atk/2.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/at-spi-2.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/dbus-1.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu/dbus-1.0/include -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/libdrm -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/fribidi -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/freetype2 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/libpng16 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/harfbuzz -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/gio-unix-2.0 -pthread -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/glib-2.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu/glib-2.0/include -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/libmount -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/blkid -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/uuid
+ 0:03.61 checking MOZ_WAYLAND_LIBS... -L/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lcairo-gobject -lcairo -lgdk_pixbuf-2.0 -latk-1.0 -lpango-1.0 -lgio-2.0 -lgobject-2.0 -lglib-2.0 -lxkbcommon
+ 0:03.61 checking for pango >= 1.22.0... yes
+ 0:03.61 checking MOZ_PANGO_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/pango-1.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/glib-2.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu/glib-2.0/include -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/fribidi
+ 0:03.61 checking MOZ_PANGO_LIBS... -L/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu -lpango-1.0 -lgobject-2.0 -lglib-2.0
+ 0:03.62 checking for fontconfig >= 2.7.0... yes
+ 0:03.62 checking _FONTCONFIG_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/freetype2 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/libpng16 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/uuid
+ 0:03.62 checking _FONTCONFIG_LIBS... -L/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu -lfontconfig -lfreetype
+ 0:03.62 checking for freetype2 >= 9.10.3... yes
+ 0:03.62 checking _FT2_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/freetype2 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/libpng16 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include
+ 0:03.62 checking _FT2_LIBS... -L/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu -lfreetype
+ 0:03.62 checking for tar... /usr/bin/tar
+ 0:03.62 checking for unzip... /usr/bin/unzip
+ 0:03.62 checking for the Mozilla API key... no
+ 0:03.62 checking for the Google Location Service API key... no
+ 0:03.62 checking for the Google Safebrowsing API key... no
+ 0:03.62 checking for the Bing API key... no
+ 0:03.62 checking for the Adjust SDK key... no
+ 0:03.62 checking for the Leanplum SDK key... no
+ 0:03.62 checking for the Pocket API key... no
+ 0:03.63 checking for x11 xcb xcb-shm x11-xcb xext xfixes xrandr >= 1.4.0 xcomposite xcursor xdamage xi... yes
+ 0:03.63 checking MOZ_X11_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include
+ 0:03.63 checking MOZ_X11_LIBS... -L/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu -lxcb-shm -lX11-xcb -lXrandr -lXcomposite -lXcursor -lXdamage -lXi -lXext -lXfixes -lX11 -lxcb
+ 0:03.63 checking for ice sm... yes
+ 0:03.63 checking MOZ_X11_SM_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include
+ 0:03.64 checking for stat64... yes
+ 0:03.64 checking for lstat64... yes
+ 0:03.64 checking for truncate64... yes
+ 0:03.64 checking for statvfs64... yes
+ 0:03.64 checking for statvfs... yes
+ 0:03.64 checking for statfs64... yes
+ 0:03.64 checking for statfs... yes
+ 0:03.64 checking for lutimes... yes
+ 0:03.64 checking for posix_fadvise... yes
+ 0:03.64 checking for posix_fallocate... yes
+ 0:03.64 checking for eventfd... yes
+ 0:03.64 checking for arc4random... no
+ 0:03.64 checking for arc4random_buf... no
+ 0:03.64 checking for mallinfo... yes
+ 0:03.64 checking for sys/ioccom.h... no
+ 0:03.64 checking for execinfo.h... yes
+ 0:03.64 checking for sys/single_threaded.h... no
+ 0:03.72 checking for -z pack-relative-relocs option to ld... yes
+ 0:03.74 checking for vld1_s16_x3 in arm_neon.h... yes
+ 0:03.74 checking for vld1_u16_x2 in arm_neon.h... yes
+ 0:03.74 checking for vld1q_u8_x4 in arm_neon.h... yes
+ 0:03.74 Using wasi sysroot in /home/wyatt/.mozbuild/sysroot-wasm32-wasi
+ 0:03.74 checking for the wasm C compiler... /home/wyatt/.mozbuild/clang/bin/clang
+ 0:03.74 checking whether the wasm C compiler can be used... yes
+ 0:03.74 checking the wasm C compiler version... 22.1.8
+ 0:03.74 checking the wasm C compiler works... yes
+ 0:03.74 checking the wasm C compiler can find wasi headers... yes
+ 0:03.74 checking the wasm C linker can find wasi libraries... yes
+ 0:03.74 checking for the wasm C++ compiler... /home/wyatt/.mozbuild/clang/bin/clang++
+ 0:03.75 checking whether the wasm C++ compiler can be used... yes
+ 0:03.75 checking the wasm C++ compiler version... 22.1.8
+ 0:03.75 checking the wasm C++ compiler works... yes
+ 0:03.75 checking the wasm C++ compiler can find wasi headers... yes
+ 0:03.75 checking the wasm C++ linker can find wasi libraries... yes
+ 0:03.75 checking for clock() in wasi sysroot... no
+ 0:03.75 checking for emulated clock() in wasi sysroot... yes
+ 0:03.75 checking for dump_syms... /home/wyatt/.mozbuild/dump_syms/dump_syms
+ 0:03.75 checking for getcontext... yes
+ 0:03.75 checking for gthread-2.0... yes
+ 0:03.75 checking MOZ_GTHREAD_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include -pthread -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/glib-2.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu/glib-2.0/include
+ 0:03.75 checking MOZ_GTHREAD_LIBS... -L/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu -lgthread-2.0 -pthread -lglib-2.0
+ 0:03.76 checking for gtk+-3.0 >= 3.14.0 gtk+-unix-print-3.0 glib-2.0 gobject-2.0 gio-unix-2.0... yes
+ 0:03.76 checking MOZ_GTK3_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/gtk-3.0/unix-print -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/gtk-3.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/pango-1.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/cairo -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/at-spi2-atk/2.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/at-spi-2.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/dbus-1.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu/dbus-1.0/include -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/libdrm -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/fribidi -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/harfbuzz -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/atk-1.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/pixman-1 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/freetype2 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/libpng16 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/gdk-pixbuf-2.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/gio-unix-2.0 -pthread -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/glib-2.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu/glib-2.0/include -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/libmount -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/blkid -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/uuid
+ 0:03.77 checking MOZ_GTK3_LIBS... -L/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lpango-1.0 -latk-1.0 -lcairo-gobject -lcairo -lgdk_pixbuf-2.0 -lgio-2.0 -lgobject-2.0 -lglib-2.0
+ 0:03.77 checking for glib-2.0 >= 2.42 gobject-2.0... yes
+ 0:03.77 checking GLIB_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/glib-2.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu/glib-2.0/include
+ 0:03.77 checking GLIB_LIBS... -L/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu -lgobject-2.0 -lglib-2.0
+ 0:03.77 checking for dbus-1 >= 0.60... yes
+ 0:03.77 checking MOZ_DBUS_CFLAGS... -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/include/dbus-1.0 -I/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu/dbus-1.0/include
+ 0:03.78 checking MOZ_DBUS_LIBS... -L/home/wyatt/.mozbuild/sysroot-aarch64-linux-gnu/usr/lib/aarch64-linux-gnu -ldbus-1
+ 0:03.78 checking for sin_len in struct sockaddr_in... no
+ 0:03.78 checking for sin_len6 in struct sockaddr_in6... no
+ 0:03.78 checking for sa_len in struct sockaddr... no
+ 0:03.78 checking for pthread_cond_timedwait_monotonic_np... no
+ 0:03.78 checking for 32-bits ethtool_cmd.speed... yes
+ 0:03.78 checking ONNX install path... /home/wyatt/.mozbuild/onnxruntime-aarch64-linux-gnu/libonnxruntime.so
+ 0:03.78 checking for valid C compiler optimization flags... yes
+ 0:03.78 checking for gmake... /usr/bin/make
+ 0:03.78 checking for gmake version... 4.4.1
+ 0:03.78 checking for watchman... not found
+ 0:03.78 checking for xargs... /usr/bin/xargs
+ 0:03.86 checking for strip... /home/wyatt/.mozbuild/clang/bin/llvm-strip
+ 0:03.86 Creating config.status
+ 0:04.22 Reticulating splines...
+ 0:15.73 Finished reading 2817 moz.build files in 2.37s
+ 0:15.73 Read 58 gyp files in parallel contributing 0.00s to total wall time
+ 0:15.73 Processed into 22117 build config descriptors in 2.50s
+ 0:15.73 RecursiveMake backend executed in 3.67s
+ 0:15.73   6098 total backend files; 0 created; 2 updated; 6096 unchanged; 0 deleted; 12 -> 2276 Makefile
+ 0:15.73 FasterMake backend executed in 0.22s
+ 0:15.73   96 total backend files; 0 created; 0 updated; 96 unchanged; 0 deleted
+ 0:15.73 Clangd backend executed in 2.33s
+ 0:15.73   1374 total backend files; 0 created; 3 updated; 1371 unchanged; 0 deleted
+ 0:15.73 Total wall time: 11.53s; CPU time: 10.91s; Efficiency: 95%; Untracked: 0.44s
+ 0:17.51 Configure complete!
+ 0:17.51 Be sure to run |mach build| to pick up any changes
