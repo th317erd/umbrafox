@@ -134,10 +134,12 @@ subject     review: UmbraLink answers and verdict on the l8ros attach/skip and v
 main        == origin/main == b3ca97a4a136 (pushed to github.com:th317erd/umbrafox.git)
 ```
 
-Worktree, verified at this dump: 24 modified tracked files plus one untracked new file in the
-owned hybrid surface, 811 untracked entries overall (mostly unrelated upstream remnants plus
-`bot-docs` plans and reports that this fork deliberately leaves untracked), and nothing owned by
-us left dirty in `bot-docs` after this commit.
+Worktree after this dump's commits: 24 modified tracked files plus one untracked new file in the
+owned hybrid surface, which is the only source deliberately left uncommitted, and 785 untracked
+entries that are pre-existing upstream remnants (543 under `testing/web-platform`, then
+`mobile/android`, `browser/extensions`, `js/src`, `third_party`). Every `bot-docs` plan, report and
+bug report, and the metadata/evidence of the three hybrid exports, are committed; the packaged
+tarballs and extracted trees under `exports/` stay git-ignored.
 
 All **25 owned source files still match the October 19 source freeze**
 ([source-freeze.json](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/exports/umbrafox-hybrid-20261019185219/source-freeze.json)),
@@ -170,6 +172,9 @@ Builds use an exact `git archive` plus a frozen owned patch and new-file manifes
 | `9cb566b33a1d` | plan: assign that task to Umbrafox with a task list and acceptance (14 lines) |
 | `37684bc7f64e` | answers to the four l8ros questions appended to the bug report (93 lines) |
 | `b3ca97a4a136` | long-form answers plus the attach/skip and vsync-pump verdict report (268 lines) |
+| `668d5cec5d9d` | this memory dump and the October 23 `.codex/DETAILS.md` entry |
+| `dac44f76bd57` | the 23 previously untracked October 15-20 plans and reports (4,449 lines) |
+| `0bac4b7e4ed0` | metadata, evidence and source patch of the three hybrid exports (52 files) |
 
 The preceding source commits are unchanged: `9a9057291b5b` (clipboard prototype preserved
 inactive), `47e6fdeb78fe` (per-site clipboard cancellation overrides), `25de5d0b584d`
