@@ -1,4 +1,1446 @@
+# Umbrafox Full Bot Handoff
+
+Updated October 23, 2026 at 22:53Z, at Wyatt's explicit request for a FULL memory dump.
+This top section is the authoritative current handoff. Everything from the previous memory
+file (the October 20 dump and the historical archive it carried) is preserved verbatim below
+under **Preserved Memory File**. Its old "active", "running", "next" and authorization
+statements are historical, not instructions to resume those jobs.
+
+## 1. Immediate Resume Point
+
+The latest engineering exchange was an answer to **l8ros**, who asked four questions about
+UmbraLink context targeting, a suspected control-channel exit on the Pi kiosk, a
+`navigator.webdriver` confound in their measurements, and a sanctioned parity workflow, and
+also asked for our verdict on their attach/skip and vsync-pump patch. That answer is written,
+committed and pushed. Nothing is running.
+
+What happened, in order:
+
+1. l8ros filed [the bug report](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/bug-reports/2026-10-23-l8ros-umbralink-context-and-kiosk-exit.md)
+   (commit `253e19430b6f`).
+2. We verified every claim against source and wrote the answers, appended them to that bug
+   report as an `# Answer from Umbrafox (2026-10-23)` section (commit `37684bc7f64e`), and
+   recorded the long form plus the patch verdict in
+   [the verdict report](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-23-umbralink-context-kiosk-exit-and-patch-verdict.md)
+   (commit `b3ca97a4a136`).
+3. Owner relayed l8ros's reply: they are checking `dmesg` for OOM, because they read our
+   finding "nothing drains `pending_native_surface_updates` in Draw mode" as a plausible OOM
+   source. We disagreed on magnitude and on correlation, in chat only; the argument is
+   recorded in section 8 and is worth repeating if they come back with an OOM report.
+
+Current conclusions that other sessions must not quietly reverse:
+
+1. **The leak is real but tiny.** `NativeSurfaceOperation` is 24 bytes; the patch queues two
+   per promoted video surface per composed frame, about 2.9 KB/s or 10 MB/hour, ~0.8 MB over
+   five minutes. It is unacceptable but it is not a plausible cause of a browser dying minutes
+   into a run, and it grows during playback, not while a control client is connected.
+2. **No UmbraLink command can close a window or quit.** `close` refuses the last tab in a
+   window; only `script.execute` with `realm: "browser"` can terminate the app, by design, and
+   l8ros never called it. On Linux the app does exit when the last top-level window is
+   destroyed, so there is no windowless survival mode to rely on.
+3. **Merely running Marionette sets `navigator.webdriver`**, from first paint, with no session
+   and no attached client. Every l8ros measurement so far is therefore automation-tainted and
+   must not be used for acceptance. UmbraLink leaves the flag false and is the sanctioned
+   measurement path.
+4. **The attach/skip hunk is not acceptable as-is** even though the problem it names (content
+   starved of ticks when WebRender stops compositing) is real. Skip without an attach result,
+   no queue consumer, cache bypass, per-frame `exists()` syscalls, and a permanent
+   process-global software-vsync override.
+5. **Their 56.9 fps / 5.1 % row cannot yet be interpreted.** Depending on whether our hybrid
+   admitted their frames, it is either "our EGL external root works and the pump fixed content
+   ticks" or "no video pixels reached the screen"; presented-frame counters cannot distinguish
+   those. A bounded admission counter is the missing instrument.
+6. Our own official hybrid candidate is unchanged and still unaccepted on hardware:
+   BuildID `20261019185219`, default-off pref, ARM build/package/evidence verified, hardware
+   performance, lifecycle and visual acceptance never established.
+
+There is no active tool goal. There is no owned build, package, browser, test or command
+session to resume. Do not create a goal unless explicitly requested. No current teamwork DB
+was assigned; the historical DBs belong to completed waves.
+
+Next useful work, none of it started:
+
+1. Wait for the OOM answer. If `dmesg` shows a kill, attribute it before theorising: per-process
+   memory from `performance.snapshot` or `smaps_rollup`, parent versus content/RDD. The likely
+   candidate is decoder/V4L2 buffer pressure plus DMABUF imports that are locked every frame
+   but never displayed when the draw is skipped, not the 24-byte queue.
+2. Implement the content-tick fix correctly on our side, in the existing external-root
+   design: per-widget fallback source, real rate, engage only while the Wayland callback is
+   stalled, full lifecycle. Never a process-global static.
+3. Add the bounded admission counter (already proposed on October 20) so that admission,
+   attachment, child callbacks, WR final draws and EndFrame/swap can be attributed per run.
+4. The V4L2 M2M hardware H.264 decode task is assigned to Umbrafox and not started
+   (`bot-docs/plans/2026-10-21-hardware-video-decode-pi4.md`).
+5. Keep the shipped hybrid pref off for any acceptance run until the above is measured.
+
+## 2. Owner Intent, Authority and Boundaries
+
+Wyatt wants a fast, reliable power-user Firefox fork. Browser defaults must stay
+Firefox-equivalent to websites and servers. Read the mandatory rulebook before any source work:
+[rulebook](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/umbrafox-conversion-guide/02-mandatory-modification-rules.md).
+No new detectable default JS, DOM, WebIDL, network, media, storage, timing or fingerprinting
+surfaces. No silent rule exception.
+
+Standing owner instructions relevant here:
+
+- Browser source, review, isolated build, package and artifact integrity are ours. Pi
+  deployment, compositor/session changes, hardware measurement and restoration are l8ros's.
+- Wyatt's daily desktop browser is not a disposable test process. Do not close, restart,
+  attach, navigate or modify its profile without explicit authorization for that action. At the
+  time of this dump it is PID 1460580, up 4 days 6 hours, running the dated
+  `20261001103920` (158.0a1) build under the `umbrafox-debug.py` logging wrapper, and was not
+  touched.
+- Preserve artifacts, rejected attempts and diagnostic evidence. Never overwrite a verified
+  export, fabricate a receipt, or turn a partial observation into a conclusion.
+- Never SIGKILL without explicit direction. Cleanup is identity-bound and bounded.
+- Default significant Cargo and make work to two jobs. The old eight-job override belonged to
+  the October 16 diagnostic build.
+- Reports under `bot-docs/reports/`, plans under `bot-docs/plans/`, bug-report answers inside
+  the bug report itself, durable bot documentation under `bot-docs/`.
+- Commit messages in this fork's doc commits are terse and single-line (`bug report from
+  l8ros: ...`, `plan: ...`, `answers for l8ros: ...`), unlike the `No bug - ... r?#group`
+  form used for source commits.
+
+## 3. Bootstrap and Tooling
+
+After session start or compaction read, in order:
+[startup](/home/public/wyatt-desktop/.bot-common/startup.md),
+[global quirks](/home/public/wyatt-desktop/.bot-common/quirks.md),
+[global rules](/home/public/wyatt-desktop/.bot-common/rules.md), then
+[AGIS runtime](/home/public/wyatt-desktop/Projects/agis/docs/runtime.md).
+Finish bootstrap with `Fired up!` and continue the active task.
+
+Project root:
+`/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox`, whose local alias is the
+usual desktop home checkout. Owner-facing paths must use the share root, never `~`.
+
+Project context directories: `.codex/` is the live one on this host and holds the 9,049-line
+[DETAILS.md](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/.codex/DETAILS.md)
+ledger. `.pi/` does not exist here; Pi instructions say it should be the project-context
+directory for this harness, so creating a small `.pi/DETAILS.md` pointer remains an open,
+offered-but-unapproved idea. `.codex/quirks.md` and `.codex/rules.md` do not exist.
+
+Skills that matter for this lane: `umbrafox-link` (UmbraLink work), `share-path` (every path
+handed over), `firefox-desktop-frontend` (JS/HTML/CSS), `mozlint`, `documentation`,
+`profiler-analysis`, `firefox-commits`, `find-reviewer`, `diagnose-crash`.
+`searchfox-cli` is installed (0.18.0, 0.20.5 advertised; no upgrade performed) and is the right
+tool for upstream discovery; local searches stay narrow and scoped.
+
+## 4. Checkout and Worktree State
+
+```text
+HEAD        b3ca97a4a136b06de7c41e6169d076d0dedab436
+subject     review: UmbraLink answers and verdict on the l8ros attach/skip and vsync-pump patch
+main        == origin/main == b3ca97a4a136 (pushed to github.com:th317erd/umbrafox.git)
+```
+
+Worktree, verified at this dump: 24 modified tracked files plus one untracked new file in the
+owned hybrid surface, 811 untracked entries overall (mostly unrelated upstream remnants plus
+`bot-docs` plans and reports that this fork deliberately leaves untracked), and nothing owned by
+us left dirty in `bot-docs` after this commit.
+
+All **25 owned source files still match the October 19 source freeze**
+([source-freeze.json](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/exports/umbrafox-hybrid-20261019185219/source-freeze.json)),
+rehashed during this dump: 0 mismatches. They remain deliberately uncommitted:
+
+- `gfx/layers/NativeLayerWayland.cpp`, `.h`
+- `gfx/webrender_bindings/RenderCompositor.cpp`, `.h`, `RenderCompositorEGL.cpp`, `.h`,
+  `RendererOGL.cpp`, `WebRenderAPI.cpp`, `src/bindings.rs`
+- `gfx/wr/webrender/src/composite.rs`, `composite/draw_external.rs` (untracked new file),
+  `lib.rs`, `renderer/composite.rs`
+- `modules/libpref/init/StaticPrefList.yaml`
+- `widget/gtk/DMABufFormats.cpp`, `.h`, `DMABufSurface.cpp`, `.h`, `GtkCompositorWidget.cpp`,
+  `.h`, `WaylandSurface.cpp`, `.h`, `nsWindow.cpp`, `.h`
+- `widget/tests/gtest/TestDMABufSurface.cpp` (native DMABuf fixture; compiled, never executed
+  on ARM)
+
+`gfx/wr/webrender/src/composite/draw_external.rs` is the 25th file and is untracked, not
+modified; `source-freeze.json` is the authority for this list.
+
+Never clean, reset or revert the worktree. Never archive the whole dirty tree as build input.
+Builds use an exact `git archive` plus a frozen owned patch and new-file manifest.
+
+## 5. Commits Since the October 20 Dump
+
+| Commit | Content |
+| --- | --- |
+| `253e19430b6f` | l8ros bug report: UmbraLink context targeting, possible kiosk exit, webdriver confound (77 lines) |
+| `d3981ab0ded2` | l8ros handover of the attach/skip and vsync-pump patch plus its report: `bot-docs/patches/2026-10-21-l8ros-attach-skip-and-vsync-pump.patch`, `bot-docs/reports/2026-10-21-l8ros-browser-changes.md` (134 lines) |
+| `eab631adf751` | plan: hardware H.264 decode via V4L2 M2M on Pi 4 (75 lines) |
+| `9cb566b33a1d` | plan: assign that task to Umbrafox with a task list and acceptance (14 lines) |
+| `37684bc7f64e` | answers to the four l8ros questions appended to the bug report (93 lines) |
+| `b3ca97a4a136` | long-form answers plus the attach/skip and vsync-pump verdict report (268 lines) |
+
+The preceding source commits are unchanged: `9a9057291b5b` (clipboard prototype preserved
+inactive), `47e6fdeb78fe` (per-site clipboard cancellation overrides), `25de5d0b584d`
+(Chrome-style Linux shortcut preset), `ed5c2e1dea6e`, `c0e7f8a2be04`, `f977a5f9e337`,
+`d74c12c71fdf`.
+
+## 6. UmbraLink: Facts Established This Session
+
+Sources: `toolkit/components/umbrafox/*.sys.mjs`, `toolkit/components/umbrafox/docs/control.md`,
+`tools/umbrafox/tests/control/*.mjs`, `browser/components/BrowserGlue.sys.mjs`,
+`toolkit/components/startup/nsAppStartup.cpp`.
+
+Discovery and lifecycle:
+
+- Starts only when `umbrafox.control.enabled` is true, from `BrowserGlue._beforeUIStartup`, and
+  stops in `BrowserGlue._dispose`. A start failure only logs; it never quits the app.
+- `umbrafox.control.port` `0` allocates an ephemeral port. Discovery file is
+  `<profile>/umbrafox/control.json`, mode 0600, containing `host`, `port`, `path`, `token`,
+  `websocketUrl`. Treat the token as a credential.
+- UmbraLink starts neither Marionette nor the Remote Agent, changes no pref that is
+  web-visible, and installs no page globals.
+
+Command surface (complete; there is no enumeration or lookup command):
+
+`status`, `diagnostics.snapshot`, `diagnostics.dumpMemoryReport`, `gfx.snapshot`,
+`media.snapshot`, `performance.snapshot`, `performance.profile.dump`,
+`browsingContext.create`, `browsingContext.close`, `browsingContext.navigate`,
+`script.execute`, and `input.click|pointerMove|pointerDown|pointerUp|wheel|keyDown|keyUp|type`.
+
+Targeting:
+
+- `diagnostics.snapshot` returns `processID`, `profileDir`, distinguished memory, and
+  `windows[] -> tabs[]` each with `context`, `browserId`, `label`, `url`, `selected`, `pinned`,
+  `process`, `memory`. Its `context` is the value to pass to every other command.
+- `getTarget()` in `UmbrafoxControlBrowser.sys.mjs` requires `params.context` to be a safe
+  integer >= 1 that resolves to a live top-level content context with a `currentWindowGlobal`
+  and a `gBrowser` tab; otherwise it throws `invalid argument` / `no such frame` **before** any
+  listener or load exists. A rejected `navigate` is therefore inert.
+- `create` takes the context of an *existing* tab whose window hosts the new tab, so it cannot
+  bootstrap the first context. `close` refuses the last tab in a window.
+- `navigate` accepts `http`, `https`, `about`, `file`, `data`, `wait` of `complete` (default) or
+  `none`, and `timeoutMs`. Completion is a load boundary, not network idle or HTTP success.
+  Re-read `context`/`document` from the receipt afterwards.
+- `script.execute` takes `context`, `body` (async function body, <= 65536 UTF-16 units),
+  `realm` `page` (default; tab or frame, page-principal sandbox, no `Services`) or `browser`
+  (top-level tab only, system privileges, can close the browser), plus optional `args`,
+  `document` (inner-window identity guard) and `timeoutMs` (1..60000, default 10000). One
+  operation per context, 16 overall; conflicts return `busy`.
+- Input commands synthesize real pointer/wheel events on the chrome window at content
+  coordinates, and key/type events through a content actor.
+
+Exit semantics, which is what l8ros needed:
+
+- No command closes a window or quits. A client disconnect aborts only that connection's waits;
+  `stop()` closes sockets and removes `control.json`.
+- `script.execute` with `realm: "browser"` is the one documented way control can terminate the
+  app, because it runs with system privileges.
+- On Linux a destroyed top-level window calls `ExitLastWindowClosingSurvivalArea()` ->
+  `Quit(eConsiderQuit)` in `nsAppStartup`, so the app exits with zero windows. Only macOS and
+  the Windows `mAllowWindowless` path survive windowless.
+- Diagnostics are read-only, but `diagnostics.snapshot` (`sizeOfTab`) and `media.snapshot`
+  (per-element media reads) are the only commands that walk live content objects, which makes
+  them the interesting suspects in any parent-side fault.
+
+Sanctioned parity and measurement path:
+
+- `docs/control.md` is the protocol contract and explicitly records that these commands do not
+  start Marionette/Remote Agent/WebDriver, do not change `navigator.webdriver`, and do not
+  install page globals.
+- `tools/umbrafox/tests/control/parity-smoke.mjs ABS_BINARY NEW_OUTPUT_DIR` launches two fresh
+  headless processes without automation flags, UmbraLink OFF and ON, and asserts
+  `navigator.webdriver === false` plus unchanged page globals, prototypes and native function
+  strings. It is an identity smoke test, not a benchmark, and the output parent must exist.
+- Browser integration tests: `./mach test --headless
+  toolkit/components/umbrafox/tests/browser/browser_control_service.js`, `..._browser.js`,
+  `..._input.js`. Pure tests: `node --unhandled-rejections=strict --test
+  tools/umbrafox/tests/control/control-spec.mjs`.
+
+## 7. `navigator.webdriver` and Marionette
+
+Source facts (`dom/base/Navigator.cpp`, `remote/components/Marionette.sys.mjs`,
+`remote/components/RemoteAgent.sys.mjs`):
+
+- `Navigator::Webdriver()` returns true when `nsIMarionette` or `nsIRemoteAgent` reports
+  `isBrowserAutomationRunning`, which is `server running && isBrowserAutomation`.
+- `#isBrowserAutomation` defaults to **true** and is set when the server starts listening,
+  before any session or command, and is published to content processes through shared data.
+  A browser launched with `--marionette` or `MOZ_MARIONETTE=1` therefore reports
+  `navigator.webdriver === true` in every tab from first paint, with or without a client.
+- `startAtRuntime({isBrowserAutomation: false})` (pref `remote.experimental.dynamicstart.enabled`)
+  leaves the flag false. It is stock Gecko tooling behaviour, not a fork change, and is not a
+  measurement recommendation: it is still an automation server, and using it to dodge site
+  heuristics is out of bounds.
+- UmbraLink touches none of this.
+
+External corroboration that a ~1 minute YouTube teardown on this flag is a site-side behaviour:
+[keyolk/tweb PR #153](https://github.com/keyolk/tweb/pull/153) — YouTube erroring at ~35-60 s in a
+headed, off-screen Chrome with no CDP client ever attached (`navigator.webdriver = true`), the same
+video playing past 129 s with the flag off, and YouTube returning 123-byte `videoplayback`
+responses from ~11 s. Chrome+CDP, so it does not prove Gecko is treated the same, but the
+web-visible signal is identical and the shape matches l8ros's observation.
+
+Consequences: l8ros's numbers are automation-tainted and cannot be an acceptance gate; the
+teardown truncates the measurement window and changes page state. The falsifying experiment is
+one UmbraLink-only run asserting `navigator.webdriver === false` before and after. Never propose
+UA/DOM/flag hiding to defeat the heuristic.
+
+## 8. l8ros Attach/Skip and Vsync-Pump Patch: Verdict
+
+Input:
+[patch](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/patches/2026-10-21-l8ros-attach-skip-and-vsync-pump.patch),
+SHA256 `c133e8a83ac81ef930b2b72d2c57efc713f575f0590a2b4c297e12615a51ec95`, 3 files, applies on
+top of `hybrid-source.patch`. Reviewed against `b3ca97a4a136`. **Not merged, not accepted as-is.**
+
+The problem it names is real: with the hybrid active, content must not depend on a WebRender
+composite for its tick source, and ~6 ticks/s instead of 60 is exactly a starved widget vsync
+callback. Keep that as a design input.
+
+Defects, verified in source:
+
+1. **Skip without admission.** `renderer/composite.rs` skips drawing any `ExternalSurface` with
+   `external_image_id.is_some() && update_params.is_none()`. No pref check, no attach result, no
+   opacity or exact-coverage check, no readback/capture exclusion. If attachment failed, the
+   ordinary Draw path was displaying the video and this deletes it.
+2. **No consumer for the queues it fills.** The `tile_cache/mod.rs` hunk calls
+   `create_compositor_external_surface()` and `attach_compositor_external_image()`, which only
+   push into `ResourceCache::pending_native_surface_updates`. In `CompositorConfig::Draw` the
+   only drain site, `Renderer::update_native_surfaces`, does nothing but
+   `debug_assert!(...is_empty())`; optimized builds compile that out (unbounded Vec growth, no
+   crash), debug builds abort the parent at the first assert (looks like a silent kill).
+3. **Cache bypass.** It creates a fresh `NativeSurfaceId` per call instead of using
+   `external_native_surface_cache`, so nothing is ever reused or destroyed.
+4. **Syscall in the hot path.** `Path::new("/etc/l8ros-session/video-subsurface").exists()` runs
+   per external surface per frame in the draw loop and per tile-cache surface.
+5. **It duplicates instead of using the existing seam.** Our hybrid early-returns only when
+   `CompositeState::prepare_draw_external_surface(...)` returns `Some(_)`, i.e. the backend
+   accepted and attached that exact external image this frame; otherwise it falls through to
+   normal Draw. Attach and skip must be one admission-gated decision.
+6. **The pump is a permanent process-global override.** `static RefPtr<SoftwareVsyncSource>`
+   shared by all widgets, enabled once, hardcoded `1000/60.2`, never disabled or released,
+   replacing the Wayland source rather than covering a stalled one, ticking after the window is
+   gone. `SetVsyncRate`, `DisableVsync`, `Shutdown` and `gfxPlatform::GetSoftwareVsyncRate()`
+   already exist.
+7. **The numbers do not support either half.** Reported baseline with the pump off is 12.5 fps /
+   79.1 % dropped, far below the earlier ~26-29 fps for the same device, and the pump alone
+   (hybrid off) supposedly triples throughput, which contradicts the stated causal chain.
+
+Leak magnitude, computed and already relayed to the owner: `NativeSurfaceOperation` wraps only
+the enum, and the two variants here are `{NativeSurfaceId(u64), bool}` and
+`{NativeSurfaceId(u64), ExternalImageId(u64)}`, so 24 bytes each. `setup_compositor_surfaces_impl`
+is reached from `post_update` once per promoted external surface per frame: two pushes per
+frame per video surface, 120/s at 60 fps, ~2.9 KB/s, ~10 MB/hour, ~0.8 MB in five minutes, Vec
+doubling included. That is not a plausible OOM cause, and it grows during playback rather than
+while a control client is connected, so it does not explain two exits tied to control activity.
+If their `dmesg` does show an OOM kill, the likely consumer is decoder/V4L2 buffer pressure plus
+DMABUF imports that are locked every frame but never displayed when the draw is skipped.
+
+What we would accept: pref-gated and default-off with no marker files and no per-frame
+filesystem access; skip conditioned on an attach result token for that exact external image,
+fallback intact, never for capture/readback/partial-present; no `pending_native_surface_updates`
+traffic in Draw or Layer without a drainer, with a source-contract test; a per-widget vsync
+fallback that owns its source, takes its rate from the widget or `gfxPlatform`, engages only
+while the real callback is stalled, and tears down on unmap/hide/pause/destroy; and per-run
+evidence of admission result, child callbacks, content tick cadence, WR final draws and
+EndFrame/swap, plus a real capture of the TV.
+
+## 9. Our Implemented Hybrid, Unchanged
+
+Startup-scoped pref, default false: `gfx.webrender.compositor.external-surfaces-in-draw`.
+The WR compositor stays Draw; the ordinary Native/Layer queues and promotion eligibility are
+untouched; an optional `DrawExternalCompositor` interface is installed through the Gecko/Rust
+bridge when supported.
+
+Call chain:
+
+```text
+Renderer::composite_simple
+  -> CompositeState::prepare_draw_external_surface
+  -> WrDrawExternalCompositor::prepare
+  -> wr_compositor_prepare_draw_external_surface
+  -> RenderCompositorEGL::PrepareDrawExternalSurface
+  -> NativeLayerRootWayland::PrepareForEGL
+  -> NativeLayerWaylandExternal::PrepareForEGL
+  -> WaylandSurface::AttachLocked
+```
+
+Selection in `gfx/wr/webrender/src/composite/draw_external.rs` requires a resolved external YUV
+image in the frontmost opaque fullscreen tile: identity geometry, exact coverage, no crop,
+unsupported clip, foreground content or scaling, eight-bit NV12 or planar YCbCr with
+Rec709Narrow, using resolved image identity rather than an index into a descriptor vector.
+
+On successful admission/attachment `composite_simple` returns before the ordinary final tile
+draw, because the accepted opaque fullscreen child covers the lower tiles. Failure retains
+normal Draw. That does not imply earlier WR work, texture resolution, synchronization or the
+EGL swap disappear.
+
+The C++ backend resolves the actual `RenderDMABUFTextureHost` and YUV surface, requires a visible
+mapped EGL parent, scale one and exact dimensions, uses a dedicated external-only child
+lifecycle, holds the root lock proof through preparation and swap, preserves fences and buffer
+ownership, hides/clears on rejection, failure, cancellation, unmap or pause, retires a child
+whose failed mapping left partial parent state, and disables partial present while the optional
+interface is active. `RenderCompositorEGL::EndFrame` still calls `SwapBuffers` on a completed
+visible frame even when the final tile draw was skipped — a candidate cost to measure, not a
+proven bottleneck and not permission for an unconditional swap removal.
+
+Admission gates that decide real-world success: actual NV12 or YUV420, 8-bit, BT709
+transfer/matrix, limited range, non-HDR; exact wire FOURCC mapping with every plane modifier
+explicit, equal, and present in the copied advertised-format snapshot; `INVALID` rejected,
+`LINEAR` only if listed; `wp_color_representation_manager_v1` plus a supported BT709
+limited-range pair. The fallback table injects `INVALID`, so it cannot prove advertisement.
+Upstream Cage 0.2.1 with wlroots 0.19 lacks the mandatory color-representation manager;
+wlroots 0.20 added the protocol but the compositor must create and advertise it. The actual
+browser socket registry on the Pi is still unknown to our lane.
+
+Child-vsync repair already in our tree: parent `WaylandSurface` owns a child source and
+generation, registers it after successful external preparation, retires it on rejection,
+clear, unmap and consumer removal, propagates observer-enabled state, preserves the parent
+`WaylandVsyncSource` callback, rearms outside the child lock, validates generation under the
+parent lock, publishes pending state, rejects an already-entered stale callback, and on a
+successful EGL swap sets `mBufferAttached = true` and clears pending commit bookkeeping.
+
+`RequestForceCommit` calling `wl_surface_commit` publishes Wayland state; it does not schedule a
+WR render, GL draw or EGL swap. Content already has an independent observer path through
+`VsyncParent`/`VsyncMainChild`. Do not remove it on the belief that it forces a full redraw.
+
+## 10. Pi Measurements Supplied by l8ros and Their Limits
+
+**These are l8ros-reported observations, not repeated by us, and not necessarily from identical
+sources or configurations.**
+
+| Arm / report | Supplied result |
+| --- | --- |
+| Earlier release baseline, 1080p60 | about 26 fps, 55-57 % dropped |
+| Prototype external layer, October 19 | 59.29 fps / 1.2 % dropped |
+| Prototype 720p60 | 59.08 fps / 1.9 % dropped |
+| Official 06:30 export, pref off/on | 25.42 / 29.11 fps |
+| Official 18:52 export | 28.83 fps / 51.7 % dropped; page+video 25 rAF/s |
+| Combined prototype build | 40.58 fps / 32.3 % dropped; page+video 37 rAF/s |
+| Attach/skip + pump table, 1080p60 H.264 | hybrid off/pump off 12.5 fps / 79.1 %; off/on 31.8 / 47.1 %; on/off 13.4 / 77.9 %; on/on 56.9 / 5.1 % |
+| Attach/skip + pump, page cadence | ~6 ticks/s without the pump when the hybrid is active |
+
+Do not transfer the prototype's acceptance to the official guarded implementation. Acceptance
+still owed: 1080p60 >= 57 fps and < 5 % drops, page cadence >= 470 of 480 intervals <= 18 ms,
+1080p30/720p60 non-regression, concurrent mixed content, actual visual output, seek, fullscreen
+and navigation, hide/remap/teardown and resource retirement. Counter improvements alone can miss
+blank or stale content.
+
+## 11. Owed to l8ros
+
+1. The five 10-minute kiosk-exit arms with one variable each, stderr captured, 10 s RSS
+   sampling: no UmbraLink, `status` every 30 s, repeated `diagnostics.snapshot`, repeated
+   `media.snapshot`, repeated rejected `navigate`; plus `systemctl --user show <unit> -p
+   Result,ExecMainStatus,ExecMainCode,ExecMainExitTimestamp`, the unit journal and
+   `journalctl -b -k` for OOM/Wayland lines. Their side to run, our design.
+2. One UmbraLink-only run that asserts `navigator.webdriver === false` before and after.
+3. Owed by us: a correct content-tick fallback, a bounded admission counter, and a source or
+   artifact only after the above produce attributable data.
+4. V4L2 M2M hardware H.264 decode, assigned and not started.
+
+## 12. V4L2 M2M Hardware H.264 Decode (Assigned, Not Started)
+
+Plan:
+[2026-10-21-hardware-video-decode-pi4.md](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/plans/2026-10-21-hardware-video-decode-pi4.md).
+Owner assigned it to Umbrafox end to end, with l8ros flashing and running acceptance.
+
+- No Raspberry Pi has a hardware VP9 or AV1 decoder. BCM2711 decodes H.264, MPEG-2, MPEG-4 and
+  HEVC. On the device: `video10` bcm2835-codec-decode (H.264, V4L2 M2M), `video11` encode,
+  `video12` isp, `video19` rpi-hevc-dec.
+- Firefox's V4L2 plumbing is compiled in for aarch64+GTK; the codec library is not. The work is
+  to vendor `libavcodec/v4l2_m2m.c`, `v4l2_m2m_dec.c`, `v4l2_context.c`, `v4l2_fmt.c` and their
+  headers into `media/ffvpx/libavcodec/`, wire `moz.build` (needs libdrm), flip
+  `CONFIG_V4L2_M2M` and `CONFIG_LIBDRM` for aarch64 in `media/ffvpx/config_unix_aarch64.h`,
+  reuse the VA-API `MOZ_DRM_CFLAGS`, confirm `h264_v4l2m2m` is exported and selected by
+  `FindVideoHardwareAVCodec()`, keep software H.264 as fallback when `/dev/video10` is missing
+  or busy, then package.
+- l8ros already disables VP9/AV1 in MSE (`media.mediasource.webm.enabled=false`,
+  `media.av1.enabled=false`, `media.webm.enabled=false`), which steers YouTube onto H.264 and
+  reportedly cut drops from ~70 % to ~33 % on the same clip.
+- The deliverable is a packaged aarch64 tarball; no source handover without a build.
+
+## 13. Other Lanes, Condensed
+
+Desktop silent exit: cause still unestablished. A logging wrapper is installed at
+[launcher](/home/public/wyatt-desktop/Programs/umbrafox) with
+[helper](/home/public/wyatt-desktop/Programs/umbrafox-debug.py), writing to
+`~/.local/state/umbrafox/launcher-debug/`; `UMBRAFOX_DEBUG=0` disables capture for one launch.
+It preserves the existing build/profile/argv choice and does not fix anything. A remote process
+exiting 0 is not monitoring of a running browser.
+
+Clipboard protection: prototype implemented, verified and installed **inactive**, with a
+separate profile-mapping and activation hold. Do not switch the daily launcher or profile
+silently. Chrome hotkey preset is explicit opt-in, not unconditional web-visible change.
+
+ARM artifacts, verified during this dump:
+
+| Item | Value |
+| --- | --- |
+| BuildID | `20261019185219` |
+| Archive | 100,334,096 bytes, SHA256 `41159d834b9fbef045928159416c179a00c753164edfb6824ab2fa2885323ff9` |
+| Source freeze | SHA256 `c347f71a91b42ef11b94f529de2672be5700216a380b1946ea8535594727bda7` |
+| Source patch | SHA256 `52adb07b853f09b0bd217bae3345472e61987d18f73cf6b3c93b2633161df335` |
+| Package receipt | SHA256 `8b6f9078c640116441ec6f6d42d0a135aa4c7525b87629a5a9d1c59766113b58` |
+| Evidence manifest | SHA256 `911a15ebfbdbf54f0c225cad2fdcff4aafc2bd30fc794497246cfe9d008ff904` |
+
+Predecessors preserved: `20261019063025` (archive `fac5017606…`, 100,325,400 B) and
+`20261019183200` (`a98554ad8e…`, 100,333,104 B). Nothing was installed on the desktop by this
+lane. Build root (isolated, ARM):
+`/home/public/wyatt-desktop/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1`.
+
+## 14. Stopped Diagnostic and Census Lanes
+
+Do not confuse these with the current non-probe hybrid.
+
+- P1/P2 WebRender diagnostic artifacts and the stopped build2 layout under
+  `~/.cache/codex/umbrafox-wr-render-p2-layout-20261016` remain uncertified and closed; matching
+  Record layouts were verified only for `RenderDMABUFTextureHost.o` and
+  `Unified_cpp_webrender_bindings0.o`, `completeStableClosure=false`. Closure hashes:
+  `700c2c03a4f5b918443fc35f2a3bf04090c3695a8e5752884f1fcceeaeae5ccc` and
+  `837b78e5029a03708bd35ff444837ed79d9bf93ea7aa754f48c90e3af824188d`.
+- The WR promotion census proposal stayed design-only, with the requirements recorded (first WR
+  occurrence only, ordered eligibility rows, separate setup and finalization results, versioned
+  join, finite fractional geometry, dedicated default-off flag, size caps, no guessed profiler
+  counters). Its last reported revision hash is
+  `e1f532ac8754c7f4d8be72a23ab966f0c952cfeed2798d886c152ee91db8b43f`.
+- Existing WR overlay/blit/underlay counters are HUD/source-backed aggregates, not exported per
+  element and not a per-video success count.
+
+## 15. Coordination
+
+WebSocket helper: `/home/public/wyatt-desktop/Programs/codex-ws-message.mjs` at
+`ws://127.0.0.1:14522`, sender `umbra`. The last ACK and completion sends to l8ros failed with
+"No loaded Codex thread matched the supplied selector"; the list showed only `umbra` and idle
+sidecars. **Do not claim delivery.** Retry only after checking loaded recipients.
+
+Sidecars (all finished/idle): Arendt `01a14287-1e0b-7a92-9fc2-0b807bba0778` (build environment and
+interop), Hilbert `01a145c6-b3c3-7bb0-b785-60c60a7acc22` (NativeLayer lifecycle and protocol),
+Gibbs `01a1556a-b095-7263-b946-4a7f85c2ba2b` (child-vsync races and combined-patch review).
+New authorized multi-step worker work needs a unique control file with OK/HALT semantics and a
+read after each command. The October 14-17 teamwork SQLite belongs to that finished wave.
+
+Since the l8ros bug report arrived, coordination has been through files in the repository
+(`bot-docs/bug-reports/`, `bot-docs/reports/`) and chat, not through the websocket.
+
+## 16. Handoff Verification
+
+Verified while writing this dump, not recalled: HEAD and `origin/main` both
+`b3ca97a4a136b06de7c41e6169d076d0dedab436` after the push; `git log 9a9057291b5b..HEAD` contains
+exactly the six commits listed above; all 25 owned source files still hash-match the October 19
+source freeze (0 mismatches); the four artifact identities above re-hashed and matching; no
+umbrafox build, cargo, browser or test process owned by this lane is running (an unrelated
+`aeordb` cargo build from another workspace was visible and untouched); the owner's daily browser
+PID 1460580 is still running the dated October 1 build and was not touched.
+
+The previous memory file had SHA256
+`3299037a850cca035566e9481717c0fe7d396aca2cfe684d77426ae57d084cb2` (1,905 lines) before this
+rewrite and is preserved verbatim below. `.codex/DETAILS.md` gains a short October 23 entry and
+is committed together with this file; its pre-existing 1,419-line uncommitted continuity
+additions are part of the same commit.
+
+---
+
+# Preserved Memory File (October 20, 2026 dump and its historical archive)
+
+Everything below is the previous `MEMORY.md` content, byte for byte, including the October 20
+handoff and the older `# Historical Memory Archive` it carried. Statements there were true,
+provisional or pending at their recorded checkpoints. Where it contradicts this top section, this
+top section wins; where it names a file, hash or receipt, prefer the receipt on disk.
+
+# Umbrafox Full Bot Handoff
+
+Updated October 20, 2026 UTC, at Wyatt's explicit request for a FULL memory dump.
+This top section is the authoritative current handoff. The previous 1,103-line
+memory file is preserved verbatim under **Historical Memory Archive** below.
+Its old "active", "running", "next" and authorization statements are historical,
+not instructions to resume those jobs.
+
+## 1. Immediate Resume Point
+
+The latest engineering exchange was a **read-only** answer to l8ros about
+Wayland child vsync, full page recomposition, and its combined hybrid patch.
+That answer is complete and recorded; no new source patch or build was started.
+The newest owner request is this memory dump, not a new deployment request.
+
+Important current conclusions:
+
+1. Content can receive vsync without a WebRender composite. It already has an
+   independent observer path through `VsyncParent` and `VsyncMainChild`.
+2. `EGLVSyncCallbackHandler` calling `RequestForceCommit` publishes Wayland state.
+   It does **not** request WR rendering, GL drawing or EGL swap. Do not remove it
+   as though it were a forced full-page redraw.
+3. Our official candidate already contains real external attachment and
+   conditional final-draw omission, using a separate `DrawExternalCompositor`
+   interface. Missing prototype API names do not mean missing functionality.
+4. The official candidate has strict admission gates. A true pref is not proof
+   of successful admission, attachment, displayed video or direct scanout.
+5. `RenderCompositorEGL::EndFrame` still calls `SwapBuffers` on a completed visible
+   frame even if the final tile drawing was skipped. This is a distinct
+   **candidate cost to measure**, not a proven bottleneck or an approved
+   unconditional swap-removal fix.
+6. l8ros's supplied combined patch remains **unaccepted as-is**: it can skip the
+   fallback without a successfully attached replacement, produces native queue
+   operations with no Draw consumer, has a process-global stale keepalive, and
+   is an incomplete clean-base source handoff.
+7. Official ARM build/package verification passed. Hardware performance,
+   lifecycle and visual acceptance of the official candidate have **not** passed.
+
+Current report:
+[combined intake and callback-cost follow-up](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-20-combined-hybrid-intake.md),
+SHA256 `00a0f213639c6963e1b7ed2ac79e491856566bffb726c26414b8cc4e331dc7d2`.
+Current plan:
+[EGL external video integration](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/plans/egl-external-video.md).
+
+There is no active tool goal (`get_goal` returned null during this handoff).
+There is no owned build, package, browser, test or command session to resume.
+Do not create a goal unless explicitly requested. No current teamwork DB was
+assigned. Historical DBs belong to their completed waves.
+
+## 2. Owner Intent, Authority and Boundaries
+
+Wyatt wants a fast, reliable power-user Firefox fork. Browser defaults must remain
+Firefox-equivalent to websites and servers. Read the mandatory modification
+rulebook before source work:
+[rulebook](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/umbrafox-conversion-guide/02-mandatory-modification-rules.md).
+No new detectable default JS, DOM, WebIDL, network, media, storage, timing or
+fingerprinting surfaces. No silent rule exception.
+
+Wyatt authorized hybrid implementation with "Please continue, fixing these
+issues as you go", and subsequently the child-vsync repair with "Let's go for it".
+Those authorizations produced the candidate described here. They do not certify
+the hardware, authorize applying an unsafe later patch without review, or
+reopen the stopped P2 diagnostic artifact lane.
+
+Ownership:
+
+- **umbra** owns browser source, review, isolated build, package and artifact
+  integrity.
+- **l8ros** owns Pi deployment, compositor/session changes, hardware measurement,
+  restoration and current Pi state. No Pi actions were performed in the latest
+  source-analysis or handoff turns.
+- Wyatt's daily desktop browser is not a disposable test process. Do not close,
+  restart, attach a debugger, navigate or modify its profile without the
+  applicable explicit authorization. A prior launcher-logging change is not
+  blanket runtime control permission.
+- Default-off hybrid stays default-off. No marker-file gate, arbitrary guard
+  bypass, fence deletion, global scheduler override or new custom IPC was
+  admitted to our source.
+- Preserve all existing artifacts, rejected attempts and diagnostic evidence.
+  Do not overwrite a verified export or fabricate a passing receipt.
+- Never SIGKILL without explicit direction. Terminate only exact owned
+  processes/groups, bound cleanup, and join sessions.
+- Default significant Cargo and make work to two jobs. An old eight-job
+  override belonged to the October 16 diagnostic build, not new work.
+
+## 3. Bootstrap and Tooling
+
+After session start or compaction first read:
+[startup](/home/public/wyatt-desktop/.bot-common/startup.md),
+[global quirks](/home/public/wyatt-desktop/.bot-common/quirks.md),
+[global rules](/home/public/wyatt-desktop/.bot-common/rules.md),
+and [AGIS runtime](/home/public/wyatt-desktop/Projects/agis/docs/runtime.md).
+Apply their producer/consumer, testing and review discipline genuinely.
+Finish bootstrap with `Fired up!` and continue the active task.
+
+Project root:
+`/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox`.
+Its local execution alias is the usual desktop home checkout. Owner-facing
+paths must use the absolute share root, not tilde or a bare home alias.
+
+[DETAILS.md](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/.codex/DETAILS.md)
+is the large continuity ledger, about 9,000 lines. Read its newest top sections
+first; do not blindly ingest the whole file. Project `.codex` quirks/rules files
+were absent at handoff. `AGENTS.md` includes the bootstrap and rulebook rules.
+
+Use the appropriate skills:
+
+- `share-path` whenever handing over paths.
+- `diagnose-crash` for actual crash/core triage.
+- `umbrafox-link` for UmbraLink and owner-local control service work.
+- `firefox-desktop-frontend` for JS/HTML/CSS frontend changes.
+- `mozlint` before lint infrastructure or linter work.
+- `documentation` for documentation work.
+- `planning-cap` / `implement` for an authorized substantial design/execution.
+- `profiler-analysis` for Firefox profiles; do not parse raw profiles ad hoc.
+- `firefox-commits` and `find-reviewer` before committing.
+
+Use `searchfox-cli` for upstream Firefox discovery, narrow local reads/searches
+for known fork changes. Installed CLI reports version 0.18.0 with 0.20.5
+available; no upgrade was performed. Searchfox definitions were reconciled
+against local source for the latest vsync answer.
+
+Read directory `AGENTS.md` before work under `gfx/wr`, `layout`, `js`, etc.
+The requested Read tool was unavailable and deferred tool search returned
+"unsupported call", so the WR instructions were read via shell as a disclosed
+fallback. Use a real Read tool if it is available in the next session.
+
+Manual edits use `apply_patch`. Bound slow commands and preserve full output in
+logs rather than filtering build/test streams. Use structured JSON/INI parsers.
+Do not run broad repository searches, broad process kills or blanket formatting.
+Use independent test/runtime evidence rather than source-contract checks alone.
+
+## 4. Checkout and Worktree State
+
+Verified during this handoff:
+
+```text
+HEAD 9a9057291b5b5dd1c1362a2cc58551990532a6f6
+main, origin/main, origin/HEAD point to that locally recorded revision
+subject: No bug - Preserve verified clipboard prototype and inactive installation evidence r?#firefox-desktop-core-reviewers
+```
+
+This was a local ref inspection, not a fresh remote fetch. The hybrid source
+and its reports are uncommitted. An earlier Bugzilla-versus-No-bug label question
+was unanswered; no reviewer approval or source commit has been invented.
+
+All **25 owned source files** currently match the latest exported source freeze.
+They were rehashed successfully during this memory handoff. The canonical path
+list and hashes are in:
+[source-freeze.json](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/exports/umbrafox-hybrid-20261019185219/source-freeze.json).
+
+The owned surface comprises:
+
+- NativeLayerWayland implementation/header.
+- RenderCompositor base and EGL implementation/headers, RendererOGL,
+  WebRenderAPI, Rust bindings.
+- WR composite types, new `composite/draw_external.rs`, lib module wiring,
+  final renderer composite path.
+- StaticPrefList.
+- GTK DMABufFormats/DMABufSurface implementations/headers.
+- GtkCompositorWidget, WaylandSurface, nsWindow implementations/headers.
+- DMABufSurface native gtest fixture.
+
+There are many unrelated untracked upstream files and existing context edits.
+Never clean/reset/revert them. Do not archive the whole dirty worktree as build
+input. The build used an exact Git archive plus a frozen owned patch and new-file
+manifest. An untracked local example-compositor constructor was separately fixed
+to initialize the new optional field to None; that compatibility change is not
+part of the browser artifact and must not be silently included in a rebuild.
+
+This memory file had preexisting changes. Its original full contents are preserved
+below, not replaced. Current edits for this request are confined to this file.
+
+## 5. Latest Official ARM Artifact
+
+Export directory:
+[umbrafox-hybrid-20261019185219](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/exports/umbrafox-hybrid-20261019185219).
+
+| Item | Identity |
+| --- | --- |
+| BuildID | `20261019185219` |
+| Archive size | `100334096` bytes |
+| Archive SHA256 | `41159d834b9fbef045928159416c179a00c753164edfb6824ab2fa2885323ff9` |
+| Source freeze SHA256 | `c347f71a91b42ef11b94f529de2672be5700216a380b1946ea8535594727bda7` |
+| Source patch SHA256 | `52adb07b853f09b0bd217bae3345472e61987d18f73cf6b3c93b2633161df335` |
+| Package receipt SHA256 | `8b6f9078c640116441ec6f6d42d0a135aa4c7525b87629a5a9d1c59766113b58` |
+| Evidence manifest SHA256 | `911a15ebfbdbf54f0c225cad2fdcff4aafc2bd30fc794497246cfe9d008ff904` |
+
+These five SHA256 values were freshly checked during this handoff.
+The prior full verification covers 28 AArch64 ELF files, generated/native/INI
+BuildID agreement, dependencies, staging/archive/extraction correspondence,
+frontend inventory/CRC, 25 owned source files and 485,132 unchanged base files.
+The evidence manifest covers 31 retained evidence files. The full 485,132-file
+inventory and all package checks were not rerun merely to write this handoff.
+
+Archive:
+[ARM tar.xz](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/exports/umbrafox-hybrid-20261019185219/umbrafox-hybrid-20261019185219-linux-aarch64.tar.xz).
+Other authority:
+[package-input.json](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/exports/umbrafox-hybrid-20261019185219/package-input.json),
+[source patch](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/exports/umbrafox-hybrid-20261019185219/hybrid-source.patch),
+[evidence](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/exports/umbrafox-hybrid-20261019185219/evidence).
+
+Preserved predecessors:
+
+- BuildID `20261019063025`, archive SHA256
+  `fac5017606879b8ed8b9dd4f7490df95a85a2bec8c3a1892cb283352e459a515`,
+  100,325,400 bytes. Initial hybrid, subsequently superseded.
+- BuildID `20261019183200`, archive SHA256
+  `a98554ad8e902b421f704c76adc951d40eef9c3f10c0e26fe56684a590129a94`,
+  100,333,104 bytes. Child-vsync candidate superseded by successful-EGL-swap
+  attachment bookkeeping.
+
+No export was installed on the desktop by this lane. Pi tests are supplied by
+l8ros and are not a transferable acceptance certificate for another source or
+artifact.
+
+## 6. Build Environment and Verification
+
+Fresh isolated build root:
+`/home/public/wyatt-desktop/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1`.
+Its `source`, `obj`, mozconfig and evidence belong to this hybrid, not the
+older retained diagnostic or release source directories.
+
+Toolchain retained at implementation: bootstrap Clang 22.1.8, Rust/Cargo 1.94.0,
+existing AArch64 sysroot. Optimized GTK/Wayland/V4L2 build, no DEBUG,
+`umbra-perf-probes` off, no ccache, no-update bootstrap. Main checkout mozconfig
+is host x86; do not accidentally use it for ARM. No-update bootstrap can still
+install missing tools, so it is not a promise of no network/install side effects.
+
+Make and Cargo both explicitly limited to two jobs. Cargo environment alone
+does not override a larger inherited make jobserver. The initial clean build
+took roughly 147 minutes; later affected-source rebuilds were shorter.
+The original build runner used nice 10, a 10,800-second cap, 8 GiB available
+memory and 32 GiB free-space floors, TERM with bounded grace and no KILL.
+Read the exact retained runner before any future use rather than reconstructing
+its guarantees from this paragraph.
+
+Final freeze6 run: configure PASS about 18 seconds, build PASS about 180 seconds,
+normal `mach package` PASS about 51 seconds, package verifier terminal exit 0.
+All required sessions joined; no residual owned process groups were retained.
+One fixed `MOZ_BUILD_DATE` was used across configure/build/package.
+
+Tests and their actual scope:
+
+- 176 host WR library tests passed, including 11 new selector/config tests.
+  Initial two behavioral RED failures were retained.
+- 16 SWGL compositor-surface reftests passed.
+- SWGL invalidation suite passed 11 comparisons.
+- AArch64 DMABuf native fixtures compiled; they were **not executed** on ARM.
+- 14 child-vsync source-contract tests passed, including 11 in-memory mutation
+  controls within a test. These are not native Wayland behavioral tests.
+- Seven package-verifier unit tests passed.
+- Source formatting/lint checks passed within the documented scope; one existing
+  DMABufSurface header namespace warning matched HEAD and was not a new defect.
+- No live hardware fault/lifecycle/capture acceptance was established here.
+
+The reported "FAILED, failures=1 of 14" corresponds to retained
+`attachment-red.log`, an intentional pre-fix failure for the missing
+`mBufferAttached` update. Final `attachment-green.log` and
+`exported-source-checks.log` pass. Preserve both RED and GREEN. Ask for an exact
+different filename/output if a new failure is reported.
+
+Self-contained source tests and verifier code are retained in the export
+evidence, including `source-contract`, `build_step6.py`, `verify_package6.py`,
+`test_verify_package6.py` and logs. Do not run the full verifier against the
+existing export as a casual read-only check: it can write output.
+
+For future source changes: create a new frozen candidate/revision and BuildID,
+rebuild affected units, run normal packaging and final artifact checks. Do not
+reuse predecessor freeze5 or silently patch freeze6/exported files.
+
+## 7. Implemented Hybrid Design
+
+Startup-scoped pref, default false:
+
+```text
+gfx.webrender.compositor.external-surfaces-in-draw
+```
+
+The WR compositor remains Draw. The ordinary Native/Layer queues and promotion
+eligibility are unchanged. An optional `DrawExternalCompositor` interface is
+installed through the Gecko/Rust bridge when supported.
+
+Selection in
+[draw_external.rs](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/gfx/wr/webrender/src/composite/draw_external.rs)
+requires a resolved external YUV image in the frontmost opaque fullscreen tile:
+identity geometry, exact coverage, no crop, unsupported clip, foreground content
+or scaling, eight-bit NV12 or planar YCbCr with Rec709Narrow. It uses resolved
+image identity, not an index into an unrelated descriptor vector.
+
+Call chain:
+
+```text
+Renderer::composite_simple
+  -> CompositeState::prepare_draw_external_surface
+  -> WrDrawExternalCompositor::prepare
+  -> wr_compositor_prepare_draw_external_surface
+  -> RenderCompositorEGL::PrepareDrawExternalSurface
+  -> NativeLayerRootWayland::PrepareForEGL
+  -> NativeLayerWaylandExternal::PrepareForEGL
+  -> WaylandSurface::AttachLocked
+```
+
+On successful admission/attachment, `composite_simple` returns before ordinary
+final tile drawing because the accepted opaque fullscreen child covers the
+lower tiles. Failure retains normal Draw. That does **not** imply all earlier
+WR work, texture resolution, synchronization or EGL swap disappears.
+
+The C++ backend:
+
+- Resolves the actual `RenderDMABUFTextureHost` and YUV surface.
+- Requires visible mapped EGL parent, scale one, exact source/output dimensions.
+- Uses a dedicated external-only child lifecycle and holds the existing root
+  lock proof through preparation and EGL swap.
+- Preserves fences and buffer ownership. Every accepted frame, including the
+  same host pointer, still waits/attaches as required by the retained contract.
+- Hides/clears on rejection, failed begin/prepare, cancellation, unmap or pause.
+- Retires a child whose failed mapping left partial parent state before retry.
+- Does not use ordinary full-native root initialization/shutdown, per-frame
+  main-thread `SetLayers` tasks or unbounded native-ID accumulation.
+- Uses Draw fallback for captures/readbacks. Partial present is disabled while
+  the optional interface is active; this is separate from callback-only commits.
+
+## 8. Admission and Import Limitations
+
+`NativeLayerRootWayland::PrepareForEGL` additionally requires:
+
+- Actual NV12 or YUV420, ColorDepth 8, BT709 transfer/matrix, limited range,
+  non-HDR. `IsHDRSurface` alone checks PQ/HLG and is not eight-bit proof.
+- Exact wire FOURCC mapping; I420 maps to DRM YUV420.
+- NV12 two-plane or YUV420 three-plane shape.
+- Every plane modifier explicit, equal, and present in the copied advertised
+  format snapshot. INVALID is rejected; LINEAR is accepted only if listed.
+- `wp_color_representation_manager_v1` and supported BT709 limited-range pair.
+
+The format feedback snapshot is copied under `mFeedbackMutex`. Publication and
+basic-format injection share the mutex; callback runs after unlock. This does
+not make the legacy raw feedback getters generally thread-safe.
+The fallback table injects formats with INVALID, so it cannot prove compositor
+advertisement. A first matching tranche can conservatively false-reject later
+support; this is not permission to union guessed capabilities.
+
+The YUV params-object leak was fixed by destroying params after `create_immed`,
+matching the RGBA path. The request is not itself a destructor.
+However, advertised support and `AttachLocked` true prove only local admission
+and submission. `create_immed` can still fail asynchronously and fatally.
+A nonfatal server-acknowledged import needs `create` plus `created`/`failed`
+handling and is not implemented.
+
+Upstream Cage 0.2.1 with wlroots 0.19 lacks the mandatory color-representation
+manager; wlroots 0.20 added protocol support, but the compositor must create and
+advertise it. The installed/custom Pi browser-socket registry is still unknown
+to this lane. Inspect the browser's actual user/runtime/socket, not merely the
+outer DRM compositor's socket.
+
+Without metadata, YUV reconstruction is compositor-defined; NV12, SDR and
+fullscreen size do not prove BT709 parity. Do not remove the color gate merely
+to reproduce prototype FPS. This is a leading admission question, not a
+confirmed reason for a particular measured run.
+
+## 9. Child Vsync Repair and Latest Source Trace
+
+The original prototype's `SetLayers`/commit calls under the EGL root lock could
+reenter the same nonrecursive Wayland mutex. Two waiting thread stacks alone
+do not prove a two-thread cycle; direct recursive acquisition is the concrete
+source defect. Our external-only lifecycle avoids that path.
+
+The implemented child-vsync repair:
+
+- Parent `WaylandSurface` owns a child source and generation.
+- Registers the source after successful external preparation; retires it on
+  rejection, clear, unmap and consumer removal.
+- Propagates observer-enabled state.
+- Preserves the parent `WaylandVsyncSource` callback.
+- Rearms the child callback, releases child lock, validates generation under
+  parent lock, publishes pending state, then notifies the saved consumer
+  outside all surface locks.
+- Rejects an already-entered stale callback if its protocol callback identity
+  no longer matches the currently registered callback.
+- On successful EGL swap sets `mBufferAttached=true` and clears pending commit
+  bookkeeping. This prevents perpetual startup emulation when the covered
+  parent receives no own callback. One already-queued emulated callback may
+  still run; it does not keep rearming while mapped/attached.
+
+Important functions:
+[WaylandSurface.cpp](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/widget/gtk/WaylandSurface.cpp),
+[WaylandSurfaceLock.cpp](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/widget/gtk/WaylandSurfaceLock.cpp),
+[WaylandVsyncSource.cpp](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/widget/gtk/WaylandVsyncSource.cpp).
+
+Latest question: "Can the callback deliver ticks without full page composite,
+and can RequestForceCommit be removed when only video changes?"
+
+Answer: ticks already can be independent; do not conflate three operations:
+
+1. Callback publication: `RequestForceCommit` -> lock destructor ->
+   `WaylandSurface::Commit` -> `wl_surface_commit`. No WR scheduling, GL draw,
+   new damage or EGL swap is called by this chain.
+2. Observer delivery: `WaylandVsyncSource::VisibleWindowCallback` ->
+   `VsyncSource::NotifyVsync` -> `VsyncDispatcher`. `VsyncParent` independently
+   observes and sends `PVsync::Notify`; `VsyncMainChild` calls refresh observers.
+3. Rendering: `CompositorVsyncScheduler::Composite` calls `CompositeToTarget`
+   only with a request or ASAP mode. Idle unobserve removes its compositor
+   observer, not the content observer.
+
+Wayland frame callbacks are one-shot and committed state. A synchronized child
+requires parent publication. Removing the parent commit while no other commit
+is guaranteed can stall the rearmed callback. Coalescing requires a real
+publication guarantee, not "page is idle." A commit may still have a server-side
+cost; no claim of zero Cage cost was made.
+
+The separate swap candidate is in
+[RenderCompositorEGL::EndFrame](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/gfx/webrender_bindings/RenderCompositorEGL.cpp).
+An external-only presentation optimization must preserve child publication,
+buffer/fence lifetime, WR frame accounting, capture fallback and full-damage
+restoration. Do not implement `if (external) return` or drop swap blindly.
+
+## 10. Supplied Pi Results and Their Limits
+
+These are **l8ros-reported observations**, not independently repeated here and
+not necessarily from mutually identical sources/configurations.
+
+| Arm / report | Supplied result |
+| --- | --- |
+| Earlier release baseline, 1080p60 | about 26 fps, 55-57% dropped |
+| Prototype external layer, October 19 | 59.29 fps / 1.2% dropped |
+| Prototype 720p60 | 59.08 fps / 1.9% dropped |
+| Initially reported prototype page-only cadence | 480/481 intervals <=18 ms |
+| Later prototype with promoted video | page/content starvation reported |
+| Official 06:30 export, pref off/on | 25.42 / 29.11 fps |
+| Official 18:52 export | 28.83 fps / 51.7% dropped; page+video 25 rAF/s |
+| Claimed combined build | 40.58 fps / 32.3% dropped; page+video 37 rAF/s |
+
+Do not transfer the prototype's acceptance to the official guarded implementation.
+The initial page-only result did not establish simultaneous page+video behavior.
+"471 intervals/s at 60 Hz" and "179 baseline" need their actual interval
+denominators; the formal gate is >=470 qualifying intervals out of 480.
+
+Acceptance still owed: 1080p60 >=57fps and <5% drops, page cadence >=470/480
+intervals <=18ms, 1080p30/720p60 regression, concurrent mixed content, actual
+visual output, seek/fullscreen/navigation, hide/remap/teardown and resource
+retirement. Counter improvements alone can miss blank or stale content.
+Default screenshots may re-render DOM rather than capture composited output;
+even readback can force our fallback and perturb the case being tested.
+
+Latest supplied Pi state: safe beta `fc3ba2d3`, hybrid off, Marionette working,
+zero failed units. This was not checked live by us and must be reconfirmed by
+l8ros before device operations. Earlier power-off/card-swap notes are obsolete.
+
+## 11. Combined Patch: Do Not Apply As-Is
+
+Input:
+[combined patch](/home/public/wyatt-desktop/Projects/l8ros-workspace/l8ros/bot-docs/patches/2026-10-20-combined-umbrafox-eglroot-plus-attach-skip.patch).
+SHA256 `86aaca7d483b5c7118b30a6d91b9dc5948648565a7dff6d9f4030a6004bde81f`,
+54,372 bytes, 1,443 lines, 28 files. It is a full tracked-file diff against
+`c0e7f8a2be04`, not an incremental diff against the 18:52 export.
+
+Concrete findings from parent and independent Gibbs source review:
+
+1. A marker-file branch in `Renderer::draw_tile_list` skips external tiles with
+   external image ID and no update parameters. It does not require the pref,
+   successful preparation, color/modifier/geometry admission or attached child.
+   Rejected admission and readback can therefore lose the ordinary fallback.
+2. The Draw/Layer branch queues native create/attach operations, while unchanged
+   `Renderer::update_native_surfaces` drains only Native. Draw/Layer asserts empty
+   in debug; optimized builds do not drain the queue. Draw compositor lookup is
+   None and EGL native methods remain inherited no-ops. This patch lacks the
+   claimed queue consumer/backend implementation.
+3. `gL8ROSHybridActive` is process-global, set before BeginFrame success from a
+   cached marker and pref. It is not live admitted-surface state and has no
+   rejection/cancel/pause/destruction retirement. Different windows interfere.
+   C++ caches marker state while Rust polls it, so gate state diverges.
+4. Temporary-index application against c0 passes, but the patch omits the new
+   `composite/draw_external.rs` file required by its imports. Applying atop the
+   official export fails because it repeats additions. A reproducible source
+   handoff must include new files and identify one precise base.
+
+No build was attempted merely to rediscover these source defects. No parts of
+the patch were silently merged. FPS observations do not prove this exact patch
+produced the measured binary or that a decoder buffer reached scanout.
+
+Original October 18 prototype patch:
+[prototype](/home/public/wyatt-desktop/Projects/l8ros-workspace/l8ros/bot-docs/patches/2026-10-18-hybrid-compositor-egl-external-layers.patch),
+last reviewed SHA256
+`d8afa0403f1bc5a916966eeddc253f2ca3c9d719e203fde9cf827701609f37aa`.
+Earlier intake also found descriptor/resolved-index confusion, fresh-ID lifetime
+growth, missing destruction, no Draw AddSurface caller and unsafe root lifecycle.
+It is reference evidence, not an approved patch to replay.
+
+## 12. Marionette, UmbraLink and Package Identity
+
+Marionette and UmbraLink are different services. Do not diagnose one by the
+other's pref or port.
+
+Latest l8ros report says its own builds lost measurement access because deployment
+left the installation owned by `l8ros:l8ros-profiles`; `device-ca.py` rejected it
+and the session fell back to the greeter. Correcting root:root ownership reportedly
+restored Marionette. This is supplied runtime diagnosis, not our independent Pi
+inspection. Do not change desktop ownership or infer all service issues solved.
+
+Our local package comparison established:
+
+- Both inspected configs have `ENABLE_WEBDRIVER=1`, `MOZ_GECKODRIVER=1`.
+- All 161 remote/Marionette omni.ja entries are byte-identical.
+- `Marionette.sys.mjs` SHA256:
+  `01935a3eef58cf85d6fa586c2577a2e9d9bf1ceb62ec3b377f2ae29bbd0cd7ab`.
+- Both manifests/native component contract are present. No missing
+  `--enable-marionette` option explains the difference.
+- Start Marionette with CLI `--marionette` or prelaunch `MOZ_MARIONETTE=1`;
+  runtime `marionette.enabled=true` alone is not the activation path.
+- `remote.policy.disabled` gates it. `remote.log.level="Trace"` is the relevant
+  shared logger pref. Successful startup writes `MarionetteActivePort` in the
+  actual profile. `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1` grants privileged protocol
+  access; it does not start the listener.
+
+Separate proven package defect in the inspected local l8ros archive:
+
+```text
+archive SHA256 124650afba03c13c787e7efdb8a5395ceb8f68f7e3ee7f4558775c2982370e64
+size 99253496 bytes
+libxul native toolkit BuildID 20261019225619
+application.ini / platform.ini / current buildid.h 20261019225648
+```
+
+Archive members matched local staging hashes. The identity verifier rejects this
+real mismatch. It was never established as the Marionette failure cause and
+remains separate from the ownership report. Pin one fresh `MOZ_BUILD_DATE` through
+configure/build/package; do not edit INIs or forge native notes to pass checks.
+
+UmbraLink context: owner-local loopback control service, discovery in the actual
+profile's `umbrafox/control.json`; `umbrafox.control.enabled` and port pref,
+normally port 0 for an allocated port. Read the dedicated skill/source before
+offering a startup recipe or changing security/ownership checks. Earlier harness
+failures included a root-owned home, missing media library path and a backgrounded
+video tab. They did not establish a generic fresh-profile UmbraLink defect.
+Some appliance startup/autoconfig questions remained unverified in this lane.
+
+## 13. Desktop Silent Exit Logging
+
+Separate owner request: Umbrafox instantly disappears to the desktop, with no
+crash dialog or system report. Cause is **not established**.
+
+October 17 work installed a debug logging wrapper at:
+[launcher](/home/public/wyatt-desktop/Programs/umbrafox),
+with [helper](/home/public/wyatt-desktop/Programs/umbrafox-debug.py).
+It preserves the existing build/profile/argv choice and logs the next ordinary
+launch; it is not a debug browser build and does not itself fix a crash.
+
+Logs:
+`/home/public/wyatt-desktop/.local/state/umbrafox/launcher-debug/`,
+with `latest` symlink, per-run `run.json`, four 4-MiB rotating output segments
+and first 64 KiB startup capture. No cross-run deletion. It captures stdout/
+stderr and parent exit/signal, uses timestamp/sync Widget, WidgetWayland and
+WidgetCompositor logging plus Rust backtraces. `UMBRAFOX_DEBUG=0` disables capture
+for one invocation.
+
+Sixteen dummy-child/unit checks and shell syntax passed. No real browser was
+launched/restarted/attached/uploaded in that change; actual crash capture remains
+unverified here. A remote handoff process exiting 0 does not monitor an already
+running browser; an unfinished run receipt alone is inconclusive.
+
+Rollback, original launcher, tests and limitations:
+[debug launcher README](/home/public/wyatt-desktop/.cache/codex/umbrafox-debug-launcher-20261017/README.md).
+
+Last inspected launcher selected dated 158.0a1 BuildID `20261001103920`, ahead of
+the installed nightly160. Earlier nightly/profile switch was not applied; do not
+silently switch builds or profiles during crash triage. No recent matching
+core/OOM/segfault was found at that inspection; October 5's old shutdown-timeout
+dump was not evidence for the new incidents. Fresh inspection is needed before
+claiming current process/build/log status.
+
+## 14. Prior Video Investigation: Avoid Repeating Rejected Inferences
+
+The Pi investigation has generated many plausible but subsequently revised
+claims. Keep observed counters separate from mechanism and causal attribution.
+
+- VP9/H264 ABBA results were similar at roughly 31-32 submitted fps. That ruled
+  out that particular codec policy win, not every decoder issue.
+- Smaller output area improved throughput in one experiment; later source-size
+  tests showed strong source-size dependence with destination CSS size changes
+  ineffective. These do not by themselves prove one specific CPU/GPU pass.
+- Single versus nested Cage changed roughly 31 to 33.5 fps in a supplied run.
+  Two compositor processes do not prove two full GPU renders each frame.
+- Active primary plus idle overlay planes does not prove GPU composition:
+  primary can itself scan out directly. A nonzero overlay needs binding to the
+  actual video buffer, not simply plane-count evidence.
+- `mozPresentedFrames` measures submitted frames, not physical display or GPU
+  time. Its reciprocal is a submission interval, not measured render duration.
+  Hidden-video counters do not prove uploads or scanout occurred.
+- DMA-BUF FDs changed from reported absent to present as process/output checks
+  improved; no parent-FD inference should be reused as settled evidence.
+- Forced hardware decode reportedly reduced CPU without fixing cadence. That
+  appliance pref change belongs to l8ros, not a verified change in this source.
+- The V3D tiled-shadow candidate had a playback-confirmed negative log observation,
+  but this was a bounded supplied run, not universal driver proof.
+- Dmabuf logging exists; empty logs do not automatically establish no copy.
+- Media visibility can suspend decoding. A backgrounded video tab explained
+  earlier zero-frame harness runs. Read actual visibility/suspend prefs and do
+  not treat rVFC or logging as neutral instrumentation.
+
+Critical source corrections:
+
+1. Draw supports YUV external texture sampling without the native compositor.
+   Failed promotion does not imply a CPU YUV-to-RGB conversion; the ordinary
+   hardware YUV quad can rasterize through GPU paths.
+2. `RenderTaskLocation::CacheRequest` is not proof of a texture-cache copy.
+   External TextureHandle requests bypass cache allocation, resolve to external
+   textures and become Static/ReadOnly tasks. DMABUF hosts already provide
+   TextureHandle(Texture2D). Dependency tasks cannot be removed based on their
+   provisional location name.
+3. Forcing `TextureExternal` would violate an actual Texture2D target. Reusing a
+   same-size/same-key texture without updating changed frame pixels can display
+   stale video. Both proposed shortcuts were rejected.
+4. Pool copy, EGL binding fallback, raw-buffer uploads, earlier picture passes,
+   driver synchronization and swap costs are distinct mechanisms.
+5. `media.ffmpeg.vaapi.force-surface-zero-copy` also reaches the V4L2 pool in the
+   retained source (startup uint 0 disable / 1 force / 2 auto). Read effective
+   feature state before proposing it; pool pressure and GL fallback are separate.
+
+Reports:
+[source-sized cost](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-18-source-sized-video-cost.md),
+[promotion gates](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-18-yuv-promotion-gates.md),
+[V4L2/Draw](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-18-v4l2-dmabuf-draw.md),
+[CacheRequest trace](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-18-cache-request-is-not-a-copy.md).
+
+## 15. Stopped Diagnostic and Census Work
+
+Do not confuse the current non-probe hybrid artifact with the October 16-17 P1/P2
+diagnostic work.
+
+Diagnostic layout root:
+`/home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-p2-layout-20261016`.
+The corrected build2 diagnostic artifact path was stopped and documented.
+It is uncertified and not deployable through the established authorized paths,
+not proved intrinsically impossible to package.
+
+Honest scope: matching Record layouts verified for the critical pair
+`RenderDMABUFTextureHost.o` and `Unified_cpp_webrender_bindings0.o`.
+`gl.o` and `wrappers.o` have no retained explicit probe/Core/Record reference.
+This is **not** all-TU, selected-linked-body or whole-link clearance.
+Historical native argv and include closure remain unproven;
+`completeStableClosure=false`. Optimized/inlined hidden use remains conditional,
+unquantified risk.
+
+P0 tooling was frozen: runner, comparator and snapshot prototype. Parent 90 tests
+and seven scoped Ruff checks passed at that checkpoint. Comparator is exact-index
+only, unsupported reindexing fails, ordinary debug payloads exact, all ordered
+RELA rows retained, groups/addrsig checked. It uses bounded whole-file buffers,
+not streaming. Production SnapshotGate always rejects: synthetic namespace tests
+did not establish the full production content/namespace/alias closure.
+No preprocessing or reproduction compile was authorized by the P0 freeze.
+
+Provisional packaging was also stopped:
+normal `mach package` requires writes beyond the sole output mount and its
+`MACH=1` path bypasses the cited backend-staleness check. Manual dist/bin copy
+plus libxul-only strip is not normal-equivalent because of manifest/resource/
+omnijar/minification/precomplete/removed-files and selected executable transforms.
+Provisional guards remain closed; mock/synthetic tooling is not package clearance.
+
+Closure:
+`build2-diagnostic-closure.md` SHA256
+`700c2c03a4f5b918443fc35f2a3bf04090c3695a8e5752884f1fcceeaeae5ccc`;
+61-file artifact-path closure freeze SHA256
+`837b78e5029a03708bd35ff444837ed79d9bf93ea7aa754f48c90e3af824188d`.
+Read the exact root's reports/receipts if reopening is explicitly authorized.
+Never fabricate a postlink pass or introduce the rejected no-CU adapter.
+
+Later census proposal, design only:
+[WR promotion census proposal](/home/public/wyatt-desktop/Projects/l8ros-workspace/l8ros/bot-docs/plans/wr-promotion-census-seam-proposal.md).
+Last coordinator-reported revision SHA256
+`e1f532ac8754c7f4d8be72a23ab966f0c952cfeed2798d886c152ee91db8b43f`;
+not freshly rehashed for this memory dump.
+
+The requirements were incorporated, not implementation/build-authorized:
+
+- First scope WR occurrence only, not HTML video identity. Interned prim_uid
+  is not a unique draw occurrence. Separate process/renderer/document/tile-cache/
+  update/draw occurrence and plane-key/generation identity are needed.
+- Producer-to-element binding remains unproven; element_ref null. Rect equality
+  is not a binding. YUV-only coverage excludes RGB and earlier culls explicitly.
+- Record actual ordered eligibility calls only; no fabricated attempts for
+  no-request or stability-blocked paths. Preserve ignored guards and overrides.
+- Separate setup result from post_update cancellation/final result. Setup can
+  skip unmapped/empty/offscreen without descriptor publication. Native ID nullable.
+- Versioned linked decision/finalization rows, unique join, missing/orphan/
+  conflicting finalization rejected. Silence never means retained or zero.
+- Finite fractional f32 geometry, no integer rounding; u64 decimal strings.
+- Dedicated default-off feature/flag/current-thread marker readiness and a real
+  Gecko-visible exporter. Do not assume old umbra-perf-probes plumbing exists.
+- Proposed independent caps: 2 KiB/row, 16 KiB/tile-cache update, 4096 rows AND
+  8 MiB/session, 30 seconds, pending 256 AND 512 KiB. Reserve final/summary space.
+  These required owner ratification; caps and lifecycle/schema were not frozen
+  implementation authority.
+
+Existing WR overlay/blit/underlay counters are HUD/source-backed, not exported
+through Services.profiler. They are aggregate rounded avg/max values with MAX
+merge semantics, not per-video success counts. Underlay includes an unpreferred
+YUV Ok(Blit) accounting case. No guessed profiler "counters" token. HUD observation
+is not clean performance A/B or per-element attribution.
+
+## 16. Earlier Shipped Work and Independent Open Issues
+
+The historical archive below retains detailed audio, profile, clipboard and
+shortcut evidence. Key current context:
+
+- Audio seek reuse bug was reproduced and corrected: a stopped stream could
+  lose carried clock mapping when reused. Fix admits reuse only for the proper
+  keep-running/backend-started/logical state; otherwise recreate. Native 38 tests
+  and bounded laptop candidate/control evidence passed for that reproduced case,
+  not every YouTube or video performance issue.
+- Normal ARM release source was clean `c0e7f8a2be0460695c1f65ae8796b09c1082480c`,
+  BuildID `20261014135715`. Normal archive SHA256
+  `ebc8f575843aac6e9e19d2e45f488422250892858f7c291516a01fbbdf70c059`;
+  beta archive SHA256
+  `fc3ba2d3139fc1021fb2c1d20db2b041b9a34759270300f8e8984a992fec1436`.
+  Beta adds the exact two-pref overlay whose shorthand hash is `4278e82f`.
+- Clipboard prototype was installed inactive, with separate profile-mapping/
+  activation hold. Do not silently switch the daily launcher/profile.
+- Chrome hotkey preset was explicit opt-in, not unconditional web-visible
+  behavioral changes. Existing per-user mappings must be preserved.
+- Desktop random-exit investigation remains open; logging was installed, not a
+  confirmed crash fix.
+
+## 17. Coordination and Workers
+
+Websocket helper:
+`/home/public/wyatt-desktop/Programs/codex-ws-message.mjs`,
+endpoint `ws://127.0.0.1:14522`, sender name `umbra`.
+
+The latest ACK and completion sends to l8ros failed:
+"No loaded Codex thread matched the supplied selector."
+The last list showed only umbra and idle sidecars. **Do not claim delivery.**
+Retry only after checking loaded recipients; do not invent a recipient, reuse
+obsolete tmux fallbacks without applicable authorization, or send to a wrong bot.
+
+Known sidecars, all finished/idle at the last check:
+
+| ID | Name / role |
+| --- | --- |
+| `01a14287-1e0b-7a92-9fc2-0b807bba0778` | Arendt, build environment and interop review |
+| `01a145c6-b3c3-7bb0-b785-60c60a7acc22` | Hilbert, NativeLayer lifecycle and protocol review |
+| `01a1556a-b095-7263-b946-4a7f85c2ba2b` | Gibbs, child-vsync races and combined-patch review |
+
+No outstanding worker implementation or test needs polling. New authorized
+multi-step worker work needs a unique control file with OK/HALT semantics and
+reads after each command. Old control files are historical, not fresh authority.
+No current DB; the October 14-17 teamwork SQLite belongs to the prior diagnostic
+wave. Do not write old status rows merely because the path is known.
+
+Deferred tool discovery was unavailable in recent turns. Agent tools can
+sometimes be accessed through `functions.exec` metadata/ALL_TOOLS:
+`multi_agent_v1__send_input` takes `target` and `message`, not `id`;
+`wait_agent` takes `targets` and `timeout_ms`. Discover the actual schema before
+use rather than relying on stale assumptions.
+
+## 18. Next Useful Work, Not Yet Executed
+
+1. Reconfirm the newest owner/coordinator request before changing anything.
+   This memory handoff does not authorize a new runtime or patch.
+2. Get the actual browser-socket registry/capabilities and effective frame
+   admission result for the **official** candidate. Color-representation,
+   exact modifiers, transfer/range, geometry and capture gates can all reject.
+   Identify the specific rejection before widening scope.
+3. Obtain a complete, reproducible source-to-binary handoff for any allegedly
+   combined build. Correct all missing-draw/queue/lifecycle defects; do not infer
+   implementation correctness from submitted-frame counters.
+4. If a bounded observation is authorized, correlate the same window/time:
+   attachment/admission success, child callbacks, content notifications,
+   requested WR renders/final tile draws, EndFrame/swap counts and durations.
+   Distinguish a no-mutation rAF counter from a page that animates/invalidates.
+5. If accepted external frames omit final draws but swap dominates, design an
+   external-only presentation transaction with lifecycle/accounting tests. Do not
+   remove callback publication or synchronization on speculation.
+6. If a new official build is justified, freeze new source and BuildID, use the
+   isolated ARM configuration, normal package and exact identity verification.
+   Then l8ros validates simultaneous video/page behavior and actual display.
+7. For desktop crashes, inspect a newly captured owned launcher run after the
+   owner reports another incident. Do not reuse an old core as the explanation
+   or claim a fixed root cause from missing logs.
+
+## 19. Handoff Verification
+
+This handoff freshly verified the local HEAD, the five latest artifact metadata/
+archive hashes, and all 25 owned source hashes against freeze6. No source,
+artifact, installed browser, profile, Pi or system configuration was changed.
+No native tests/builds were run just to produce memory.
+
+The preceding analysis checked the current report's ten local file links and
+whitespace. Current report, source and protocol findings remain distinct from
+unobserved runtime behavior. The original memory content's pre-edit SHA256 is
+`f54be5b629214d1996e7c0c24310a7f6ef7f0a62be1eced0f512d6db43edbaef`;
+the historical suffix is retained verbatim.
+
+---
+
+# Historical Memory Archive
+
+Everything below is preserved from the earlier memory file. Its statements were
+true, provisional or pending at their recorded historical checkpoints. Use the
+current handoff above and exact retained receipts to resolve contradictions.
+In particular, do not resume old tool sessions, build PIDs, profile switches,
+runtime waves or old authorization assumptions from this archive.
+
 # Umbrafox Working Memory and Resume Instructions
+
+## October 16 P1 Artifact Ready
+
+ARM build/package/export verification PASS. Diagnostic archive under
+exports/umbrafox-wr-video-p1/diagnostic,110608216B,SHA70d5a747...,
+BuildID20261016031646 native/object/bothINIs; betaoverlay4278e82f unchanged.
+Full README +package-input +evidence are authority; patch731d9ec2 verified.
+All native build groups absent; no needed build/test sessions remain active.
+No Pi or desktop installation/runtime. l8ros receives artifact for R/D0/D1/R;
+this is instrumentation, not a performance fix or runtime/release-OFF proof.
+Owner authorized make8/nice0 for resume; Cargoenv2; same base/config/date.
+Source isolated cIrmxHaw, main untouched except docs/context. No source commit.
+
+## October 16 Owner Speed Override, Build2 Active
+
+Wyatt authorized nice0/-j8. Build1 stopped via exact owned wrapper, original
+exit-15/4450s preserved; group1287237 fully absent before same-obj build2.
+Build2 exec7439,PGID1457543,start04:33:00Z; fixed BuildID20261016031646,
+patch731d9ec2/config unchanged. Make8/Cargo env2; exact group reniced0 after
+mach automatic idle lowering, sampled8 compilers nice0. Future controller uses
+--priority normal; nine fake casesPASS. No Pi or desktop browser touched.
+
+## October 16 ARM Build Running
+
+Configure PASS29s, owned group1283042 absent; configure-admission.json saved.
+Build1 started03:18:33Z with fixed20261016031646, PGID1287237, exec81471.
+run_phase.py guards10s, two C++/Cargo jobs nice10. Do not duplicate or end while
+needed build is active. Cache cIrmxHaw receipts/logs are authority; both buses OK.
+No source changes after patchfreeze731d9ec2. l8ros notified by tmux+DB.
+
+## October 16 P1 Configure Active
+
+Exact22-file P1 patch731d9ec2... replayed and handed to l8ros before configure.
+Fixed new BuildID20261016031646; cache root cIrmxHaw, run_phase.py configure
+exec11631. Read actual configure/build receipts before resuming; do not duplicate.
+Source freeze immutable in cache/freeze. Final source tests/lint pass; no Pi or
+desktop operations authorized. Packaging worker finishing scratch-only lint.
+
+## October 16 P1 Prebuild Verification
+
+Helper21 tests +ASan/UBSan21 PASS; route13/renderer14 source contracts PASS;
+independent helper review clear, native JSON writer387B, host adapter compiles.
+No ARM configure/build yet. Frozen schema unchanged; no rendering edits.
+Final supplied-data validator and scratch package verifier workers active.
+Parent freeze.mjs/run_phase.py in isolated cache root prepare exact patch replay
+and owned build controls (HEAD/pathset/hash/size/mode, TERM-only, make2/Cargo2).
+Read newest DETAILS and DB before any build. P1-only freeze/hash must be delivered
+to l8ros first; Pi/desktop ownership boundaries unchanged.
+
+## October 16 P1 Source Implementation
+
+ONE diagnostic ARM build authorized after P1 patch/test/freeze handoff. Work is
+in ~/.cache/codex/umbrafox-wr-video-p1-cIrmxHaw/source at exact c0e7f8a2be04.
+Parent helper/core, routes+renderer workers active; IDs/ownership in DETAILS.
+Monitor exec83376; both buses must be checked after commands. No ARM build yet,
+no optimization/desktop browser/Pi action. Frozen schema remains a06997869e...
+API shared in /tmp/codex/track-wr-video-p1-20261016/helper-api.md.
+R existing release, D0/D1 new diagnostic, all device work owned by l8ros.
+
+## October 15 WR Schema Contract Ready
+
+Newest docs-only chunk records l8ros corrected baseline: Wayland26.5fps/67.8%
+dropped versus XWayland20.2fps/73.3%, compositorOFF verified inside each arm by
+coordinator. No independent rerun or causal refresh claim. Schema-v1 plan frozen
+SHAa06997869ed4ee62a2acd2dedf669085e33752c354fcdb8dc4065e9ca1d8470d;
+32uint32 payload,8 kinds,387B compact max,16k/8MiB/20s per-process bounds.
+Schema/nativehelper is NOT implemented. Native/capture/binary tests remain owed.
+Latest received message still no builds/Pi; queued coordinator build approval was
+visible but has not replaced this turn's instruction. Read latest actual message
+and DB before further work. Existing dump has no byte-limit parameter; full
+profile ring/peak-memory/disk/export bounds remain separate l8ros runtime gate.
+
+## October 15 WR P1 Approval Conditions
+
+P1 scope conditionally approved; source base c0e7f8a2be04 fixed. Exact schema
+freeze is now recorded above; source implementation remains pending. Requested build is
+one new diagnostic ARM beta (probesON) plus existing release beta control, not
+two new ARM builds. Build authorization still pending; C++/Cargo2,nice10.
+Plan contains exact paths/control/export contract. R=existing release/profilerOFF,
+D0=diagnostic/profilerOFF, D1=diagnostic active. l8ros clean runtime baseline first,
+then only l8ros handles device captures/restoration.8MiB limit is per-process
+custom payload, not full profile or Pi128MiB profiler ring. Need post-settle
+activation; UmbraLink profile.dump exports but cannot start/stop. New patch's
+release compile-out still needs a patch-applied OFF build verification later.
+
+## October 15 Pi Video Attribution Plan
+
+Latest bounded task is l8ros track-wr-video, source audit/plan first; no native
+probe implemented or Pi/browser/build run. Exact confirmed deployed source
+c0e7f8a2be04, beta20261014135715. Read new plan
+bot-docs/plans/2026-10-15-pi-webrender-video-probes.md and newest DETAILS.
+DMA-BUF can still have pool GPUcopy or EGL-bind copy fallback; V4L2 disables
+import recycling. Import reuse is a conditional candidate, not established fix.
+Separate Compositor-thread transactions, WR rendering, surface lock and swap;
+EGL WaitForGPU no-op. Paused saved X11 snapshot is backend identity only.
+Coordinate via ARM DB/task and tmux l8ros:1.1, never obsolete websocket; no Pi
+authority delegated. Clipboard installed inactive; owner activation still held.
+Late coordinator correction: persisted native-compositor force pref contaminated
+some alleged OFF runs. Clean runtime-verified Wayland/XWayland baseline is owed;
+old FPS comparison is not accepted causal/performance evidence.
 
 ## October 15 Clipboard Prototype: Installed Inactive
 

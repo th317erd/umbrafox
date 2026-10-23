@@ -1,5 +1,1449 @@
 # Umbrafox Codex Details
 
+## October 23 l8ros Answers, webdriver Confound, Patch Verdict
+
+l8ros bug report253e19430b6f (four questions + verdict request). Answered in source and committed:
+37684bc7f64e appends `# Answer from Umbrafox` to
+`bot-docs/bug-reports/2026-10-23-l8ros-umbralink-context-and-kiosk-exit.md`;
+b3ca97a4a136 adds `bot-docs/reports/2026-10-23-umbralink-context-kiosk-exit-and-patch-verdict.md`.
+Pushed; main==origin/main==b3ca97a4a136. No source/build/Pi/device action.
+Answers: (1) `diagnostics.snapshot`->`context`->`navigate` is the only targeting path, no enumeration
+command, create needs an existing tab, rejected navigate inert; `script.execute{context,body,realm}`
+correct with args/document/timeoutMs. (2) No command closes a window or quits; `close` refuses last tab;
+`realm:"browser"` script can by design; Linux `nsAppStartup` quits when last top-level window dies, no
+windowless survival; proposed five 10-min arms (none/status/diagnostics/media/rejected-navigate) plus
+systemctl show+journalctl+journalctl -k, noting coredump absence is weak evidence. (3) `Navigator::Webdriver`
+reads Marionette/RemoteAgent `isBrowserAutomationRunning` = running && isBrowserAutomation(default true), so
+`--marionette`/MOZ_MARIONETTE1 sets it from first paint with no session/client; all l8ros numbers discarded;
+tweb PR153 corroborates ~35-60s YouTube teardown on the flag; falsify with one UmbraLink-only run.
+(4) docs/control.md + parity-smoke.mjs OFF/ON; UmbraLink only, never Marionette in-process.
+Patch verdict (c133e8a83ac8, not merged): skip without attach result, no consumer for
+pending_native_surface_updates (Draw arm only debug_assert; release leaks, debug aborts), cache bypass,
+per-frame exists() syscalls, duplicates prepare_draw_external_surface seam, process-global static software
+vsync at hardcoded 60.2Hz, and numbers that contradict the stated causal chain. Leak quantified at 24B x 2
+per frame per surface = ~2.9KB/s = ~10MB/h, so not a plausible OOM cause and not correlated with control
+activity; owner relayed l8ros is checking dmesg, we disagreed on magnitude and pointed at decoder/V4L2 +
+DMABUF import pressure instead. Accepted shape: pref-gated, attach-result-token skip, fallback intact,
+per-widget tick source with real rate and lifecycle, admission counter, real display capture.
+
+## October 20 EGL Callback Cost Follow-up
+
+Newest08:49 l8ros asks whether RequestForceCommit forces full WR redraw.
+Readonly trace: NO. Lockforce->WaylandSurface::Commit->wl_surface_commit only;
+sync child one-shot callback needs parent publication even with no new buffer.
+Content VsyncParent independently observes widget/global VsyncDispatcher;
+VsyncMainChild notifies refresh timers. Compositor scheduler calls owner only
+when requested/ASAP; Unobserve removes compositor observer, not content's.
+Keep callback commit; no unconditional WR/full-page redraw implied.
+Our real AttachLocked + composite_simple successful fullscreen early return
+still present; their missing-attach premise false. EndFrame still SwapBuffers
+after accepted no-final-tile-draw frame: separate measurable cost, not proven
+bottleneck. Proposed bounded counters distinguish admission/callback/WR draw/
+swap; no source/build/Pi actions. Report follow-up appended to
+bot-docs/reports/2026-10-20-combined-hybrid-intake.md.
+l8ros now reports Marionette caused by deploy ownership/device-ca refusal and
+greeter fallback; note supplied diagnosis separate from proven BuildID mismatch.
+Websocket ACK failed no loaded l8ros thread; list confirms only umbra+idleworkers.
+Combined patch remains unaccepted; no new source/artifact edits or sessions.
+
+## October 20 Combined Patch Intake
+
+l8ros supplied combined patch SHA86aaca7d483b5c7118b30a6d91b9dc5948648565a7dff6d9f4030a6004bde81f.
+28files full tracked diff applies temporary c0 index, not incremental on18:52;
+omits composite/draw_external.rs (absent clean c0). No source/build/Pi edits.
+Parent+Gibbs readonly review finds marker skip withoutpref/attachsuccess => missing
+fallback; nativecreate/attach queued Draw/Layer but renderer/mod.rs drainsNative
+only => debugassert/releasequeuegrowth; EGL nativehooks stillnoops. Global
+gL8ROSHybridActive set beforeBeginFrame success fromcachedmarker+pref, nevercleared
+on cancel/reject/pause/destruct, notsurface/windowowned. DoNOTapply/buildasis.
+Report bot-docs/reports/2026-10-20-combined-hybrid-intake.md; activeplanupdated.
+Gibbs completed, control /tmp/codex/umbra-combined-intake-20261020/control OK.
+
+Marionette comparison concrete: bothconfig ENABLE_WEBDRIVER1/MOZ_GECKODRIVER1;
+all161remoteomnientries byteidentical, module01935a3e...; manifests+nativecontract
+presentboth. Notmissing enable-marionette switch. Oldproducer packageSHA
+124650afba03c13c787e7efdb8a5395ceb8f68f7e3ee7f4558775c2982370e64 has native
+BuildID20261019225619 vsapp/platform/currentbuildid.h20261019225648. Archive
+libxul/omni/INI matchstage hashes; actualidentitychecker FAIL (expected), ours
+PASS20261019185219. Realpackagingdefect, NOTprovenMarionettecause. PinONEfresh
+MOZ_BUILD_DATE configure/build/package, noINIforging. Runtime next: CLI--marionette
+or MOZ_MARIONETTE1, remote.log.levelTrace prelaunch, actualprofile/policy/stderr,
+MarionetteActivePort; no Pi access. Oldsourcewasrestoredclean c0, no measuredsource
+freeze captured; do not claimcurrentretainedsource matchesbuiltbinary.
+ACKdeliveryfailed l8rosunloaded; noDB, no owned running sessions.
+
+## October 20 Export Admission Audit
+
+l8ros reports 41159d83 video28.83fps/drop51.7%, page25rAF/s and alleges missing
+attach/skip plus14test failure. Read-only audit disproves missing-path premise:
+separate DrawExternalCompositor -> PrepareDrawExternalSurface -> NativeRoot
+PrepareForEGL -> NativeExternal AttachLocked; composite_simple returns before
+normal final tile draw only on accepted frontmost opaque fullscreen coverage.
+No prototype native-create queue needed. All25current owned sources matchfreeze6.
+31evidence files+manifest/archive/patch/receipt hashes reverified; exportedsource
+checks14PASS0.038s and verifierunit7PASS0.040s. Exact reported14FAIL1 matches
+attachment-red.log, intentionally retained pre-fix; final green logs pass.
+Need exact other path/output if reporter meant a different/new failure.
+
+Report bot-docs/reports/2026-10-20-hybrid-admission-audit.md; scratch
+/tmp/codex/umbra-hybrid-admission-20261020. No source/build/export/Pi changes.
+Actual Pi rejection still unknown: color-representation manager+BT709limited,
+exactmodifiers and fullscreenidentity gates mandatory. First no-buildcheck:
+wayland-info on browser actualsocket/runtime/user (not merely outer DRM socket).
+Preftrue is not admission; failedadmission cannot exercise childvsync repair.
+25rAF/s not earlier470/480under18ms acceptance. No blind keepalive/guardrelaxation.
+ACK websocket failed l8ros unloaded; noDB. No running command sessions.
+
+## October 19 EGL Child Vsync Follow-up
+
+Wyatt authorized implementation with "Let's go for it" after the read-only
+vsync analysis. Active plan remains bot-docs/plans/egl-external-video.md;
+report bot-docs/reports/2026-10-19-egl-child-vsync.md. Default-off candidate,
+not l8ros's measured prototype; no Pi/desktop installation or browser actions.
+
+Implemented parent-owned child callback source/generation in WaylandSurface,
+registration after NativeRoot Prepare success, retire on rejection/clear/unmap,
+parent enable-state propagation and consumer-removal retirement. Root callbacks
+preserved. Child->parent commit occurs outside child lock; consumer invoked
+outside parent lock. Independent Gibbs review found dirty-bit loss across EGL
+swap and already-entered stale listener hazards; fixed via RequestForceCommit
+after generation acceptance and early protocol callback identity rejection.
+Recheck accepted those two clauses only. Parent owns extra shutdown correction.
+No timer, forced-composition loop, per-frame task, new IPC or fences removed.
+
+14 source-contract tests PASS (11 in-memory mutation controls), NOT behavioral
+Wayland tests. Separate initial5RED, review2RED and consumer2RED retained.
+Python/C++ lint clean;7package-verifier testsPASS. Actual lifecycle/Pi gate open.
+Scratch /tmp/codex/umbra-egl-vsync-20261019; control OK. No DB assigned.
+Gibbs 01a1556a-b095-7263-b946-4a7f85c2ba2b is HOLD/no pending edits.
+No loaded l8ros websocket thread, so messages could not be delivered.
+
+Candidate1 source updated only the3nativefiles; freeze4 (853fb785...) was never
+compiled, superseded by freeze5 SHA
+ac4a70cea2bbab0f6e5e4f616652cbb1407f0213db378d26f13ad82c38b618cd.
+All25owned+485132basefile pins verified. Configure5 PASS27s; build5 PASS231s;
+package5 PASS66s, all sessions joined with no residualprocessgroups. Normal
+make2/Cargo2 under build_step.py in new scratch; builddate20261019183200.
+Prior exported20261019063025 remains hashverified intact. Verifier5 joined0;
+archive20261019183200 SHAa98554ad8e902b421f704c76adc951d40eef9c3f10c0e26fe56684a590129a94,
+100333104B,28ELFs validated. Superseded, not deleted or installed.
+
+Final startup review confirmed: fully covered parent may never receive own
+callback; mBufferAttached then stayedfalse after EGL swap and emulation could
+rearm alongside childvsync. NotifyEGLSwapLocked now sets mBufferAttached=true
+only on successful swap underrootlock; no visibility/timer manipulation. Source
+check RED->GREEN and independent Gibbs source review accepted. One alreadyqueued
+emulatedcallback can fire but does not rearm while mapped/attached.
+Freeze6 SHA c347f71a91b42ef11b94f529de2672be5700216a380b1946ea8535594727bda7,
+changed only WaylandSurface.cpp vs5. Full source inventory passed. New runner
+build_step6.py/verify_package6.py/test_verify_package6.py preserve old scripts,
+BuildID20261019185219;7verifier testsPASS. Configure6 PASS18s, build6 PASS180s,
+both terminal0/noresidualgroups. Package6 PASS51s/terminal0/noresidualgroups;
+verifier6 terminal0, sourcefreeze6 SHAabove, log candidate1/evidence/verify-6.log.
+Final export exports/umbrafox-hybrid-20261019185219, archive100334096B SHA256
+41159d834b9fbef045928159416c179a00c753164edfb6824ab2fa2885323ff9.
+28AArch64ELFs/dependencies, generated/native/INI IDs, staging/archive/extraction,
+both omnijars,25owned+485132unchangedsource PASS. Package receipt SHA
+8b6f9078c640116441ec6f6d42d0a135aa4c7525b87629a5a9d1c59766113b58.
+Report/plan finished; exported31evidence files + manifest SHA
+911a15ebfbdbf54f0c225cad2fdcff4aafc2bd30fc794497246cfe9d008ff904.
+Standalone exportedsource-checks14PASS0.031s; collector reverified main/candidate
+source pins and all evidence digests. Report SHA
+a36083006294bdf1646b52afe3a1cbf1316f8309c65b6504079fa8a8b879a8f8.
+No owned sessions remain. Completion websocket attempt failed: l8ros unloaded.
+Hardware concurrent video/page cadence+lifecycle still external, not satisfied.
+No install/restart/Pi/CI or sourcecommit. Both previous exports hashunchanged.
+Color-representation/exactmodifiers/defaultOFF still required; stockCage0.19
+falls back. Hardware success is NOT claimed. Source still uncommitted; earlier
+Bugzilla-vs-No-bug question unanswered; no staging/commit/CI done.
+
+## October 19 Authorized Hybrid Implementation In Progress
+
+Wyatt's "Please continue, fixing these issues as you go" supersedes the earlier
+intake-only hold. Active plan: bot-docs/plans/egl-external-video.md. Main HEAD
+9a9057291b5b5dd1c1362a2cc58551990532a6f6. Do NOT touch unrelated MEMORY.md or
+untracked upstream files; no Pi/desktop install in this task. l8ros owns deployment.
+No new DB assigned. Control /tmp/codex/umbra-hybrid-20261019/control is OK.
+
+Implemented default-off startup gfx.webrender.compositor.external-surfaces-in-draw,
+separate optional DrawExternalCompositor, strict frontmost fullscreen opaque
+identity SDR8 Rec709Narrow NV12/I420 selection. Draw remains Draw; native queues
+and promotion guards unchanged. Dedicated external-only Wayland child holds
+existing root proof through EGL swap, preserves fences, requires actual attach
+success/color representation, clears on rejection/cancel/unmap. No per-frame
+dispatch, marker-file gate, native-ID growth or parent callback replacement.
+Independent review stale-layer Begin/Prepare failure finding fixed; capture
+forces Draw fallback; partial present disabled when interface active.
+
+Host tests: behavioral RED two failures -> 176 WR library tests PASS, 11 new
+selector/config tests. Full logs artifacts/hybrid-selector-red-static.log and
+artifacts/hybrid-wr-lib-final.log. Earlier dynamic-freetype link failure was
+setup-only, not behavioral RED. C++/hardware validation still pending.
+
+Fresh build root (never retained c0e7 source/obj):
+/home/public/wyatt-desktop/.cache/codex/umbrafox-hybrid-arm-20261019-candidate1
+Exact git archive plus 20 owned source files; all other archive entries verified.
+Freeze evidence/source-freeze.json SHA4b6697eb1e29d17ca1a3f638600732b1462fad870391350ba9350745f618b6f1.
+Initial verification failures were filesystem group-write mode differences only;
+retained logs explain git/archive umask normalization. No source hash mismatch.
+Config passed45s, optimized AArch64/Wayland/V4L2, noDEBUG/probes, retained
+Clang22.1.8/Rust1.94; no toolchain downloads. BuildID20261019063025.
+Build session75682 joined EXIT0 in8839.18s (~147min), started06:35UTC with make2/Cargo2, nice10,10800s cap,
+MemAvailable8GiB/free32GiB floors, TERM30s/noKILL. Own runner
+/tmp/codex/umbra-hybrid-20261019/build_step.py emits attempt/exit receipts.
+Do not edit candidate inputs while compiler running; stop/join before corrections.
+Normal mach package and independent ELF/INI/archive validation remain required.
+
+09:10UTC continuation: initial ARM build PASS, including link/frontend; all
+initially changed native units compiled. Import
+correction now adds DMABufFormats::GetFormatSnapshot with mutex around completed
+feedback replacement/basic-format mutation, YUV exact wire/all-plane explicit
+modifier admission and params destroy. Independent bounded review found no new
+blocker. Tests appended to existing widget/tests/gtest/TestDMABufSurface.cpp;
+NOT executed yet. Revised source (25 owned files) now copied and verified.
+First revise_export120s timed out AFTER copy during final full-source check;
+naive retry rejected original owned pins (correct), --resume600s verified all
+25owned+485132unchanged base files and wrote freeze2 a84170998a5c187baeb937eb015df2c56eb719db81f7966ca69302287fc79700.
+Configure2 PASS21s. Native test compile2 failed12s: test auto retained
+already_AddRefed instead of RefPtr. Corrected ONLY fixture in main+candidate,
+then refreeze.py verified fullsource and emitted source-freeze-3.json SHA
+0961885084d21c511294e4576dcb1facc38e376b8e6738651399654a0172a441.
+Configure3 PASS21s; native-test-compile3 PASS18s; build3 PASS342s; package3
+PASS48s via build_step_v2.py with exact source-freeze-3.json. Tests are
+compile checks, NOT native behavioral execution. No source edits while builds run.
+New verifier accepts explicit freeze filename and requires exact source/config
+receipts; six verifier tests pass. Old freeze/patch/receipts remain untouched.
+create_immed still has asynchronous potentially fatal import failure; neither
+advertisement nor local AttachLocked proves server acknowledgment/display.
+New worker follow-up is terminal/HOLD; parent owns all edits.
+
+09:27UTC continuation: 16 SWGL compositor-surface reftests PASS; Wrench source
+compiled with locked dependencies after offline cache miss, no Cargo.lock drift.
+Wrench invalidation session33941 joined exit0, 11 PASS comparisons. Package verifier first failed
+before extraction: strict helper rejected share-root alias as noncanonical.
+Wrapper resolves ONLY root; regression preserves payload symlink rejection:
+RED same ValueError -> seven verifier tests GREEN0.036s. Revised verifier active
+session21708 joined exit0, 900s/2GiB bound, log artifacts/hybrid-package-verification-2.log.
+Clang-format reports one pre-existing DMABufSurface.h namespace warning, identical
+against HEAD; no changed-line formatting errors. git diff --check PASS.
+Extra local example constructor missing external_compositor reproduced E0063
+in standalone metadata check, then explicit None compiled. File is UNTRACKED and
+ABSENT from archived base, so only that line edited locally and separate diff
+artifacts/hybrid-local-example-compatibility.patch retained; not staged/exported
+as browser source. No source-freeze4 was made; failed patch attempt was atomic.
+Native runtime still untested; strict color protocol gate remains. Websocket
+list still has no l8ros target. Optional Bugzilla/No bug commit-label question
+sent; no answer yet, no fabricated bug/reviewer approval.
+
+Final archive validated/exported (100325400B) at
+/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/exports/umbrafox-hybrid-20261019063025/umbrafox-hybrid-20261019063025-linux-aarch64.tar.xz
+SHA256 fac5017606879b8ed8b9dd4f7490df95a85a2bec8c3a1892cb283352e459a515.
+package-input.json binds source/receipt/tool/archive hashes and explicit limits;
+28ELF identities, INI/native BuildID20261019063025, archive/staging/extraction,
+frontend CRC/inventory, 25owned+485132base source checks all PASS. Report
+bot-docs/reports/2026-10-19-hybrid-artifact.md. No runtime/installation/Pi claims.
+All compiler, package, validator and test command sessions joined. No source
+freeze4; revision3 remains exact browser artifact input. Source still uncommitted.
+
+Workers: Hilbert01a145c6-b3c3-7bb0-b785-60c60a7acc22 handed off NativeLayer files,
+now bounded readonly color-protocol viability check. Arendt01a14287-1e0b-7a92-9fc2-0b807bba0778
+completed environment/interop report, HOLD. Parent owns all source now. Websocket
+list shows no l8ros target loaded; do not claim handoff delivery. Reports under
+bot-docs/reports/2026-10-19-hybrid-{wayland-contract,build-environment}.md.
+Important: requiring BT709 color representation may exclude installed Cage;
+fallback is intentional, no prototype perf claim transferred to candidate.
+
+## October 19 Hybrid Prototype Intake
+
+l8ros handed off browser-side ownership, then requested official build/default-on.
+Latest supplied results:1080p60=59.29fps/1.2%,720p60=59.08/1.9%,hybridpage480/481
+intervals<=18ms (repeat476/479),0failedunits. Exact seven-file250line patch is
+/home/public/wyatt-desktop/Projects/l8ros-workspace/l8ros/bot-docs/patches/2026-10-18-hybrid-compositor-egl-external-layers.patch
+SHAd8afa0403f1bc5a916966eeddc253f2ca3c9d719e203fde9cf827701609f37aa
+(supersedes060ba900). Revision adds mLayersPosted but resets on every create;
+WR stillallocatesfreshIDs. Earlierzero-rAF now described in producer notes as
+same-tab harness artifact; message instead says starvation, causalityunproved.
+All seven input blobs match current9a905729 and releasec0e7f8a2; git apply --check
+PASS, NOT applied. Reported performance is not independent visual/lifetime proof.
+Review and integration gates:
+/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-19-hybrid-prototype-intake.md.
+Concrete bugs: external_surface_index incorrectly indexes descriptor.surfaces;
+freshIDs bypass nativecache retirement, C++ no DestroySurface override; all old
+layers republished; no Draw AddSurface caller; SetLayers disables root commits
+without normal RenderLayer/commit-readiness path; silent handoff failure can skip
+draw, marker gates disagree, ordering/roundedclip and async teardown missing.
+Source commit-readiness gap is a candidate, NOT proven cause of zero-rAF.
+Proposed default-off startup gfx.webrender.compositor.external-surfaces-in-draw
+pref + initialized Wayland/EGL capability; upstream-shaped WR interface, no marker
+or fence removal. Official/default-on artifact blocked on actual correctness
+fixes, not performance. No browser source/build/package/Pi action. Asked for full
+tested-tree diff (any earlier NativeLayer/Wayland changes?) + packageSHA/rawresults.
+Websocket ACK/update still fail unloaded selector for both workspace/subdir.
+
+## October 19 EGL and Native Video Hybrid Review
+
+l8ros reports force-enabled+layer-compositor yields1080p60=59.5fps but regular
+page fence wait19ms/UIregression; EGL CreateExternalSurface overrides had0calls.
+Read-only review:
+/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-19-egl-native-video-hybrid.md.
+22files equal c0e7f8a2. No existing Draw+native mixedconfig. Existing Layer interface
+already splits Content swapchains/External attachments: prefer EGL-backed content
+backend reuse, not promotion guard bypass. Draw nativequeue producer bypass hits
+consumer emptyqueue assertion; Layer creates surfaces separately in WrLayerCompositor.
+SupportsExternalBufferTextures means RenderBufferTextureHost, not nativeenable.
+Root accessor Init mutates callbacks/scale/commit ownership; not drop-in with EGL.
+Multiple Content/External interleavings need multiple surfaces or preflightfallback.
+Screenshotrequest disablesexternalcomposition; PNGsize notliveoutputproof. Need
+720p60regression + mixedvideo/UI + lifecycle/correctness checks, nottwo numbersalone.
+No source/build/deploy/Pi actions. Supplied websocket l8ros thread stillunloaded.
+
+## October 18 CacheRequest Copy Claim Refuted
+
+l8ros 20:32 proposes YuvImageData::update/new_image CacheRequest as per-plane
+per-frame GPU copy; reports now21parent/50RDDdmabufFDs (supersedeszeroFDpremise).
+Read-only consumer trace in
+/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-18-cache-request-is-not-a-copy.md.
+TextureHandle uses_texture_cache=false; request_image returns size early;
+CacheRequest no allocation/subpass; resolve_image -> TextureSource::External;
+task becomes Static/ReadOnly; deferred resolve wraps host NativeTexture and
+texture resolver binds_external_texture. DMABUFTextureHostOGL already supplies
+TextureHandle(Texture2D). is_composited forwards lock/nativeWAYLAND noGL branch,
+not cache predicate. EGL copy/pool copy/driver waits/intermediate picture pass
+remain separate unlocated costs. No YuvImageData patch justified. Thirteenfiles
+match c0e7f8a2; no source/build/Pi changes. Websocket l8ros stillunloaded.
+
+Follow-up reviewed l8ros plan commit75b55c3 (20:35). Both proposed patches rejected
+as written in same report: bypassing Image tasks removes dependency resolution,
+not asserted copy; forcing TextureExternal violates actual Texture2D target;
+samekey/samesize does not justify skipping changed frame pixels. Counter-only
+acceptance can miss stale display. 1080p30 success is not a measured30ms pass.
+No browser code/build/Pi actions; actual costly operation still unlocated.
+
+## October 18 V4L2 DMA-BUF Draw Follow-Up
+
+l8ros 20:25 update claims active V4L2 but no parent DMA-BUF FDs. Source answer:
+/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-18-v4l2-dmabuf-draw.md.
+Pinned V4L2 requires DRM_PRIME -> VideoFramePool -> DMABUFSurfaceImage -> WR
+TextureHandle/RenderDMABUFTextureHost -> EGL import; native compositor not needed.
+New actionable pref media.ffmpeg.vaapi.force-surface-zero-copy applies also to
+V4L2 pool (uint startup:0disable/1force/2auto); automatic broadly allowlisted,
+read effective HW_DECODED_VIDEO_ZERO_COPY first. Pool pressure still copies;
+EGL Texture2D fallback is independent GL copy. No dma_heap needed for imported
+decoder FDs. Concrete host retains descriptor FD wrappers, so robust no-FD result
+needs actual decoder-output/renderer PID/IPC trace, not dismissal by generic EGL
+FD lifetime. FFmpegVideo:5,Dmabuf:5 logs identify continuing V4L2 output, UID copy
+and renderer binding; empty logs remain inconclusive. Ten files match base.
+No source/build/Pi actions. Websocket supplied l8ros selector still unloaded.
+
+## October 18 Exact YUV Promotion Gates
+
+Latest l8ros 20:16 source-only request answered in
+/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-18-yuv-promotion-gates.md.
+Exact PREFER -> Overlay/Underlay eligibility -> setup -> underlay-cancellation
+chain retained. Draw supports external YUV final sampling without native;
+hardware fallback is GPU, not CPU tile conversion. Stability delay is Windows-only
+in pinned bindings, false on Linux; no generic force-promotion pref found in this
+path. Live failed condition is still unknown, even failure itself unobserved.
+New concrete observation lead: synchronous getProfileData/dumpProfileToFile are
+local/omit live children; getProfileDataAsync/dumpProfileToFileAsync gather live
+child profiles through ProfilerParent. Inspect Pi collector before another run;
+actual collector script not supplied. Eighteen source files matched c0e7f8a2.
+No source/build/Pi actions. Supplied websocket destination still not loaded;
+ACK/checkpoint failed, findings retained for direct handoff.
+
+## October 18 Source-Sized Video Cost Analysis
+
+l8ros requested readonly analysis after source-size-dependent content CPU/cadence
+measurements on release160/20261014135715. Report:
+/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-18-source-sized-video-cost.md.
+Twenty-one retained source/shader files matched c0e7f8a2 byte-for-byte. Draw already
+supports final YUV-plane sampling without native compositor; failed promotion
+uses a hardware YUV quad, not necessarily CPU pixel conversion. Distinct plane
+copy, raw-buffer upload, RGB fallback and DMA-BUF copy paths are documented with
+gates. Source-sized CPU ratios do not identify the hot call; recommend a short
+native-stack profile before any new seam/build. Hidden mozPresentedFrames is not
+proof of actual upload/scanout. No Pi/browser/build/source actions. Websocket ACK
+failed: supplied endpoint had no loaded l8ros thread; do not guess recipients.
+
+## October 17 Desktop Silent Exit Logging
+
+Wyatt reported repeated instant desktop exits without crash dialogs/reports, then
+explicitly authorized updating the launcher for debug logs. Read-only inspection
+found no recent matching Umbrafox coredump/kernel OOM/segfault; latest browser
+dump was October 5, not current evidence. Main desktop launcher still selects
+dated 158.0a1 BuildID20261001103920 over installed nightly160; previous proposed
+nightly/profile switch remains unapplied. Do not silently switch it during triage.
+
+Installed debug wrapper at /home/public/wyatt-desktop/Programs/umbrafox with helper
+/home/public/wyatt-desktop/Programs/umbrafox-debug.py. Next normal launch captures
+private per-launch stdout/stderr and parent exit/signal into
+/home/public/wyatt-desktop/.local/state/umbrafox/launcher-debug/ (latest symlink).
+Four 4-MiB rolling segments + first64KiB startup + run.json; no cross-run deletion.
+MOZ_LOG timestamp/sync/Widget:4/WidgetWayland:4/WidgetCompositor:4 and Rust backtrace,
+not a debug build or crash fix. UMBRAFOX_DEBUG=0 disables capture for one invocation.
+Profile/build/argv unchanged; no browser launched/restarted/attached or uploaded.
+Sixteen dummy-child/unit tests and bash syntax check PASS. Actual browser capture
+is still pending; missing finalized status is inconclusive and remote handoff
+exit0 does not monitor an already-running browser. Original launcher, tests,
+hashes and rollback/limitations are retained in
+/home/public/wyatt-desktop/.cache/codex/umbrafox-debug-launcher-20261017/README.md.
+
+## October 17 Nested Cage Review
+
+03:42/03:45 coordinator requested readonly nested-compositor bypass analysis.
+Report bot-docs/reports/2026-10-17-nested-cage-feasibility.md. l8ros producer
+cbdc4d86/server1eea48a1: nesting deliberately provides persistent KMS/curtain
+plus per-profile multi-client Wayland, broker admission/revocation. Outer has
+NO public display listener: cage.patch removes add_socket_auto, curtain.c
+admits ONE connected client from root socketpair. Both Cage builds receive
+native/fullscreen fixes before copy; fullscreen alone does not require inner.
+Pinned release proxy needs display pathname; GTK can consume soleFD, but
+separate gfxtest connects again. Thus delete-inner/proxy-disable is not a proven
+same-HW-renderer trial; no permission widening/control.sock misuse recommended.
+wlroots0.19 Wayland backend reexports DMA-BUF when eligible: two compositors
+is NOT proof of twoGPUdraws. It supports explicit layers, but scene doesn't
+assign them. Rank disposable matched standalone-vs-nested harness (coordinator
+maintenance authorization/rollback required), then product active-lease
+multi-client endpoint+revocation group, then preserve topology/repair forwarding.
+ABBA60ssettle120swindows, samecoded1080p60/output60Hz/renderer; Overlays not
+required for topology win; Primary may forward. No runtime/source edits.
+Websocket selector still fails; status findings delivered via authorized blank
+tmux l8ros:1.1 +DB. Only own report/continuity/coordination writes.
+
+## October 17 Video Plane Feasibility
+
+03:31 readonly overlay feasibility + ranked plan requested; runtime/edits remain
+l8ros-owned. Report bot-docs/reports/2026-10-17-video-plane-feasibility.md SHA
+c2bc25c9560c7d12386209546071905737b6d39a31b2b8b3df2be4a5aea13af8.
+Raw captures under exports/umbrafox-wr-render-p2/diagnostic-layout/overlay-evidence:
+drm-info05286e90/modetest85206c75 verified stable.60planes TOTAL=48Overlay+
+6Primary+6Cursor;16Overlay masks include activeCRTCindex4 (object115). Active
+Primary104 FB724 XRGB8888 LINEAR1920x1080@60 and Cursor700 FB725; no active
+Overlay. Not proof of FB producer/GPU timing or60 usableoverlayunits.
+Reported Cage0.2.1-f9626f7,libwlroots0.19. Matched upstream Cage handler uses
+scenecommit;0.19.0 scene has single-buffer PRIMARY scanout, no outputlayers
+assignment. Backend layer API needs compiled+selected libliftoff
+(WLR_DRM_FORCE_LIBLIFTOFF), but settingenv alone doesnot create scene layers.
+Layers abovePrimary must preserve foregroundUI; layerprops lack colorencoding/
+range propagation. Browser nativeDMABUF->wlsubsurface already exists in base;
+actual decodedbuffer/handoff unknown. Open dmabufFDs not videoidentity proof.
+First runtime break cannot yet be assigned to browser vs compositor. Rank by
+surface evidence: browserhandoff ifabsent; existingPrimaryscanout ifsinglevideo;
+scene-to-output-layer integration ifmultiplevisible surfaces. Installedpatches/
+libliftoffselection unknown.8linkedbrowserblobs reverifiedc0. No runtime/source
+edits; new report+continuity only. All prior diagnostic artifact holds remain.
+
+## October 17 Release Composite Source Review
+
+03:00 coordinator assigned readonly decomposition/native bypass feasibility;
+artifact task remains stopped, no runtime authority. Report:
+/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-17-release-composite-decomposition.md.
+Pinned release c0e7f8a2be0460695c1f65ae8796b09c1082480c and retained release
+checkout umbrafox-arm-20261014-gZmxuBOR/source; 17 local references/14 source
+blobs verified exact base. Four RGB instances unidentified; promoted YUV not
+inherently drawn twice; existing final occlusion retained. Planar three samples,
+biplanar two; no-radius YUV already FAST_PATH. Base already includes narrow
+RGB no-rect-AA. Old32.648ms inclusive walltime NOT established release GPU time;
+explicitly disputed coordinator causal premise while completing source task.
+Standard GTK LayerNative/Native -> external DMA-BUF Wayland subsurface exists,
+but actual release route and installed Cage/wlroots/KMS plane unknown. Current
+upstream Cage scene direct scanout single-entry condition independently read.
+First cheap falsifier Ambient ON/OFF if not already OFF (upstream bug2023250
+comment13); next fixed-coded-input area test/native eligibility; shader last.
+No source/overlay/build/package/runtime edits. Source-only sidecar completed
+DB612 and closed. Own monitor2228391 TERM verified/joined session39621 exit143.
+Only report/continuity/coordination writes; frozen artifact lanes remain HOLD.
+
+## October 17 Diagnostic Artifact Path Closed
+
+Coordinator02:19 chose STOP after both provisional packaging routes remained
+unproved. Concur: build2 UNCERTIFIED and not deployable through established,
+authorized paths; not a claim of intrinsic impossibility. R/runtime=l8ros,
+release-browser falsifiable A/B is separate work. No diagnostic capture exists.
+ROOT=/home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-p2-layout-20261016.
+One-page ROOT/bot-docs/reports/build2-diagnostic-closure.md SHA
+700c2c03a4f5b918443fc35f2a3bf04090c3695a8e5752884f1fcceeaeae5ccc.
+ROOT/evidence/artifact-path-closure-freeze.json SHA
+837b78e5029a03708bd35ff444837ed79d9bf93ea7aa754f48c90e3af824188d
+pins61files; SHA manifest is not filesystem immutability/action authorization.
+Source47/frozen168/P0-38 files rehashed unchanged; original2admissions held,
+provisionaldestination/limitations/actionreceipt absent. Libxul not rehashed in
+this closure; prior retained build hash remains evidence, not a new drift proof.
+Critical pair512 verified, NOT allTU/selectedbody/wholelink. gl/wrappers no
+retained explicit reference, historicalargv/includeclosure unproved. P0 production
+snapshot rejects; completeStableClosure=false. No noCU adapter admitted.
+
+02:11 permitted new provisional tooling/mocks plus noncompiler synthetic only.
+Parent47 guard+limitation testsPASS0.053s. Limitation loader a694a2dc, tests5699baed,
+worker37tests+RuffPASS. Package candidate31f8aa2b/test339ab082 stopped after worker
+15mockPASS0.045s; no final lint/parent rerun/real composition. Current parent
+ProvisionalGuard ALWAYS rejects noRebuildBoundaryEstablished=false. No admitted
+env/guard action manifest, native/INI/strip package validation, or real export.
+Synthetic provisional-guard-synthetic-1/summary.json e1570c15 PASS:3unguarded
+controls/3deniedstandins/3allowedstandins; no real compiler/strip/package tool.
+All9PGs absent; no broad execution-denial or writeclosure proof. Parent guard
+ebb1f3b8/check8037a712 retained unformatted candidate, not production-admitted.
+
+Normal mach package needs installer/stage/locale writes and startup/stale-site
+closure outside soleoutput; MACH=1 bypasses backend-staleness diagnostic. Manual
+copy+libxul-onlystrip not normal-equivalent:dist9264entries/7916symlinks/1007dirs/
+341files; omni+minify config; no omnis/precomplete/removed-files. Existing
+dist multilocale en-US symlink IS present. Reports guard4476d612/manual0a8b3f09.
+No source/build/recipe/package/runtime actions in this closure. All3workers HOLD,
+no own sessions; monitor10717 CLOSED143 after identity-checked node1843902 TERM.
+Do not resume artifact work without new explicit scope/authorization.
+
+## October 17 Provisional Contract / Packaging Proposal Handoff
+
+Coordinator02:02 accepted scoped/noallTU observation, requested revisedcontract
+documentonly.02:03 chose one PROVISIONAL capture direction but required exact
+packagingproposal BEFORE execution. Both ACKs DB574/576; no implementation.
+ROOT/bot-docs/plans/provisional-p1-p2-evidence-contract.md SHA
+832a9e71d63eba0a9ab270faa656d044dde68fe4d99e0c07bdea9e900f78cbaa;
+ROOT/bot-docs/plans/provisional-build2-packaging-proposal.md SHA
+b3e1e9be7d0074aabb29967972d29b3874bb587d232d189a19da368d9c9c43dd.
+Newprovisionalpath proposed, notstrictgatebypass: normal mach package --verbose
+existingbuild2, mandatory externally pinned exact limitationreceipt +bundle
+manifest; strip+identity/source/BuildID checks retained; nofullauditPASSneeded.
+Destination NEWsubdir under umbrafox repo exports/umbrafox-wr-render-p2/
+diagnostic-layout/provisional-build2-20261016204531. Original2admissions held.
+Newrunner/receipt/actionauth/destination DO NOT EXIST. No-rebuildguard proposed
+only; pinnedmakeclosure +childnamespace configuredcompilerdenial need proofs.
+No real package until subsequent exactactionpin; no implementationauthorized
+yet. Docverification5pins/16keys/literal/absentoutputs/P0 unchanged PASS.
+DB577 +websocketattempt(no thread)+authorizedtmuxfallback handoff sent. STOP
+forreview. No compiler/P1P2repro/audit/adapter/package/runtime run. R=l8ros.
+
+## October 17 Scoped Diagnostic Answer
+
+Coordinator01:56 asks concrete probe linkage and scoped usability only; no
+compiler/P1/P2/adapter/auditretry/package/runtime. Readonly exact2ELF scan
+completed8.428s/120s/2GiB: gl5255symbols/912488RELA, wrappers24/119, no
+retained explicit probe/Core/Record hits including umbra_wr_p2_ and all
+undefinedsymbols/relocationtargets/rawdebugbytes. Providerpins unchanged.
+ROOT/evidence/cargo-cpp-explicit-probe-reference-check.json SHA
+25dd2432de2a54f656613c15de7d6c66a417460f6352c58625ae8bb035b04cdc;
+ROOT/diagnostic-scope-decision.md SHA
+dea5576f1a60a0c14bd9a62fe4243d042b5bd80544165c6d468c8c7d694479d8.
+NO retainedreference is not semantic absence of optimized/inlined headeruse.
+Important correction sent: criticalpair4cef1b12 PASS512B explicitly
+allTUProof=false/linkedProof=false;12TU37ab is preparedinputs only. Audit8
+84e682da failed2586 before frozen check_selected after fullinputloop. Cannot
+state ALL consumers/selectedlinkedbody verified. Proposed narrowed observation,
+not diagnosticdata certification/admission. Comparator exactindex/buffers
+limits acknowledged. DB572+websocketattempt unavailable+authorizedtmuxl8ros:1.1
+handoff delivered. Fullgate/artifact HELD; awaitreview. Noactivecommands.
+
+## October 17 P0 Tooling Freeze 01:58Z
+
+Coordinator01:33 authorized P0 tooling ONLY, not P1/P2/compiler/preprocessing,
+adapter/auditretry/package/runtime. Candidate remains HELD. Root below unchanged.
+ROOT=/home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-p2-layout-20261016.
+P0-FREEZE.md SHA06eabe2631f8129c09dd49ff8faecc61b20ae756483fb43ad99ac01a180a18df.
+evidence/p0-tooling-freeze.json SHAc2fcbd59a7394feda7b04c070d4c723315d426f7c7ff802e31b84fc85d0a4c0c
+pins38files. Expanded4action argv/env manifest9005e0b0d7e6c4a25ff69d7fa8dffd08534f013328136f7f8585c3899e660369.
+Runnerb55c7ca684952fe2a627cab381c3bd4af744b53885667df2badcda7baec1680d;
+comparator5c7879621d58b360fd58337b1c9331ea92dead175f9cd5d12f47e5e498fcedf2;
+snapshot9513677c6957fe3832451d2e23f85bd7fa50c95f2c3e70cca7c1f32b9267a1ba.
+Parent90testsPASS0.194s, exact7Ruffcheck+formatcheckPASS. Original-old final
+gl1.925s3987sections5255symbols912488RELA1230groups; wrappers0.0011s119RELA.
+No new objects/historicalargv proof. Comparator exactindex only, indexbijections
+unsupported; bounded rawbuffers notstreaming. Allordinarydebugpayloads exact.
+
+Snapshot mechanism prototype sealedmemfds/copiedprivate tmpfs readonlyroot,
+one --bind-fd outputmount. Final real hostbash-only syntheticfixture
+p0-snapshot-kernel-6wqub5es/final.json02ece4f554c80d3674c338391a8c7ec6b08016bc2ca271b390e21e34dcbeadcc
+PASS/noresidual: hostmutation/newheader invisible, inputwritefails, replacedoutput
+path didnotredirect, passedFDsclosed. Initialfixture153FSIZE1MiB preserved;
+correctedfixtureonly16MiB. No compiler/nativeARM/browser. Parent fixedreview
+outputpathbind->dirFD, ineffectiveoverlaptest, sourceFIFOopen->NONBLOCK,
+capexpansion; workerfixedrunnerpincollision/finalartifacthashes. Allfailfirst.
+CRITICAL: production completeStableClosure=false; real SnapshotGate always
+rejects attest/launch. No fullproductionroot/alias/loader graph captured;
+atomiccapture/ancestortrust/metadata/negativeclosure and durableP1/P2 reuse
+notproved. Prototype120slifetime/64KiBargv notproductionlauncher. No cgroup
+aggregatekernelmemory claim. P0 NOT readyforP1; sendfreezeandSTOPforreview.
+Source47/frozen168/A/B/C/scan/combined/schema rehashedunchanged. Plan33c5 and
+appendix80fb unchanged. All3workersHOLD; monitor1327 CLOSED124 normally900s.
+No activecompiler/build/runtimesessions. BothcontrolsOK. Do not restart any
+audit, compile, package or runtime based on mocked tests or syntheticfixture.
+
+## October 17 Two-TU Planning Checkpoint 01:32Z
+
+Coordinator01:20:29 chose OPTION2 PLANNING ONLY; no compile/preprocess/adapter/
+auditretry/package/runtime permission. Source/artifact/fullgate held. ACK sent
+DB and authorized tmuxl8ros:1.1 after unavailable websocket. Two planningworkers
+now HOLD; no implementation/native activity.
+ROOT=/home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-p2-layout-20261016.
+Plan ROOT/bot-docs/plans/cargo-two-tu-reproducibility.md SHA
+33c566a8bbe0a8819e0743996120fc9d91e96ee809a9a53d746ba2278031bc5a.
+Ordered NEW command appendix ROOT/two-tu-build-inputs.md SHA
+80fb7d5ee37fe4deaebb693eca71ac16b5e55a39a2f5ca153a0dcb908ad2e99f.
+Review ROOT/two-tu-reproduction-review.md SHA
+83029f54379fa06b9d027053b356985330ceb466a4abd19048957cab2cfcc659.
+Companion cargo-two-tu-reproducibility-dod-evidence.md in same plan directory.
+Parent checked2JSONarrays90/81tokens,45headerpins,A/B/C/scan receipts and
+source/provider/compiler pins. No newcomparator tests or compiler executed.
+Strict proposed equality: wholefilefirst, allALLOC/all symbols/ordered ALLRELA
+target+addend/group/addrsig; exactordinarynonALLOC/debugpayload; no masks.
+New command is NOT historicalargv. Full systemclosure not available until
+approved discovery; immutable content+namespace beforediscovery/path-equivalence
+mechanism remains explicitP0 prerequisite, readonlybindalone insufficient.
+No staticimpossibility established, but reproductionunproved. Nextreviewmust
+authorize P0 separately; discovery thencompile have separate STOPgates.
+OriginalfrozenA/B andCFAIL stay unchanged. Monitor83318 CLOSED143 afterexact
+ownednode1441348 TERM/nochildren. BothbusesOK. No activesessions/workers.
+
+## October 17 Owned C++ Decision Checkpoint 01:20Z
+
+Coordinator01:10 authorized Creadonly actualcommand/deps+reference scan. Parent
+challenged zero retainedhits implyingnooptimizedheaderuse; coordinator01:12:56
+CONCURRED: scan neveralonepassesownedTU. Aone .eh_frame own-codeSTT_SECTION3
+section-relative relocation accepted precisely, notexternalsymbol. Noadapter,
+compiler/auditretry/package/runtime authorized. Browser/source/recipe unchanged.
+
+Parent evidence/cargo-cpp-native-command-followup.json abca5d6231486d0fdc4c918e6cf33eacc2d76552823861cab8d2a8640134e0ff:
+full76890log only4rerun/tracehits; compilerobservations869+1420 rows no target;
+exactCargo recursive194files stable,0.d/.pp. No actualnativeargv/closure recovered.
+Firstcollector failedstr/Pathrehash beforeoutput; corrected0.672s recorded.
+Carvernew cpp_reference_scan.py2c7be69a9ddece007a431b5c60c65a692e5439717c843089ed6e7e2d84f97f85,
+testsba5e9e295cdafd9d86954a7e7004182bd49222f19deadb5cb35a182186db6952,
+evidence/cargo-cpp-reference-scan.json244d719a898d70a2e555ac77bd3f52ea24afc50591843fd0848521be73696737.
+Exact2providers zero lexicalhits; gl3987sections5255symbols, wrappers23/24.
+Fullraw/allretainedsections/symnames/DWARFbytes, NOT semanticDWARF/headerclosure.
+Worker6.905s; parent21testsPASS0.008s, independentpyelftools/rawscan0.773sPASS.
+AllpriorCfilesheld; CarverHOLD. BothownedC++TUs remainFAIL. Newdecision report
+ROOT/cargo-cpp-decision.md SHA
+d69894a7582a5c757cbdd9becc4c97f213a4bab02c2c103f18d3d6762f083073
+offers strictnewobservedbuild, separatelyapproved
+twoTUreproducibilityplanning (notactualhistoricalargv), or narrowednonadmission
+Record-only investigation. Nooptionimplemented. DecisionDB+authorizedtmux
+handoffsent01:20 afterwebsocketunavailable. Monitor49275 CLOSED143 afterTERM
+onlyexactownednode1361046 withnochildren; allworkersheld. BothcontrolsOK.
+
+## October 17 Cargo Provenance Checkpoint 01:09Z
+
+Supersedes active inventory state below. Inventory48626 CLOSED0,64.575s,
+2261/2261 selected members,7noCU/49assembler/2C++14/2203C-Rust,0errors.
+evidence/cargo-member-inventory.jsonl SHAef2e673d1a666510ac8da9e847d8426df20d0a867fd4f4f017d3276e46342479.
+Coordinator00:58-00:59 authorized ONLY bounded readonly A/B/C provenance
+120s/2GiB; NO adapter design/implementation, audit retry, compiler, package,
+runtime/ARM until consolidated actual evidence reviewed. Fullaudit remains closed.
+
+Candidate ROOT=/home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-p2-layout-20261016.
+ParentA evidence/cargo-provenance-A.json52dc0409c21ee3ff1f118659889029c080d89fad09ebbd9bb745bd5cb553fbfe:
+exact1120B shim95e85d5e, actualRunning30926+archiveoutput/fingerprint/dep/source/
+rustc103b60e1/source corroboration. No directCGU emissiontrace or processcwd.
+Sole16B FUNC/no code relocations; ONE unwind.eh_frame relocation261 exists.
+Do NOT claim zero totalrelocations or independent compiler reproduction.
+WorkerB JSON5db1ca9f09f4fa09a5b125b769ae9983ba276f2905a18566b9a5b16bb01b8cf3:
+all6nonshimnoCU+49LSE uniquely exact retainedmembers in7 normal manifest-listed
+targetRLIBs. Actualcompiler/target and retained Cargo sysrootcache corroborate;
+no explicitRust--sysroot or upstreamdistribution authentication. Workerheld.
+WorkerC JSON62ba14c37ed441719d278d923ebf9d2f75db04ee9612a5c62e6ea7b371a9c82f:
+bothgl.o/wrappers.o ownedC++TUs, threewaybytesmatch nativearchive/provider/
+selectedmember. ACTUAL nativecompilerargv and complete dependencies UNPROVED;
+bothFAIL underunchangedCorecontract. No reconstructedcommand/Rustexception.
+AllCcollectorsterminal; initialarpyimportfail retained, fullDWARF120sexit124,
+targetedtopCU0.828s andequality3.556s usable. Workerheld.
+
+Parent independentA/B6.164s28pins pre/post +55byteequalities+exactshimPASS;
+C3.692s16pins pre/post +2threewayequalities+logpins/searchesPASS. Noaudit/admission.
+Consolidated ROOT/cargo-provenance-consolidated.md SHA
+fb95f28c926ea2f7167ac7893e4f8287bf6009a52490dcacf933c13b6da7b5e0
+records alllimits andrequests coordinator decision beforeanyadapter. Handoff
+DB+authorizedtmuxl8ros:1.1 sent01:10Z after websocket no-loaded-thread failure.
+Parentcollectors5308/39718 CLOSED0; monitor91220 CLOSED124 at600s. BothworkersHOLD.
+No activebuild/compiler/runtime. BothcontrolsOK. FulltaskNOTcomplete.
+
+## October 17 Postlink Checkpoint 00:56Z
+
+Coordinator00:40:42 authorized exact named sysv archive-member composition,
+not anonymous hash borrowing. Original frozen C/Rust checker runs FIRST;
+only its rejection permits unique archive/member/provider map, identical bytes
+and size, then named retained provider through unchanged assembly validator.
+No source/recipe/frozen168/600s/2GiB policy changes. New sysv manifest SHA
+54a0bbfbb7fe4010bfd5a19e8337d7a9df465924e0d9dd081ccc05fef8318038;
+separate graph806317fefd1a64d033d217051f15ddc693866ba77472f51fe6f74d23638590a0.
+Both live under candidate evidence/. Original21 manifest unchanged.
+Parent member_assembly.py8c2a5b876b23c0419942eeae927479a476223387c107f87ff7c61af3685f3339,
+run_assembly_audit.pyc5742ae83d6c345d343724e8d9f19258db0f25e0d2d09e28daec73a0fed60b8d.
+Fail-first composition/checker identity and receipt-collision regressions fixed;
+82 composed testsPASS0.415s/RuffPASS. Independent source reviewdffdd1e7 clear
+for corrected placement only, no actual audit claim. Actual sysv preflight
+exec11888 CLOSED0:10.469s, classification32769,2map/member checks,1assembly
+validation; earlier10s preflight124 retained as limitation, not pass.
+
+Full readonly audit8 exec39244 CLOSED1 after91.773s, outer660s/internal600s, output
+evidence/postlink-audit-8 and postlink-audit-8-summary.json, log sibling.log.
+Uses map2fa4f5bdc, DSO5 report23c33548, exact new sysv manifest+graph. No retry
+on new failure without reporting. All149 map resolutions/22assembly/5data pass
+before input2586libgkrust.a(gkrust-d6352c86d5971e69.552sw32mb1oiakj5aayfhle7p.rcgu.o)
+rejects original C/Rust language then exact sysv-only bridge. Summary SHA
+84e682da793a241d812eb1d0b724030576501b119a9882b9e818856ca6f6fc29.
+Readonly witness evidence/rust-member-language-witness.json834471b9:1120B,
+member95e85d5e394ddff19ecc507f64adf9c19799af20986223918533e591169e5322,
+ARM64LE ET_REL/noDWARF/one16B FUNC rust_no_alloc_shim_is_unstable_v2/noCore.
+Not data-only; Rust name/source alone is not provenance. Running30926 is actual
+gkrust compiler command; rustc1.94.0(4a4ef493e) recorded in prebuild inputs.
+Coordinator00:53:55 authorizes ONLY bounded readonly2261 selectedCargo inventory
+120s/2GiB. Exec48626 ACTIVE, evidence/cargo-member-inventory.jsonl incremental
+start/member/final rows; no exemption or fullaudit retry until separate proposal.
+No matchedTU execution/package/runtime. Workers all HOLD; monitor72823 CLOSED124.
+Both controls OK. Next complete inventory and exact no-CU provenance proposal.
+
+## October 17 Postlink Checkpoint 00:34Z
+
+Build2 remains completed; no new build, source/recipe edits, package or runtime.
+Candidate ROOT=/home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-p2-layout-20261016.
+Audit5 failed closed at JS sibling-provider index2428 after91.027s. New explicit
+Make response/backend map evidence/archive-provider-inputs-2.json SHA
+fa4f5bdc7411bc6368f07d9f1e9773e02d6952f7162ebc5aef446a268236a0b5 has149
+actual byte/size-verified overrides (JS147+ANGLE2); Cargo2261 remains original
+unmapped checks. Collector50.701s, no admission; archive_provider.py85358b5a.
+
+Coordinator approved conservative retained-built-DSO superset gate, not blanket
+ET_DYN exemption. Seven overlapping driver-to-check windows759lines/733inputs
+fully classified, exact attribution not claimed. DSO5 passed4.1127s:7DSOs,
+485objects,1all-member archive,14external,2explicit libopus assembly,0Core.
+evidence/dso-audit-5/report.json SHA
+23c335486cd3de98b95c4060b6032b0d2549b3188a458668cda7ef7c67bffec4.
+Review corrections include archive dedup hash binding, exact dependency and
+context-byte pins, closed driver grammar, explicit NEEDED bindings. Final
+SONAME type/count/literal gap reproduced7 assertion failures then corrected.
+68 composed tests PASS0.232s; exact Ruff PASS. These are not admission receipts.
+
+Full real audit6 exec33988 CLOSED1: unchanged120s deadline,120.066s at input2494
+after68mapped resolutions; no fullpass. New evidence/postlink-audit-6 plus
+postlink-audit-6-summary.json. Requested coordinator exact private AST deadline
+120->600s (outer660s),2GiB unchanged, one readonly retry; coordinator authorized
+00:34:39Z. New audit_budget.py c364843eed67f91ad6fa2c7798970fe6cd5932b27e5ad2f0e37ee2a6cf6c7a1f
+verifies original private composition then changes only exact control AST120->600.
+Mock old121stop/new121+600proceed/601stop/HALT0+121+599stop; no-opadapter RED;
+72composed testsPASS0.333s/RuffPASS. Audit7 exec24521 CLOSED1 after100.896s,
+index2539 libjs_static.a(sysv.o),114map resolutions; anonymous stream cannot use
+named assembly exception. Exact mapped retained ffi/sysv.o SHA82d98d034ebc62115a87b801ef313d15374352080eb8ce7c3cc08e0093c2edb7
+has assembler32769 CU/sysv.S/cwd, exact directclang33563/backendSSRCS. Only this
+one of149mapped providers lacks.pp. Request scoped member identity adapter after
+exact map/member/provider bytes+size validation plus unchanged asm validator;
+no hash-only borrowing; original anonymous C/Rust validation preserved first.
+NOT yet authorized; no retry. Summary8134c273e97bf9bd15d000f9630b496bb6cf56db942f8d0ea72e9ac288a384ef.
+Monitor85158 closed124; allworkers HOLD. Full168 and source47 hashes independently
+rechecked PASS during audit7, logs evidence/{frozen168,source47}-postlink-recheck.log.
+No matched-production-TU execution authorized:12 prepared manifests summary
+37ab7f7b3ac9b241196ac24e9a09c68ec1206d5fa211cf0474df80b79a033b0b.
+Next fullaudit result, then separate coordinator serial-TU proposal. Coordinator
+websocket unavailable, DB events read by l8ros; tmux l8ros:1.1 authorized fallback.
+Both control files OK. Frozen168 and browser47 untouched.
+
+## October 16 Postlink Checkpoint 23:58Z
+
+Build2 completed exit0, 3084.227s, nofallback; exec79953 closed. Group258214 and
+wrapper256924 absent (ESRCH/empty session), observer81479 exited0. Min available
+25875296256B, maxHostUsed41457221632B (not processRSS). Unstripped libxulSHA
+4ce6c4a430ddf824c0ebe81d8ca37d8fb1f71cf0f337ece58664862f9d301960.
+Obj/INI BuildID20261016204531. No packaging/runtime/ARMexecution.
+
+Candidate ROOT=/home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-p2-layout-20261016.
+Trace normalization explicit4910raw=4901LLD+9Cargo; original log unchanged
+a622387b4a84a32fe11cea9496b004d1e576193cedcd0aa4595195b5ef77fd36.
+evidence/postlink-inputs/libxul.trace SHAa4a7f047ca83668d712ce7e995a96825c2adc7e4a3af6b7d8221b10f6a4619d0;
+link-receipt ec19a9335529de7081875cf9141496ca207bd48026ed38adf2a4bce3043794b8.
+Full Rust Running log reader parent rerun1229rustc+152buildscripts/0unknown/
+0incrementalflags, 76890lines/28350266B; not complete process-census proof.
+evidence/build-2-rust-invocations.json; readerfbdb917581282ceceaab9aa170fed50c16e9a1d129b9f39e97efee7a4050cc70.
+
+Real audit3 FAILED CLOSED87.133s at index2421 ANGLE archive member retained
+in siblingdirectory. All21 explicit assembly+5data accepted,11CoreTU layout/
+Environment evidence retained before failure, no linked-method pass.
+evidence/owned-data-audit-result.json and angle-provider-witness.json.
+Actual ANGLE member/provider same8167c901f3763044de7cfc68593db841634aeda0f0a9778c19d03f654606116c;
+actual pp exacttarget/usesCore=false. Coordinator23:55 authorizes explicit
+response/backend-derived provider map only, unique bytes+size BEFORE deps.
+ET_DYN libmozsandbox/libgkcodecs/liblgpllibs remain NOT exempt, proposal pending.
+
+Parent fixing review findings: joinedoutput/target aliases and anonymous stream
+borrowing directobject provenance.26 assertionRED, shared strict observed-option
+parser+unconditional anonymous rejection nowgreen; source/frozen168 unchanged.
+Sartre01a145c7 ownsnewarchive_provider.py/test; Socrates01a14287-1d18 ownsnew
+dso-inventory-proposal.json/md readonlyinventory; Carver01a14291 finalreadonly
+classification-review.md delta. All in ROOT; parent ownswrapper/mapproducer.
+Monitor35826 bounded420s active; monitor16884 ended124. Controls bothOK.
+No actual matched-production-TU replays, postlink admission or package yet.
+
+## October 16 Build2 Tooling Checkpoint 22:57Z
+
+Build2 exec79953/group258214 remains running; no fallback, available~31GB.
+Actual early Cargo env incremental0/Cargo2 and324 actual rustc invocations
+without incremental retained at candidate evidence/build-2-incremental-early.json
+SHAba18dba3dfeca37b3e99a9b45906e363aad448c61c627046f6535f83dc3ba1a9.
+CORRECTION: original372 rows also included48 build-script processes; separate
+evidence/build-2-incremental-early-correction.json preserves exact classification.
+Prefix only, not final whole-build proof. Read-only scoped compiler observer
+exec23295 ended at1200s bound exit124; partial receipts retained. Replacement
+exec81479 max1800s, captures selected env/argv/cwd only, not all compiles.
+
+Workers held after tooling handoff. Parent independently reran128 tests PASS
+3.425s (65package/24strip/39production). Evidence parent-tooling-coupling.log.
+Parent production basename correction RED2 thenGREEN39 preserves original
+argv and resolves against pinned cwd; ../ and nested relative source rejected.
+Current production_sections de1ee86db977d399193cf5dea7de027b23d00de10c661d34f3993abb84d08492;
+test b55a8cfa10d729fcc3847ff1ec788e4bc875ecd8af5d6390b227494a984265c9.
+Strip validator b7cdb4a53b05e3c035918828f93764dea3015d5074229d238c18fd236e31ffe7;
+test b5a4df1cc967f137f2ba2c18c1ce99b3019373506ef3f2f414004e2b69c2e358.
+CLI --original/--stripped; streaming ALLOC/allPHDR identity and TLS-NOBITS domain,
+GNU note object (not Gecko ID); report non-admission. Actual retained oldP2
+read-only applicability run exec34744, evidence/retained-p2-strip-comparison.json.
+Retained oldP2 applicability initially failed known SHF_AARCH64_PURECODE .plt
+flag0x20000000. Fail-first positive and unknownbit negative then exactknownbit
+allowance; updated130tests PASS2.843s. Strip434f2534e9959e42b14e6f684d4404f42edf4d71c00eb6cede6cee0e68117399;
+test7c880f06cc0bfe1167ec7d20693b68c8885b3e14d6795b769aac28ee17e6581c.
+Retained old pair PASS34ALLOC/11PHDR/1TLS5.641s, reportSHA270caf7b7e2146c5d56799fece14f220000984aee49a2f2f3c3a0995eb41c892.
+Tooling input manifestSHAaf6dbcd9af75f0986aec6e74078be34e107ce94880abc3b45afb33412b57a689.
+Early actual newFFmpeg62 layout PASS512/allmembers/12methods, installed header
+alias resolves to pinned source; no allTU/link proof. Initial literalpath fail
+preserved. No actual new artifact/package proof yet. Package adapter60671d9eee5e8904fd8af4c84956e859d2eff8acfb66146a723701e1a5a62401;
+test7154a08b7a56bc4822df06cf287dc7c7197980991b2da58005be56a090454d8a.
+Separate coordinator-pinned strip-payload-layout receipt now mandatory, binds
+unstripped postlink SHA vs separately hashed stripped payload + exact report.
+Both old direct SHA-equality consumers corrected; genuine producer mocked
+coupling green. NO real packaging before postlink admission; no runtime.
+Monitor18120 ended; all workers now held, no active delegation.
+
+## October 16 Corrected Build2 Running
+
+Supersedes build1/proposal state below. Coordinator22:31 approved recipe-v2
+6d1e3562: only --disable-cargo-incremental after --without-ccache. Old obj
+preserved as obj-build1-rust-incremental; new empty obj configured successfully
+exit0/32.679s/group166340absent. Effective config differs ONLY incremental1->0
+and option string. Same frozen header helper/allowlist rerun in header-prep-2;
+receiptdd9ae002. NEW ARM compile-only fixture6232edd1 PASS Record512/optional504,
+49alloc sections identical; not matched-production-TU proof.
+
+Refreshed inputs evidence/prebuild-inputs-complete-2.json SHA5e5aad9c8e161bb8c0c270bddb6e678ef5542daa0d0bc884f2a3fb3f3ae86380.
+Coordinator exact-schema pin evidence/coordinator-prebuild-2-PINNED.json
+SHA166207b71f043dfbf0a6d3510f651a418b2d5109645220ed0385dc224ff07b74.
+Verified92evidence hashes and exact pending-copy keys/values with statuspass;
+JSON key order differs only. Controller recipe-v2/run_phase.py SHAce6dbc9c60d4851f7f6d2b5703f895d2b100112a8d2ff78860b3c68096f7ab85.
+Live mozconfig5a600bc52ac0df8cf4893078142f83b20df53982953bcd6e208729610abe367a.
+
+Build2 ACTUALLY STARTED22:39:17Z pid/pgid258214 exec79953. Nice0/C++8/Cargo2,
+--verbose --priority normal, BuildID20261016204531. Initial available39.59GB.
+Configured incremental0 verified; actual rustc no-incremental remains pending.
+Logs/receipts candidate build-2*. No packaging until production-TU equality,
+complete trace/layout audit and coordinator postlink pin. No Pi/browser actions.
+Candidate /home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-p2-layout-20261016.
+
+Two scoped tooling workers still active: records/Sartre package_layout.py/tests
+adopting exact recipe delta and TWO pinned pre-existing final admission files;
+review/Carver production_sections.py/tests closing mocked runner gaps. No native
+worker actions. Monitor18120 bounded15min; monitor75111 finished. Final export
+now contains original28b2 admission AND refreshed166207b7 pin: preserve both.
+
+## October 16 Build1 Stopped For Effective Rust Incremental
+
+Supersedes running-build state below. Controllerenv CARGO_INCREMENTAL0 was
+overridden by configure substs/autoconf1 and actual rustc -Cincremental under
+NEWobj. No oldcache causality claimed. Coordinator22:27 ordered STOP+CORRECT.
+Verifiedwrapper59427 TERM; child/group59718 exit-15 after383.259s; source/input
+stabilityPASS. Controller absent, kill(-59718,0) ESRCH and emptyps session prove
+full group absence. Exec11647 CLOSED. Minavailable32903647232B, peak hostused
+34428870656B, nofallback. Evidence/build-1-stop.json SHAffa49bb02efdbe83c8a830ab0bea1b2c5676d0d63c3f7df8887e256681745e78.
+
+Delta proposal awaiting authorization under candidate recipe-v2/PROPOSAL.md
+SHA6d1e35628577782df090a51c21b77a1bbcdc12b4a4a731b44ed795fe48dc2d35.
+Only add ac_add_options --disable-cargo-incremental after --without-ccache.
+Separate controllerce6dbc9c60d4851f7f6d2b5703f895d2b100112a8d2ff78860b3c68096f7ab85;
+proposedmozconfig5a600bc52ac0df8cf4893078142f83b20df53982953bcd6e208729610abe367a.
+Original frozencontroller/actualmozconfig untouched. One independent recipe
+test RED then34GREEN/RuffPASS, exact single-line deltas proven byte-for-byte.
+Real config0/no -Cincremental still pending after approved freshconfigure.
+Proposed preserve obj->obj-build1-rust-incremental, emptyobj at originalpath,
+configure2, bounded NEWheader preparation/assertions, refreshed coordinator pin
+beforebuild2. Do NOT execute recipe/reconfigure/restart until approval.
+
+Workers in candidate root only: wr-render-records/Sartre01a145c7 owns
+package_layout.py/test_package_layout.py; wr-render-review/Carver01a14291 owns
+production_sections.py/test_production_sections.py. Pure/mocked tooling only,
+no native actions. Both informed buildstop/newcontrollerpending. Monitor75111
+still bounded/running; source/obj/frozenfiles forbidden. No build active now.
+
+## October 16 Corrected ARM Build Started
+
+Coordinator22:17 ADMIT pin28b2dbcca36c666ee5e5e9f45d79c97cdfe891cd0d7ba5a93d45cdf1699d8bbd
+explicitly permits safe projection22:18. Original JSON schema differs from
+frozen controller; evidence-only projection preserves original pin plus full
+completed-inputs721c7c59 and all54evidence hashes. Full manifest/headerprep
+come from hash-pinned completed inputs, not abbreviated/null convenience fields.
+Projection /home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-p2-layout-20261016/evidence/coordinator-prebuild-controller-projection.json
+SHA2b6380d42f38e4807b3305a8c3477f8c74db87f9a63772c2f19d2c71c6d07b21.
+Unchanged controllerb22614b2 rejects original format, accepts projection;
+all47source files/56evidence hashes and exactrecipe verified before launch.
+
+Build1 ACTUALLY STARTED22:22:05Z, pid/pgid59718, execsession11647. Command
+nice0 ./mach build -j8 --verbose --priority normal, Cargo2/incremental0,
+BuildID20261016204531. Initial available39.78GB; frozen controller memory/disk/
+time/control stops active. Logs/receipt/observations at candidate root build-1*.
+DO NOT duplicate or end while needed session runs; check actual process/state.
+Postlink/layout/matched-production-TU checks remain pending; packaging is gated.
+No ARM/browser/Pi execution. Old source/obj and frozen tooling untouched.
+
+One scoped worker Sartre01a145c7-962e-7f70-8407-9ded1bd95dc8 assigned candidate
+package_layout.py/test_package_layout.py only, pure mocked adapter, no actual
+packaging/native actions. Monitor session75111 bounded16x60s; stop owned monitor
+when worker complete. Controller/source/evidence files forbidden to worker.
+
+## October 16 NEW-Header Prebuild Inputs Complete
+
+Coordinator22:07 confirmed header-preparation proposal33807cc4. Exact command
+executed ONCE exit0 (0.396s total,0.014s generation), no compiler/child/browser.
+Receipt /home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-p2-layout-20261016/header-prep/execution.json
+SHA7b897858f971cfc59faba06cb639bed16e60dbf09ee8fb34524877230e6d10e1.
+All16outputs (2headers+14links), linktargets/logSHA and136inputs independently
+verified. Configheader e42f6741,buildid fbe01b1e=20261016204531. No list expansion.
+
+Genuine Environment ARM compile-only fixture using NEW source/headers PASS:
+/home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-p2-layout-20261016/evidence/new-header-layout/receipt.json
+SHAe253861a342e77b85f83fae8ced585028c86ff70b8bc14c6f6a8f3b0dc20ebc3.
+Both optimized compiles exit0 (1.069/0.969s), Record512/fullmember/optional504
+assertions, real TimeStamp,18non-system deps exactly allowed,49alloc ELFsections
+identical +/-standalone. No ARM execution/link/browser. Initial local adapter
+passed Path to frozen checker's expected string; failed log retained, fixed
+verification-only continuation over SAME objects (no recompile/checker change).
+Metadata collector initially tripped physical-vs-share __file__ alias; failed
+log retained, root-relative path corrected, no native actions repeated.
+
+READY INPUTS, NOT ADMISSION:
+/home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-p2-layout-20261016/evidence/prebuild-inputs-complete.json
+SHA721c7c59584da20399cc9b6c90b3129ed015d5b532284def35d1aff2482a9f9e.
+54 root-relative regular evidence hashes independently reverified; source47
+exactset/hash/size/mode/index/base checked by frozencontroller; frozen168tool/
+control files rehashed. Actual ARM64/direct compiler/cacheOFF config unchanged,
+BuildID20261016204531, source manifest58ea/patchd94c/schemaf016/header237a.
+Memorysnapshot39,602,642,944 available bytes. No ongoing exec sessions/workers.
+STOP before browser build: l8ros must PIN/issue prebuild-layout receipt. This
+complete input document is kindprebuild-inputs/buildAdmissionIssued=false.
+Production matched-TU equality/effective link trace+flags/allTU+selectedbody
+audit remain REQUIRED after admitted build; separate postlink before packaging.
+
+## October 16 Minimal Header Preparation Proposal
+
+Coordinator21:55 authorized freezing an exact bounded header-preparation
+command, requiring confirmation BEFORE generation. Proposal now under
+/home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-p2-layout-20261016/header-prep/PROPOSAL.md.
+HelperSHA331f44b8368f456f45fe5a96273e88fd994def119ff72314a537a231df57dbd1;
+inputsSHA54267e53ce925d862017186da3d116481e837c2466e41d98a7cdb977a12ad82d.
+Proposed direct upstream process_define_file/buildid_header plus14official
+manifest-selected NEW source links; NOT generic mach export. env-i exact6vars,
+Python-I-B, no children/network/ctypes, exact write/link/dir allowlist;60s wall,
+45s internal,30CPU,512MiB AS,1MiB/file. Fiveguard testsPASS; plan-only actual
+imports/manifestcheckPASS0.33s, writes inputs metadata only. NEWobj headers
+STILL ABSENT; execution.log/receipt NOT CREATED. No generation/compiler/build.
+Await coordinator confirmation of frozen command, then prepare once and run
+NEW-header Environment/optional assertion; no old-header substitution. This
+does NOT authorize browser build before coordinator-issued prebuild receipt.
+
+## October 16 Fresh Layout Configure Handoff
+
+Coordinator21:50 explicitly authorized fresh replay+configure THEN STOP for
+coordinator-issued pinned prebuild admission. Fresh root now exists:
+/home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-p2-layout-20261016
+New detached shared-Git-object clone at c0e7f8; sealed combined patch replayed,
+all47 hashes/sizes/modes verified, no index commit and no old compiler outputs
+or generated headers copied. Before configure obj empty. Exact mozconfig
+SHA370518510e48508063682765eab390f298778e79f53251b8dd20f63386ab29b1.
+Configure1 succeeded32.77s, exit0, source stable; owned group4075207 absent.
+No ongoing exec sessions or worker monitor remain from this chunk.
+
+Prebuild INPUTS, deliberately NOT admission:
+/home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-p2-layout-20261016/evidence/prebuild-inputs.json
+SHA7fd3cdc3cfdc3479eb7da3e194d3b254263e52940f9ee3176245ec2287109036.
+Contains root/BuildID20261016204531, manifest58ea295d, combinedd94c2027/schemaf016/
+header237a, config/source/evidence/tool SHA and versions, env clearing/overrides,
+direct clang/clang++ ARM64 and rustc1.94/aarch64. Config cache/wrapper keys absent;
+inspected Cargo wrapper settings empty. Generated OS_LDFLAGS includes trace and
+noexecstack/text/relro/now/nocopyreloc; actual effective browser link remains
+pending. Config probesON/O2/standalone debug, minavailable38.27GB; no fallback.
+
+BLOCKER CONFIRMED: configure does not create obj/mozilla-config.h, obj/buildid.h
+or obj/dist/include/mozilla/TimeStamp.h. NEW-header Environment/optional assertion
+NOT RUN. Input status=incomplete; no old-header substitution/no fabricated pass.
+DB+tmux handoff requests separately bounded header/export preparation authority
+with exact command/output scope reviewed FIRST. Do NOT run mach build/export
+merely to clear this: coordinator must approve prerequisite and later PIN/issue
+prebuild admission receipt. No browser build/package/ARM execution/Pi/runtime.
+Sealed tooling168 files unchanged. Diagnostic-layout output remains separate.
+
+## October 16 Layout Tooling Freeze
+
+21:47Z tooling/recipe freeze handed to l8ros via DB + tmux l8ros:1.1.
+Root /home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-fix-20261016/layout-gates.
+FREEZE.md SHA75537bde7cfb443a60265908bcabfbcd3044a660e47937c0aafd7a739bf02838;
+tooling-freeze.json SHA22db41987048ea1f993de36a801dbfdb9230431cb84640aeda3bc92416317455
+binds168 tooling/fixture/test/review/evidence files. audit_link SHA60c9c3c3;
+controller b22614b2.104 tests PASS2.600s and registered Ruff clean. No browser
+source changes; all47sealed file hashes/sizes/modes match. NO new ARM browser
+build or admission receipt yet. Await coordinator freeze confirmation, then
+fresh root/configure/prebuild receipt before ONE diagnostic ARM build.
+
+Fresh optimized host-controls-jjddym1z consistent emits1/exit0, mixed emits0/
+exit1; actual trace audit accepts2TUs/7methods, rejects old152B Record. Full
+complete-controls-44t5sdkp emits frame1/pool1/P2roles5/terminal1; seven ordinary
+admitted/completed, zero outstanding/invalid. ARM compile-only genuineEnv
+arm-layout-7qy_ebep asserts512/optional engaged504 and allocated-section equality
+with/without standalone-debug. This used OLD generated headers, NOT new-build
+matched-production-TU proof. language-controls-v_hntfg3 validates real C/Rust
+CU languages. Prior empty Rust object and x64 GOT relaxation failures retained;
+fixture-only exported Rust function/hidden fake-clock corrected controls,
+verifier opcode masks NOT broadened.
+
+Actual linker input/dependency audit now checks compiler .pp BEFORE relevance,
+binds exact target, hashes retained archive provider BEFORE trusting metadata,
+rejects unknown/C++-without-deps/declaration-only layout and enforcesARM64.
+Final reviewer placement report SHA4448a776677eb64c1d02887a6d5e8e5b0205a370f04b14bb839cb83b938171bf.
+Full relevant-TU inventory and every selected Core body compared modulo known
+relocation operand bits; unknown relaxations fail closed. Not a proof of
+relocation target/addend semantic identity. Native production audit still pending.
+
+Approved recipe adds diagnostic-only standalone debug-info flag and LDFLAGS
+--trace; exact lines/commands/receipt gates in FREEZE.md. Controller clears
+wrappers, compiler/tool flags, Cargotarget/incremental; C++8/Cargo2/nice0,
+8/5GiB memory stops, no autoretry; BuildID20261016204531. Candidate fresh root
+/home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-p2-layout-20261016
+not yet created. Mandatory NEW generated-header fixture/prebuild receipt,
+actual effective linker safety flags/trace/exit, each relevant real production
+TU allocated-section equality, postlink selected-body audit, and separate pinned
+postlink receipt BEFORE package. Existing P2 packager's fixed destination needs
+later reviewed diagnostic-layout adapter, never overwrite prior artifact.
+No optimization/Pi/desktop/browser runtime; l8ros retains R and all runtime.
+
+## October 16 Missing-Anchor Artifact Defect
+
+20:47Z offline chunk CONFIRMS incompatible Record definitions in packaged ARM
+libxul. New ctor/SetData/dtor: words8,sequence0x90,active0x94,invalid0x9e.
+Old BeginPhase0x5b42d1c/EndPhase0x5b43090: kind4,sequence0x88,active0x8c,
+invalid0x96. Retained RenderDMABUFTextureHost.o has OLD weak BeginPhase;
+Unified_cpp_webrender_bindings0.o has NEW SAME weak symbol. Packaged libxul
+SHA41b58bff6052046039a87f0fb38a874b1bf593f6a1d8d0383b1b5818f2fca6c4
+matches frozen receipt and contains OLD method. Why old object reappeared is
+UNPROVED (do not blame sccache from timestamps). Old invalid flag sets bit16
+of NEW active mask; new destructor suppresses P1 emission and counts another
+invalid. Supplied-offset model reproduces809/0/1618 but is NOT native replay.
+Three linked-layout witness FAIL as expected; six model tests PASS incl new
+layout control/zero timestamp alias/inactive/repeated failure.47freeze files
+unchanged. No source/compiler/browser/Pi/build actions; only scratch+DB and
+these continuity notes. Existing P2 slots remain PARTIAL, no GPU/fix claim.
+Frozen report/proposal SHA208c77f069775c0cd76f40cfce3cd00820f5ea68443178c0de55c00c0eed1089:
+/home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-fix-20261016/missing-anchor/REPORT.md
+Coordinator agrees diagnostic rebuild BEFORE optimization; authorization still
+pending proposal review. Proposal: new root umbrafox-wr-render-p2-layout-20261016,
+fresh source replay/obj, cache reuse disabled via without-ccache/env removal,
+same frozen header237a04d9/schemaf016/overlay4278. CandidateBuildID20261016204531,
+new diagnostic-layout output. IMPORTANT broader per-TU/object/linked-method
+layout verifier NOT implemented; must implement/freeze and prove old artifact
+fails before build. Existing narrow witness is NOT all-method proof. No build
+launch merely because report frozen. Last DB/direct tmux handoff20:47Z; websocket
+l8ros-workspace unavailable, authorized fallback l8ros:1.1. Both control busesOK.
+
+## October 16 P2 H264 ON Analysis
+
+20:20 coordinator capture cdf370315200f35c486258a64ee9d95004d5130ed89a56e31b5358c646d30b62,
+111382453B independently verified; Build20261016175431. Analysis through owned
+profiler-cli+samply session umbra-p2-on-h264-2020 (stopped). Report/decoded data:
+/home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-fix-20261016/on-h264-analysis/REPORT.md
+797 custom payloads validate,175P2/35groups but ALL P1 RendererFrame anchors
+absent; no full-group/d3 residual/FPS certification. Parent terminal1038admitted,
+795completed,481invalid; RDD809/0/1618. Exact suppression cause unproved.
+Actual ring capacity8GiB (8589934592), coordinator supplied entries not bytes;
+known:false preflight did not establish guard. NOT actualresident/OOM proof.
+Playback transitions: EnterVideoSuspend6.373s, SEEKING_VIDEOONLY8.892s,
+497seekdrops afterward; 805hwH264/224swlabel requests, sw interval consistent
+with null/blank decoder, not proven CPUfallback. Whole20s not steady playback.
+Eleven pre-suspend P2 groups: Draw1920x1080, partial1215690px, planarYUV/2D/8bit;
+5tracked final draws=1YUV+4RGB, zero picture/color/alpha targets. Only160Bvertex
+and760Bsharedinstance submissions/group; no cache/F32/I32 uploads or storage
+allocation. Composite median32.648ms, drawdispatch31.216ms, occlusion3us.
+These are wall times, NOT GPU proof or redundant RGB overdraw. Source/built
+artifact unchanged. Import/upload/occlusion candidates deprioritized here only.
+372 sinkdrops UNSENT to compositor, lateness median791.510ms; only1compositor
+drop marker.22SetImages,74UpdateCompositedFrame with11unique IDs/63nochange;
+last retained frame2102 remains15.396s old. No total-lossratio or scanoutclaim.
+OFF scripts swallow setup failures/selectfirstvideo/useDate.now/no rawendpoints;
+reported nearzero nonreproduction stands, strict parity/ONoverhead unproved.
+No new runtime/build requested. Need scoped offline invalid-record/root-anchor
+diagnosis before build; future runtime needs correctentryunits/boundedactualring,
+stablemedia identity+decoder/backend/debugflags and no suspend/seek transition.
+Do NOT gate onzeroFallingBehind (selectionbias). AllPi/runtime ownedbyl8ros.
+
+## October 16 P2 Runtime-OFF Regression Investigation
+
+20:14Z coordinator H264-matched OFF comparison: R22.6present/55.5decodedfps
+over20.2s; P129.8/56.2 over20.2s; P227.1/62.2 over22.1s. SameURL/hd1080/rate1/
+visible/test-onlycodecflags, no rejected seek/reset/pause windows reported.
+P2 nearzero collapse NOT REPRODUCED here; causal P2patch regression retracted.
+Not universal parity/speedup proof; actualdecoder/accel/backend rawreceipts
+requested, not independently reviewed yet. High decodecounts do not prove
+timelyframes or WR/GPU cause: separate sink-vs-compositor losses.
+Confirmed next existing P2 one-shot profilerON <=20s aftersame settle/codec,
+GPUqueriesOFF, retain P1/P2terminal/partial+ordinarysink/ImageBridge/Composite,
+endpoint counters+monotonic/currentTime and private exportsize/SHA. Actualring
+capacity must be rechecked (priorcapture1GiB); custom8MiB/16k perprocess is not
+ring/JSON/exportcap. All runtime/guards/restoration l8ros-owned. NOrebuild or
+source/export edits; taskactive pending suppliedcapture. OFF/ONdelta includes
+noise/drift. Report current hash in DB; older causal statuses are historical.
+
+20:06:37Z coordinator partial retraction supersedes earlier causal/FAILED
+classification: P2 regression UNCONFIRMED/pending, runtime acceptance not yet
+established. H264forced R39.5/24.8/34.8fps and P261.5/48.1/34.1fps; R+VP9
+59/17.7/31.6fps, so codec mismatch is real but insufficient to explain the
+earlier P2 nearzero outlier, now not reproduced live. Measurements noisy/ramping.
+NO P2 rebuild. R restored by coordinator. Requested proposed single H264-matched
+R/P1/P2 with actual codec/decoder/acceleration/backend+BuildID, same start/settle,
+profilerOFF, before/after counters+monotonicelapsed/currentTime; exclude
+seek/reset/pause/buffering/visibility transitions. H264agreement does not clear
+VP9cause or diagnosticONoverhead. Default WebMdisabling would violate parity;
+diagnostic-only overlay, no productionpref/source/build/Piactions authorized.
+Offline report updated with both coordinator corrections; older snapshots below
+remain historical, not current causal conclusions. Taskactive; runtime=l8ros.
+
+19:13 regression capture dc8cf605 independently verified and analyzed with
+profiler-cli0.11.0+samply, owned session umbra-p2-regression-1913 stopped and
+status absent; scoped samply process absent. Renderer8047/8052 samples idle
+eventqueue wait,16.66msCPU;
+only2 ordinary Composite events. Compositor99.18pctidle,only2SetImages. Video
+sink671 drops: frame-end lateness14.762812->17.854666s over14.263s. VideoPTS
+advances11.178s/audio14.270s.668 RequestDecode markers explicitly SOFTWARE VP9,
+not H264hardware. Marker producers verified in unchanged pinned media source.
+Captured mechanism is precompositor late-frame starvation, NOT a renderer
+spending seconds inside hooks. P2 causal defect remains unproved; ONcapture
+does not by itself explain OFFcomparison. Requested actual codec/decoder and
+onset/interval joins from coordinator, not a new runtime assignment. Actual
+profile ring capacity1GiB. Full source-backed findings and limits:
+/home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-fix-20261016/off-regression/profile-findings.md
+Source/export remain sealed; no corrected build. Taskactive, Piowner=l8ros.
+Pre-correction profile report SHA63448b8ff444d388d8d64afad89929cf158f3a919fbe8473c14cef62bc4e2e5b
+is superseded by the20:06 correction; updated report hash is recorded in DB.
+
+19:04Z matched three-way coordinator receipt, same60fps1080p video/fresh
+sessions/profilerOFF/noffplay: R2007/4751 presented/decoded42%, P11287/3424
+38%, P219/3209 0.6%. Strengthens P2 source/build-delta localization; does NOT
+exclude P2-added hook overhead by itself. Actual ARM hot caller checks show
+RenderThread Record allocated atsp+0xc0 with512B available, RendererOGL context
+atsp+0x60 throughsp+0xa98 inside0xab0 frame. Saved render bool survives Finalize.
+No layout mismatch found in these callers, not an all-consumer proof.
+Requested retained regression-only P2 profile path/hash and bounded thread
+sample from runtime owner; profiler-cli0.11.0 available, guide read. No profile
+loaded, no new source edit/build, no confirmed mechanism. Taskwr-render-fixactive.
+
+Coordinator matched receipt at 18:45Z supersedes the provisional result below:
+same Pi/video LXb3EKWsInQ, 60fps1080p, 1344x756 viewport, fresh sessions,
+no ffplay, profiler OFF. R presents32.4/36.9/31.1fps; P2 BuildID20261016175431
+presents0.1/0.1/0.2fps with99.8%drops. P2 runtime acceptance FAILED; source/build
+gates did not prove runtime equivalence. Coordinator requests diagnosis and a
+corrected probe-only artifact; no Pi/owner-browser authority for umbra.
+
+New regression scratch is sibling off-regression/ under the P2 cache root;
+source/export remain sealed unchanged. Two bounded source audits (core/Rust)
+have found no concrete inactive hang or engine-state mutation. Host actualRust
+bridge + fakeC++core replay:10000syntheticframes*1000hookbatches in0.240s,
+~24us/syntheticframe, zero clocks/records; NOT Pi/Gecko production proof.
+Actual ARM disassembly shows per-call TLS/atomic eligibility work, no blocking
+callee on the inspected inactive branch. P1/P2 configuration defines/substs
+match after root/venv normalization; installed core header matches source.
+Await coordinator effective-gfx, renderer error/liveness and binary-state
+receipts before attributing cause. No corrected build or fix yet; task active.
+New wave bus /tmp/codex/wr-p2-off-regression-20261016/control.txt plus globalbus.
+18:54 receipt: same requested gfx prefs, cumulative decoded36030/presented1246/
+dropped34772, live render threads/no journal errors. Prefs are NOT actual
+backend evidence; live threads can be blocked. Requested actualgfx+stacks/CPU
+deltas or matchedP1 control. All47 frozen source hashes/modes/sizes stillmatch;
+both audit lanes complete, monitor2932918 TERM/reaped, allownedmonitorPIDsabsent.
+Parent report: off-regression/parent-checkpoint.md. No corrected build pending
+execution; need mechanism evidence before choosing a patch. No Pi actions.
+
+## October 16 Runtime Baseline Correction
+
+l8ros correction at 18:39Z: an orphan ffplay at 98.6% CPU contaminated earlier
+low-fps observations. After removal, coordinator reports release R fullscreen
+1080p30 at 30.0fps present / 0-1.6% drops; 60fps content still 30-43fps/dropping.
+Treat these as coordinator-reported results for that tested case, not proof all
+30fps workloads are healthy. Earlier low-fps figures are not a clean baseline.
+Exact affected P1 capture IDs/timestamps have not been supplied; retain evidence
+without declaring every historical capture invalid or assigning GPU causality.
+
+IMPORTANT: subsequent in-progress coordinator pane output shows clean P2-OFF
+still about 0.2-0.3fps, with an R/P2 comparison underway. This is provisional,
+not a completed matched comparison. Do not infer ffplay explains P2-OFF or that
+the diagnostic is cleared. Await exact binary/profiler/content/viewport receipts.
+Separate diagnostic runtime-OFF parity from clean 60fps optimization attribution.
+No new source/build/runtime action; sealed P2 export and schema remain unchanged.
+Task wr-render-fix stays awaiting-runtime; l8ros owns all device/runtime work.
+
+## October 16 P2 Artifact Verified
+
+Single diagnostic beta exported,110621964B, SHA256
+94b4516b31dad3c8fa5b5c95dc22ba9304e1d944d878f19e624fc16d8b9d23de.
+Handoff README/VERIFICATION/package-input and evidence under
+/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/exports/
+umbrafox-wr-render-p2/diagnostic/. Archive name:
+umbrafox-wr-render-p2-beta-c0e7f8a2be04-linux-aarch64.tar.xz.
+Object/native/bothINI BuildIDs20261016175431, all28ELFsARM,47payloadfiles,
+top-levelumbrafox/, no links, frontend/deps/source/archive/extraction verified.
+Overlay348B SHA4278e82f unchanged. SeparateP2patch6b970fcd,combinedd94c2027,
+schemaf016 unchanged. All3nativegroups absent after phases; no fallback/retry.
+Package verifier exit0, actual native linkage oneGeckoowner+8ABI+32Rust symbols.
+No Pi/owner-browser runtime, installation or performance-fix claim. New runtime
+OFF/ON controls, private captures and restoration remain l8ros-owned. Source
+remains isolated/frozen/uncommitted; no release ARM artifact was built.
+
+## October 16 P2 Build Passed, Package Active
+
+Build1 PASS891.77s controller elapsed; nativeRust/mainC++ link complete. Linked
+libxul in obj/dist/bin has8 private C ABI defs,32 Rust P2 symbols, exactly one
+Gecko Core state/origin/TLS set. Receipt evidence/arm-link-receipt.json.
+PGID2528445 and matching build-root compiler processes absent at18:13:52Z.
+No retry/fallback/source change. Min available32609243136B, max sampled host
+used34723274752B, ownedRSS unknown. Package1 exec97711 active, fixedBuildID
+20261016175431, sameguardedcontroller. Expected macharchive obj/dist/
+umbrafox-160.0a1.en-US.linux-aarch64.tar.xz; DO NOT accept until phase exit+
+cleanup, then package_p2.py verification/export succeeds. No Pi/runtime actions.
+
+## October 16 P2 ARM Build Active
+
+Configure1 PASS51.7s, PGID2517069 absent; configure-admission.json confirms
+ARM target/sysroot, optimized/probes1/FirefoxUA and fixeddate20261016175431.
+Build1 exec45786, PGID2528445, start17:58:32Z. Command nice0 mach build -j8
+--priority normal, Cargo2, same fixeddate. Actual owned make/Cargo env and
+nice0 sampled in build-1-process-check.json; obj/buildid.h correct. Source
+freeze6b970fcd / combinedd94c2027 unchanged. At3min RAMavailable~32.8GiB,
+no fallback/compiler error observed yet; build still active, no ARM package.
+Continue owned controller monitoring, preserve all logs, prove entire group
+absent before package/retry. Never touch Pi or desktop browser.
+
+## October 16 P2 Frozen, Configure Active
+
+Separate P2 patch6b970fcdfb8c322e4b2a733688c4b597935f64baf009c1841b6877153e46d383,
+29files/190080B; combinedd94c2027cedbe5776e2206d22089208c69f6d63e93b83a7ac091f6e8db7d29c3,
+47files/336356B. Schemaf016 unchanged; base+P1+P2 and combined replay trees match,
+original index unchanged. First temporary-index Git diff exceeded30s; failed log
+preserved, unchanged-source120s retry succeeded. BuildID20261016175431 fixed.
+Final101Python+53controller/package tests PASS; host writer388B and adapter
+ON/OFF PASS at evidence/native-2PkrVQ; source headers289 matched,18 generated
+host headers recorded. Final independent integration/transfer reviews no blocker.
+All workers stopped; owned monitor2159260 TERM/reaped, no runtime processes touched.
+Configure controller exec55409 started with C++8/Cargo2/nice0. New source/obj only.
+l8ros ACKed freeze/build17:57Z; no Pi or desktop-browser authority. Verify target
+configuration and exact configure-group absence before build. No ARM build yet.
+
+## October 16 P2 Integration Gates
+
+Task wr-render-fix remains active under l8ros; source/build/artifacts only.
+Schema frozen f016802c5c29de569f59223c97f196f258817a71200f45e831eed7fca1bf6b75.
+NEW isolated source /home/public/wyatt-desktop/.cache/codex/
+umbrafox-wr-render-fix-20261016/source, exact base c0e7f8 plus sealed P1;
+old P1 source/export immutable. P2 probe-only implementation now present,
+five shared-owner roles, one C++ budget/TLS/terminal and Rust ticket bridge.
+No optimization/GPU query/public JS/custom IPC. No Pi/owner-browser action.
+Core38 normal/GCC+Clang UBSan, P1 21+OFF, renderer15fake+12source,
+transfer13 source, actual mixed-language shared-owner/closure/OFF tests pass.
+Host actual writer388B plus adapter ON/OFF compilation pass,289 included source
+headers byte-match isolated source;18 generated host headers recorded, not ARM
+proof. Independent transfer/parent-integration reviews and final lint ongoing.
+Parent cache freeze_p2.mjs/test_freeze.mjs nine synthetic replay/rejection checks
+pass. Separate P2/combined replay freeze and fresh BuildID NOT YET ASSIGNED.
+Coordinator authorized ONE P2 ARM diagnostic beta package, C++8/Cargo2/nice0,
+8GiB->4job and5GiB->2job guarded stop/manual resume; no second release package.
+Package helper30synthetic pass; controller fallback/supplemental checks in review.
+Output exports/umbrafox-wr-render-p2/diagnostic; overlay4278e82f unchanged.
+Active worker monitor exec81858; buses l8ros-arm-bus and wr-render-fix control.
+Parent must finish source/native/review gates then freeze+notify before build.
+
+## October 16 WR Render Phase A
+
+Active coordinator task wr-render-fix, same ARM DB/session20261014T2105Z-l8ros-arm.
+New wave bus /tmp/codex/wr-render-fix-20261016/control.txt plus l8ros-arm-bus.
+Coordinator return websocket cwd does not resolve; use l8ros:1.1 only after
+verifying input is blank, plus DB. Existing three workers now report-only.
+PhaseA report bot-docs/reports/2026-10-16-wr-render-phase-a.md; inventories and
+independent adapter review under /home/public/wyatt-desktop/.cache/codex/
+umbrafox-wr-render-fix-20261016/. New isolated source there replays all22 frozen
+P1 files exact hash/size/mode; original P1 source/export untouched. No P2 source
+edits/build/runtime yet; exact schema/API and one ARM build approval remain.
+Native TextureHandle bypasses pixel texture cache; promoted finalYUV vs rasterYUV
+route unobserved in D1. Draw/tile/reason marker schemas had zero emitted records.
+Admission-gap FPS retracted; coordinator true present32-51fps/~48%drops.
+720out d3=17420us vs24056us, area2.25x,27.6%reduction; mixed cost only hypothesis.
+Conditional candidates: Draw unused full-render occlusion (Layer-only consumer),
+repeated vertex texture uploads on selected ring slot, picture invalidation.
+No GPU-cause/high-leverage/fix claim. First P2 proposed5group aggregates sharing
+one P1 core budget, C++stack owner/Rust phase tickets, explicit mixed-version
+joins. Nearest-admitted lookup is unsafe for nested failed admission; immutable
+invocation-header selector and cleanup/token semantics must be frozen/tested.
+One proposed ARM P2 beta package path in report; no second release build,
+no Pi/owner-browser authority. HistoricalD is not new-patch compile-out proof.
+
+## October 16 D1 Redirects P2
+
+l8ros reports D1 Wayland P1 d3 WR-render median24.1ms, dominant stage;
+observed imports/locks/present cheap. Import-reuse candidate DEPRIORITIZED for
+this workload, not universally disproven. Zero DecoderPool records are missing
+coverage, not proof zero copies. Raw dump receipt under exports/umbrafox-wr-video-p1/
+captures/D1-wayland;415063421B SHA b734fffd... not parsed by this source audit.
+P2 proposal: bot-docs/plans/2026-10-16-pi-wr-render-p2.md. Read-only pinned-source
+audit, no new source/build/Pi/runtime authorization or action.12Rust/binding/shader/
+gfxPlatform files byte-match base. d3 includes resource/draw/composition/tail;
+scene/frame building and tile z-sort upstream, not d3. Existing draw/tile/render-
+reason markers first. Conditional observer stall: enabled GPU query sets collect
+blocking GL_QUERY_RESULT through four-frame ring. Coordinator subsequently
+confirmed effective timer/sample flags false: query stall EXCLUDED for D1.
+Gecko profiling alone does not imply enabled. CPU wall cannot decide GPU vsCPU;
+pixel scaling cannot distinguish YUV shader from fill-rate (both scale). Both
+corrections sent to coordinator. P1 seal unchanged; no import optimization started.
+
+## October 16 P1 ARM Artifact Verified
+
+Build2 PASS300s, mach packagePASS, package verifierPASS. Export:
+exports/umbrafox-wr-video-p1/diagnostic/umbrafox-wr-video-p1-beta-c0e7f8a2be04-linux-aarch64.tar.xz
+110608216B SHA70d5a7470fed931cfaa5ec261cc66c231204443066756626a00db0fdc3370f16.
+Native/object/application/platform BuildIDs all20261016031646; all28ELFsAArch64,
+47files/no links, bothJARs verified; beta overlay348B SHA4278e82f unchanged.
+Patch731d9ec2.../manifestf63f08a0... exact; actual libxul contains bothP1literals,
+gate1 confirmed. Not runtime or new-patch release-OFF proof. Source unchanged.
+First build4450s requestedTERM preserved; old group absent before make8/nice0
+resume after owneroverride. All four native groups absent after packaging.
+README/package-input/evidence include test/review/build/cleanup/provenance;
+report bot-docs/reports/2026-10-16-wr-video-p1-diagnostic.md. No Pi/install/native
+ARM execution/raw-profile/owner-browser work. l8ros owns R/D0/D1/R validation;
+no optimization verdict until measured. Source remains isolated, not committed
+to main. Desktop clipboard activation hold is unrelated and remains unchanged.
+
+## October 16 Owner-Authorized Faster Resume
+
+Wyatt authorized nice0/-j8 during build1. Exact group1287237 first reniced0,
+then stopped via owned controller1287197 TERM;4450s/exit-15, original log saved.
+Full group +wrapper absent proved before build2 same-obj, exec7439/PGID1457543,
+start04:33:00Z. Source/mozconfig/fixeddate20261016031646 unchanged. Make8,
+Cargo environment2. Mach default idle priority counteracted with owned-group
+renice0; active compilers and make all verified0. Controller future build uses
+supported --priority normal; RED then9GREEN. Original controller copies saved.
+Receipts build-1-cleanup.json, build-2-priority-check.json. Coordinator informed;
+no unrelated signals or Pi/desktop action. Native link/package still pending.
+
+## October 16 ARM Build Active
+
+Configure completed29s/exit0, ownedPGID1283042 absent; configure-admission.json
+records target/sysroot/probesON/optimization/FirefoxUA. Build1 started03:18:33Z,
+exec81471, ownedPGID1287237; nice10 mach build -j2/Cargo2/make2/date20261016031646.
+Keep both buses and run_phase guards; first logs/receipts immutable inputs.
+No package yet. Coordinator notified exact command/time. No Pi/desktop install.
+
+## October 16 P1 Frozen, Configure Started
+
+Patch731d9ec249e4de7d7f1aa58179504cbb9ae5f12f2cfe1b2cadbb616a3228874e,
+22files/152483B, freeze/source.patch + source-freeze.json in isolated cache.
+Temporary-index replay matched hash/size/mode; original index unchanged.
+Freeze handed to l8ros by tmux+DB before configure. Fixed BuildID20261016031646.
+run_phase.py configure exec11631; logs/receipt in cache root. No ARM build yet.
+Core21+ASan/UBSan21,TSAN2,route13,renderer14,records11 PASS; registered lint0.
+Supplied-data validator preserves caller-asserted clock, never completeness.
+Package verifier19 synthetic PASS, exact scratch lint/final hashes pending.
+Runner9 fake tests pass including last prelaunch-stop correction, parent-reviewed.
+Same C++2/Cargo2/nice10; both buses mandatory; no Pi or desktop browser actions.
+Read phase receipts and exact group absence before continuing or retrying.
+
+## October 16 P1 Prebuild Gates
+
+Native helper source review clear after three observed-eligibility/init/writer
+findings were reproduced failing-first and fixed. Core21PASS plus ASan/UBSan21;
+route13/renderer14 source tests pass. Host actual JSON writer387B and sink
+adapter compile pass against byte-checked pinned headers, not ARM/runtime proof.
+Registered native/source lint0. Renderer diagnostic bulk traversal removed;
+inactive counters now eligibility-emplaced. No rendering statements changed.
+Latest helper core f2fdcf91, adapter f642f6c6; schema unchanged.
+Routes worker now owns only validate_records.py/test_records.py supplied-data
+validator; renderer worker owns only cache-root package_p1.py/test_package.py.
+Core reviewer01a14291-321c-7742-a625-92120a2ece8a owns scratch core-review.md.
+Parent cache-root freeze.mjs replays full patch using temporary index;
+run_phase.py/test_phase.py guard build lifetime and exact frozen inputs.
+Runner HEAD/extra-file/mode gap reproduced3RED then8fake testsPASS.
+All logs under /tmp/codex/track-wr-video-p1-20261016; original failures retained.
+mozconfig created in isolated parent cache root, fresh obj path, probesON;
+no configure/ARM compile yet. Freeze/hash handoff still precedes build.
+
+## October 16 WR P1 Implementation Active
+
+Coordinator authorized ONE optimized diagnostic ARM package, probesON,
+C++2/Cargo2/nice10, base c0e7f8a2be0460695c1f65ae8796b09c1082480c,
+beta overlay4278e82f. Freeze/test and hand off P1-only patch hash before build.
+No Pi deployment/runtime or owner browser actions. Existing release R reused;
+new patch compiled-out proof remains a separate later gate.
+Isolated detached source: ~/.cache/codex/umbrafox-wr-video-p1-cIrmxHaw/source.
+Parent owns helper/core/manifest/tests; routes worker01a14287-1d18-72b2-9792-a33c39fba568
+owns FFmpegVideoFramePool.cpp/DMABufSurface.cpp/test_routes.py; renderer worker
+01a14287-1e0b-7a92-9fc2-0b807bba0778 owns seven assigned cpp/test_renderer.py.
+API and wave bus under /tmp/codex/track-wr-video-p1-20261016/; helper-api.md
+adds Current(Kind)/SetOperation, invalid outcome counts once per record.
+Read both wave control.txt and /tmp/codex/l8ros-arm-bus.txt after commands.
+Monitor exec83376 runs timeout7200; stop owned monitor when worker wave ends.
+DB/session remains /tmp/codex/teamwork/20261014T2105Z-l8ros-arm.sqlite /
+20261014T2105Z-l8ros-arm, task track-wr-video. No native ARM build started yet.
+Schema freeze a06997869e... unchanged. Keep main production source untouched.
+
+## October 15 WR Schema Frozen, Docs Only
+
+Coordinator event59 reports corrected runtime-verified compositorOFF arms:
+Wayland26.5fps/67.8% dropped, XWayland20.2fps/73.3%. Earlier X11 advantage
+retracted; no causal refresh isolation or platform-default change inferred.
+Latest received instruction: continue docs, no builds/Pi yet. A later build
+authorization was visible queued in coordinator pane, not yet the active user
+instruction for this chunk; do not infer execution permission from that alone.
+
+Frozen schema bot-docs/plans/2026-10-15-pi-webrender-video-schema-v1.md SHA256
+a06997869ed4ee62a2acd2dedf669085e33752c354fcdb8dc4065e9ca1d8470d.
+Exact base c0e7f8a2be0460695c1f65ae8796b09c1082480c. Fixed32 uint32 words,
+8 kinds, aggregated renderer/import subdurations, explicit missing/validity,
+process-local joins only; worst compact payload387B vs512 reservation. Corrected
+draft386B after assertion RED. Pure arithmetic/200encoding/6ID-extreme/local-link
+checks PASS; no native serializer/helper/runtime implementation or proof.
+Gecko-specific eligibility required; generic marker helper also admits ETW/
+Perfetto. Dump has no byte limit: postwrite size check is not an export-time cap.
+Device total ring/memory/disk/export deadline limits remain l8ros runtime gate.
+Keep old release R/new diagnostic D0/D1 controls and separate patched-OFF proof.
+
+## October 15 WR P1 Conditional Approval
+
+Coordinator decision57 approves P1 scope, not builds/runtime. Plan now names one
+proposed diagnostic ARM beta package under exports/umbrafox-wr-video-p1/diagnostic
+and existing exports/umbrafox-arm-20261014/beta as release OFF control. D0 is
+diagnostic profiler-inactive, D1 active; neither substitutes for release R.
+Exact base c0e7f8a2be0460695c1f65ae8796b09c1082480c fixed; versioned schema freeze
+is now recorded above. No probe implementation or build started.
+C++2/Cargo2/nice10 only after explicit build approval. Fresh baseline is l8ros
+first, all Pi operations remain theirs. Private dump returns profileDir/umbrafox/
+diagnostics/profiles/basename.json; dump does not start/stop profiler. Activate
+after settle or one-shot20s expires early. Per-process8MiB custom cap is not
+128MiB ring/aggregate/profile-export bound. Existing release cannot certify new
+patch compile-out: patch-applied OFF artifact verification remains a later gate.
+
+## October 15 Pi WebRender Source Audit
+
+New l8ros task track-wr-video in historical ARM DB/session20261014T2105Z-l8ros-arm;
+bus /tmp/codex/l8ros-arm-bus.txt, tmux l8ros:1.1 (inspect empty input first).
+Accepted bounded source audit/plan only initially; no Pi/browser/build/probes run.
+Coordinator event52 confirms deployed beta20261014135715/sourcec0e7f8a2be04.
+Plan bot-docs/plans/2026-10-15-pi-webrender-video-probes.md maps exact pinned
+V4L2->pool->DMABUF host->WR, pool GPUcopy vs import/directbind vs import GPUcopy
+fallback, CPU upload alternative, compositor/renderer/present boundaries.
+Saved x11-20261016 snapshot is paused, identity-only; does not prove FPS interval.
+Proposed generation-safe V4L2 import reuse is conditional on measured import cost;
+no fix or stage bottleneck proved. EGL WaitForGPU is inherited no-op. Release
+compile gate retained; no new JS/API. Implementation/review/build/runtime remain
+pending; l8ros owns physical Pi. Clipboard inactive-install hold still unchanged.
+Late l8ros correction: persisted compositor.force-enabled=true contaminated some
+earlier alleged OFF arms. It reports genuinely OFF now, but controlled Wayland/
+XWayland baseline must be repeated before choosing a fix. Plan retains old
+numbers as historical reports only. No independent device verification here.
+
 ## October 15 Clipboard Prototype Installed, Activation Held
 
 Implementation committed as47e6fdeb78fee3bde3447b348f49244025b0b738;
