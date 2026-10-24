@@ -608,6 +608,20 @@ impl Renderer {
         let _gm = self.gpu_profiler.start_marker("framebuffer");
         let _timer = self.gpu_profiler.start_timer(GPU_TAG_COMPOSITE);
 
+        if let Some(compositor) = self.compositor_config.draw_external_compositor() {
+            let allowed = self.debug_flags.is_empty()
+                && !self.debug_overlay_state.is_enabled
+                && device_size == frame_device_size
+                && matches!(fb_draw_target, DrawTarget::Default { rect, .. } if rect.min == FramebufferIntPoint::zero());
+            if composite_state.prepare_draw_external_surface(
+                frame_device_size, allowed, compositor.as_mut(),
+            ).is_some()
+            {
+                // The accepted frontmost opaque surface covers every lower tile.
+                return;
+            }
+        }
+
         let num_tiles = composite_state.tiles.len();
         self.profile.set(profiler::PICTURE_TILES, num_tiles);
 
@@ -1555,6 +1569,7 @@ impl Renderer {
 
             let can_use_partial_present = composite_state.dirty_rects_are_valid
                 && !self.force_redraw
+                && self.compositor_config.draw_external_compositor().is_none()
                 && !(prev_frames_damage_rect.is_none() && draw_previous_partial_present_regions)
                 && !self.debug_overlay_state.is_enabled;
 

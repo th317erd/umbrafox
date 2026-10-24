@@ -36,6 +36,12 @@
 
 namespace mozilla::wr {
 
+bool wr_compositor_prepare_draw_external_surface(
+    void* aCompositor, const wr::DrawExternalSurface* aSurface) {
+  return static_cast<RenderCompositor*>(aCompositor)
+      ->PrepareDrawExternalSurface(aSurface);
+}
+
 void wr_compositor_add_surface(void* aCompositor, wr::NativeSurfaceId aId,
                                const wr::CompositorSurfaceTransform* aTransform,
                                wr::DeviceIntRect aClipRect,

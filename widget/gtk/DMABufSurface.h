@@ -394,12 +394,17 @@ class DMABufSurfaceYUV final : public DMABufSurface {
 
   bool VerifyTextureCreation();
 
+  bool IsWlBufferFormatSupported(
+      mozilla::widget::DMABufFormats& aFormats) const;
+
 #ifdef MOZ_WAYLAND
   wl_buffer* CreateWlBuffer() override;
 #endif
 
  private:
   ~DMABufSurfaceYUV();
+
+  uint32_t GetWlBufferFormat() const;
 
   bool CreateTexture(mozilla::gl::GLContext* aGLContext, int aPlane) override;
 

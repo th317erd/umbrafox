@@ -24,6 +24,9 @@ use crate::space::SpaceMapper;
 use std::{ops, os::raw::c_void, hash};
 use std::num::NonZeroUsize;
 
+mod draw_external;
+pub use self::draw_external::{DrawExternalCompositor, DrawExternalSurface};
+
 #[cfg(feature = "replay")]
 fn white_modulation() -> api::PremultipliedColorF {
     api::PremultipliedColorF::WHITE
@@ -342,6 +345,7 @@ pub enum CompositorConfig {
         /// A client provided interface to a compositor handling partial present.
         /// Required if webrender must query the backbuffer's age.
         partial_present: Option<Box<dyn PartialPresentCompositor>>,
+        external_compositor: Option<Box<dyn DrawExternalCompositor>>,
     },
     Layer {
         /// If supplied, composite the frame using the new experimental compositing
@@ -359,6 +363,13 @@ pub enum CompositorConfig {
 }
 
 impl CompositorConfig {
+    pub fn draw_external_compositor(&mut self) -> Option<&mut Box<dyn DrawExternalCompositor>> {
+        match self {
+            CompositorConfig::Draw { external_compositor, .. } => external_compositor.as_mut(),
+            _ => None,
+        }
+    }
+
     pub fn compositor(&mut self) -> Option<&mut Box<dyn Compositor>> {
         match self {
             CompositorConfig::Native { ref mut compositor, .. } => {
@@ -406,6 +417,7 @@ impl Default for CompositorConfig {
             max_partial_present_rects: 0,
             draw_previous_partial_present_regions: false,
             partial_present: None,
+            external_compositor: None,
         }
     }
 }

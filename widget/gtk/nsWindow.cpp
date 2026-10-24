@@ -7509,12 +7509,13 @@ void nsWindow::SetDragSource(GdkDragContext* aSourceDragContext) {
   }
 }
 
-UniquePtr<WaylandSurfaceLock> nsWindow::LockSurface() {
+UniquePtr<WaylandSurfaceLock> nsWindow::LockSurface(bool aSkipCommit) {
 #ifdef MOZ_WAYLAND
   if (mIsDestroyed || !mSurface) {
     return nullptr;
   }
-  return MakeUnique<WaylandSurfaceLock>(MOZ_WL_SURFACE(mContainer));
+  return MakeUnique<WaylandSurfaceLock>(MOZ_WL_SURFACE(mContainer),
+                                        aSkipCommit);
 #else
   return nullptr;
 #endif

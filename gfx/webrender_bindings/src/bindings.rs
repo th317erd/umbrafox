@@ -30,6 +30,7 @@ use std::{env, mem, ptr, slice};
 use thin_vec::ThinVec;
 use webrender::glyph_rasterizer::{GlyphRasterThread, SharedFontResources};
 use webrender::ChunkPool;
+use webrender::{DrawExternalCompositor, DrawExternalSurface};
 
 use euclid::SideOffsets2D;
 use moz2d_renderer::Moz2dBlobImageHandler;
@@ -1456,6 +1457,10 @@ extern "C" {
         tile_size: DeviceIntSize,
         is_opaque: bool,
     );
+    fn wr_compositor_prepare_draw_external_surface(
+        compositor: *mut c_void,
+        surface: Option<&DrawExternalSurface>,
+    ) -> bool;
     fn wr_compositor_create_swapchain_surface(
         compositor: *mut c_void,
         id: NativeSurfaceId,
@@ -2065,6 +2070,14 @@ impl MappableCompositor for WrCompositor {
     }
 }
 
+struct WrDrawExternalCompositor(*mut c_void);
+
+impl DrawExternalCompositor for WrDrawExternalCompositor {
+    fn prepare(&mut self, surface: Option<&DrawExternalSurface>) -> bool {
+        unsafe { wr_compositor_prepare_draw_external_surface(self.0, surface) }
+    }
+}
+
 pub struct WrPartialPresentCompositor(*mut c_void);
 
 impl PartialPresentCompositor for WrPartialPresentCompositor {
@@ -2157,6 +2170,7 @@ pub extern "C" fn wr_window_new(
     enable_subpixel_aa: bool,
     use_layer_compositor: bool,
     limit_sdr_yuv_external_composites: bool,
+    use_draw_external_compositor: bool,
 ) -> bool {
     assert!(unsafe { is_in_render_thread() });
 
@@ -2235,6 +2249,11 @@ pub extern "C" fn wr_window_new(
         CompositorConfig::Draw {
             max_partial_present_rects,
             draw_previous_partial_present_regions,
+            external_compositor: if use_draw_external_compositor {
+                Some(Box::new(WrDrawExternalCompositor(compositor)))
+            } else {
+                None
+            },
             partial_present: if use_partial_present {
                 Some(Box::new(WrPartialPresentCompositor(compositor)))
             } else {

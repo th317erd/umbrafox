@@ -123,6 +123,11 @@ class RenderCompositor {
 
   virtual bool UseLayerCompositor() const { return false; }
 
+  virtual bool SupportsDrawExternalSurface() const { return false; }
+  virtual bool PrepareDrawExternalSurface(const wr::DrawExternalSurface*) {
+    return false;
+  }
+
   // Request RenderCompositor to enable taking screenshot
   // In WebRender layer compositor case, taking screenshot will be ready in at
   // most one WebRender composition.

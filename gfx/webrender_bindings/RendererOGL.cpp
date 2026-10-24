@@ -190,14 +190,19 @@ RenderedFrameId RendererOGL::UpdateAndRender(
     if (!mCompositor->GetWidget()->PreRender(&widgetContext)) {
       // XXX This could cause oom in webrender since pending_texture_updates is
       // not handled. It needs to be addressed.
+      if (mCompositor->SupportsDrawExternalSurface()) {
+        mCompositor->CancelFrame();
+      }
       return RenderedFrameId();
     }
     needPostRenderCall = true;
 
     // XXX set clear color if MOZ_WIDGET_ANDROID is defined.
 
-    if (aReadbackBuffer.isSome() || layers::ProfilerScreenshots::IsEnabled()) {
-      if (mCompositor->UseLayerCompositor()) {
+    if (aReadbackBuffer.isSome() || layers::ProfilerScreenshots::IsEnabled() ||
+        (mCompositionRecorder && mCompositor->SupportsDrawExternalSurface())) {
+      if (mCompositor->UseLayerCompositor() ||
+          mCompositor->SupportsDrawExternalSurface()) {
         mCompositor->EnableAsyncScreenshot();
       }
     }
@@ -215,10 +220,16 @@ RenderedFrameId RendererOGL::UpdateAndRender(
     }
   } else if (!mCompositor->MakeCurrent()) {
     // MakeCurrent is otherwise called by mCompositor->BeginFrame above.
+    if (present && mCompositor->SupportsDrawExternalSurface()) {
+      mCompositor->CancelFrame();
+    }
     return RenderedFrameId();
   }
 
   if (!beginFrame) {
+    if (present && mCompositor->SupportsDrawExternalSurface()) {
+      mCompositor->CancelFrame();
+    }
     CheckGraphicsResetStatus(gfx::DeviceResetDetectPlace::WR_BEGIN_FRAME,
                              /* aForce */ true);
     if (needPostRenderCall) {
@@ -325,7 +336,8 @@ RenderedFrameId RendererOGL::UpdateAndRender(
 }
 
 bool RendererOGL::EnsureAsyncScreenshot() {
-  if (mCompositor->UseLayerCompositor()) {
+  if (mCompositor->UseLayerCompositor() ||
+      mCompositor->SupportsDrawExternalSurface()) {
     return mCompositor->EnableAsyncScreenshot();
   }
   if (mCompositor->SupportAsyncScreenshot()) {

@@ -110,6 +110,75 @@ already_AddRefed<NativeLayerRootWayland> NativeLayerRootWayland::Create(
   return MakeAndAddRef<NativeLayerRootWayland>(std::move(aWaylandSurface));
 }
 
+/* static */
+already_AddRefed<NativeLayerRootWayland> NativeLayerRootWayland::CreateForEGL(
+    WaylandSurfaceLock& aProofOfLock) {
+  RefPtr parent = aProofOfLock.GetWaylandSurface();
+  parent->AssertCurrentThreadOwnsMutex();
+  RefPtr root = new NativeLayerRootWayland(parent, true);
+  root->mEGLExternalLayer = new NativeLayerWaylandExternal(root, true);
+  parent->SetEGLExternalRootLocked(aProofOfLock, root);
+  return root.forget();
+}
+
+bool NativeLayerRootWayland::PrepareForEGL(WaylandSurfaceLock& aProofOfLock,
+                                           RenderTextureHost* aExternalImage,
+                                           const IntSize& aSize) {
+  MOZ_RELEASE_ASSERT(mForEGL && mRootSurface && mEGLExternalLayer);
+  MOZ_RELEASE_ASSERT(aProofOfLock.GetWaylandSurface() == mRootSurface);
+  mRootSurface->AssertCurrentThreadOwnsMutex();
+
+  auto* host =
+      aExternalImage ? aExternalImage->AsRenderDMABUFTextureHost() : nullptr;
+  RefPtr<DMABufSurface> surface = host ? host->GetSurface() : nullptr;
+  auto formats = WaylandDisplayGet()->GetDMABufFormats();
+  if (!surface || !surface->GetAsDMABufSurfaceYUV() || !mGL ||
+      !mRootSurface->IsMapped() || !mRootSurface->HasEGLWindow() ||
+      mRootSurface->GetScale() != 1.0 || aSize.IsEmpty() ||
+      surface->GetSize() != aSize ||
+      surface->GetColorDepth() != gfx::ColorDepth::COLOR_8 ||
+      surface->GetYUVColorSpace() != gfx::YUVColorSpace::BT709 ||
+      surface->GetTransferFunction() != gfx::TransferFunction::BT709 ||
+      surface->IsFullRange() || surface->IsHDRSurface() ||
+      (surface->GetFormat() != gfx::SurfaceFormat::NV12 &&
+       surface->GetFormat() != gfx::SurfaceFormat::YUV420) ||
+      !formats ||
+      !surface->GetAsDMABufSurfaceYUV()->IsWlBufferFormatSupported(*formats) ||
+      !WaylandDisplayGet()->GetColorRepresentationManager() ||
+      !WaylandDisplayGet()->GetColorRange(surface->GetWLColorCoeficients(),
+                                          false)) {
+    mRootSurface->SetEGLVSyncSourceLocked(aProofOfLock, nullptr);
+    mEGLExternalLayer->HideForEGL();
+    return false;
+  }
+  const bool prepared =
+      mEGLExternalLayer->PrepareForEGL(aProofOfLock, aExternalImage, aSize);
+  mRootSurface->SetEGLVSyncSourceLocked(
+      aProofOfLock,
+      prepared ? mEGLExternalLayer->GetWaylandSurface() : nullptr);
+  if (!prepared && !mEGLExternalLayer->IsMapped()) {
+    // Failed subsurface creation can leave partial parent state behind.
+    mEGLExternalLayer = new NativeLayerWaylandExternal(this, true);
+  }
+  return prepared;
+}
+
+void NativeLayerRootWayland::ClearForEGL(WaylandSurfaceLock& aProofOfLock) {
+  MOZ_RELEASE_ASSERT(mForEGL && mRootSurface && mEGLExternalLayer);
+  MOZ_RELEASE_ASSERT(aProofOfLock.GetWaylandSurface() == mRootSurface);
+  mRootSurface->AssertCurrentThreadOwnsMutex();
+  mRootSurface->SetEGLVSyncSourceLocked(aProofOfLock, nullptr);
+  mEGLExternalLayer->ClearForEGL();
+}
+
+void NativeLayerRootWayland::ShutdownForEGL(WaylandSurfaceLock& aProofOfLock) {
+  RefPtr<NativeLayerRootWayland> self = this;
+  ClearForEGL(aProofOfLock);
+  mRootSurface->SetEGLExternalRootLocked(aProofOfLock, nullptr);
+  mEGLExternalLayer = nullptr;
+  mRootSurface = nullptr;
+}
+
 void NativeLayerRootWayland::SetDRMFormat(DRMFormat* aFormat) {
   if (aFormat) {
     aFormat->AddRef();
@@ -152,6 +221,7 @@ void NativeLayerRootWayland::ConfigureScaleLocked(
 }
 
 void NativeLayerRootWayland::Init() {
+  MOZ_RELEASE_ASSERT(!mForEGL);
   LOG("NativeLayerRootWayland::Init");
   mTmpBuffer = widget::WaylandBuffer::CreateSHM(LayoutDeviceIntSize(1, 1));
 
@@ -283,6 +353,7 @@ void NativeLayerRootWayland::Init() {
 }
 
 void NativeLayerRootWayland::Shutdown() {
+  MOZ_RELEASE_ASSERT(!mForEGL);
   LOG("NativeLayerRootWayland::Shutdown()");
   AssertIsOnMainThread();
 
@@ -305,16 +376,18 @@ void NativeLayerRootWayland::Shutdown() {
 }
 
 NativeLayerRootWayland::NativeLayerRootWayland(
-    RefPtr<WaylandSurface> aWaylandSurface)
-    : mRootSurface(aWaylandSurface) {
+    RefPtr<WaylandSurface> aWaylandSurface, bool aForEGL)
+    : mRootSurface(aWaylandSurface), mForEGL(aForEGL) {
 #ifdef MOZ_LOGGING
   mLoggingWidget = mRootSurface->GetLoggingWidget();
-  mRootSurface->SetLoggingWidget(this);
+  if (!mForEGL) {
+    mRootSurface->SetLoggingWidget(this);
+  }
   LOG("NativeLayerRootWayland::NativeLayerRootWayland() nsWindow [%p] mapped "
       "%d",
       mLoggingWidget, mRootSurface->IsMapped());
 #endif
-  if (!WaylandSurface::IsOpaqueRegionEnabled()) {
+  if (!mForEGL && !WaylandSurface::IsOpaqueRegionEnabled()) {
     NS_WARNING(
         "Wayland opaque region disabled, expect poor rendering performance!");
   }
@@ -1517,6 +1590,85 @@ RefPtr<BufferSurface> NativeLayerWaylandExternal::GetSurface() {
 NativeLayerWaylandExternal::NativeLayerWaylandExternal(
     NativeLayerRootWayland* aRootLayer, bool aIsOpaque)
     : NativeLayerWayland(aRootLayer, IntSize(), aIsOpaque) {}
+
+bool NativeLayerWaylandExternal::PrepareForEGL(
+    WaylandSurfaceLock& aParentProofOfLock, RenderTextureHost* aExternalImage,
+    const IntSize& aSize) {
+  WaylandSurfaceLock lock(mSurface);
+  RefPtr surface = aExternalImage->AsRenderDMABUFTextureHost()->GetSurface();
+  MOZ_RELEASE_ASSERT(!mSurface->IsPendingGdkCleanup());
+
+  if (mSurface->IsMapped() &&
+      mEGLChromaLocation != surface->GetWPChromaLocation()) {
+    HideForEGLLocked(lock);
+    return false;
+  }
+  if (!mSurface->IsMapped()) {
+    if (!mSurface->MapLocked(lock, &aParentProofOfLock, DesktopIntPoint())) {
+      HideForEGLLocked(lock);
+      return false;
+    }
+    mSurface->DisableUserInputLocked(lock);
+    mSurface->SetOpaqueForEGLLocked(lock);
+    mSurface->SetColorRepresentationLocked(
+        lock, surface->GetWLColorCoeficients(), false,
+        surface->GetWPChromaLocation());
+    mEGLChromaLocation = surface->GetWPChromaLocation();
+  }
+
+  if (!mFrontBuffer ||
+      mLastSurface != reinterpret_cast<uintptr_t>(surface.get())) {
+    mFrontBuffer = widget::WaylandBuffer::Create(surface);
+  }
+  if (!mFrontBuffer) {
+    HideForEGLLocked(lock);
+    return false;
+  }
+
+  mSize = aSize;
+  mDisplayRect = IntRect(IntPoint(), aSize);
+  mSurface->SetViewPortSourceRectLocked(
+      lock, DesktopRect(0, 0, aSize.width, aSize.height));
+  mSurface->SetViewPortDestLocked(lock,
+                                  DesktopIntSize(aSize.width, aSize.height));
+  mSurface->InvalidateLocked(lock);
+  surface->FenceWait(mRootLayer->gl());
+  if (!mSurface->AttachLocked(lock, mFrontBuffer)) {
+    HideForEGLLocked(lock);
+    return false;
+  }
+
+  mTextureHost = aExternalImage;
+  mLastSurface = reinterpret_cast<uintptr_t>(surface.get());
+  mState.mIsVisible = true;
+  mState.mIsRendered = true;
+  mState.mRenderedLastCycle = true;
+  return true;
+}
+
+void NativeLayerWaylandExternal::HideForEGLLocked(
+    const WaylandSurfaceLock& aProofOfLock) {
+  if (mSurface->IsMapped()) {
+    mSurface->RemoveAttachedBufferLocked(aProofOfLock);
+  }
+  DiscardBackbuffersLocked(aProofOfLock, false);
+  mState.InvalidateAll();
+}
+
+void NativeLayerWaylandExternal::HideForEGL() {
+  WaylandSurfaceLock lock(mSurface);
+  HideForEGLLocked(lock);
+}
+
+void NativeLayerWaylandExternal::ClearForEGL() {
+  WaylandSurfaceLock lock(mSurface);
+  mSurface->UnmapLocked(lock);
+  DiscardBackbuffersLocked(lock, false);
+  mState.InvalidateAll();
+  mEGLChromaLocation = 0;
+  MOZ_RELEASE_ASSERT(!mSurface->IsPendingGdkCleanup());
+  MOZ_RELEASE_ASSERT(mNeedsMainThreadUpdate == MainThreadUpdate::None);
+}
 
 void NativeLayerWaylandExternal::AttachExternalImage(
     RenderTextureHost* aExternalImage) {

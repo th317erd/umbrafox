@@ -20,6 +20,12 @@
 #  include "mozilla/widget/GtkCompositorWidget.h"
 #endif
 
+#ifdef MOZ_WAYLAND
+#  include "mozilla/layers/NativeLayerWayland.h"
+#  include "mozilla/webrender/RenderDMABUFTextureHost.h"
+#  include "mozilla/widget/WaylandSurface.h"
+#endif
+
 #ifdef MOZ_WIDGET_ANDROID
 #  include <android/native_window.h>
 #  include <android/native_window_jni.h>
@@ -89,6 +95,8 @@ RenderCompositorEGL::RenderCompositorEGL(
 
     const int interval = gfx::gfxVars::SwapIntervalEGL() ? 1 : 0;
     egl->fSwapInterval(interval);
+    mDrawExternalEnabled = StaticPrefs::
+        gfx_webrender_compositor_external_surfaces_in_draw_AtStartup();
   }
 #endif
 }
@@ -98,7 +106,91 @@ RenderCompositorEGL::~RenderCompositorEGL() {
 #ifdef MOZ_WIDGET_ANDROID
   java::GeckoSurfaceTexture::DestroyUnused((int64_t)gl());
 #endif
+#ifdef MOZ_WAYLAND
+  CancelFrame();
+  if (mDrawExternalRoot) {
+    widget::WaylandSurfaceLock lock(mDrawExternalRoot->GetRootWaylandSurface(),
+                                    true);
+    mDrawExternalRoot->ShutdownForEGL(lock);
+    mDrawExternalRoot = nullptr;
+  }
+#endif
   DestroyEGLSurface();
+}
+
+bool RenderCompositorEGL::SupportsDrawExternalSurface() const {
+  return mDrawExternalEnabled;
+}
+
+bool RenderCompositorEGL::EnableAsyncScreenshot() {
+  mDrawExternalReadback = true;
+  return !mDrawExternalActive;
+}
+
+bool RenderCompositorEGL::PrepareDrawExternalSurface(
+    const wr::DrawExternalSurface* aSurface) {
+#ifdef MOZ_WAYLAND
+  if (!mDrawExternalEnabled || !mDrawFrameInProgress) {
+    CancelFrame();
+    return false;
+  }
+  mDrawExternalPrepared = true;
+  if (!mDrawExternalLock) {
+    mDrawExternalLock = mWidget->AsGTK()->LockSurface(true);
+  }
+  if (!mDrawExternalLock) {
+    CancelFrame();
+    return false;
+  }
+  auto* parent = mDrawExternalLock->GetWaylandSurface();
+  if (!mDrawExternalRoot && parent->IsMapped()) {
+    mDrawExternalRoot =
+        layers::NativeLayerRootWayland::CreateForEGL(*mDrawExternalLock);
+    if (mDrawExternalRoot) {
+      mDrawExternalRoot->SetGLContext(gl());
+    }
+  }
+  if (!mDrawExternalRoot) {
+    return false;
+  }
+
+  RefPtr<RenderTextureHost> host;
+  gfx::IntSize size;
+  if (aSurface && !mDrawExternalReadback && !mWidget->IsHidden() &&
+      parent->IsMapped() && parent->GetScale() == 1.0) {
+    size = gfx::IntSize(aSurface->size.width, aSurface->size.height);
+    host = RenderThread::Get()->GetRenderTexture(aSurface->external_image_id);
+    auto* dmabuf = host ? host->AsRenderDMABUFTextureHost() : nullptr;
+    auto buffer = dmabuf ? dmabuf->GetSurface() : nullptr;
+    if (!buffer || !buffer->GetAsDMABufSurfaceYUV() || buffer->IsHDRSurface() ||
+        buffer->IsFullRange() ||
+        buffer->GetYUVColorSpace() != gfx::YUVColorSpace::BT709 ||
+        buffer->GetSize(0) != size || size != GetBufferSize().ToUnknownSize()) {
+      host = nullptr;
+    }
+  }
+  mDrawExternalActive =
+      mDrawExternalRoot->PrepareForEGL(*mDrawExternalLock, host, size);
+  return mDrawExternalActive;
+#else
+  return false;
+#endif
+}
+
+void RenderCompositorEGL::CancelFrame() {
+#ifdef MOZ_WAYLAND
+  if (mDrawExternalRoot) {
+    if (!mDrawExternalLock) {
+      mDrawExternalLock = MakeUnique<widget::WaylandSurfaceLock>(
+          mDrawExternalRoot->GetRootWaylandSurface(), true);
+    }
+    mDrawExternalRoot->ClearForEGL(*mDrawExternalLock);
+  }
+  mDrawExternalLock = nullptr;
+#endif
+  mDrawExternalActive = false;
+  mDrawFrameInProgress = false;
+  mDrawExternalPrepared = false;
 }
 
 bool RenderCompositorEGL::BeginFrame() {
@@ -106,6 +198,7 @@ bool RenderCompositorEGL::BeginFrame() {
   if (kIsLinux && mEGLSurface == EGL_NO_SURFACE) {
     gfxCriticalNote
         << "We don't have EGLSurface to draw into. Called too early?";
+    CancelFrame();
     return false;
   }
 #ifdef MOZ_WAYLAND
@@ -115,6 +208,7 @@ bool RenderCompositorEGL::BeginFrame() {
 #endif
   if (!MakeCurrent()) {
     gfxCriticalNote << "Failed to make render context current, can't draw.";
+    CancelFrame();
     return false;
   }
 
@@ -123,12 +217,17 @@ bool RenderCompositorEGL::BeginFrame() {
   gl()->MakeCurrent();  // DestroyUnused can change the current context!
 #endif
 
+  mDrawFrameInProgress = true;
+  mDrawExternalPrepared = false;
   return true;
 }
 
 RenderedFrameId RenderCompositorEGL::EndFrame(
     const nsTArray<DeviceIntRect>& aDirtyRects) {
   LOG("RenderCompositorEGL::EndFrame()");
+  if (mDrawExternalEnabled && !mDrawExternalPrepared) {
+    PrepareDrawExternalSurface(nullptr);
+  }
 #ifdef MOZ_WIDGET_ANDROID
   const auto& gle = gl::GLContextEGL::Cast(gl());
   const auto& egl = gle->mEgl;
@@ -151,6 +250,7 @@ RenderedFrameId RenderCompositorEGL::EndFrame(
   RenderedFrameId frameId = GetNextRenderFrameId();
 #ifdef MOZ_WIDGET_GTK
   if (mWidget->IsHidden()) {
+    CancelFrame();
     return frameId;
   }
 #endif
@@ -178,15 +278,33 @@ RenderedFrameId RenderCompositorEGL::EndFrame(
   // wayland surface is also used by main thread so lock it before
   // we paint at SwapBuffers().
   UniquePtr<widget::WaylandSurfaceLock> lock;
-  if (auto* gtkWidget = mWidget->AsGTK()) {
-    lock = gtkWidget->LockSurface();
+  if (!mDrawExternalLock) {
+    if (auto* gtkWidget = mWidget->AsGTK()) {
+      lock = gtkWidget->LockSurface();
+    }
   }
 #endif
-  gl()->SwapBuffers();
+  [[maybe_unused]] const bool swapped = gl()->SwapBuffers();
+#ifdef MOZ_WAYLAND
+  if (mDrawExternalLock) {
+    if (swapped) {
+      mDrawExternalLock->GetWaylandSurface()->NotifyEGLSwapLocked(
+          *mDrawExternalLock);
+      mDrawExternalLock = nullptr;
+    } else {
+      CancelFrame();
+    }
+  }
+#endif
+  mDrawExternalReadback = false;
+  mDrawFrameInProgress = false;
   return frameId;
 }
 
 void RenderCompositorEGL::Pause() {
+  if (mDrawExternalEnabled) {
+    CancelFrame();
+  }
   if (kIsAndroid) {
     DestroyEGLSurface();
   }

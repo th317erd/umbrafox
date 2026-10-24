@@ -6,6 +6,8 @@
 #include <gbm.h>
 #include <unistd.h>
 
+#include <thread>
+
 #include "gtest/gtest.h"
 #include "mozilla/NotNull.h"
 #include "mozilla/gfx/FileHandleWrapper.h"
@@ -156,4 +158,81 @@ TEST(DMABufSurface, YUVRoundtrip)
   EXPECT_EQ(surface->GetWidth(1), 64);
   EXPECT_EQ(surface->GetHeight(1), 64);
   YUVRoundtrip(surface);
+}
+
+TEST(DMABufSurface, ExplicitWaylandFormatAdmission)
+{
+  auto fd0 = MakeFd();
+  auto fd1 = MakeFd();
+  ASSERT_TRUE(fd0 && fd1);
+  auto descriptor = MakeYUVDescriptor(fd0, fd1);
+  auto formats = MakeRefPtr<widget::DMABufFormats>();
+  auto supported = [&] {
+    RefPtr<DMABufSurface> surface =
+        DMABufSurface::CreateDMABufSurface(descriptor);
+    EXPECT_TRUE(surface);
+    return surface &&
+           surface->GetAsDMABufSurfaceYUV()->IsWlBufferFormatSupported(
+               *formats);
+  };
+  EXPECT_FALSE(supported());
+  formats->EnsureBasicFormats();
+  EXPECT_FALSE(supported());
+  formats->GetFormat(GBM_FORMAT_NV12)->AddModifier(0);
+  EXPECT_TRUE(supported());
+
+  auto& data = descriptor.get_SurfaceDescriptorDMABuf();
+  data.modifier()[1] = 1;
+  EXPECT_FALSE(supported());
+  formats->GetFormat(GBM_FORMAT_NV12)->AddModifier(1);
+  EXPECT_FALSE(supported());
+  data.modifier()[0] = 1;
+  EXPECT_TRUE(supported());
+  data.modifier()[0] = data.modifier()[1] = DRM_FORMAT_MOD_INVALID;
+  EXPECT_FALSE(supported());
+  data.modifier()[0] = data.modifier()[1] = 0;
+
+  data.fourccFormat() = VA_FOURCC_I420;
+  formats->GetFormat(GBM_FORMAT_YUV420)->AddModifier(0);
+  EXPECT_FALSE(supported());
+  data.fds().AppendElement(WrapNotNull(fd0));
+  data.modifier().AppendElement(0);
+  data.width().AppendElement(64);
+  data.height().AppendElement(64);
+  data.widthAligned().AppendElement(64);
+  data.heightAligned().AppendElement(64);
+  data.format().AppendElement(0);
+  data.strides().AppendElement(64);
+  data.offsets().AppendElement(0);
+  EXPECT_TRUE(supported());
+  data.modifier()[2] = 1;
+  EXPECT_FALSE(supported());
+}
+
+TEST(DMABufSurface, WaylandFormatSnapshot)
+{
+  auto formats = MakeRefPtr<widget::DMABufFormats>();
+  EXPECT_FALSE(formats->GetFormatSnapshot(GBM_FORMAT_NV12));
+  formats->EnsureBasicFormats();
+  auto snapshot = formats->GetFormatSnapshot(GBM_FORMAT_NV12);
+  ASSERT_TRUE(snapshot);
+  snapshot->AddModifier(0);
+  EXPECT_FALSE(formats->GetFormatSnapshot(GBM_FORMAT_NV12)
+                   ->IsFormatModifierSupported(0));
+
+  std::thread reader([&] {
+    for (int i = 0; i < 1000; ++i) {
+      auto copy = formats->GetFormatSnapshot(GBM_FORMAT_NV12);
+      if (copy) {
+        EXPECT_TRUE(copy->Matches(GBM_FORMAT_NV12));
+        EXPECT_FALSE(copy->IsFormatModifierSupported(0));
+      }
+    }
+  });
+  for (int i = 0; i < 1000; ++i) {
+    formats->PendingDMABufFeedbackDone();
+    formats->EnsureBasicFormats();
+  }
+  reader.join();
+  EXPECT_TRUE(snapshot->IsFormatModifierSupported(0));
 }

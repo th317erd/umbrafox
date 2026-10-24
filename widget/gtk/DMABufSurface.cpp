@@ -2567,6 +2567,34 @@ void DMABufSurfaceYUV::CopyPlane(int aPlane, char* aData) {
 }
 #endif
 
+uint32_t DMABufSurfaceYUV::GetWlBufferFormat() const {
+  return GetFOURCCFormat() == VA_FOURCC_I420 ? DRM_FORMAT_YUV420
+                                             : GetFOURCCFormat();
+}
+
+bool DMABufSurfaceYUV::IsWlBufferFormatSupported(
+    DMABufFormats& aFormats) const {
+  const uint32_t format = GetWlBufferFormat();
+  const int planes = format == DRM_FORMAT_NV12     ? 2
+                     : format == DRM_FORMAT_YUV420 ? 3
+                                                   : 0;
+  if (!planes || mBufferPlaneCount != planes) {
+    return false;
+  }
+  auto advertised = aFormats.GetFormatSnapshot(format);
+  if (!advertised) {
+    return false;
+  }
+  for (int i = 0; i < planes; ++i) {
+    if (mBufferModifiers[i] == DRM_FORMAT_MOD_INVALID ||
+        mBufferModifiers[i] != mBufferModifiers[0] ||
+        !advertised->IsFormatModifierSupported(mBufferModifiers[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
 #ifdef MOZ_WAYLAND
 wl_buffer* DMABufSurfaceYUV::CreateWlBuffer() {
   nsWaylandDisplay* waylandDisplay = widget::WaylandDisplayGet();
@@ -2583,6 +2611,9 @@ wl_buffer* DMABufSurfaceYUV::CreateWlBuffer() {
 
   struct zwp_linux_buffer_params_v1* params =
       zwp_linux_dmabuf_v1_create_params(dmabuf);
+  if (!params) {
+    return nullptr;
+  }
   for (int i = 0; i < GetTextureCount(); i++) {
     LOGDMABUF("  layer [%d] modifier %" PRIx64, i, mBufferModifiers[i]);
     zwp_linux_buffer_params_v1_add(
@@ -2592,10 +2623,7 @@ wl_buffer* DMABufSurfaceYUV::CreateWlBuffer() {
 
   // The format passed to wayland needs to be a DRM_FORMAT_* enum.  These are
   // largely the same as VA_FOURCC_* values except for I420/YUV420
-  uint32_t format = GetFOURCCFormat();
-  if (format == VA_FOURCC_I420) {
-    format = DRM_FORMAT_YUV420;
-  }
+  uint32_t format = GetWlBufferFormat();
 
   LOGDMABUF(
       "  zwp_linux_buffer_params_v1_create_immed() [%d x %d], fourcc [%x]",
@@ -2609,6 +2637,7 @@ wl_buffer* DMABufSurfaceYUV::CreateWlBuffer() {
   } else {
     LOGDMABUF("  created wl_buffer [%p]", buffer);
   }
+  zwp_linux_buffer_params_v1_destroy(params);
 
   return buffer;
 }

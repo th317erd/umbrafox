@@ -5,6 +5,7 @@
 #ifndef MOZ_DMABUF_FORMATS_H_
 #define MOZ_DMABUF_FORMATS_H_
 
+#include "mozilla/Mutex.h"
 #include "mozilla/gfx/Types.h"
 #include "nsTArray.h"
 
@@ -84,6 +85,7 @@ class DMABufFormats final {
   void PendingDMABufFeedbackDone();
 
   DRMFormat* GetFormat(uint32_t aFormat, bool aRequestScanoutFormat = false);
+  RefPtr<DRMFormat> GetFormatSnapshot(uint32_t aFormat);
   DMABufFormats();
 
   void EnsureBasicFormats();
@@ -94,6 +96,7 @@ class DMABufFormats final {
   void EnsureBasicFormat(uint32_t aDrmFourcc);
 
   DMABufFormatsCallback mFormatRefreshCallback;
+  Mutex mFeedbackMutex{"DMABufFormats::mFeedbackMutex"};
 #ifdef MOZ_WAYLAND
   zwp_linux_dmabuf_feedback_v1* mWaylandFeedback = nullptr;
 #endif

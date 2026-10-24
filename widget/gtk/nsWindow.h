@@ -503,7 +503,8 @@ class nsWindow : public nsIWidget {
 
   static nsWindow* GetFocusedWindow();
 
-  mozilla::UniquePtr<mozilla::widget::WaylandSurfaceLock> LockSurface();
+  mozilla::UniquePtr<mozilla::widget::WaylandSurfaceLock> LockSurface(
+      bool aSkipCommit = false);
 
   bool ApplyEnterLeaveMutterWorkaround();
 

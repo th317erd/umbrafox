@@ -205,7 +205,10 @@ DMABufFeedback* DMABufFormats::GetPendingDMABufFeedback() {
 }
 
 void DMABufFormats::PendingDMABufFeedbackDone() {
-  mDMABufFeedback = std::move(mPendingDMABufFeedback);
+  {
+    MutexAutoLock lock(mFeedbackMutex);
+    mDMABufFeedback = std::move(mPendingDMABufFeedback);
+  }
   if (mFormatRefreshCallback) {
     mFormatRefreshCallback(this);
   }
@@ -366,6 +369,15 @@ DRMFormat* DMABufFormats::GetFormat(uint32_t aFormat,
   return mDMABufFeedback->GetFormat(aFormat, aRequestScanoutFormat);
 }
 
+RefPtr<DRMFormat> DMABufFormats::GetFormatSnapshot(uint32_t aFormat) {
+  MutexAutoLock lock(mFeedbackMutex);
+  if (!mDMABufFeedback) {
+    return nullptr;
+  }
+  DRMFormat* format = mDMABufFeedback->GetFormat(aFormat, false);
+  return format ? MakeRefPtr<DRMFormat>(*format) : nullptr;
+}
+
 void DMABufFormats::EnsureBasicFormat(uint32_t aDrmFourcc) {
   MOZ_DIAGNOSTIC_ASSERT(mDMABufFeedback);
   if (!GetFormat(aDrmFourcc)) {
@@ -377,6 +389,7 @@ void DMABufFormats::EnsureBasicFormat(uint32_t aDrmFourcc) {
 }
 
 void DMABufFormats::EnsureBasicFormats() {
+  MutexAutoLock lock(mFeedbackMutex);
   MOZ_DIAGNOSTIC_ASSERT(!mPendingDMABufFeedback,
                         "Can't add extra formats during init!");
   if (!mDMABufFeedback) {

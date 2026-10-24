@@ -15,6 +15,7 @@
 #include "mozilla/ToString.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/gfxVars.h"
+#include "mozilla/layers/NativeLayerWayland.h"
 #include "nsGtkUtils.h"
 #include "nsWindow.h"
 #undef LOG
@@ -125,6 +126,7 @@ WaylandSurface::~WaylandSurface() {
 
   MOZ_RELEASE_ASSERT(!mIsMapped, "We can't release mapped WaylandSurface!");
   MOZ_RELEASE_ASSERT(!mSurfaceLock, "We can't release locked WaylandSurface!");
+  MOZ_RELEASE_ASSERT(!mEGLVSyncSource);
   MOZ_RELEASE_ASSERT(mBufferTransactions.Length() == 0,
                      "We can't release surface with buffers tracked!");
   MOZ_RELEASE_ASSERT(!mEmulatedVSyncCallbackTimerID,
@@ -161,6 +163,10 @@ void WaylandSurface::VSyncCallbackHandler(struct wl_callback* aCallback,
         "WaylandSurface::VSyncCallbackHandler() "
         "set %d emulated %d routed %d",
         mVSyncCallbackHandler.IsSet(), aEmulated, aRoutedFromChildSurface);
+
+    if (aCallback && mVSyncFrameCallback.get() != aCallback) {
+      return;
+    }
 
     // It's possible to get regular VSync frame callback right after unmap
     // if frame callbacks was already in event queue so ignore it.
@@ -312,6 +318,9 @@ void WaylandSurface::ClearVSyncCallbackHandlerLocked(
   LOGVERBOSE("WaylandSurface::ClearVSyncCallbackHandlerLocked()");
   MOZ_DIAGNOSTIC_ASSERT(&aProofOfLock == mSurfaceLock);
   mVSyncCallbackHandler = VSyncCallback{};
+  if (mEGLVSyncSource) {
+    SetEGLVSyncSourceLocked(aProofOfLock, nullptr);
+  }
 }
 
 void WaylandSurface::SetVSyncCallbackHandlerLocked(
@@ -344,6 +353,10 @@ void WaylandSurface::SetVSyncCallbackStateLocked(
   }
   if (mVSyncCallbackStateHandler) {
     mVSyncCallbackStateHandler(aEnabled);
+  }
+  if (mEGLVSyncSource) {
+    WaylandSurfaceLock lock(mEGLVSyncSource);
+    mEGLVSyncSource->SetVSyncCallbackStateLocked(lock, aEnabled);
   }
 }
 
@@ -561,9 +574,84 @@ void WaylandSurface::ReleaseAllWaylandTransactionsLocked(
   }
 }
 
+void WaylandSurface::SetEGLExternalRootLocked(
+    const WaylandSurfaceLock& aProofOfLock,
+    layers::NativeLayerRootWayland* aRoot) {
+  MOZ_RELEASE_ASSERT(&aProofOfLock == mSurfaceLock);
+  MOZ_RELEASE_ASSERT(!aRoot || !mEGLExternalRoot);
+  mEGLExternalRoot = aRoot;
+}
+
+void WaylandSurface::NotifyEGLSwapLocked(
+    const WaylandSurfaceLock& aProofOfLock) {
+  MOZ_RELEASE_ASSERT(&aProofOfLock == mSurfaceLock);
+  mBufferAttached = true;
+  mSurfaceNeedsCommit = false;
+}
+
+void WaylandSurface::SetEGLVSyncSourceLocked(
+    const WaylandSurfaceLock& aProofOfLock, RefPtr<WaylandSurface> aSource) {
+  MOZ_RELEASE_ASSERT(&aProofOfLock == mSurfaceLock);
+  MOZ_RELEASE_ASSERT(!aSource || mEGLExternalRoot);
+  MOZ_RELEASE_ASSERT(aSource != this);
+  if (!mVSyncCallbackHandler.IsSet()) {
+    aSource = nullptr;
+  }
+  if (mEGLVSyncSource == aSource) {
+    return;
+  }
+  MOZ_RELEASE_ASSERT(++mEGLVSyncGeneration != 0);
+  if (mEGLVSyncSource) {
+    WaylandSurfaceLock lock(mEGLVSyncSource);
+    mEGLVSyncSource->SetVSyncCallbackStateLocked(lock, false);
+    mEGLVSyncSource->ClearVSyncCallbackHandlerLocked(lock);
+  }
+  mEGLVSyncSource = std::move(aSource);
+  if (!mEGLVSyncSource) {
+    return;
+  }
+
+  WaylandSurfaceLock lock(mEGLVSyncSource);
+  MOZ_RELEASE_ASSERT(mEGLVSyncSource->mParent == this);
+  MOZ_RELEASE_ASSERT(mIsMapped && mEGLVSyncSource->mIsMapped);
+  mEGLVSyncSource->SetVSyncCallbackStateLocked(lock, mVSyncCallbackEnabled);
+  mEGLVSyncSource->SetVSyncCallbackHandlerLocked(
+      lock, [parent = RefPtr{this}, generation = mEGLVSyncGeneration](
+                wl_callback*, uint32_t aTime, bool aEmulated) {
+        MOZ_DIAGNOSTIC_ASSERT(!aEmulated);
+        if (!aEmulated) {
+          parent->EGLVSyncCallbackHandler(generation, aTime);
+        }
+      });
+}
+
+void WaylandSurface::EGLVSyncCallbackHandler(uint64_t aGeneration,
+                                             uint32_t aTime) {
+  AssertIsOnMainThread();
+  VSyncCallback cb;
+  {
+    // Publish the synchronized child's rearmed callback before notifying vsync.
+    // EGL holds this same lock across preparation and swap.
+    WaylandSurfaceLock lock(this);
+    if (!mIsMapped || !mVSyncCallbackEnabled || !mEGLVSyncSource ||
+        aGeneration != mEGLVSyncGeneration) {
+      return;
+    }
+    cb = mVSyncCallbackHandler;
+    SetVSyncCallbackLocked(lock);
+    lock.RequestForceCommit();
+  }
+  if (cb.IsSet()) {
+    cb.mCb(nullptr, aTime, false);
+  }
+}
+
 void WaylandSurface::UnmapLocked(WaylandSurfaceLock& aSurfaceLock) {
   if (!mIsMapped) {
     return;
+  }
+  if (mEGLExternalRoot) {
+    mEGLExternalRoot->ClearForEGL(aSurfaceLock);
   }
   mIsMapped = false;
   mIsVisible = false;
@@ -707,6 +795,16 @@ void WaylandSurface::OpaqueCallbackHandler() {
     mSurfaceNeedsCommit = true;
   }
   ClearOpaqueCallbackLocked(lock);
+}
+
+void WaylandSurface::SetOpaqueForEGLLocked(
+    const WaylandSurfaceLock& aProofOfLock) {
+  MOZ_RELEASE_ASSERT(&aProofOfLock == mSurfaceLock);
+  WUniquePtr<wl_region> region(
+      wl_compositor_create_region(WaylandDisplayGet()->GetCompositor()));
+  wl_region_add(region.get(), 0, 0, INT32_MAX, INT32_MAX);
+  wl_surface_set_opaque_region(mSurface.get(), region.get());
+  mSurfaceNeedsCommit = true;
 }
 
 void WaylandSurface::SetOpaqueLocked(const WaylandSurfaceLock& aProofOfLock) {

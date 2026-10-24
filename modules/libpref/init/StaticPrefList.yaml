@@ -8599,6 +8599,11 @@
   value: false
   mirror: once
 
+- name: gfx.webrender.compositor.external-surfaces-in-draw
+  type: bool
+  value: false
+  mirror: once
+
 - name: gfx.webrender.compositor.max_update_rects
   type: uint32_t
   value: 1
