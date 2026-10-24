@@ -13,6 +13,14 @@ SOURCES += [
     'null.c',
 ]
 
+# Needed by the V4L2 M2M H.264 decoder wrapper, which declares
+# .bsfs = "h264_mp4toannexb": MSE/MP4 delivers length-prefixed AVCC while the
+# stateful hardware decoders require Annex B start-code framing.
+if CONFIG['MOZ_ENABLE_V4L2'] and not CONFIG['MOZ_FFVPX_AUDIOONLY']:
+    SOURCES += [
+        'h264_mp4toannexb.c',
+    ]
+
 LOCAL_INCLUDES += [ "../" ]
 
 FINAL_LIBRARY = 'mozavcodec'

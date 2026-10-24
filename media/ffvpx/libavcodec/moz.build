@@ -184,6 +184,19 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "android":
         "mediacodec.h"
     ]
 
+# Linux V4L2 Memory-to-Memory hardware decoders (stateful codec drivers such as
+# bcm2835-codec on Raspberry Pi 4). Gated the same way as config_override.h so
+# the sources are only compiled into platforms that will actually register them.
+if CONFIG["MOZ_ENABLE_V4L2"] and not CONFIG["MOZ_FFVPX_AUDIOONLY"]:
+    SOURCES += [
+        'v4l2_buffers.c',
+        'v4l2_context.c',
+        'v4l2_fmt.c',
+        'v4l2_m2m.c',
+        'v4l2_m2m_dec.c',
+        'v4l2_m2m_enc.c',
+    ]
+
 LOCAL_INCLUDES += [
     '/media/libopus/include',
     '/media/libvorbis',

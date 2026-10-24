@@ -10,5 +10,8 @@ static const FFBitStreamFilter * const bitstream_filters[] = {
 #if CONFIG_MEDIACODEC
     &ff_aac_adtstoasc_bsf,
 #endif
+#if CONFIG_H264_MP4TOANNEXB_BSF
+    &ff_h264_mp4toannexb_bsf,
+#endif
     &ff_null_bsf,
     NULL };

@@ -93,6 +93,15 @@ static const FFCodec * const codec_list[] = {
 #if CONFIG_HEVC_MEDIACODEC_DECODER
     &ff_hevc_mediacodec_decoder,
 #endif
+#if CONFIG_H264_V4L2M2M_DECODER
+    &ff_h264_v4l2m2m_decoder,
+#endif
+#if CONFIG_VP8_V4L2M2M_DECODER
+    &ff_vp8_v4l2m2m_decoder,
+#endif
+#if CONFIG_VP9_V4L2M2M_DECODER
+    &ff_vp9_v4l2m2m_decoder,
+#endif
 #if CONFIG_AV1_MEDIACODEC_ENCODER
     &ff_av1_mediacodec_encoder,
 #endif

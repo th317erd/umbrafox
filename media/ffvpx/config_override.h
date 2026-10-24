@@ -75,6 +75,43 @@
 #endif
 
 /**
+ * Linux Hardware Video Decoding via V4L2 Memory-to-Memory
+ *
+ * Uses the kernel's stateful M2M codec drivers (e.g. bcm2835-codec on
+ * Raspberry Pi 4) through FFmpeg's v4l2_m2m wrappers. Enabled only for GTK on
+ * Linux with MOZ_ENABLE_V4L2, mirroring the VAAPI/Vulkan/D3D11VA pattern above.
+ *
+ * Note: libdrm is NOT required by these sources (they talk to /dev/videoN via
+ * V4L2 ioctls only), so CONFIG_LIBDRM is deliberately left untouched.
+ *
+ * HEVC is intentionally not enabled here: its wrapper names the
+ * "hevc_mp4toannexb" bitstream filter, whose source is not vendored yet.
+ **/
+#undef CONFIG_V4L2_M2M
+#undef CONFIG_H264_V4L2M2M_DECODER
+#undef CONFIG_VP8_V4L2M2M_DECODER
+#undef CONFIG_VP9_V4L2M2M_DECODER
+#undef CONFIG_HEVC_V4L2M2M_DECODER
+#undef CONFIG_H264_MP4TOANNEXB_BSF
+
+#if defined(MOZ_WIDGET_GTK) && !defined(MOZ_FFVPX_AUDIOONLY) && \
+    defined(MOZ_ENABLE_V4L2)
+#define CONFIG_V4L2_M2M 1
+#define CONFIG_H264_V4L2M2M_DECODER 1
+#define CONFIG_VP8_V4L2M2M_DECODER 1
+#define CONFIG_VP9_V4L2M2M_DECODER 1
+#define CONFIG_HEVC_V4L2M2M_DECODER 0
+#define CONFIG_H264_MP4TOANNEXB_BSF 1
+#else
+#define CONFIG_V4L2_M2M 0
+#define CONFIG_H264_V4L2M2M_DECODER 0
+#define CONFIG_VP8_V4L2M2M_DECODER 0
+#define CONFIG_VP9_V4L2M2M_DECODER 0
+#define CONFIG_HEVC_V4L2M2M_DECODER 0
+#define CONFIG_H264_MP4TOANNEXB_BSF 0
+#endif
+
+/**
  * Windows Hardware Video Decoding
  **/
 #undef CONFIG_D3D11VA
