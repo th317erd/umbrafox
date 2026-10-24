@@ -528,7 +528,12 @@ class WaylandSurface final {
   std::function<bool(void)> mVSyncEmulateCheck = nullptr;
 
   guint mEmulatedVSyncCallbackTimerID = 0;
-  constexpr static int sEmulatedVSyncCallbackTimeoutMs = (int)(1000.0 / 60.0);
+  // Rate for emulated VSync callbacks, derived per surface from the platform /
+  // widget frame rate rather than a hardcoded 60Hz. Clamped so a bogus
+  // preference cannot produce a zero-interval or absurd timer.
+  uint32_t GetEmulatedVSyncCallbackTimeoutMs() const;
+  constexpr static uint32_t sMinEmulatedVSyncCallbackTimeoutMs = 4;
+  constexpr static uint32_t sMaxEmulatedVSyncCallbackTimeoutMs = 1000;
 
   // Frame callback used to set opaque region to wl_surface.
   WUniquePtr<wl_region> mPendingOpaqueRegion;

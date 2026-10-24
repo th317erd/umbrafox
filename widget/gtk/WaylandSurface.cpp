@@ -15,6 +15,7 @@
 #include "mozilla/ToString.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/gfxVars.h"
+#include "gfxPlatform.h"
 #include "mozilla/layers/NativeLayerWayland.h"
 #include "nsGtkUtils.h"
 #include "nsWindow.h"
@@ -219,6 +220,26 @@ bool WaylandSurface::IsEmulatedVSyncEnabledLocked(
          mVSyncEmulateCheck();
 }
 
+uint32_t WaylandSurface::GetEmulatedVSyncCallbackTimeoutMs() const {
+  // The emulated tick exists to cover a stalled real frame callback, so it must
+  // run at the rate the rest of the platform considers a frame: the layout /
+  // software vsync rate, which itself falls back to the platform default.
+  // A hardcoded value here would make the fallback disagree with WebRender and
+  // with the compositor about what "one frame" means.
+  int rate = gfxPlatform::GetSoftwareVsyncRate();
+  if (rate <= 0) {
+    rate = gfxPlatform::GetDefaultFrameRate();
+  }
+  uint32_t timeout = (uint32_t)(1000.0 / (double)rate);
+  if (timeout < sMinEmulatedVSyncCallbackTimeoutMs) {
+    return sMinEmulatedVSyncCallbackTimeoutMs;
+  }
+  if (timeout > sMaxEmulatedVSyncCallbackTimeoutMs) {
+    return sMaxEmulatedVSyncCallbackTimeoutMs;
+  }
+  return timeout;
+}
+
 void WaylandSurface::RequestEmulatedVSyncLocked(
     const WaylandSurfaceLock& aProofOfLock) {
   LOGVERBOSE("WaylandSurface::RequestEmulatedVSyncLocked()");
@@ -226,7 +247,7 @@ void WaylandSurface::RequestEmulatedVSyncLocked(
   MOZ_DIAGNOSTIC_ASSERT(!mEmulatedVSyncCallbackTimerID, "Already created?");
 
   mEmulatedVSyncCallbackTimerID = g_timeout_add(
-      sEmulatedVSyncCallbackTimeoutMs,
+      GetEmulatedVSyncCallbackTimeoutMs(),
       [](void* data) -> gint {
         RefPtr surface = static_cast<WaylandSurface*>(data);
         LOGS_VERBOSE("[%p]: WaylandSurface emulated frame callbacks",
