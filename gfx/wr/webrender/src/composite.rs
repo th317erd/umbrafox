@@ -24,7 +24,13 @@ use crate::space::SpaceMapper;
 use std::{ops, os::raw::c_void, hash};
 use std::num::NonZeroUsize;
 
+mod admission;
 mod draw_external;
+// Instrumentation surface. The counters are read by tests today and by the
+// Gecko/Rust bridge once it exposes them; until then the re-export is unused
+// from inside the crate, which is expected rather than an oversight.
+#[allow(unused_imports)]
+pub use self::admission::{AdmissionCounters, AdmissionReason, ADMISSION_COUNTERS};
 pub use self::draw_external::{DrawExternalCompositor, DrawExternalSurface};
 
 #[cfg(feature = "replay")]

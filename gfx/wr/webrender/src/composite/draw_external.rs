@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use super::admission::{AdmissionReason, ADMISSION_COUNTERS};
 use super::*;
 
 pub trait DrawExternalCompositor {
@@ -17,78 +18,145 @@ pub struct DrawExternalSurface {
     pub size: DeviceIntSize,
 }
 
+pub(crate) type ExternalCandidate = (ResolvedExternalSurfaceIndex, DrawExternalSurface);
+
 impl CompositeState {
-    pub(crate) fn draw_external_surface(
+    /// Score the frontmost opaque fullscreen external tile.
+    ///
+    /// Every rejection names *why*, so a caller can attribute the decision.
+    /// A reason is not an error: rejection is the normal, expected outcome for
+    /// the overwhelming majority of frames.
+    pub(crate) fn score_draw_external_surface(
         &self,
         size: DeviceIntSize,
-    ) -> Option<(ResolvedExternalSurfaceIndex, DrawExternalSurface)> {
-        if !matches!(self.compositor_kind, CompositorKind::Draw { .. })
-            || size.width <= 0
+    ) -> Result<ExternalCandidate, AdmissionReason> {
+        if !matches!(self.compositor_kind, CompositorKind::Draw { .. }) {
+            return Err(AdmissionReason::NotDrawCompositor);
+        }
+        if size.width <= 0
             || size.height <= 0
             || size.width > i16::MAX as i32
             || size.height > i16::MAX as i32
         {
-            return None;
+            return Err(AdmissionReason::InvalidSize);
         }
-        let tile = self.tiles.first()?;
+        let tile = self.tiles.first().ok_or(AdmissionReason::NoTiles)?;
         let index = match tile.surface {
             CompositeTileSurface::ExternalSurface {
                 external_surface_index,
             } => external_surface_index,
-            _ => return None,
+            _ => return Err(AdmissionReason::FrontTileNotExternal),
         };
-        let transform = self.transforms.get(tile.transform_index.0)?;
+        let transform = self
+            .transforms
+            .get(tile.transform_index.0)
+            .ok_or(AdmissionReason::MissingTransform)?;
         let rect = PictureRect::from_size(size.to_f32().cast_unit());
-        if tile.kind != TileKind::Opaque
-            || tile.clip_index.is_some()
-            || tile.tile_id.is_some()
-            || tile.local_rect != rect
-            || tile.local_valid_rect != rect
-            || tile.device_clip_rect != DeviceRect::from_size(size.to_f32())
-            || transform.local_to_device != ScaleOffset::identity()
+        if tile.kind != TileKind::Opaque {
+            return Err(AdmissionReason::NotOpaqueTile);
+        }
+        if tile.clip_index.is_some() {
+            return Err(AdmissionReason::TileHasClip);
+        }
+        if tile.tile_id.is_some() {
+            return Err(AdmissionReason::TileHasTileId);
+        }
+        if tile.local_rect != rect {
+            return Err(AdmissionReason::TileRectNotFullscreen);
+        }
+        if tile.local_valid_rect != rect {
+            return Err(AdmissionReason::TileValidRectNotFullscreen);
+        }
+        if tile.device_clip_rect != DeviceRect::from_size(size.to_f32()) {
+            return Err(AdmissionReason::TileClipRectNotFullscreen);
+        }
+        if transform.local_to_device != ScaleOffset::identity()
             || transform.local_to_raster != ScaleOffset::identity()
             || transform.raster_to_device != ScaleOffset::identity()
         {
-            return None;
+            return Err(AdmissionReason::NonIdentityTransform);
         }
-        let surface = self.external_surfaces.get(index.0)?;
-        if surface.update_params.is_some()
-            || !matches!(
-                surface.color_data,
-                ResolvedExternalSurfaceColorData::Yuv {
-                    channel_bit_depth: 8,
-                    color_space: YuvRangedColorSpace::Rec709Narrow,
-                    format: YuvFormat::NV12 | YuvFormat::PlanarYCbCr,
-                    ..
-                }
-            )
-        {
-            return None;
+        let surface = self
+            .external_surfaces
+            .get(index.0)
+            .ok_or(AdmissionReason::MissingExternalSurface)?;
+        if surface.update_params.is_some() {
+            return Err(AdmissionReason::PendingUpdateParams);
         }
-        Some((
+        if !matches!(
+            surface.color_data,
+            ResolvedExternalSurfaceColorData::Yuv {
+                channel_bit_depth: 8,
+                color_space: YuvRangedColorSpace::Rec709Narrow,
+                format: YuvFormat::NV12 | YuvFormat::PlanarYCbCr,
+                ..
+            }
+        ) {
+            return Err(AdmissionReason::UnsupportedColor);
+        }
+        let external_image_id = surface
+            .external_image_id
+            .ok_or(AdmissionReason::MissingExternalImageId)?;
+        Ok((
             index,
             DrawExternalSurface {
-                external_image_id: surface.external_image_id?,
+                external_image_id,
                 size,
             },
         ))
     }
 
+    /// Score and record. Preserves the original boolean shape of the gate:
+    /// `None` means "not admitted", for any reason.
+    pub(crate) fn draw_external_surface(
+        &self,
+        size: DeviceIntSize,
+    ) -> Option<ExternalCandidate> {
+        let scored = self.score_draw_external_surface(size);
+        ADMISSION_COUNTERS.record(match &scored {
+            Ok(_) => AdmissionReason::Admitted,
+            Err(reason) => *reason,
+        });
+        scored.ok()
+    }
+
+    /// Score, hand to the backend, and record the outcome.
+    ///
+    /// The backend is always told the outcome — an accepted candidate, a hide
+    /// (when disabled or when the candidate failed) — so a surface it previously
+    /// attached is never left on screen after the handoff stops applying. Its
+    /// answer decides whether the caller may skip the ordinary tile draw, so a
+    /// backend that declines must never look like an admitted surface.
     pub(crate) fn prepare_draw_external_surface(
         &self,
         size: DeviceIntSize,
         allowed: bool,
         compositor: &mut dyn DrawExternalCompositor,
     ) -> Option<ResolvedExternalSurfaceIndex> {
-        let candidate = if allowed {
-            self.draw_external_surface(size)
-        } else {
-            None
-        };
-        if compositor.prepare(candidate.as_ref().map(|(_, surface)| surface)) {
-            candidate.map(|(index, _)| index)
-        } else {
-            None
+        if !allowed {
+            compositor.prepare(None);
+            ADMISSION_COUNTERS.record(AdmissionReason::DisabledByPref);
+            return None;
+        }
+
+        match self.score_draw_external_surface(size) {
+            Ok((index, surface)) => {
+                if compositor.prepare(Some(&surface)) {
+                    ADMISSION_COUNTERS.record(AdmissionReason::Admitted);
+                    Some(index)
+                } else {
+                    // Well-formed candidate the platform declined: hide it and
+                    // fall through to the ordinary draw so video is not lost.
+                    ADMISSION_COUNTERS.record(AdmissionReason::BackendRejected);
+                    None
+                }
+            }
+            Err(reason) => {
+                // Hide any stale attachment before falling through.
+                compositor.prepare(None);
+                ADMISSION_COUNTERS.record(reason);
+                None
+            }
         }
     }
 }
@@ -134,6 +202,21 @@ mod tests {
             tile_id: None,
         });
         test(&mut state, size);
+    }
+
+    /// Reason reported after `mutate` is applied to the standard fixture.
+    fn reason_for(
+        mutate: impl FnOnce(&mut CompositeState, DeviceIntSize),
+    ) -> AdmissionReason {
+        let mut observed = AdmissionReason::Admitted;
+        with_surface(|state, size| {
+            mutate(state, size);
+            observed = state
+                .score_draw_external_surface(size)
+                .err()
+                .unwrap_or(AdmissionReason::Admitted);
+        });
+        observed
     }
 
     #[test]
@@ -340,6 +423,115 @@ mod tests {
                 .prepare_draw_external_surface(size, true, &mut backend)
                 .is_none());
             assert_eq!(backend.requests[3], None);
+        });
+    }
+
+    // --- attribution tests: each gate must name itself ---
+
+    #[test]
+    fn attributes_compositor_mode_and_size_rejections() {
+        assert_eq!(
+            reason_for(|state, _| state.compositor_kind = CompositorKind::Layer {}),
+            AdmissionReason::NotDrawCompositor
+        );
+        let mut observed = AdmissionReason::Admitted;
+        with_surface(|state, _| {
+            observed = state
+                .score_draw_external_surface(DeviceIntSize::zero())
+                .err()
+                .unwrap_or(AdmissionReason::Admitted);
+        });
+        assert_eq!(observed, AdmissionReason::InvalidSize);
+    }
+
+    #[test]
+    fn attributes_tile_geometry_rejections() {
+        assert_eq!(
+            reason_for(|state, _| state.tiles.clear()),
+            AdmissionReason::NoTiles
+        );
+        assert_eq!(
+            reason_for(|state, _| state.tiles[0].surface =
+                CompositeTileSurface::Color { color: ColorF::WHITE }),
+            AdmissionReason::FrontTileNotExternal
+        );
+        assert_eq!(
+            reason_for(|state, _| state.tiles[0].kind = TileKind::Alpha),
+            AdmissionReason::NotOpaqueTile
+        );
+        assert_eq!(
+            reason_for(|state, size| state.tiles[0].clip_index =
+                Some(state.register_clip(size.to_f32().into(), BorderRadius::zero()))),
+            AdmissionReason::TileHasClip
+        );
+        assert_eq!(
+            reason_for(|state, _| state.tiles[0].local_valid_rect.max.x -= 1.0),
+            AdmissionReason::TileValidRectNotFullscreen
+        );
+        assert_eq!(
+            reason_for(|state, _| state.tiles[0].device_clip_rect.max.x = f32::INFINITY),
+            AdmissionReason::TileClipRectNotFullscreen
+        );
+        assert_eq!(
+            reason_for(|state, _| state.transforms[0].raster_to_device.offset.y = 1.0),
+            AdmissionReason::NonIdentityTransform
+        );
+        assert_eq!(
+            reason_for(|state, _| state.tiles[0].transform_index =
+                CompositorTransformIndex::INVALID),
+            AdmissionReason::MissingTransform
+        );
+    }
+
+    #[test]
+    fn attributes_surface_rejections() {
+        assert_eq!(
+            reason_for(|state, _| state.tiles[0].surface =
+                CompositeTileSurface::ExternalSurface {
+                    external_surface_index: ResolvedExternalSurfaceIndex(10)
+                }),
+            AdmissionReason::MissingExternalSurface
+        );
+        assert_eq!(
+            reason_for(|state, _| state.external_surfaces[0].color_data =
+                ResolvedExternalSurfaceColorData::Rgb {
+                    image_dependency: ImageDependency::INVALID,
+                    plane: ExternalPlaneDescriptor::invalid(),
+                    modulation: api::PremultipliedColorF::WHITE,
+                }),
+            AdmissionReason::UnsupportedColor
+        );
+        assert_eq!(
+            reason_for(|state, _| state.external_surfaces[0].external_image_id = None),
+            AdmissionReason::MissingExternalImageId
+        );
+    }
+
+    #[test]
+    fn attributes_backend_outcomes_separately_from_scoring() {
+        struct Backend {
+            accept: bool,
+        }
+        impl DrawExternalCompositor for Backend {
+            fn prepare(&mut self, _surface: Option<&DrawExternalSurface>) -> bool {
+                self.accept
+            }
+        }
+        with_surface(|state, size| {
+            let mut declining = Backend { accept: false };
+            assert!(state
+                .prepare_draw_external_surface(size, true, &mut declining)
+                .is_none());
+            let mut accepting = Backend { accept: true };
+            assert!(state
+                .prepare_draw_external_surface(size, true, &mut accepting)
+                .is_some());
+            // A backend that accepts must not rescue a candidate that failed
+            // scoring: a malformed surface is still not admitted.
+            state.tiles.clear();
+            assert!(state
+                .prepare_draw_external_surface(size, true, &mut accepting)
+                .is_none());
         });
     }
 }
