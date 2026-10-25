@@ -69,12 +69,16 @@ pub enum AdmissionReason {
 }
 
 impl AdmissionReason {
-    /// Number of variants. Kept as an explicit constant so the counter array
-    /// size is fixed at compile time.
-    pub const COUNT: usize = 20;
+    /// Number of variants. Derived from [`Self::ALL`] so the two cannot drift.
+    ///
+    /// `cbindgen` cannot render `Self::ALL.len()` as a C++ constant
+    /// expression, and nothing on the C++ side consumes this value, so it is
+    /// kept out of the generated header entirely.
+    /// cbindgen:ignore
+    pub const COUNT: usize = Self::ALL.len();
 
     /// Every variant, in discriminant order.
-    pub const ALL: [AdmissionReason; Self::COUNT] = [
+    pub const ALL: [AdmissionReason; 20] = [
         AdmissionReason::Admitted,
         AdmissionReason::DisabledByPref,
         AdmissionReason::NotDrawCompositor,
