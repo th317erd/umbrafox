@@ -251,6 +251,12 @@ every 45 seconds in observed builds). For typing, paint, animation, or
 frame-budget profiling, use a selected/visible tab. `background:true` is still
 the right choice for read-only snapshots that must not disturb the owner.
 
+A selected tab can still report `document.visibilityState === "hidden"` when the
+chrome window is minimized or occluded; `document.hasFocus()` is not sufficient
+evidence. In the browser realm call `win.restore()` and `win.focus()`, select the
+tab through `win.gBrowser.selectedTab`, then verify visibility from the page
+before starting an rAF-dependent profile.
+
 Read `windows[].tabs[].selected` from the diagnostics snapshot; do not assume the
 first Kikx tab is the visible one. Context IDs are per document and change after
 reload/navigation. If you create a tab with `background:false`, close it or
