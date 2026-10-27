@@ -175,6 +175,87 @@ Parameters:
 
 The profiler must already be active. Filenames follow the same no-path rule as memory reports.
 
+### Browser and page commands
+
+These commands are implemented in `UmbrafoxControlBrowser.sys.mjs` and are the
+supported way to drive or instrument a page. They are not listed in the older
+spike notes.
+
+- `umbrafox.browsingContext.create`
+  - `context`: a live parent tab context from a diagnostics snapshot.
+  - `background`: boolean, default `true`. `false` selects the new tab; `true`
+    avoids focus theft. A selected/visible tab is required for meaningful
+    `requestAnimationFrame`, typing, and paint profiling.
+  - Returns `{ context, document, url }` for the new `about:blank` tab.
+- `umbrafox.browsingContext.close`
+  - `context`: tab context. Refuses to close the last tab.
+- `umbrafox.browsingContext.navigate`
+  - `context`, `url`, optional `wait` (`none` or `complete`, default
+    `complete`) and `timeoutMs`.
+  - Allowed schemes: `http`, `https`, `about`, `file`, `data`. JavaScript URLs
+    are deliberately rejected; use `umbrafox.script.execute` instead.
+- `umbrafox.script.execute`
+  - `context`: a top-level tab context.
+  - `body`: JavaScript source for an **async function body** (<= 65,536
+    characters). The body must `return` the value you want; a trailing
+    expression is not returned.
+  - `realm`: `page` (default) or `browser`. `browser` runs with the system
+    principal and exposes `Services`.
+  - `args`: bounded JSON array cloned into the sandbox.
+  - `document`: optional inner-window id from a diagnostics snapshot; omit for
+    the current document.
+  - `timeoutMs`: integer 1-60,000, default 10,000.
+  - Returns `{ context, document, url, realm, result }` where `result` is
+    `{ type: "json", value }` or `{ type: "undefined" }`. Results are bounded
+    JSON: 10,000 nodes, depth 32, 1 MiB total; cycles, accessors and class
+    instances are rejected.
+
+### Durable page instrumentation (critical)
+
+`umbrafox.script.execute` runs in a **sandbox that dies when the command
+returns**. Never store sandbox-created functions or objects on page objects and
+never wrap page methods with a sandbox function:
+
+```js
+// WRONG: the wrapper and observer callback die with the sandbox, shadow the
+// page method, and later throw "can't access dead object".
+app._render = (...args) => originalRender(...args);
+window.__profile = { observer: new MutationObserver(callback) };
+```
+
+This is not theoretical. It has already shadowed Kikx's `_render` in a live tab.
+Use a page-realm inline module for anything that must outlive the command:
+
+```js
+const code = `
+  const app = document.querySelector('kikx-app');
+  const observer = new MutationObserver((records) => { /* page realm */ });
+  observer.observe(document.documentElement, { subtree: true, childList: true });
+  window.__profile = { observer, snapshot() { /* ... */ } };
+`;
+const script = document.createElement('script');
+script.type = 'module';
+script.textContent = code;
+document.documentElement.appendChild(script);
+script.remove();
+```
+
+Even for one-shot evaluation, prefer a page-realm module when the code attaches
+listeners, observers, timers, animation-frame loops, or methods. To repair a
+method shadowed by a dead sandbox wrapper, delete the own property (for example
+`delete app._render`) and rebind instance callbacks by importing the real module
+inside an inline page-realm module. Re-import with a cache-busting query.
+
+A hidden tab does **not** fire `requestAnimationFrame` normally (roughly one tick
+every 45 seconds in observed builds). For typing, paint, animation, or
+frame-budget profiling, use a selected/visible tab. `background:true` is still
+the right choice for read-only snapshots that must not disturb the owner.
+
+Read `windows[].tabs[].selected` from the diagnostics snapshot; do not assume the
+first Kikx tab is the visible one. Context IDs are per document and change after
+reload/navigation. If you create a tab with `background:false`, close it or
+restore the owner's tab when the profile is done.
+
 Input commands target a top-level browsing context from a diagnostics snapshot:
 
 - `umbrafox.input.click`
