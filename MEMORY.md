@@ -16,12 +16,12 @@ committed and pushed. Nothing is running.
 
 What happened, in order:
 
-1. l8ros filed [the bug report](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/bug-reports/2026-10-23-l8ros-umbralink-context-and-kiosk-exit.md)
+1. l8ros filed [the bug report](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/archive/bug-reports/2026-10-23-l8ros-umbralink-context-and-kiosk-exit.md)
    (commit `253e19430b6f`).
 2. We verified every claim against source and wrote the answers, appended them to that bug
    report as an `# Answer from Umbrafox (2026-10-23)` section (commit `37684bc7f64e`), and
    recorded the long form plus the patch verdict in
-   [the verdict report](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-23-umbralink-context-kiosk-exit-and-patch-verdict.md)
+   [the verdict report](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/archive/reports/2026-10-23-umbralink-context-kiosk-exit-and-patch-verdict.md)
    (commit `b3ca97a4a136`).
 3. Owner relayed l8ros's reply: they are checking `dmesg` for OOM, because they read our
    finding "nothing drains `pending_native_surface_updates` in Draw mode" as a plausible OOM
@@ -70,14 +70,14 @@ Next useful work, none of it started:
 3. Add the bounded admission counter (already proposed on October 20) so that admission,
    attachment, child callbacks, WR final draws and EndFrame/swap can be attributed per run.
 4. The V4L2 M2M hardware H.264 decode task is assigned to Umbrafox and not started
-   (`bot-docs/plans/2026-10-21-hardware-video-decode-pi4.md`).
+   (`docs/umbrafox/archive/plans/2026-10-21-hardware-video-decode-pi4.md`).
 5. Keep the shipped hybrid pref off for any acceptance run until the above is measured.
 
 ## 2. Owner Intent, Authority and Boundaries
 
 Wyatt wants a fast, reliable power-user Firefox fork. Browser defaults must stay
 Firefox-equivalent to websites and servers. Read the mandatory rulebook before any source work:
-[rulebook](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/umbrafox-conversion-guide/02-mandatory-modification-rules.md).
+[rulebook](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/conversion-guide/02-mandatory-modification-rules.md).
 No new detectable default JS, DOM, WebIDL, network, media, storage, timing or fingerprinting
 surfaces. No silent rule exception.
 
@@ -95,8 +95,8 @@ Standing owner instructions relevant here:
 - Never SIGKILL without explicit direction. Cleanup is identity-bound and bounded.
 - Default significant Cargo and make work to two jobs. The old eight-job override belonged to
   the October 16 diagnostic build.
-- Reports under `bot-docs/reports/`, plans under `bot-docs/plans/`, bug-report answers inside
-  the bug report itself, durable bot documentation under `bot-docs/`.
+- Reports under `docs/umbrafox/archive/reports/`, plans under `docs/umbrafox/archive/plans/`, bug-report answers inside
+  the bug report itself, durable bot documentation under `docs/umbrafox/archive/`.
 - Commit messages in this fork's doc commits are terse and single-line (`bug report from
   l8ros: ...`, `plan: ...`, `answers for l8ros: ...`), unlike the `No bug - ... r?#group`
   form used for source commits.
@@ -167,7 +167,7 @@ Builds use an exact `git archive` plus a frozen owned patch and new-file manifes
 | Commit | Content |
 | --- | --- |
 | `253e19430b6f` | l8ros bug report: UmbraLink context targeting, possible kiosk exit, webdriver confound (77 lines) |
-| `d3981ab0ded2` | l8ros handover of the attach/skip and vsync-pump patch plus its report: `bot-docs/patches/2026-10-21-l8ros-attach-skip-and-vsync-pump.patch`, `bot-docs/reports/2026-10-21-l8ros-browser-changes.md` (134 lines) |
+| `d3981ab0ded2` | l8ros handover of the attach/skip and vsync-pump patch plus its report: `docs/umbrafox/archive/patches/2026-10-21-l8ros-attach-skip-and-vsync-pump.patch`, `docs/umbrafox/archive/reports/2026-10-21-l8ros-browser-changes.md` (134 lines) |
 | `eab631adf751` | plan: hardware H.264 decode via V4L2 M2M on Pi 4 (75 lines) |
 | `9cb566b33a1d` | plan: assign that task to Umbrafox with a task list and acceptance (14 lines) |
 | `37684bc7f64e` | answers to the four l8ros questions appended to the bug report (93 lines) |
@@ -285,7 +285,7 @@ UA/DOM/flag hiding to defeat the heuristic.
 ## 8. l8ros Attach/Skip and Vsync-Pump Patch: Verdict
 
 Input:
-[patch](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/patches/2026-10-21-l8ros-attach-skip-and-vsync-pump.patch),
+[patch](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/archive/patches/2026-10-21-l8ros-attach-skip-and-vsync-pump.patch),
 SHA256 `c133e8a83ac81ef930b2b72d2c57efc713f575f0590a2b4c297e12615a51ec95`, 3 files, applies on
 top of `hybrid-source.patch`. Reviewed against `b3ca97a4a136`. **Not merged, not accepted as-is.**
 
@@ -437,7 +437,7 @@ blank or stale content.
 ## 12. V4L2 M2M Hardware H.264 Decode (Assigned, Not Started)
 
 Plan:
-[2026-10-21-hardware-video-decode-pi4.md](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/plans/2026-10-21-hardware-video-decode-pi4.md).
+[2026-10-21-hardware-video-decode-pi4.md](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/archive/plans/2026-10-21-hardware-video-decode-pi4.md).
 Owner assigned it to Umbrafox end to end, with l8ros flashing and running acceptance.
 
 - No Raspberry Pi has a hardware VP9 or AV1 decoder. BCM2711 decodes H.264, MPEG-2, MPEG-4 and
@@ -516,7 +516,7 @@ New authorized multi-step worker work needs a unique control file with OK/HALT s
 read after each command. The October 14-17 teamwork SQLite belongs to that finished wave.
 
 Since the l8ros bug report arrived, coordination has been through files in the repository
-(`bot-docs/bug-reports/`, `bot-docs/reports/`) and chat, not through the websocket.
+(`docs/umbrafox/archive/bug-reports/`, `docs/umbrafox/archive/reports/`) and chat, not through the websocket.
 
 ## 16. Handoff Verification
 
@@ -582,10 +582,10 @@ Important current conclusions:
    lifecycle and visual acceptance of the official candidate have **not** passed.
 
 Current report:
-[combined intake and callback-cost follow-up](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-20-combined-hybrid-intake.md),
+[combined intake and callback-cost follow-up](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/archive/reports/2026-10-20-combined-hybrid-intake.md),
 SHA256 `00a0f213639c6963e1b7ed2ac79e491856566bffb726c26414b8cc4e331dc7d2`.
 Current plan:
-[EGL external video integration](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/plans/egl-external-video.md).
+[EGL external video integration](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/archive/plans/egl-external-video.md).
 
 There is no active tool goal (`get_goal` returned null during this handoff).
 There is no owned build, package, browser, test or command session to resume.
@@ -597,7 +597,7 @@ assigned. Historical DBs belong to their completed waves.
 Wyatt wants a fast, reliable power-user Firefox fork. Browser defaults must remain
 Firefox-equivalent to websites and servers. Read the mandatory modification
 rulebook before source work:
-[rulebook](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/umbrafox-conversion-guide/02-mandatory-modification-rules.md).
+[rulebook](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/conversion-guide/02-mandatory-modification-rules.md).
 No new detectable default JS, DOM, WebIDL, network, media, storage, timing or
 fingerprinting surfaces. No silent rule exception.
 
@@ -994,7 +994,7 @@ l8ros before device operations. Earlier power-off/card-swap notes are obsolete.
 ## 11. Combined Patch: Do Not Apply As-Is
 
 Input:
-[combined patch](/home/public/wyatt-desktop/Projects/l8ros-workspace/l8ros/bot-docs/patches/2026-10-20-combined-umbrafox-eglroot-plus-attach-skip.patch).
+[combined patch](/home/public/wyatt-desktop/Projects/l8ros-workspace/l8ros/docs/umbrafox/archive/patches/2026-10-20-combined-umbrafox-eglroot-plus-attach-skip.patch).
 SHA256 `86aaca7d483b5c7118b30a6d91b9dc5948648565a7dff6d9f4030a6004bde81f`,
 54,372 bytes, 1,443 lines, 28 files. It is a full tracked-file diff against
 `c0e7f8a2be04`, not an incremental diff against the 18:52 export.
@@ -1024,7 +1024,7 @@ the patch were silently merged. FPS observations do not prove this exact patch
 produced the measured binary or that a decoder buffer reached scanout.
 
 Original October 18 prototype patch:
-[prototype](/home/public/wyatt-desktop/Projects/l8ros-workspace/l8ros/bot-docs/patches/2026-10-18-hybrid-compositor-egl-external-layers.patch),
+[prototype](/home/public/wyatt-desktop/Projects/l8ros-workspace/l8ros/docs/umbrafox/archive/patches/2026-10-18-hybrid-compositor-egl-external-layers.patch),
 last reviewed SHA256
 `d8afa0403f1bc5a916966eeddc253f2ca3c9d719e203fde9cf827701609f37aa`.
 Earlier intake also found descriptor/resolved-index confusion, fresh-ID lifetime
@@ -1162,10 +1162,10 @@ Critical source corrections:
    feature state before proposing it; pool pressure and GL fallback are separate.
 
 Reports:
-[source-sized cost](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-18-source-sized-video-cost.md),
-[promotion gates](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-18-yuv-promotion-gates.md),
-[V4L2/Draw](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-18-v4l2-dmabuf-draw.md),
-[CacheRequest trace](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-18-cache-request-is-not-a-copy.md).
+[source-sized cost](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/archive/reports/2026-10-18-source-sized-video-cost.md),
+[promotion gates](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/archive/reports/2026-10-18-yuv-promotion-gates.md),
+[V4L2/Draw](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/archive/reports/2026-10-18-v4l2-dmabuf-draw.md),
+[CacheRequest trace](/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/archive/reports/2026-10-18-cache-request-is-not-a-copy.md).
 
 ## 15. Stopped Diagnostic and Census Work
 
@@ -1210,7 +1210,7 @@ Read the exact root's reports/receipts if reopening is explicitly authorized.
 Never fabricate a postlink pass or introduce the rejected no-CU adapter.
 
 Later census proposal, design only:
-[WR promotion census proposal](/home/public/wyatt-desktop/Projects/l8ros-workspace/l8ros/bot-docs/plans/wr-promotion-census-seam-proposal.md).
+[WR promotion census proposal](/home/public/wyatt-desktop/Projects/l8ros-workspace/l8ros/docs/umbrafox/archive/plans/wr-promotion-census-seam-proposal.md).
 Last coordinator-reported revision SHA256
 `e1f532ac8754c7f4d8be72a23ab966f0c952cfeed2798d886c152ee91db8b43f`;
 not freshly rehashed for this memory dump.
@@ -1436,7 +1436,7 @@ release compile-out still needs a patch-applied OFF build verification later.
 Latest bounded task is l8ros track-wr-video, source audit/plan first; no native
 probe implemented or Pi/browser/build run. Exact confirmed deployed source
 c0e7f8a2be04, beta20261014135715. Read new plan
-bot-docs/plans/2026-10-15-pi-webrender-video-probes.md and newest DETAILS.
+docs/umbrafox/archive/plans/2026-10-15-pi-webrender-video-probes.md and newest DETAILS.
 DMA-BUF can still have pool GPUcopy or EGL-bind copy fallback; V4L2 disables
 import recycling. Import reuse is a conditional candidate, not established fix.
 Separate Compositor-thread transactions, WR rendering, surface lock and swap;
@@ -1524,7 +1524,7 @@ genuine user copy/paste should prompt regardless of intent/replacement content.
 No success heuristic; propagation stop alone is not a trigger; no automatic retry.
 Non-focus-stealing UI, no suspended DOM dispatch, bounded safe retry, scoped grants
 and no background clipboard permission expansion are proposed design constraints.
-Source investigation and verification gates: bot-docs/plans/clipboard-protection.md.
+Source investigation and verification gates: docs/umbrafox/archive/plans/clipboard-protection.md.
 Protect ordinary inputs/textareas and page selection, preserve rich-editor handling
 in contenteditable; do not promise protection against arbitrary subsequent DOM
 mutation or relax clipboard permissions. Daily browser/clipboard remain untouched.
@@ -1537,7 +1537,7 @@ undo-window shortcut cleared, command retained. Earlier unconditional two-file
 edit superseded; Firefox defaults restored in source. CustomKeys store/reset used,
 unrelated customizations retained and conflicts rejected before changes.
 Pure13PASS; full isolated browser350PASS/0FAIL/1expected; lint0. Report:
-bot-docs/reports/2026-10-15-chrome-shortcut-preset.md. Logs
+docs/umbrafox/archive/reports/2026-10-15-chrome-shortcut-preset.md. Logs
 /tmp/codex/chrome-hotkeys-20261015. No owner browser/profile/install/launcher or Pi
 changes. Owner subsequently authorized commit/push; not packaged or activated
 in daily profile. Other
@@ -1546,7 +1546,7 @@ platforms, DevTools and destination/focus differences explicitly deferred.
 ## October 15: Full Chrome Shortcut Research
 
 Owner wants FULL hotkey parity, not just two edits. Research/draft only:
-bot-docs/plans/chrome-hotkey-parity.md. Official browser/DevTools documentation and
+docs/umbrafox/archive/plans/chrome-hotkey-parity.md. Official browser/DevTools documentation and
 source audit found command/context/platform gaps. Pure repository preprocessing
 and Fluent parsing confirmed duplicate Ctrl+J (search2 vs Downloads) in the pending
 patch. Two production files remain untouched by this audit. Reuse CustomKeys where
@@ -1558,7 +1558,7 @@ remain pending; no browser/profile/launcher modifications or new runtime tests.
 ## October 15: Recovery And Hotkey Handoff
 
 HEAD ed5c2e1dea6e. Two uncommitted tracked edits match the owner-supplied report
-bot-docs/bug-reports/2026-10-15-chrome-parity-hotkeys.md: Downloads Ctrl+J and
+docs/umbrafox/archive/bug-reports/2026-10-15-chrome-parity-hotkeys.md: Downloads Ctrl+J and
 New Private Window Ctrl+Shift+N, with conflicting Undo Close Window shortcut
 removed. Preserve, do not reapply; unbuilt/uninstalled/runtime-unverified. Report
 requires owner request before committing/pushing this separate patch.
@@ -1581,7 +1581,7 @@ dateddirs; no switch performed. stdout/stderr /dev/null. Two scopes ended14:32:2
 and15:05:18Arizona, no signal/status; no recentcore/OOM/segfault/minidump found.
 Currentprofile crashstore8records newestOct5. ThatOct5report isServiceWorker
 shutdowntimeout, notproof fortoday. Causeunresolved; askedincidenttimes/CrashReporter.
-Report bot-docs/reports/2026-10-14-desktop-crash-triage.md. Browser/profile/launcher
+Report docs/umbrafox/archive/reports/2026-10-14-desktop-crash-triage.md. Browser/profile/launcher
 untouched; anydebugger/restart/logginglaunch requiresseparateconsent. ARMcontinues.
 
 ## October 14: ARM Packages Complete
@@ -1634,7 +1634,7 @@ d43214 base plus frozen source.patch, not a claim it was built from that commit.
 
 Active request: continue until the post-seek stutter is found and fixed. Desktop
 daily browser remains untouched; isolated laptop runtime is authorized. Plan
-bot-docs/plans/seek-audio-reuse.md. New main changes are limited to AudioStream.h,
+docs/umbrafox/archive/plans/seek-audio-reuse.md. New main changes are limited to AudioStream.h,
 AudioSink.h, AudioSinkWrapper.cpp, its gtest and two adjacent docs.
 
 Logged laptop XkWE68 (seek-audio-log namespace) caught actual stream stop/start,
@@ -1674,7 +1674,7 @@ Each37samples/14recordedPIDsabsent/cleanSIGTERM/0logdrops.05:10:36UTC89inputs
 unchanged/no matching browser/compiler; allcommands terminal. Keep
 all prior failed/successful captures. Docs rendered but scoped Sphinx fails82
 global missing-toctree warnings; no AudioStream/AudioSinkWrapper page warning.
-Report bot-docs/reports/performance/2026-10-14-seek-audio-reuse.md; fixed reproduced
+Report docs/umbrafox/archive/reports/performance/2026-10-14-seek-audio-reuse.md; fixed reproduced
 case, not allYouTube/network/graphics issues. Main test differs compiledGREEN
 only comment/formatting, exactreconciliation recorded; productionhashesmatch.
 Candidateevidence59files2950599bytes sealed/verified; SHA256SUMS
@@ -1686,8 +1686,8 @@ then reproduced6.43/5.19/5.24% drops with the cursor mismatch above. No profiler
 
 ## October 13: Short Capture Retains Seek And Clock Plateaus
 
-Latest report bot-docs/reports/performance/2026-10-13-seek-transition.md;
-plan bot-docs/plans/seek-transition.md complete. Evidence namespace
+Latest report docs/umbrafox/archive/reports/performance/2026-10-13-seek-transition.md;
+plan docs/umbrafox/archive/plans/seek-transition.md complete. Evidence namespace
 artifacts/umbralink-control/seek-transition/ sealed via SHA256SUMS/seal.json.
 Seal113files11861284B manifest8796fb596237895bb86ececd4d1c0a480ff9dd76522a3ea21a4809437de55fc7.
 No engine fix/build/default change or desktop/Pi/personalprofile action.
@@ -1733,8 +1733,8 @@ NOT causal audio-backend/GPU proof. Native VideoSink recomputes targettimestamp
 from paired system/media clocks; AudioSinkWrapper can use audio/system/seekhold.
 Package-source hashes verified, runtime branch/querylatency still unobserved.
 
-Report bot-docs/reports/performance/2026-10-13-seek-marker-localization.md;
-plan bot-docs/plans/seek-marker-localization.md. New ignored evidence
+Report docs/umbrafox/archive/reports/performance/2026-10-13-seek-marker-localization.md;
+plan docs/umbrafox/archive/plans/seek-marker-localization.md. New ignored evidence
 artifacts/umbralink-control/seek-markers/ sealed134files121149058B; manifest
 aada49b5de31f470006fd44f404c00cb243bdca5b7239a56698e5574e307ffe8.
 ProfileSHA3ad5cb83c6ec8e530e415a6b8e2c3890b12545a84c3519b017b9d67d9eadf6fc.
@@ -1751,8 +1751,8 @@ Full details/failures/commands/coverage limitations in report. Prior evidence in
 
 Completed authorized quiet-laptop comparison, desktop untouched. New namespace
 artifacts/umbralink-control/audio-on-seek/; report
-bot-docs/reports/performance/2026-10-12-audio-on-seek.md and completed plan
-bot-docs/plans/audio-on-seek.md. NO native/product/default change or new fix.
+docs/umbrafox/archive/reports/performance/2026-10-12-audio-on-seek.md and completed plan
+docs/umbrafox/archive/plans/audio-on-seek.md. NO native/product/default change or new fix.
 
 Existing laptop Build20261006175655 (NOT October12 beta), AV1 1080p60 public
 aqz-KE-bpKQ, normal menu/private iHD, X11 Intel. Four native audio endpoint reads
@@ -1804,7 +1804,7 @@ separately repaired explicit small target Init and actual RGBA/BGRA input format
 12cache cases PASS, exactpixels/loss/ownership assertions unchanged in intent.
 New test-only delta is not silently folded into sealed normal-package patch.
 Prior smoothness failures persist; no new YouTube/performance/universal parity claim.
-Report bot-docs/reports/performance/2026-10-12-opt-in-beta.md; build/evidence root
+Report docs/umbrafox/archive/reports/performance/2026-10-12-opt-in-beta.md; build/evidence root
 /home/wyatt/.cache/codex/umbrafox-beta-20261012-nYSBPOWS/. Commands terminal.
 Unrelated old untracked upstream files remain untouched. Supersedes the historical
 in-progress note below; see git log for final own-file publication.
@@ -1855,12 +1855,12 @@ Mach's new lint-environment setup timed out, so installed ESLint was used.
 No complete Gecko/native build, real-GPU tests, or runtime parity run performed.
 This is source integration, not a newly built or installed prototype.
 
-Report: bot-docs/reports/2026-10-12-upstream-sync.md. Evidence/backups:
+Report: docs/umbrafox/archive/reports/2026-10-12-upstream-sync.md. Evidence/backups:
 /home/wyatt/.cache/codex/umbrafox-upstream-sync-20261012-ssNJPxDz/.
 Generated browser packages/extractions remain on disk but are excluded from Git;
 source snapshots, manifests and reports are preserved. Check git log/status for
 the merge commit and origin publication. No installed browser/profile changed.
-Next optimization contract remains bot-docs/plans/audio-on-seek.md; do not mistake
+Next optimization contract remains docs/umbrafox/archive/plans/audio-on-seek.md; do not mistake
 this merge or old muted tests for reproduction of the audio-on seek symptom.
 
 ## October 12: Default Profile Migration
@@ -1886,8 +1886,8 @@ that the investigation or active performance goal is complete.
 
 Updated2026-10-08T04:10UTC. Phase2 private bridge/capture integration and ONE
 phase3 isolated laptop run completed; all earlier phase1 and muted evidence
-unchanged. Report bot-docs/reports/performance/2026-10-07-audio-clock-admission.md;
-next contract bot-docs/plans/audio-on-seek.md. That next long-seek adapter is NOT
+unchanged. Report docs/umbrafox/archive/reports/performance/2026-10-07-audio-clock-admission.md;
+next contract docs/umbrafox/archive/plans/audio-on-seek.md. That next long-seek adapter is NOT
 implemented yet; do not rerun the short admission or repeat old muted ABBA.
 
 Actual run04:05:10..04:05:25UTC, root
@@ -1964,8 +1964,8 @@ gap, NOT a cause or fix; old captures did not observe actual native clock source
 or continuous mute. Owner was asked whether affected playback had sound on;
 answer is pending at this snapshot. Do not repeat the prior muted ABBA.
 
-New plan `bot-docs/plans/audio-clock-admission.md` and report
-`bot-docs/reports/performance/2026-10-07-audio-clock-coverage.md`.
+New plan `docs/umbrafox/archive/plans/audio-clock-admission.md` and report
+`docs/umbrafox/archive/reports/performance/2026-10-07-audio-clock-coverage.md`.
 Namespace `artifacts/umbralink-control/audio-clock-admission/` is NOT runtime-ready.
 Phase1 complete: audio.mjs allowlisted projection/paired admission/bounded
 collector; test/audio-spec.mjs18PASS under strict unhandled handling;3JSformat
@@ -2046,7 +2046,7 @@ Prettier. `completed-input-verification.json` verifies all 96 prior sealed
 files and all 53 current runtime inputs unchanged. The earlier 38/41-test
 receipts are preserved history, not the final count.
 
-Report: `bot-docs/reports/performance/2026-10-07-startup-thread-sampling.md`.
+Report: `docs/umbrafox/archive/reports/performance/2026-10-07-startup-thread-sampling.md`.
 The plan and DETAILS top have been reconciled to this completed state.
 Named documentation lint passed with zero errors/warnings; scoped diff check
 passed. All validation commands finished. The final metadata seal is
@@ -2090,7 +2090,7 @@ Do not make outcome-driven replacement captures. A preserved metadata-export
 argument correction is not a browser rerun.
 
 This snapshot supersedes the stale top section of `.codex/DETAILS.md` and the
-progress section of `bot-docs/plans/startup-thread-sampling.md`: those still say
+progress section of `docs/umbrafox/archive/plans/startup-thread-sampling.md`: those still say
 38 tests, no runtime driver, and no browser launch. Drivers now exist, 41 tests
 passed, and two runs have completed. Reconcile those documents later.
 
@@ -2130,7 +2130,7 @@ quirks/rules and AGIS runtime. Project `.codex/quirks.md` and `.codex/rules.md`
 were absent. `AGENTS.md` contains the mandatory bootstrap rule. Finish bootstrap
 with `Fired up!` and continue, not stop.
 
-Important instructions: `umbrafox-conversion-guide/02-mandatory-modification-rules.md`.
+Important instructions: `docs/umbrafox/conversion-guide/02-mandatory-modification-rules.md`.
 Skills used: umbrafox-link, firefox-desktop-frontend, documentation, mozlint,
 planning-cap. Read relevant skills again when needed. Use Searchfox for upstream
 discovery; local searches must be narrowly scoped to known local changes.
@@ -2138,7 +2138,7 @@ Installed searchfox-cli 0.18 advertised 0.20.5; no update was installed.
 
 Use `apply_patch` for manual edits, bounded commands, structured JSON parsers,
 and unfiltered log files for slow commands. Do not overwrite sealed evidence.
-Reports belong under `bot-docs/reports/`, plans under `bot-docs/plans/`, current
+Reports belong under `docs/umbrafox/archive/reports/`, plans under `docs/umbrafox/archive/plans/`, current
 tooling evidence under repository `artifacts/`, large owned runs under home cache.
 Do not expose control credentials in reports. No active executable tool session
 was known at this snapshot; sampled-1's session 83214 returned terminal exit 0.
@@ -2146,7 +2146,7 @@ was known at this snapshot; sampled-1's session 83214 returned terminal exit 0.
 ## Current Experiment and Files
 
 Unsealed namespace: `artifacts/umbralink-control/startup-thread-sampling/`.
-Plan: `bot-docs/plans/startup-thread-sampling.md`.
+Plan: `docs/umbrafox/archive/plans/startup-thread-sampling.md`.
 
 Manual modules:
 
@@ -2337,7 +2337,7 @@ Prettier and named docs lint, not broad autoformat of the dirty repository.
 ### Startup Variability Audit
 
 Namespace `artifacts/umbralink-control/startup-variability/`.
-Report `bot-docs/reports/performance/2026-10-07-startup-variability.md`.
+Report `docs/umbrafox/archive/reports/performance/2026-10-07-startup-variability.md`.
 Sealed `2026-10-08T00:34:08.370Z`, 18 files, evidence SHA
 `0ea5e19a8be41687fe79f65a2c4d10ada4a2831311526fc4b6bdb1e034877481`.
 8 focused / 22 combined tests passed.
@@ -2425,7 +2425,7 @@ reuseD BPy8H5 failed artifact scan at40s, cleanSIGTERM14PIDsabsent; not a
 performance result. Failed initial receipt-order setup UXlvI6 also preserved.
 Artifacts umbralink-control/seek-reuse;136strict testsPASS. Runtime79files
 Hb2Quz postflight04:19UTC unchanged/no browser/compiler. Plan
-bot-docs/plans/seek-audio-reuse.md. No source/default changes.
+docs/umbrafox/archive/plans/seek-audio-reuse.md. No source/default changes.
 
 ONE narrow follow-up now running: existing native AudioStream:4,timestamp log,
 profilerOFF, same240s/256MiB/capture/cleanup boundaries. Remote83file harness

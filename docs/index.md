@@ -1,5 +1,11 @@
 # Firefox Source Tree Documentation
 
+Umbrafox maintainers and contributors should begin with the
+[Umbrafox fork documentation](umbrafox/README.md). It records the fork's
+intentional Firefox exceptions, security and parity rules, build/operation
+guides, and historical project evidence. The rest of this tree documents the
+upstream Firefox source inherited by Umbrafox.
+
 ```{{toctree}}
 :caption: Overview
 :maxdepth: 2

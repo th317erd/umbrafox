@@ -12,7 +12,7 @@ Do not remove existing comments unless they are directly related to what you are
 If you see a good first bug that isn't directly related to your work, don't hesitate to propose it as a good first bug (see the `file-good-first-bug` skill).
 
 ## Umbrafox mandatory rulebook
-Before implementing any Umbrafox source change, read and apply `umbrafox-conversion-guide/02-mandatory-modification-rules.md`.
+Before implementing any Umbrafox source change, read and apply `docs/umbrafox/conversion-guide/02-mandatory-modification-rules.md`.
 
 You must confirm to yourself that the requested change does not violate the rulebook before editing code. Pay special attention to these constraints:
 

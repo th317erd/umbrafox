@@ -4,8 +4,8 @@
 
 l8ros bug report253e19430b6f (four questions + verdict request). Answered in source and committed:
 37684bc7f64e appends `# Answer from Umbrafox` to
-`bot-docs/bug-reports/2026-10-23-l8ros-umbralink-context-and-kiosk-exit.md`;
-b3ca97a4a136 adds `bot-docs/reports/2026-10-23-umbralink-context-kiosk-exit-and-patch-verdict.md`.
+`docs/umbrafox/archive/bug-reports/2026-10-23-l8ros-umbralink-context-and-kiosk-exit.md`;
+b3ca97a4a136 adds `docs/umbrafox/archive/reports/2026-10-23-umbralink-context-kiosk-exit-and-patch-verdict.md`.
 Pushed; main==origin/main==b3ca97a4a136. No source/build/Pi/device action.
 Answers: (1) `diagnostics.snapshot`->`context`->`navigate` is the only targeting path, no enumeration
 command, create needs an existing tab, rejected navigate inert; `script.execute{context,body,realm}`
@@ -40,7 +40,7 @@ still present; their missing-attach premise false. EndFrame still SwapBuffers
 after accepted no-final-tile-draw frame: separate measurable cost, not proven
 bottleneck. Proposed bounded counters distinguish admission/callback/WR draw/
 swap; no source/build/Pi actions. Report follow-up appended to
-bot-docs/reports/2026-10-20-combined-hybrid-intake.md.
+docs/umbrafox/archive/reports/2026-10-20-combined-hybrid-intake.md.
 l8ros now reports Marionette caused by deploy ownership/device-ca refusal and
 greeter fallback; note supplied diagnosis separate from proven BuildID mismatch.
 Websocket ACK failed no loaded l8ros thread; list confirms only umbra+idleworkers.
@@ -56,7 +56,7 @@ fallback; nativecreate/attach queued Draw/Layer but renderer/mod.rs drainsNative
 only => debugassert/releasequeuegrowth; EGL nativehooks stillnoops. Global
 gL8ROSHybridActive set beforeBeginFrame success fromcachedmarker+pref, nevercleared
 on cancel/reject/pause/destruct, notsurface/windowowned. DoNOTapply/buildasis.
-Report bot-docs/reports/2026-10-20-combined-hybrid-intake.md; activeplanupdated.
+Report docs/umbrafox/archive/reports/2026-10-20-combined-hybrid-intake.md; activeplanupdated.
 Gibbs completed, control /tmp/codex/umbra-combined-intake-20261020/control OK.
 
 Marionette comparison concrete: bothconfig ENABLE_WEBDRIVER1/MOZ_GECKODRIVER1;
@@ -85,7 +85,7 @@ checks14PASS0.038s and verifierunit7PASS0.040s. Exact reported14FAIL1 matches
 attachment-red.log, intentionally retained pre-fix; final green logs pass.
 Need exact other path/output if reporter meant a different/new failure.
 
-Report bot-docs/reports/2026-10-20-hybrid-admission-audit.md; scratch
+Report docs/umbrafox/archive/reports/2026-10-20-hybrid-admission-audit.md; scratch
 /tmp/codex/umbra-hybrid-admission-20261020. No source/build/export/Pi changes.
 Actual Pi rejection still unknown: color-representation manager+BT709limited,
 exactmodifiers and fullscreenidentity gates mandatory. First no-buildcheck:
@@ -97,8 +97,8 @@ ACK websocket failed l8ros unloaded; noDB. No running command sessions.
 ## October 19 EGL Child Vsync Follow-up
 
 Wyatt authorized implementation with "Let's go for it" after the read-only
-vsync analysis. Active plan remains bot-docs/plans/egl-external-video.md;
-report bot-docs/reports/2026-10-19-egl-child-vsync.md. Default-off candidate,
+vsync analysis. Active plan remains docs/umbrafox/archive/plans/egl-external-video.md;
+report docs/umbrafox/archive/reports/2026-10-19-egl-child-vsync.md. Default-off candidate,
 not l8ros's measured prototype; no Pi/desktop installation or browser actions.
 
 Implemented parent-owned child callback source/generation in WaylandSurface,
@@ -160,7 +160,7 @@ Bugzilla-vs-No-bug question unanswered; no staging/commit/CI done.
 ## October 19 Authorized Hybrid Implementation In Progress
 
 Wyatt's "Please continue, fixing these issues as you go" supersedes the earlier
-intake-only hold. Active plan: bot-docs/plans/egl-external-video.md. Main HEAD
+intake-only hold. Active plan: docs/umbrafox/archive/plans/egl-external-video.md. Main HEAD
 9a9057291b5b5dd1c1362a2cc58551990532a6f6. Do NOT touch unrelated MEMORY.md or
 untracked upstream files; no Pi/desktop install in this task. l8ros owns deployment.
 No new DB assigned. Control /tmp/codex/umbra-hybrid-20261019/control is OK.
@@ -241,7 +241,7 @@ SHA256 fac5017606879b8ed8b9dd4f7490df95a85a2bec8c3a1892cb283352e459a515.
 package-input.json binds source/receipt/tool/archive hashes and explicit limits;
 28ELF identities, INI/native BuildID20261019063025, archive/staging/extraction,
 frontend CRC/inventory, 25owned+485132base source checks all PASS. Report
-bot-docs/reports/2026-10-19-hybrid-artifact.md. No runtime/installation/Pi claims.
+docs/umbrafox/archive/reports/2026-10-19-hybrid-artifact.md. No runtime/installation/Pi claims.
 All compiler, package, validator and test command sessions joined. No source
 freeze4; revision3 remains exact browser artifact input. Source still uncommitted.
 
@@ -249,7 +249,7 @@ Workers: Hilbert01a145c6-b3c3-7bb0-b785-60c60a7acc22 handed off NativeLayer file
 now bounded readonly color-protocol viability check. Arendt01a14287-1e0b-7a92-9fc2-0b807bba0778
 completed environment/interop report, HOLD. Parent owns all source now. Websocket
 list shows no l8ros target loaded; do not claim handoff delivery. Reports under
-bot-docs/reports/2026-10-19-hybrid-{wayland-contract,build-environment}.md.
+docs/umbrafox/archive/reports/2026-10-19-hybrid-{wayland-contract,build-environment}.md.
 Important: requiring BT709 color representation may exclude installed Cage;
 fallback is intentional, no prototype perf claim transferred to candidate.
 
@@ -258,7 +258,7 @@ fallback is intentional, no prototype perf claim transferred to candidate.
 l8ros handed off browser-side ownership, then requested official build/default-on.
 Latest supplied results:1080p60=59.29fps/1.2%,720p60=59.08/1.9%,hybridpage480/481
 intervals<=18ms (repeat476/479),0failedunits. Exact seven-file250line patch is
-/home/public/wyatt-desktop/Projects/l8ros-workspace/l8ros/bot-docs/patches/2026-10-18-hybrid-compositor-egl-external-layers.patch
+/home/public/wyatt-desktop/Projects/l8ros-workspace/l8ros/docs/umbrafox/archive/patches/2026-10-18-hybrid-compositor-egl-external-layers.patch
 SHAd8afa0403f1bc5a916966eeddc253f2ca3c9d719e203fde9cf827701609f37aa
 (supersedes060ba900). Revision adds mLayersPosted but resets on every create;
 WR stillallocatesfreshIDs. Earlierzero-rAF now described in producer notes as
@@ -266,7 +266,7 @@ same-tab harness artifact; message instead says starvation, causalityunproved.
 All seven input blobs match current9a905729 and releasec0e7f8a2; git apply --check
 PASS, NOT applied. Reported performance is not independent visual/lifetime proof.
 Review and integration gates:
-/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-19-hybrid-prototype-intake.md.
+/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/archive/reports/2026-10-19-hybrid-prototype-intake.md.
 Concrete bugs: external_surface_index incorrectly indexes descriptor.surfaces;
 freshIDs bypass nativecache retirement, C++ no DestroySurface override; all old
 layers republished; no Draw AddSurface caller; SetLayers disables root commits
@@ -285,7 +285,7 @@ Websocket ACK/update still fail unloaded selector for both workspace/subdir.
 l8ros reports force-enabled+layer-compositor yields1080p60=59.5fps but regular
 page fence wait19ms/UIregression; EGL CreateExternalSurface overrides had0calls.
 Read-only review:
-/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-19-egl-native-video-hybrid.md.
+/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/archive/reports/2026-10-19-egl-native-video-hybrid.md.
 22files equal c0e7f8a2. No existing Draw+native mixedconfig. Existing Layer interface
 already splits Content swapchains/External attachments: prefer EGL-backed content
 backend reuse, not promotion guard bypass. Draw nativequeue producer bypass hits
@@ -302,7 +302,7 @@ No source/build/deploy/Pi actions. Supplied websocket l8ros thread stillunloaded
 l8ros 20:32 proposes YuvImageData::update/new_image CacheRequest as per-plane
 per-frame GPU copy; reports now21parent/50RDDdmabufFDs (supersedeszeroFDpremise).
 Read-only consumer trace in
-/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-18-cache-request-is-not-a-copy.md.
+/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/archive/reports/2026-10-18-cache-request-is-not-a-copy.md.
 TextureHandle uses_texture_cache=false; request_image returns size early;
 CacheRequest no allocation/subpass; resolve_image -> TextureSource::External;
 task becomes Static/ReadOnly; deferred resolve wraps host NativeTexture and
@@ -322,7 +322,7 @@ No browser code/build/Pi actions; actual costly operation still unlocated.
 ## October 18 V4L2 DMA-BUF Draw Follow-Up
 
 l8ros 20:25 update claims active V4L2 but no parent DMA-BUF FDs. Source answer:
-/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-18-v4l2-dmabuf-draw.md.
+/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/archive/reports/2026-10-18-v4l2-dmabuf-draw.md.
 Pinned V4L2 requires DRM_PRIME -> VideoFramePool -> DMABUFSurfaceImage -> WR
 TextureHandle/RenderDMABUFTextureHost -> EGL import; native compositor not needed.
 New actionable pref media.ffmpeg.vaapi.force-surface-zero-copy applies also to
@@ -338,7 +338,7 @@ No source/build/Pi actions. Websocket supplied l8ros selector still unloaded.
 ## October 18 Exact YUV Promotion Gates
 
 Latest l8ros 20:16 source-only request answered in
-/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-18-yuv-promotion-gates.md.
+/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/archive/reports/2026-10-18-yuv-promotion-gates.md.
 Exact PREFER -> Overlay/Underlay eligibility -> setup -> underlay-cancellation
 chain retained. Draw supports external YUV final sampling without native;
 hardware fallback is GPU, not CPU tile conversion. Stability delay is Windows-only
@@ -355,7 +355,7 @@ ACK/checkpoint failed, findings retained for direct handoff.
 
 l8ros requested readonly analysis after source-size-dependent content CPU/cadence
 measurements on release160/20261014135715. Report:
-/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-18-source-sized-video-cost.md.
+/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/archive/reports/2026-10-18-source-sized-video-cost.md.
 Twenty-one retained source/shader files matched c0e7f8a2 byte-for-byte. Draw already
 supports final YUV-plane sampling without native compositor; failed promotion
 uses a hardware YUV quad, not necessarily CPU pixel conversion. Distinct plane
@@ -391,7 +391,7 @@ hashes and rollback/limitations are retained in
 ## October 17 Nested Cage Review
 
 03:42/03:45 coordinator requested readonly nested-compositor bypass analysis.
-Report bot-docs/reports/2026-10-17-nested-cage-feasibility.md. l8ros producer
+Report docs/umbrafox/archive/reports/2026-10-17-nested-cage-feasibility.md. l8ros producer
 cbdc4d86/server1eea48a1: nesting deliberately provides persistent KMS/curtain
 plus per-profile multi-client Wayland, broker admission/revocation. Outer has
 NO public display listener: cage.patch removes add_socket_auto, curtain.c
@@ -413,7 +413,7 @@ tmux l8ros:1.1 +DB. Only own report/continuity/coordination writes.
 ## October 17 Video Plane Feasibility
 
 03:31 readonly overlay feasibility + ranked plan requested; runtime/edits remain
-l8ros-owned. Report bot-docs/reports/2026-10-17-video-plane-feasibility.md SHA
+l8ros-owned. Report docs/umbrafox/archive/reports/2026-10-17-video-plane-feasibility.md SHA
 c2bc25c9560c7d12386209546071905737b6d39a31b2b8b3df2be4a5aea13af8.
 Raw captures under exports/umbrafox-wr-render-p2/diagnostic-layout/overlay-evidence:
 drm-info05286e90/modetest85206c75 verified stable.60planes TOTAL=48Overlay+
@@ -437,7 +437,7 @@ edits; new report+continuity only. All prior diagnostic artifact holds remain.
 
 03:00 coordinator assigned readonly decomposition/native bypass feasibility;
 artifact task remains stopped, no runtime authority. Report:
-/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/bot-docs/reports/2026-10-17-release-composite-decomposition.md.
+/home/public/wyatt-desktop/Projects/umbrafox-workspace/umbrafox/docs/umbrafox/archive/reports/2026-10-17-release-composite-decomposition.md.
 Pinned release c0e7f8a2be0460695c1f65ae8796b09c1082480c and retained release
 checkout umbrafox-arm-20261014-gZmxuBOR/source; 17 local references/14 source
 blobs verified exact base. Four RGB instances unidentified; promoted YUV not
@@ -461,7 +461,7 @@ unproved. Concur: build2 UNCERTIFIED and not deployable through established,
 authorized paths; not a claim of intrinsic impossibility. R/runtime=l8ros,
 release-browser falsifiable A/B is separate work. No diagnostic capture exists.
 ROOT=/home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-p2-layout-20261016.
-One-page ROOT/bot-docs/reports/build2-diagnostic-closure.md SHA
+One-page ROOT/docs/umbrafox/archive/reports/build2-diagnostic-closure.md SHA
 700c2c03a4f5b918443fc35f2a3bf04090c3695a8e5752884f1fcceeaeae5ccc.
 ROOT/evidence/artifact-path-closure-freeze.json SHA
 837b78e5029a03708bd35ff444837ed79d9bf93ea7aa754f48c90e3af824188d
@@ -498,9 +498,9 @@ Do not resume artifact work without new explicit scope/authorization.
 Coordinator02:02 accepted scoped/noallTU observation, requested revisedcontract
 documentonly.02:03 chose one PROVISIONAL capture direction but required exact
 packagingproposal BEFORE execution. Both ACKs DB574/576; no implementation.
-ROOT/bot-docs/plans/provisional-p1-p2-evidence-contract.md SHA
+ROOT/docs/umbrafox/archive/plans/provisional-p1-p2-evidence-contract.md SHA
 832a9e71d63eba0a9ab270faa656d044dde68fe4d99e0c07bdea9e900f78cbaa;
-ROOT/bot-docs/plans/provisional-build2-packaging-proposal.md SHA
+ROOT/docs/umbrafox/archive/plans/provisional-build2-packaging-proposal.md SHA
 b3e1e9be7d0074aabb29967972d29b3874bb587d232d189a19da368d9c9c43dd.
 Newprovisionalpath proposed, notstrictgatebypass: normal mach package --verbose
 existingbuild2, mandatory externally pinned exact limitationreceipt +bundle
@@ -575,7 +575,7 @@ auditretry/package/runtime permission. Source/artifact/fullgate held. ACK sent
 DB and authorized tmuxl8ros:1.1 after unavailable websocket. Two planningworkers
 now HOLD; no implementation/native activity.
 ROOT=/home/public/wyatt-desktop/.cache/codex/umbrafox-wr-render-p2-layout-20261016.
-Plan ROOT/bot-docs/plans/cargo-two-tu-reproducibility.md SHA
+Plan ROOT/docs/umbrafox/archive/plans/cargo-two-tu-reproducibility.md SHA
 33c566a8bbe0a8819e0743996120fc9d91e96ee809a9a53d746ba2278031bc5a.
 Ordered NEW command appendix ROOT/two-tu-build-inputs.md SHA
 80fb7d5ee37fe4deaebb693eca71ac16b5e55a39a2f5ca153a0dcb908ad2e99f.
@@ -1264,7 +1264,7 @@ Active coordinator task wr-render-fix, same ARM DB/session20261014T2105Z-l8ros-a
 New wave bus /tmp/codex/wr-render-fix-20261016/control.txt plus l8ros-arm-bus.
 Coordinator return websocket cwd does not resolve; use l8ros:1.1 only after
 verifying input is blank, plus DB. Existing three workers now report-only.
-PhaseA report bot-docs/reports/2026-10-16-wr-render-phase-a.md; inventories and
+PhaseA report docs/umbrafox/archive/reports/2026-10-16-wr-render-phase-a.md; inventories and
 independent adapter review under /home/public/wyatt-desktop/.cache/codex/
 umbrafox-wr-render-fix-20261016/. New isolated source there replays all22 frozen
 P1 files exact hash/size/mode; original P1 source/export untouched. No P2 source
@@ -1289,7 +1289,7 @@ observed imports/locks/present cheap. Import-reuse candidate DEPRIORITIZED for
 this workload, not universally disproven. Zero DecoderPool records are missing
 coverage, not proof zero copies. Raw dump receipt under exports/umbrafox-wr-video-p1/
 captures/D1-wayland;415063421B SHA b734fffd... not parsed by this source audit.
-P2 proposal: bot-docs/plans/2026-10-16-pi-wr-render-p2.md. Read-only pinned-source
+P2 proposal: docs/umbrafox/archive/plans/2026-10-16-pi-wr-render-p2.md. Read-only pinned-source
 audit, no new source/build/Pi/runtime authorization or action.12Rust/binding/shader/
 gfxPlatform files byte-match base. d3 includes resource/draw/composition/tail;
 scene/frame building and tile z-sort upstream, not d3. Existing draw/tile/render-
@@ -1312,7 +1312,7 @@ gate1 confirmed. Not runtime or new-patch release-OFF proof. Source unchanged.
 First build4450s requestedTERM preserved; old group absent before make8/nice0
 resume after owneroverride. All four native groups absent after packaging.
 README/package-input/evidence include test/review/build/cleanup/provenance;
-report bot-docs/reports/2026-10-16-wr-video-p1-diagnostic.md. No Pi/install/native
+report docs/umbrafox/archive/reports/2026-10-16-wr-video-p1-diagnostic.md. No Pi/install/native
 ARM execution/raw-profile/owner-browser work. l8ros owns R/D0/D1/R validation;
 no optimization verdict until measured. Source remains isolated, not committed
 to main. Desktop clipboard activation hold is unrelated and remains unchanged.
@@ -1398,7 +1398,7 @@ Latest received instruction: continue docs, no builds/Pi yet. A later build
 authorization was visible queued in coordinator pane, not yet the active user
 instruction for this chunk; do not infer execution permission from that alone.
 
-Frozen schema bot-docs/plans/2026-10-15-pi-webrender-video-schema-v1.md SHA256
+Frozen schema docs/umbrafox/archive/plans/2026-10-15-pi-webrender-video-schema-v1.md SHA256
 a06997869ed4ee62a2acd2dedf669085e33752c354fcdb8dc4065e9ca1d8470d.
 Exact base c0e7f8a2be0460695c1f65ae8796b09c1082480c. Fixed32 uint32 words,
 8 kinds, aggregated renderer/import subdurations, explicit missing/validity,
@@ -1431,7 +1431,7 @@ New l8ros task track-wr-video in historical ARM DB/session20261014T2105Z-l8ros-a
 bus /tmp/codex/l8ros-arm-bus.txt, tmux l8ros:1.1 (inspect empty input first).
 Accepted bounded source audit/plan only initially; no Pi/browser/build/probes run.
 Coordinator event52 confirms deployed beta20261014135715/sourcec0e7f8a2be04.
-Plan bot-docs/plans/2026-10-15-pi-webrender-video-probes.md maps exact pinned
+Plan docs/umbrafox/archive/plans/2026-10-15-pi-webrender-video-probes.md maps exact pinned
 V4L2->pool->DMABUF host->WR, pool GPUcopy vs import/directbind vs import GPUcopy
 fallback, CPU upload alternative, compositor/renderer/present boundaries.
 Saved x11-20261016 snapshot is paused, identity-only; does not prove FPS interval.
@@ -1455,7 +1455,7 @@ Source/native/runtime gates now pass. Actual final browser7files808PASS/0fail/
 existing2files148PASS; UI/actor pure51PASS; package/install combined12PASS;
 launcher/beta16PASS; final exact12file JS lint0. Native build8 passed1m43,
 standard mach package32s. BuildID20261015235226 in libxul and both INIs.
-Report bot-docs/reports/2026-10-15-clipboard-protection.md; canonical recipe19
+Report docs/umbrafox/archive/reports/2026-10-15-clipboard-protection.md; canonical recipe19
 and full file inventory updated. Raw failures/results/reviews preserved in
 exports/umbrafox-clipboard-20261015/evidence. Three worker lanes closed and
 owned monitor1092091 exited143 after TERM. All recorded test/helper/monitor/
@@ -1601,7 +1601,7 @@ alone must not trigger. No/default dismissal preserves the original result.
 Explicit override may differ, but default observation/prompt must not alter page
 events or steal focus. Safe retry, frame/origin/operation scope, private/container
 isolation and prompt spam remain design gates, not implemented. Plan
-bot-docs/plans/clipboard-protection.md records source map and revised proposal.
+docs/umbrafox/archive/plans/clipboard-protection.md records source map and revised proposal.
 Read-only source inspection and planning only so far;
 no clipboard code/pref/profile/personal clipboard change. Existing clipboardevents
 pref alone misses beforeinput and earlier keyboard cancellation. Inputs/textareas
@@ -1618,7 +1618,7 @@ two-file patch, whose original files now match HEAD. Unrelated customizations
 preserved; conflicts reject before mutation; existing default reset/persistence.
 13 pure tests + full isolated browser suite350PASS/0FAIL/1expected, lint0. Tests
 include real reserved-key delivery difference, private window and persisted JSON.
-Report bot-docs/reports/2026-10-15-chrome-shortcut-preset.md; exact logs
+Report docs/umbrafox/archive/reports/2026-10-15-chrome-shortcut-preset.md; exact logs
 /tmp/codex/chrome-hotkeys-20261015. All recorded owned test PIDs absent. No owner
 browser/profile/launcher/install/Pi changes. Owner subsequently authorized
 commit/push of this milestone; origin/main matched the base before publication.
@@ -1631,7 +1631,7 @@ seek repairs preserved. Next bot must not reapply the superseded two-file patch.
 
 Owner expanded the request to FULL Chrome hotkey parity and asked for web research.
 Planning only; no additional production edits or browser interaction. Draft:
-bot-docs/plans/chrome-hotkey-parity.md. Official Google/Mozilla docs plus Chromium
+docs/umbrafox/archive/plans/chrome-hotkey-parity.md. Official Google/Mozilla docs plus Chromium
 accelerators and Searchfox reveal more than two remaps. Repository preprocessor
 and Fluent parser independently confirm pending patch duplicates Linux Ctrl+J
 between search2 and Downloads; numbered tabs still use alt. Existing source patch
@@ -1649,7 +1649,7 @@ it does not claim full runtime parity or completed exhaustive enumeration.
 
 Reloaded after owner-reported agent failure. HEAD remains ed5c2e1dea6e; two
 tracked local edits are explained by owner-supplied
-bot-docs/bug-reports/2026-10-15-chrome-parity-hotkeys.md. Actual diff matches:
+docs/umbrafox/archive/bug-reports/2026-10-15-chrome-parity-hotkeys.md. Actual diff matches:
 Downloads Ctrl+J, New Private Window Ctrl+Shift+N, removing the conflicting
 Undo Close Window accelerator. Preserve these edits; do not reapply. The report
 says unbuilt/uninstalled/runtime-unverified and requires owner request before
@@ -1680,7 +1680,7 @@ signal/status. No matching systemcore/OOM/segfault or new normal-path minidump.
 Crashstore8records newestOct5, corruptDatenull. Oct5extra7f328388 reports1worker
 AsyncShutdown profile-change-teardown timeout, NOT evidence for today. Asked
 owner whether timesmatch andCrashReporter appeared; cause unresolved. Report
-bot-docs/reports/2026-10-14-desktop-crash-triage.md. No upload/debugger/runtimeRPC.
+docs/umbrafox/archive/reports/2026-10-14-desktop-crash-triage.md. No upload/debugger/runtimeRPC.
 
 ## October 14 ARM Build And Packages Complete
 
@@ -1757,8 +1757,8 @@ this is NOT proof no browser under another name. No Pi modification/restart/buil
 
 Fix/report commit d74c12c71fdf; package provenance remains recordedbase+patch.
 
-Report bot-docs/reports/performance/2026-10-14-seek-audio-reuse.md, completedplan
-bot-docs/plans/seek-audio-reuse.md. AudioStream/AudioSink internal CanReuseAfterSeek
+Report docs/umbrafox/archive/reports/performance/2026-10-14-seek-audio-reuse.md, completedplan
+docs/umbrafox/archive/plans/seek-audio-reuse.md. AudioStream/AudioSink internal CanReuseAfterSeek
 requires keep-running+backend-started+logicalSTOPPED; wrapperstashchecks it.
 Ordinarypausedstream formerlyrestarted/rebasedwithcarry0 despiteunknownretained
 queue. Actuallogsreproduce validcursor7360frame mismatch; Pulse stop corks,
@@ -1797,8 +1797,8 @@ f00401af476262f1eeadd8ef9da4e86155d3684c3948949da23ea6da36a9fcb5.
 
 ## October 13 Short Seek Transition Completed
 
-Report bot-docs/reports/performance/2026-10-13-seek-transition.md and completed
-plan bot-docs/plans/seek-transition.md. New private ignored namespace
+Report docs/umbrafox/archive/reports/performance/2026-10-13-seek-transition.md and completed
+plan docs/umbrafox/archive/plans/seek-transition.md. New private ignored namespace
 artifacts/umbralink-control/seek-transition/; SHA256SUMS/seal.json retain inventory.
 Seal113files11861284B manifest
 8796fb596237895bb86ececd4d1c0a480ff9dd76522a3ea21a4809437de55fc7 verified.
@@ -1828,7 +1828,7 @@ notanotheridenticalcapture, biasadjustment or renderer rewrite.
 ## October 13 Seek Marker Localization
 
 Completed laptop wave via UmbraLink. Report
-bot-docs/reports/performance/2026-10-13-seek-marker-localization.md; ignored
+docs/umbrafox/archive/reports/performance/2026-10-13-seek-marker-localization.md; ignored
 artifacts/umbralink-control/seek-markers/ sealed134files121149058B, manifest
 aada49b5de31f470006fd44f404c00cb243bdca5b7239a56698e5574e307ffe8.
 No Gecko/default change or performance fix yet. Old Build20261006175655, notbeta.
@@ -1879,7 +1879,7 @@ Next profiling wave still needs bounded observer-cost and marker/clock contract.
 Completed one successful control+one UI seek on quiet laptop, old verified
 Build20261006175655, NOT new beta. New ignored artifact namespace audio-on-seek
 under artifacts/umbralink-control; report
-bot-docs/reports/performance/2026-10-12-audio-on-seek.md. Control recovery windows
+docs/umbrafox/archive/reports/performance/2026-10-12-audio-on-seek.md. Control recovery windows
 drop0.22/0.26/0.38%; seek10.42/10.49/9.04% through130007ms after seeked. Endpoint
 native seek counts845compositor/0decoded/1sink versus control48/0/0. Segment
 totals791/9078 versus48/9000 use narrower windows. Audio sink advancing before/
@@ -1918,7 +1918,7 @@ known seven prescale pixel failures remain failing. Current DrawImage no longer
 uses sized CPU route. Same-build UmbraLink OFF/ON public parity+commands PASS,
 actual native roots/build/prefs true/profileroff, owned clean SIGTERM. No new
 performance/playback/stockFirefox universal parity acceptance; two old smoothness
-failures remain. See bot-docs/reports/performance/2026-10-12-opt-in-beta.md.
+failures remain. See docs/umbrafox/archive/reports/performance/2026-10-12-opt-in-beta.md.
 
 Installed ~/Programs/umbrafox-nightly self-contained47files+.purgecaches, exact
 inventory verified and --version PASS. Oldnightly retained at
@@ -1980,7 +1980,7 @@ browser control/restart, or profile changes. October 7 object cleanup still mean
 the next native build must regenerate its inputs; do not silently treat old obj
 paths as usable. Generated export browser packages stay untracked/on disk.
 
-Report: bot-docs/reports/2026-10-12-upstream-sync.md. Durable scratch/backups/logs:
+Report: docs/umbrafox/archive/reports/2026-10-12-upstream-sync.md. Durable scratch/backups/logs:
 /home/wyatt/.cache/codex/umbrafox-upstream-sync-20261012-ssNJPxDz/.
 Git partial-clone blobs were hydrated in bounded batches before the actual merge.
 Timed-out pre-merge attempts were restored only at verified affected paths before
@@ -2043,8 +2043,8 @@ profiles and dated install; do not modify/delete fresh profile or personal data.
 ## October 7 Audio Path Admission Complete
 
 Phase2+ONEphase3laptoprun complete2026-10-08T04:10UTC. New report
-bot-docs/reports/performance/2026-10-07-audio-clock-admission.md; next contract
-bot-docs/plans/audio-on-seek.md (no long audio-on driver implemented yet).
+docs/umbrafox/archive/reports/performance/2026-10-07-audio-clock-admission.md; next contract
+docs/umbrafox/archive/plans/audio-on-seek.md (no long audio-on driver implemented yet).
 MEMORY updated. Existing phase1plan/report/checkpoint,102oldsealedfiles and
 53oldruntimeinputs unchanged. No product/native/default/index/Desktop/Pi work.
 
@@ -2094,8 +2094,8 @@ No performance experiment run; audio-path phase2 below remains pending.
 
 Phase1 COMPLETE2026-10-08T01:38UTC, no browser/SSH/profiler/native runtime.
 New namespace artifacts/umbralink-control/audio-clock-admission, plan
-bot-docs/plans/audio-clock-admission.md, report
-bot-docs/reports/performance/2026-10-07-audio-clock-coverage.md. MEMORY updated.
+docs/umbrafox/archive/plans/audio-clock-admission.md, report
+docs/umbrafox/archive/reports/performance/2026-10-07-audio-clock-coverage.md. MEMORY updated.
 
 Inspected startup/seek fixtures force video.muted=true. Frozen deployed base
 8924318 plus untouched-file patch d1bf3bdf proves zero effective volume can
@@ -2165,8 +2165,8 @@ binaryattestation. B1/B2 offsetuncertainty23.704/18.540ms, maxread14.223/22.881m
 parentmain1100/1060,Renderer1400/1560,Compositor680/720,contentmain1430/1610.
 10msquantization; waitunknown; no per-counter-row alignment/physicalscanout claim.
 
-Report bot-docs/reports/performance/2026-10-07-startup-thread-sampling.md;
-plan bot-docs/plans/startup-thread-sampling.md. Namespace artifacts/umbralink-control/
+Report docs/umbrafox/archive/reports/performance/2026-10-07-startup-thread-sampling.md;
+plan docs/umbrafox/archive/plans/startup-thread-sampling.md. Namespace artifacts/umbralink-control/
 startup-thread-sampling contains comparison.json/replay,commands all4roots and
 finalverification/evidence seal. Final53testsPASS0fail0.635s;13manualJSformatPASS;
 96priorsealedfiles+53currentinputs verifiedunchanged. InitialA1export argv error
@@ -2182,7 +2182,7 @@ install systemdriver or modify active desktop without explicit permission.
 ## October 7 Passive Thread Sampler Preparation
 
 IN PROGRESS, namespace artifacts/umbralink-control/startup-thread-sampling,
-plan bot-docs/plans/startup-thread-sampling.md. Not sealed, NOT browser-ready.
+plan docs/umbrafox/archive/plans/startup-thread-sampling.md. Not sealed, NOT browser-ready.
 Goal ACTIVE; this turn PROGRESS. Owner means SEEKING, not YouTube search.
 Desktop/Pi protected; no browser/driver/kernel/product/index changes this turn.
 No agent, profiler daemon or raw-profile parse. All commands terminal.
@@ -2225,7 +2225,7 @@ Previous sealed startup-precondition and startup-variability artifacts untouched
 SEALED2026-10-08T00:34:08.370Z:18files evidenceSHA
 0ea5e19a8be41687fe79f65a2c4d10ada4a2831311526fc4b6bdb1e034877481.
 Namespace artifacts/umbralink-control/startup-variability. Report
-bot-docs/reports/performance/2026-10-07-startup-variability.md. Do not edit
+docs/umbrafox/archive/reports/performance/2026-10-07-startup-variability.md. Do not edit
 sealed namespace/report. All commands terminal, no daemon/browser/SSH launched.
 Goal ACTIVE; this turn PROGRESS, not an optimization, causal localization or
 owner post-seek reproduction. Desktop/Pi/product/defaults/drivers/index untouched.
@@ -2275,8 +2275,8 @@ system driver install, codec forcing or extension-disable authorization.
 SEALED2026-10-08T00:19:09.657Z:78files, evidenceSHA
 545505044431c0d3cb2f5cfc3d1853a0df03b777a970a5054f488dd7dc30c25d.
 Namespace artifacts/umbralink-control/startup-precondition. Report
-bot-docs/reports/performance/2026-10-07-startup-precondition.md and plan
-bot-docs/plans/startup-precondition.md now BOTH sealed. Do not edit sealed files.
+docs/umbrafox/archive/reports/performance/2026-10-07-startup-precondition.md and plan
+docs/umbrafox/archive/plans/startup-precondition.md now BOTH sealed. Do not edit sealed files.
 All browser/SSH/test/analysis commands terminal. No profiler daemon/raw parse.
 
 Goal ACTIVE, this turn PROGRESS: new tested preparation adapter plus complete
@@ -2357,10 +2357,10 @@ optimization goal and system-driver deployment decision remain open.
 SEALED23:53:46.615UTC:25files, evidenceSHA
 76737a777888a4f4268ca70240a3bb6d80d83823cc7f1377989dbc2363be2a11.
 Namespace artifacts/umbralink-control/startup-activation-audit; report
-bot-docs/reports/performance/2026-10-07-startup-activation-audit.md SHA
+docs/umbrafox/archive/reports/performance/2026-10-07-startup-activation-audit.md SHA
 6b3a3e87982013ea8f60ddb750cbf294c635e3717ebc90980ba0e0021e52e670.
 No further edits to sealed namespace/report. Working next plan
-bot-docs/plans/startup-precondition.md intentionally NOT sealed; historical
+docs/umbrafox/archive/plans/startup-precondition.md intentionally NOT sealed; historical
 snapshots in commands.json/verification.json. Current plan SHA
 acec3e6aa9c753aca4a2561da5de2c496181423e3ba1ba9e25309433aada85c2.
 
@@ -2421,8 +2421,8 @@ build, system-driver install, staging, commits or profiler daemon. All browser,
 SSH and test commands are terminal. No retry after the failed profile-copy gate.
 
 Namespace artifacts/umbralink-control/startup-markers; report
-bot-docs/reports/performance/2026-10-07-startup-markers.md and plan
-bot-docs/plans/startup-markers.md. Sealed sources from startup-profile remain
+docs/umbrafox/archive/reports/performance/2026-10-07-startup-markers.md and plan
+docs/umbrafox/archive/plans/startup-markers.md. Sealed sources from startup-profile remain
 unchanged. New generated capture AST delta only features -> nostacksampling,
 nomarkerstacks plus import relocation; driver/review/tests imports rewired.
 Four inverse/source hash proofs. 14focused/102combined strict testsPASS,
@@ -2487,8 +2487,8 @@ No edits to new namespace/report/plan after seal. Tests32PASS/0fail0.416s,
 
 Goal ACTIVE; offline PROGRESS only. No browser launch/control, product/default,
 system-driver or index changes. Current namespace startup-profile-analysis;
-report bot-docs/reports/performance/2026-10-07-startup-profile-analysis.md and
-plan bot-docs/plans/startup-profile-analysis.md. Original startup-profile capture
+report docs/umbrafox/archive/reports/performance/2026-10-07-startup-profile-analysis.md and
+plan docs/umbrafox/archive/plans/startup-profile-analysis.md. Original startup-profile capture
 stays FAIL at24MiB cap, all old evidence preserved. Owner means SEEKING.
 
 Opaque source52,241,866B SHA414c126d2d9438373bd4aa152cc1a1990dc3a36a7ba768ed843df56c5f548eb3
@@ -2527,8 +2527,8 @@ Do not edit this namespace or report again. All exec/SSH/test sessions terminal.
 
 Goal ACTIVE; this turn PROGRESS, not an optimization. New namespace
 artifacts/umbralink-control/startup-profile/ and report
-bot-docs/reports/performance/2026-10-07-startup-profile.md. Plan
-bot-docs/plans/startup-profile.md. All browser/SSH/test processes terminal at
+docs/umbrafox/archive/reports/performance/2026-10-07-startup-profile.md. Plan
+docs/umbrafox/archive/plans/startup-profile.md. All browser/SSH/test processes terminal at
 handoff; no profiler daemon loaded. Desktop/Pi/product/default/system-driver/
 index untouched. Do not retry the browser or relax capture caps automatically.
 Final192testsPASS/0fail4.561s;5manualJSformatPASS;docslint0problems. Runtime
@@ -2597,7 +2597,7 @@ No more edits to this namespace/report. All commands terminal.
 Goal ACTIVE; turn PROGRESS, source/offline only. No browser/SSH/profiler daemon,
 build, product/default/system-driver/index changes or live handles. New namespace
 artifacts/umbralink-control/startup-drop-audit/; report
-bot-docs/reports/performance/2026-10-07-startup-drop-audit.md. Owner's "searching"
+docs/umbrafox/archive/reports/performance/2026-10-07-startup-drop-audit.md. Owner's "searching"
 means video progress-bar seeking, NOT YouTube search. Desktop protected.
 
 Four pinned completed exports/all404 embedded files reverified; first20s drops
@@ -2645,8 +2645,8 @@ Goal ACTIVE; current turn PROGRESS. Single newly instrumented backward run
 Q72ohH completed22:21:43.895..22:24:31.853UTC,167.958s. PriorfailedHNGm4l sealed,
 notreclassified. No desktop/Pi/product/native/default/system-install/index edits.
 Newnamespace artifacts/umbralink-control/decoder-driver-backward/;
-report bot-docs/reports/performance/2026-10-07-decoder-driver-backward.md;
-plan bot-docs/plans/decoder-driver-backward.md. No more runtime thiswave.
+report docs/umbrafox/archive/reports/performance/2026-10-07-decoder-driver-backward.md;
+plan docs/umbrafox/archive/plans/decoder-driver-backward.md. No more runtime thiswave.
 
 Controller2210645/browser2210657/fork2210756/RDD2210790/content2210824.156samples,
 151393msobs/130008postseek,9078frames24drops:23at6.015s BEFOREseek,1at45.021s.
@@ -2690,8 +2690,8 @@ Final6fileformatPASS/docs0problems/diffcheck0. Do not overwrite this namespace.
 Goal ACTIVE. New wave namespace artifacts/umbralink-control/decoder-driver-seek/.
 Two intended runs terminal; no desktop/product/native/default/system-install/
 index changes. No agents/compiler/profiler. Report
-bot-docs/reports/performance/2026-10-07-decoder-driver-seek.md;
-plan bot-docs/plans/decoder-driver-seek.md. Do not retry backward automatically.
+docs/umbrafox/archive/reports/performance/2026-10-07-decoder-driver-seek.md;
+plan docs/umbrafox/archive/plans/decoder-driver-seek.md. Do not retry backward automatically.
 
 Forward JQbs6a PASS21:59:53.185..22:02:41.351UTC. Controller2200747/browser2200759/
 RDD2200892/content2200929.156samples,151683msobs/130007postseek,9078frames24drops
@@ -2764,8 +2764,8 @@ newdriver+emptyparentlock. SystemiHD unchanged a7cecd28.../24.1.0+dfsg1-1ubuntu0
 nonfree package still NOTinstalled. Candidate shares upstream24.1.0 but DIFFERENT
 distro revision: no exactsamebuild/one-source-change A/B claim.
 
-Report bot-docs/reports/performance/2026-10-07-decoder-driver-variant.md;
-plan bot-docs/plans/decoder-driver-variant.md. Evidence namespace
+Report docs/umbrafox/archive/reports/performance/2026-10-07-decoder-driver-variant.md;
+plan docs/umbrafox/archive/plans/decoder-driver-variant.md. Evidence namespace
 artifacts/umbralink-control/decoder-driver-variant/; export.json47files171445B
 SHAdc6a925ba5fce1f3f3f863d2677b88734b357fb465ad81d0917a4c97060ac396;
 analysis d5bd62bd4a608b34a5d23201eabee06e029d9e82b03b4d21f29b07d9194bb092.
@@ -2816,8 +2816,8 @@ NEXT: assess SAMEVERSION fullfeaturedriver isolatedowned-process comparison,
 firstverifypackageprovenance/dependencies/loader/sandbox; NOsysteminstallwithout
 ownerconsent, noforceprefs/sandboxweakening. Do not re-run unchangedAV1 traces.
 
-Newplan bot-docs/plans/decoder-library-errors.md; report
-bot-docs/reports/performance/2026-10-07-decoder-library-errors.md.
+Newplan docs/umbrafox/archive/plans/decoder-library-errors.md; report
+docs/umbrafox/archive/reports/performance/2026-10-07-decoder-library-errors.md.
 Evidence artifacts/umbralink-control/decoder-selection-errors/. export.json EMPTY
 firstexportcommandargfailure preserved; ACTUAL export-retry.json SHA
 d62b1b3ea966da7d6fd4df2786bd8bdbbbe25a0fa98c86b5319542acef353a60,
@@ -2859,8 +2859,8 @@ FFmpegVideo/PDM perframe debug again, keep1MiBcap/owned120s/15scleanup/profileOF
 no codec/sandbox/GPU pref forcing, no speculative nativefix. Ownerseek blackflash
 stillunreproduced; historicalVP9unmatched. URL/positions alreadyasked, don'trepeat.
 
-Plan bot-docs/plans/decoder-selection.md; report
-bot-docs/reports/performance/2026-10-07-decoder-selection.md. Namespace
+Plan docs/umbrafox/archive/plans/decoder-selection.md; report
+docs/umbrafox/archive/reports/performance/2026-10-07-decoder-selection.md. Namespace
 artifacts/umbralink-control/decoder-selection/: export.json rawSHA
 5e233fea887a977ddff0a76f904433c4ec19b13576ac5f4166b26ff30de782ed;
 browserlogSHAea2b9a32f175cb37604e409e4fc53d37ebb6a5b8e21574bb58c7615818840ebb.
@@ -3053,7 +3053,7 @@ manifest6c98b144f9a61c04b14b1af86927596489b3a870aad497f97618c89d05ad3d26.
 V15forwardharness CjWtD9; V14failed gamuMw, priorarchives preserved. functions
 store youtubeBundleV16/youtubeV16Preflight/youtubeV16Root/youtubeRecoveryExportV14
 retain scripts; exportallowlist includesUI longmodes, omitsprofile/token/appdata.
-Plan/report bot-docs/{plans/seek-recovery.md,reports/performance/2026-10-07-seek-recovery.md}.
+Plan/report docs/umbrafox/archive/{plans/seek-recovery.md,reports/performance/2026-10-07-seek-recovery.md}.
 
 ## October 7 Actual YouTube UI Probe
 
@@ -3341,8 +3341,8 @@ UNSEALED scratch: artifacts/umbralink-control/seek-recovery/. Added server.mjs,
 bootstrap.mjs, validation.mjs, media-proof.mjs and mirrored test files. Updated
 sequence.mjs/spec for partial publication and exact post-action duration.
 Collector source unchanged. Plan/report:
-bot-docs/plans/seek-recovery.md and
-bot-docs/reports/performance/2026-10-07-seek-recovery.md.
+docs/umbrafox/archive/plans/seek-recovery.md and
+docs/umbrafox/archive/reports/performance/2026-10-07-seek-recovery.md.
 
 60 strict Node tests PASS:18 collector/19 sequence/13 HTTP server/4 bootstrap/
 4 validator/2 media-proof. Logs fixture-final-verification.log,
@@ -3391,7 +3391,7 @@ unchanged; its benefit FAIL and GPU import defaultOFF remain.
 Previous goal turn made progress: scratch passive observer +18tests. This
 continuation adds scratch sequence.mjs/test/sequence-spec.mjs in the same
 UNSEALED artifacts/umbralink-control/seek-recovery/ namespace. Plan:
-bot-docs/plans/seek-recovery.md; existing seek-recovery report extended.
+docs/umbrafox/archive/plans/seek-recovery.md; existing seek-recovery report extended.
 Goal stays ACTIVE. No product/sharedharness/native/build/browser/profiler/SSH/
 installation/profile/index/staging changes, no live handles.
 
@@ -3427,7 +3427,7 @@ Owner clarified "searching" means SEEKING with the video progress bar, not
 YouTube search. Reported sequence: seek -> choppy for roughly1-2min -> brief
 black flash -> immediately smooth. No captured reproduction; audio continuity
 and quality/resolution change unknown. No GPU/decoder-reset conclusion.
-New report bot-docs/reports/performance/2026-10-07-seek-recovery.md.
+New report docs/umbrafox/archive/reports/performance/2026-10-07-seek-recovery.md.
 
 This phase added artifacts/umbralink-control/seek-recovery/collector.mjs and
 test/collector-spec.mjs, scratch only. Namespace NOT sealed. Self-contained
@@ -3469,7 +3469,7 @@ Previous turn was owner status only/no engineering progress. This continuation
 completed the predeclared matched pixel/noise/A1B1B2A2 laptop wave. Broad goal
 stays ACTIVE. No product/native/build/daily browser/install/profile/launcher/Pi/
 index/stage/commit/push change. Report:
-bot-docs/reports/performance/2026-10-07-producer-fence-playback.md.
+docs/umbrafox/archive/reports/performance/2026-10-07-producer-fence-playback.md.
 Namespace artifacts/umbralink-control/producer-fence-playback/ is SEALED.
 Do not overwrite WX outputs or write further logs into that namespace.
 Seal artifacts/umbralink-control/producer-fence-playback-final.sha256,
@@ -3529,8 +3529,8 @@ Previous turn was owner status only/no engineering progress. This continuation
 constructs/verifies the real matched package pair needed for P3 fence timing.
 Broad rendering/layout/CSS/JS goal stays ACTIVE; no speedup/stutter/default claim.
 No product/native/build/browser/profiler/remote/owner-profile/install/index change.
-Report bot-docs/reports/performance/2026-10-07-producer-fence-pair.md; prospective
-plan bot-docs/plans/producer-fence-playback.md. Both now sealed with new namespace
+Report docs/umbrafox/archive/reports/performance/2026-10-07-producer-fence-pair.md; prospective
+plan docs/umbrafox/archive/plans/producer-fence-playback.md. Both now sealed with new namespace
 artifacts/umbralink-control/producer-fence-pair/. Do not edit sealed files.
 
 Pair /home/wyatt/.cache/codex/producer-fence-pair-20261007-zqivims1:
@@ -3581,7 +3581,7 @@ Protocol prospectivelyrecorded before any timing; notconfidenceinterval.
 
 Previous goal turn was status-only/no progress. This continuation completed
 the first P3 gate: four new normal-package headed laptop pixel/loss captures.
-Report bot-docs/reports/performance/2026-10-07-producer-fence-gpu.md.
+Report docs/umbrafox/archive/reports/performance/2026-10-07-producer-fence-gpu.md.
 New namespace artifacts/umbralink-control/producer-fence-gpu/ is now SEALED.
 No product/native/build/daily install/desktop browser/profile/launcher/Pi/index
 changes. Full broad goal remains ACTIVE; no speedup/default-promotion claim.
@@ -3638,7 +3638,7 @@ prior27/29,28/29failures remainopen. Do not replace global goal with this subgat
 ## October 7 Producer Fence P2 Native Gate
 
 Latest status-only turn was no progress; continuation completed native P2.
-Report bot-docs/reports/performance/2026-10-07-producer-fence-native.md.
+Report docs/umbrafox/archive/reports/performance/2026-10-07-producer-fence-native.md.
 Evidence artifacts/umbralink-control/producer-fence-native/. Broad goal ACTIVE.
 No daily install/profile/launcher/desktop browser/Pi/stage/commit action.
 
@@ -3702,7 +3702,7 @@ performanceacceptanceyet, no dailyinstall. Rare154msstall and priorfailed
 
 Previous goal turn was status-only/no progress. P1 now implements the exact
 four-file local producer-fence candidate. Report:
-bot-docs/reports/performance/2026-10-07-producer-fence-implementation.md.
+docs/umbrafox/archive/reports/performance/2026-10-07-producer-fence-implementation.md.
 Namespace artifacts/umbralink-control/producer-fence-implementation/ is separate
 from sealed P0. P0 report/plan/receipt/seal remain unchanged. Broad goal ACTIVE.
 No Gecko build/browser/profiler/remote/Pi/install/owner-profile/index/commit work.
@@ -3762,8 +3762,8 @@ terminal. Current six files equal sealed after snapshots at final admission.
 
 Previous turn was status-only/no progress. Source/lifetime P0 now supports a
 concrete candidate, NOT a product patch/native test/performance acceptance.
-Report bot-docs/reports/performance/2026-10-07-local-producer-fence.md; expanded
-plan bot-docs/plans/local-producer-fence.md. Broad performance goal stays ACTIVE.
+Report docs/umbrafox/archive/reports/performance/2026-10-07-local-producer-fence.md; expanded
+plan docs/umbrafox/archive/plans/local-producer-fence.md. Broad performance goal stays ACTIVE.
 No browser/native/compiler/profiler/remote/install/profile/index actions in P0.
 
 Evidence artifacts/umbralink-control/local-producer-fence/: source-proof.json
@@ -3810,8 +3810,8 @@ planimmutable; P1canextendplanonlyafterpreservingsealedP0copy/newnamespace.
 
 Previous owner progress report was status-only/no progress. Continuation
 finished saved current-package graphics partition and new driver fence detail.
-Report bot-docs/reports/performance/2026-10-07-current-render-cost.md;
-plan bot-docs/plans/current-render-cost.md; evidence current-render-cost/ under
+Report docs/umbrafox/archive/reports/performance/2026-10-07-current-render-cost.md;
+plan docs/umbrafox/archive/plans/current-render-cost.md; evidence current-render-cost/ under
 artifacts/umbralink-control. No product source/default/build/install/browser,
 remote/Pi/owner-profile/launcher/index edits. Broad goal remains ACTIVE.
 
@@ -3859,8 +3859,8 @@ finished native evidence admission, actual-source/replay tests and the narrow
 metadata optimization report. Broad performance goal remains ACTIVE; no stutter
 fix, live-startup claim, new package/install or owner-browser action.
 
-Report bot-docs/reports/performance/2026-10-07-attachment-metadata.md;
-plan bot-docs/plans/attachment-metadata-cost.md; evidence namespace
+Report docs/umbrafox/archive/reports/performance/2026-10-07-attachment-metadata.md;
+plan docs/umbrafox/archive/plans/attachment-metadata-cost.md; evidence namespace
 artifacts/umbralink-control/attachment-metadata-cost/. Only product delta against
 saved prior module is metadata Blob/text -> normal main-thread task yield then
 JSON.parse(original byte string). Prior archive cleanup remains exact. Module
@@ -3909,7 +3909,7 @@ Finaldocs lint0/diffcheck0; all exec/test/lint/audit handles terminal.
 
 Previous owner progress-report turn was status-only/no progress. Continuation
 completed new saved-data compositor selection audit; no browser/remote/build.
-Report bot-docs/reports/performance/2026-10-07-current-startup.md, namespace
+Report docs/umbrafox/archive/reports/performance/2026-10-07-current-startup.md, namespace
 artifacts/umbralink-control/current-startup/. Full goal ACTIVE, not stutterfixed.
 Current profile33520603... same package1de58db6...Build20261006175655.
 One preceding bounded offline local-symbol load completed21.842s10:02:00.125UTC;
@@ -3950,7 +3950,7 @@ WX audit/replay/export/sealer and no original-output rewrites.
 
 Status-only previous goal turn was no progress; continuation completed offline
 admission of fresh laptop control/profile/control captured before that status.
-Report bot-docs/reports/performance/2026-10-07-current-compositor.md.
+Report docs/umbrafox/archive/reports/performance/2026-10-07-current-compositor.md.
 All12phases/native drop counters0; startup gaps2/4/1 (max51/53/52ms), no>100ms.
 Controls CPUrates0.570470636/0.572466971 differ0.350%; profiled0.725617935,
 +27.196%/+26.753%. Single sequence, no optimization or stutter-fix acceptance.
@@ -3999,8 +3999,8 @@ WX CLI exporter or writing analyzer. All tool/SSH/CLI/test/lint handles terminal
 
 Previous turn was status-only. This continuation completed the fixed actual
 unprofiled A1/B1/B2/A2 on disposable wyatt-laptop; no retry or threshold change.
-Report bot-docs/reports/performance/2026-10-07-pbo-playback.md; P2/P3 decision in
-bot-docs/plans/pbo-upload-control.md complete. Full goal remains ACTIVE, not done.
+Report docs/umbrafox/archive/reports/performance/2026-10-07-pbo-playback.md; P2/P3 decision in
+docs/umbrafox/archive/plans/pbo-upload-control.md complete. Full goal remains ACTIVE, not done.
 All29 criteria PASS but immediate-upload CPU only0.030740% lower vs staged;
 within-mode spreads1.203%/1.525%, four-copy median1ms/P952ms unchanged.
 Eight51-60ms startup gaps within1.382s remain, adjacentdraw0-1ms. All16phases
@@ -4041,8 +4041,8 @@ scrollbar controls and old146ms gap/4compositor drops remain separate evidence.
 ## October 7 PBO Decoder Loss PASS; Timing Next
 
 Latest status-only goal turn was no progress; continuation completed two actual
-retained-loss laptop runs. Report bot-docs/reports/performance/2026-10-07-pbo-decoder-loss.md;
-plan bot-docs/plans/pbo-upload-control.md. P1 scoped correctness now complete;
+retained-loss laptop runs. Report docs/umbrafox/archive/reports/performance/2026-10-07-pbo-decoder-loss.md;
+plan docs/umbrafox/archive/plans/pbo-upload-control.md. P1 scoped correctness now complete;
 P2 fixed unprofiled A1/B1/B2/A2 NOT started. Full performance goal remains active.
 No new speedup/stutter-fix or native-device-mode acknowledgement.
 
@@ -4083,8 +4083,8 @@ layout/CSS/JS/real-site and cross-backend acceptance still pending.
 ## October 7 PBO Composited Pixels PASS; Loss Gate Next
 
 Goal continuation after progress-report-only turn made real runtime progress.
-Report bot-docs/reports/performance/2026-10-07-pbo-composited-correctness.md;
-active plan bot-docs/plans/pbo-upload-control.md. Goal remains active.
+Report docs/umbrafox/archive/reports/performance/2026-10-07-pbo-composited-correctness.md;
+active plan docs/umbrafox/archive/plans/pbo-upload-control.md. Goal remains active.
 Current artifacts/umbralink-control/pbo-upload/ runtime inputs are now as-run
 evidence: do not edit or rerun WX generators. Use a new pbo-loss namespace for
 the next adapter; preserve original manifests and prior failed logs.
@@ -4132,8 +4132,8 @@ Latest goal continuation made concrete progress after the status-only turn:
 new artifacts/umbralink-control/pbo-upload/ private capture/pixel adapters plus
 package/source verification. No browser, remote operation, profiler or native
 compiler launched; daily browser/profile/install/launcher, Pi and index untouched.
-Goal remains active. Current phase plan bot-docs/plans/pbo-upload-control.md;
-report bot-docs/reports/performance/2026-10-07-pbo-admission.md.
+Goal remains active. Current phase plan docs/umbrafox/archive/plans/pbo-upload-control.md;
+report docs/umbrafox/archive/reports/performance/2026-10-07-pbo-admission.md.
 
 P0 capture path implemented, but full runtime orchestration remains pending.
 generate.mjs creates five write-once adapters (envelope/playback/pixels and two
@@ -4192,12 +4192,12 @@ no demonstrated speed gain (candidate normalized CPU +0.334%, within its 0.839%
 spread; draw medians/P95 unchanged). All16 phases report zero drops;14 startup
 callback gaps remain,51-68ms within first1.485s with adjacent draws0-1ms. Exact49
 recorded PIDs absent06:24:37.673Z. Report
-bot-docs/reports/performance/2026-10-06-descriptor-borrow-playback.md.
+docs/umbrafox/archive/reports/performance/2026-10-06-descriptor-borrow-playback.md.
 Playback seal f59f0aa88323481fd9a97264d3dffd9125a69a05751e9e73a8b575ee09e4a025.
 Keep eight-byte descriptor-storage tradeoff and unknown real hit frequency visible.
 
 New offline compositor-cost-partition phase is complete and SEALED. Report:
-bot-docs/reports/performance/2026-10-07-compositor-cost-partition.md. Both full
+docs/umbrafox/archive/reports/performance/2026-10-07-compositor-cost-partition.md. Both full
 saved CLI exports account for all Renderer559/CanvasRenderer328/Compositor275
 non-idle samples. Mesa symbols resolve90 of95 samples under upload-pool fence
 creation to queued CPU command execution (draw/clear/framebuffer state), NOT
@@ -4214,7 +4214,7 @@ Exact offline daemon/server PIDs3308270/3308316/3320075/3320115 and two sockets
 absent07:16:46.849Z. Prior profile-range/driver-symbol/descriptor-playback seals
 verify. All67 source pins/HEAD/index/mozconfig unchanged at final source guard.
 
-Next: bot-docs/plans/pbo-upload-control.md, P0 NOT implemented or launched.
+Next: docs/umbrafox/archive/plans/pbo-upload-control.md, P0 NOT implemented or launched.
 Use new private pbo-upload namespace and same current package for both arms.
 Existing gfx.webrender.pbo-uploads selects staged/immediate texture uploads,
 keeping hardware WebRender ON; source message chain verified against recorded
@@ -4236,7 +4236,7 @@ not quantified page speedups. Do not claim broad CSS/JS or rare-stall fixes.
 
 Owner requested performance progress; latest response separates implemented
 mechanisms from native/performance acceptance and daily installation. Goal active.
-New plan bot-docs/plans/video-descriptor-borrow.md; evidence under
+New plan docs/umbrafox/archive/plans/video-descriptor-borrow.md; evidence under
 artifacts/umbralink-control/descriptor-borrow/. All prior sealed namespaces remain
 immutable; no desktop browser/profile/launcher/install, Pi, agent or index changes.
 
@@ -4293,7 +4293,7 @@ tool sessions from this turn. Broader goal active, not complete or blocked.
 ## October 6 Scrollbar Profile Diagnostic Completed
 
 Latest owner status turn was no progress; continuation completed the pending P2
-saved-profile/source diagnosis. Report bot-docs/reports/performance/2026-10-06-scrollbar-profile.md;
+saved-profile/source diagnosis. Report docs/umbrafox/archive/reports/performance/2026-10-06-scrollbar-profile.md;
 plan scrollbar-video-control.md P2 captures+diagnostic complete, original strict
 native/page-count analysis FAILED and preserved. Full performance goal active.
 No new product/native/default/install/desktop/Pi/agent/index actions this phase.
@@ -4351,8 +4351,8 @@ No liveownedbrowser/compiler/CLI/SSHsession remains. Nextworknewnamespace.
 
 Latest owner progress-report turn was status-only/no progress. Continuation
 implemented and ran fixed isolated laptop A1/B1/B2/A2 overflow control. Report
-bot-docs/reports/performance/2026-10-06-scrollbar-control.md; plan
-bot-docs/plans/scrollbar-video-control.md P0/P1 complete, P2 NOT started.
+docs/umbrafox/archive/reports/performance/2026-10-06-scrollbar-control.md; plan
+docs/umbrafox/archive/plans/scrollbar-video-control.md P0/P1 complete, P2 NOT started.
 New namespace artifacts/umbralink-control/scrollbar-control/ only; no product
 source/build/default/install/desktop/Pi/agent/index actions. Full goal active.
 
@@ -4405,7 +4405,7 @@ andboundedprofiledadapters; no profiler or new runtime active. Keepfullgoalactiv
 
 Previous owner-status turn was no progress. Continuation completed saved-profile
 analysis with new pure analyzers and frozen-source trace. Report:
-bot-docs/reports/performance/2026-10-06-refresh-catchup.md; evidence
+docs/umbrafox/archive/reports/performance/2026-10-06-refresh-catchup.md; evidence
 artifacts/umbralink-control/refresh-catchup-audit/. No browser/native build/remote
 runtime/product/source/index/install/Pi action. Original27/29and28/29FAIL remain.
 
@@ -4453,7 +4453,7 @@ Gitbuildsource anddoesnotlaunchbrowsers. Finalgoalactive, no completionclaim.
 Status-only prior turn was no progress. Continuation integrated the new timing
 collector and ran three isolated laptop attempts: first transport failure, then
 corrected pre-cache/reuse diagnostic pair PASS. Report:
-bot-docs/reports/performance/2026-10-06-callback-delivery.md. Evidence separate
+docs/umbrafox/archive/reports/performance/2026-10-06-callback-delivery.md. Evidence separate
 callback-cadence-runtime/ and callback-cadence-runtime-v2/ under artifacts/umbralink-control.
 First nine-field array exceeded existing UmbraLink10000-node cap; page null and
 boundedJSON error saved, secondary nullvalue error retained. Both exact package
@@ -4533,7 +4533,7 @@ FourcopyP95 remains2ms allarms. Notstatisticalspeedup, actualhitfrequency,
 automaticrecovery orYouTubefix. No runretry/exclusion/thresholdchange.
 
 Evidence artifacts/umbralink-control/import-reuse-playback/;
-report bot-docs/reports/performance/2026-10-06-frame-reuse-playback.md.
+report docs/umbrafox/archive/reports/performance/2026-10-06-frame-reuse-playback.md.
 Remote input /home/wyatt/.cache/codex/import-reuse-playback-harness-20261006-UDHMVg,
 root64512/37118840/uid1000/mode0700. 150harnessb423aba4b44f0fa473c55e2efd3a0458746af58f2f3be3b21911ee445cf66853
 retains146oldinputs. Source66/index/config/HEAD unchanged. No productedit/build.
@@ -4568,7 +4568,7 @@ compositor policy blocks DMABuf setup. Test-only policy override after hardware
 context admission is restored in all nine receipts; production guard unchanged.
 Forced WebGL loss rejects old imports; explicit new context recovers exact pixels.
 Not automatic translator recovery, YUV coverage or normal playback hit-frequency.
-Report bot-docs/reports/performance/2026-10-06-frame-reuse-native.md;
+Report docs/umbrafox/archive/reports/performance/2026-10-06-frame-reuse-native.md;
 evidence artifacts/umbralink-control/import-reuse-native-context/.
 Final native manifest98f882428d201bb45a0711b64ae22c50bc5f7de19f789b6e80668b88869acaae,
 150harness1cb4ac4773e2dfaee3e09ffb1bcf6dcc805eba266b1fae9221f5edbd37c56751.
@@ -4642,7 +4642,7 @@ explicitformat6offlinefiles+sealerPASS. Initialdefaultformatterignoredartifacts;
 explicit /dev/null ignorepath executedformat and18testrecheckPASS. Runtime adapters byte-equivalent namespace/identity only.
 
 Evidence artifacts/umbralink-control/import-frame-reuse-gpu/;
-report bot-docs/reports/performance/2026-10-06-frame-reuse-gpu.md.
+report docs/umbrafox/archive/reports/performance/2026-10-06-frame-reuse-gpu.md.
 Input laptop root /home/wyatt/.cache/codex/import-frame-reuse-gpu-harness-20261006-3WtpOM.
 Output suffixes pixelsOFF-MXd8mv/PID1743798, pixelsON-TZBUL4/PID1746786,
 lossOFF-BcrVHl/PID1749084, lossON-vRGAhU/PID1751348, each begins
@@ -4740,8 +4740,8 @@ baseline render-pass-marker; preserves existing structured archive/nativeID/JAR
 verification. Needs configured mach Python for mozpack imports. Existing65pins
 and146harness frozen; current fullsource package/buildID20261006175655.
 
-Active plan bot-docs/plans/video-import-reuse.md; report
-bot-docs/reports/performance/2026-10-06-import-frame-reuse.md. P1 mechanism/build
+Active plan docs/umbrafox/archive/plans/video-import-reuse.md; report
+docs/umbrafox/archive/reports/performance/2026-10-06-import-frame-reuse.md. P1 mechanism/build
 only, realGPU/40native/48pixels/8retainedloss plus newreuse/context tests and fixed
 A1/B1/B2/A2 laptop performance still required. Existing descriptor-availability
 wrappers provide bounded package/pixel/loss/native envelopes; use new namespace,
@@ -4772,7 +4772,7 @@ Compiler2107 terminal0; native3s/test10s gates terminal0. Lastlint82449 terminal
 No browser/server/daemon/compiler/test remains running. No install, stage orcommit.
 
 Report2026-10-06-import-frame-authority.md; active implementation plan
-bot-docs/plans/video-import-reuse.md. Frozen P0 copy in evidence/plan-p0.md;
+docs/umbrafox/archive/plans/video-import-reuse.md. Frozen P0 copy in evidence/plan-p0.md;
 active plan may advance, but never edit sealed evidence/report. P1 NOTSTARTED.
 Scope next: assertion-first short-lived shared-context GPU conversion reuse,
 only DrawTargetWebgl.{h,cpp}/CanvasTranslator.{h,cpp} plusfocusedtests. Broadowner
@@ -4950,7 +4950,7 @@ and socket absent22:29:56UTC,8.14s. Older symbolsv2 daemon2599128/server2599098,
 failedsymbol daemon2597357/server2597293, exactCLI2592396/failed2591097 all have
 terminal cleanup receipts. No browser launched thiswave. Preserve original
 controls-final-v2 seal and all failed attempts; next write onlynewnamespaces.
-Plan bot-docs/plans/render-pass-markers.md. Goalactive; prior owner-status turn
+Plan docs/umbrafox/archive/plans/render-pass-markers.md. Goalactive; prior owner-status turn
 was no progress, this turn implements/testscandidate afterexactsource trace.
 
 ## October 6 Recorded Renderer Stall Localized
@@ -4975,7 +4975,7 @@ lint/transfer/sourceaudit remains live. Remote verify91511 terminal0 at22:04UTC,
 comparison of patchedRust buffers); corrected proofterminal0 uses exactbuild
 HEAD+same trackedpatch and explicitfilehashes. No missingnativeproof hidden.
 
-Report bot-docs/reports/performance/2026-10-06-compositor-controls.md and
+Report docs/umbrafox/archive/reports/performance/2026-10-06-compositor-controls.md and
 artifact compositor-controls/profile-analysis.json now authoritative. All3arms
 unchangedfunctionalPASS; profileCPU+27.54/+27.06% vscontrols, controls+0.38%.
 Normalized gap20119.699323..20243.699323ms=124ms. Parent RendererComposite
@@ -5082,7 +5082,7 @@ stop21:23:33.278UTC. Earlier daemon2524148/socket absent,stop21:16:56.210UTC.
 No browser/CLI/test/lint/transfer remains alive. Remote final guard97533 terminal0
 verified142 frozen hashes at21:28:07.371UTC; private directory identity unchanged.
 
-New report bot-docs/reports/performance/2026-10-06-compositor-compressed.md.
+New report docs/umbrafox/archive/reports/performance/2026-10-06-compositor-compressed.md.
 Authoritative analysis artifacts/umbralink-control/compositor-compressed/
 profile-analysis.json pins both CLI export sets and original gzip20fc631f...9826.
 Second exports in cli-coverage/,same37threads/eightclockanchors. No rawparser.
@@ -5189,7 +5189,7 @@ Goal remains active; do not mark complete or blocked. All commands from this
 phase are terminal, including pilot exec2208 exit1 and export31829 exit0.
 
 New UNSEALED namespace artifacts/umbralink-control/compositor-attribution/;
-plan bot-docs/plans/compositor-attribution.md. The source report
+plan docs/umbrafox/archive/plans/compositor-attribution.md. The source report
 2026-10-06-compositor-source.md is an earlier source-only checkpoint, not the
 current runtime result. New preparation has70 selected strict Node tests PASS
 (25 new plus45 prior), explicit scratch Prettier PASS, docs lint0. This is not
@@ -5256,7 +5256,7 @@ four-copy P95ON2ms/OFF27-30ms. Do NOT promote default or claim stutterfixed.
 PASS; priorcorrectnesssealunchanged. Roots OFF3i4iUk/ON A1QJQu/ON DcEqXF/OFFa0yptM.
 NativeafterON2 has compositor4/container4, decoder0/sink0; otherarmsall0.
 146ms ON2phase1 gap at7442ms with preceding/currentdraw1/2ms, notcausalproof.
-Report bot-docs/reports/performance/2026-10-06-descriptor-balanced.md. summary.json
+Report docs/umbrafox/archive/reports/performance/2026-10-06-descriptor-balanced.md. summary.json
 contains exactCPU/callbackrecords. Next source-guided compositor-drop producer
 and marker trace then separate controlled diagnostic, no blindretry/warmup/gate
 relaxation. Latestcandidate is packaged only; desktopdaily/Pi untouched.
@@ -5284,7 +5284,7 @@ Poll that exact handle; do not repeat launch. All earlier preparation sessions
 terminal. No other browser/agent/build initiated. Capture still needs terminal
 cleanup/export/prefix validation before ON1. Latest details supersede below.
 
-Active plan: bot-docs/plans/descriptor-balanced-performance.md. New unsealed
+Active plan: docs/umbrafox/archive/plans/descriptor-balanced-performance.md. New unsealed
 namespace: artifacts/umbralink-control/descriptor-balanced/. No captures,
 transfers, browser launches or remote changes in this phase yet. Latest owner
 asks for progress and the performance issues found/fixed; report candidate
@@ -5321,7 +5321,7 @@ artifacts/umbralink-control/descriptor-availability-final.sha256.
 Seal420files987127202bytes; manifestSHA
 4dfab7e81233938670202b164a6078f6b629772294536fe1c31c4a34b549d431.
 Use NEW namespace for nextperformance work; mutable plan/DETAILS excluded.
-Report bot-docs/reports/performance/2026-10-06-descriptor-availability.md.
+Report docs/umbrafox/archive/reports/performance/2026-10-06-descriptor-availability.md.
 
 Evidence namespace unchanged. Loss roots suffixoMNNgl(off1630275/1630307) and
 1LKKfp(on1634004/1634036);48/47files2590566/2588874B,13/12PIDsabsent.
@@ -5374,7 +5374,7 @@ the previous candidate: adapt and verify identities before any new browser run.
 GPU default remains OFF; desktop daily browser/profile/launcher untouched.
 
 Supersedes the retained-loss checkpoint below. Plan:
-bot-docs/plans/descriptor-availability.md. New evidence namespace:
+docs/umbrafox/archive/plans/descriptor-availability.md. New evidence namespace:
 artifacts/umbralink-control/descriptor-availability/. Native correction consults
 the retained GPUVideoImage's original manager before experimental GTK DMABuf
 descriptor admission. Unavailable images use the existing full-source fallback
@@ -5481,7 +5481,7 @@ return noexception while reference/off raiseInvalidStateError; allleave same
 RGBA17/34/51/255sentinel. Rest6match. Collectionstatuspass is NOT paritypass.
 ONlog VideoBridgeParentmissing+canvas replayevent23, sourcecauseUNPROVEN.
 GPUdefault remainsOFF; no source/build/install/desktop/Pi edits thisphase.
-Report bot-docs/reports/performance/2026-10-06-retained-frame-loss.md.
+Report docs/umbrafox/archive/reports/performance/2026-10-06-retained-frame-loss.md.
 Evidence final-evidence-verification.json rehashes144files7771102B; sourceguard
 59pins+87harnesspins+HEAD/index/trackeddiffs/config unchanged. v7 installed,
 allreviewagentsclosed; old17:38activehandles below are superseded. Next narrow
@@ -5489,7 +5489,7 @@ source/failing-first fix for ON retainedVideoFrame exception semantics, NEW
 namespace; preserve oldfailedreferences and this evidence. Latestcandidate
 performance is stillUNMEASURED, older35.48percentgain not transferrable.
 
-Active plan bot-docs/plans/retained-frame-loss.md, new unsealed evidence namespace
+Active plan docs/umbrafox/archive/plans/retained-frame-loss.md, new unsealed evidence namespace
 artifacts/umbralink-control/retained-frame-loss/. No production edits this phase.
 Prior exact-fallback243file seal unchanged; desktop daily browser protected,
 laptop isolated runtime authorized. No Pi/build/commit/stage/push/default changes.
@@ -5572,7 +5572,7 @@ thenparentreference4ONLY. No candidatearm yet; no default/install/Pi changes.
 
 ## October 6 Exact Canvas Fallback Source Gate
 
-Active plan: bot-docs/plans/exact-canvas-fallback.md. Evidence namespace:
+Active plan: docs/umbrafox/archive/plans/exact-canvas-fallback.md. Evidence namespace:
 artifacts/umbralink-control/exact-canvas-fallback/. The preceding availability
 phase remains sealed; broad performance goal active, no release claim.
 
@@ -5640,7 +5640,7 @@ New savedtests reject stablewrongpixels/corruptbuffers/mode/staleframes. Final
 combined62PASS,BuildID6PASS,archive9PASS; scope lint/source checks clean.
 Mechanical extractor test initially22PASS1FAIL for2spaceindent drift; corrected
 beforetransfer, final23PASS. Availability141fileseal verifiedunchanged.
-Report bot-docs/reports/performance/2026-10-06-exact-canvas-fallback.md.
+Report docs/umbrafox/archive/reports/performance/2026-10-06-exact-canvas-fallback.md.
 All build/test/copy/SSH/browser processes owned by this phase are terminal.
 Next: actual decoder/import recovery and integratedcache/dispatchcost/performance
 gates, thenbroaderplayback/YouTube; defaultOFF anddesktophold remain. Goalactive.
@@ -5652,7 +5652,7 @@ lint0. No build/test/copy/SSH/native process remains owned by this phase.
 
 ## October 6 Readback Availability Native Gate
 
-Native phase bot-docs/plans/readback-cache-availability.md; evidence
+Native phase docs/umbrafox/archive/plans/readback-cache-availability.md; evidence
 artifacts/umbralink-control/readback-availability/. Prior lifetime seal verified.
 Actual RED28tests:23oldPASS+5newexpectedFAIL,0skip/errors; nativeexit1,
 all5PIDs1535426/1535438/1535440/1535479/1535486 independentlyabsent.
@@ -5707,7 +5707,7 @@ Eight final offline checksPASS; initial7PASS1FAIL was exactcontroller comparison
 for one omitted terminalnewline. Saved check establishes only thatbyte; expected
 transform corrected, executedcontrollers/evidence unchanged, no native rerun.
 Priorphase70filesealverifiedagain. All original19testbodiesbyteexact. Report
-bot-docs/reports/performance/2026-10-06-readback-cache-availability.md.
+docs/umbrafox/archive/reports/performance/2026-10-06-readback-cache-availability.md.
 
 NEXT: added local dispatch cost and actual retainedVideoFrame loss/pixel parity
 remain unmeasured. Reference/cachedCPU/directGPU modes need separate faultgates;
@@ -5772,7 +5772,7 @@ the cached reference is released. No manager-owned cache/cycle. Other decoder
 types and the sized overload are unchanged. This does NOT yet remove the invalid
 canvas prescale route, enable direct import or resolve the seven pixel failures.
 
-Plan bot-docs/plans/full-readback-cache.md; evidence
+Plan docs/umbrafox/archive/plans/full-readback-cache.md; evidence
 artifacts/umbralink-control/full-readback-cache/. Only source changes this turn:
 GPUVideoImage.h + gfx/tests/gtest/TestGPUVideoImage.cpp. Original nine native
 test bodies byte-exact;10new tests include exact1080p bytes, image/handle/sized
@@ -5860,7 +5860,7 @@ no active native/browser/copy/build/test/lint sessions or worker remain.
 ## October 6 Residual Native Pixel Gate
 
 Current phase PROGRESS, not parity completion. Plan scaled-readback-residual.md;
-report bot-docs/reports/performance/2026-10-06-scaled-readback-residual.md;
+report docs/umbrafox/archive/reports/performance/2026-10-06-scaled-readback-residual.md;
 evidence artifacts/umbralink-control/readback-residual/. Only native edit is
 TestDMABufReadback.cpp: eight actual-ratio/alpha/SKIA tests. One laptop run:
 40 total,33PASS,7FAIL,0skip, all prior32PASS. Ordinary accelerated opaque
@@ -5890,8 +5890,8 @@ evidence/plan/report; subsequent fixes must preserve these failing artifacts.
 
 Previous turn built/sealed integrated RGB package; this turn made progress with
 actual laptop playback evidence, NOT overall parity acceptance. New plan
-bot-docs/plans/rgb-readback-pixels.md; report
-bot-docs/reports/performance/2026-10-06-rgb-readback-pixels.md; evidence
+docs/umbrafox/archive/plans/rgb-readback-pixels.md; report
+docs/umbrafox/archive/reports/performance/2026-10-06-rgb-readback-pixels.md; evidence
 artifacts/umbralink-control/rgb-readback-pixels/. New78-input/79-entry harness
 SHA48e197e23d328b5b499838fadbe738faeaf630132dc5ec10a367228f6672d473;
 74 inherited inputs unchanged,4 identity/path wrappers replaced. Fresh laptop
@@ -5933,7 +5933,7 @@ for native residualcases, preserving failedOFF and exactlinear evidence.
 
 ## October 6 Integrated RGB Candidate In Progress
 
-Plan bot-docs/plans/integrated-rgb-readback-candidate.md; evidence
+Plan docs/umbrafox/archive/plans/integrated-rgb-readback-candidate.md; evidence
 artifacts/umbralink-control/rgb-readback-candidate/; intended new export
 exports/umbrafox-rgb-readback-20261006/; fixed BuildID20261006111504.
 54 source pins,13 untracked inputs and full HEAD/index/working patches captured.
@@ -5958,7 +5958,7 @@ manifestSHAa5da86b656e6bd241e309329f0072367d2bfc891650c500abb47fe561b071a11.
 Native+bothINIs20261006111504, frontendonlyAppConstantsID. Separate46file
 installationadmission/postcheckPASS, no lock/browser. Final39contractsPASS,
 all54source+13untracked+HEAD/index/working/config guardsPASS. Report
-bot-docs/reports/performance/2026-10-06-rgb-readback-candidate.md. No runtime
+docs/umbrafox/archive/reports/performance/2026-10-06-rgb-readback-candidate.md. No runtime
 or install yet. No desktop
 browser/profile/launcher/Pi/default-pref/stage/commit/push changes. Keep import
 OFF, preserve blur-repeat failure and all old seals. Next new strict
@@ -5974,8 +5974,8 @@ export, plan or report. Use a new namespace for laptop real-video tests.
 
 Active goal remains broad rendering/layout/CSS/JS performance; this turn made
 PROGRESS by extending real native GL state/failure coverage. Plan
-bot-docs/plans/scaled-readback-state.md; report
-bot-docs/reports/performance/2026-10-06-scaled-readback-state.md; evidence
+docs/umbrafox/archive/plans/scaled-readback-state.md; report
+docs/umbrafox/archive/reports/performance/2026-10-06-scaled-readback-state.md; evidence
 artifacts/umbralink-control/readback-state/. Only new native source edit is
 existing TestDMABufReadback.cpp, SHA28f18634186bd0b48a6a2743d3ffb0b7da89ac8be58643545fa79d5b9aac63ed.
 Production readback remains84a1855a...576d8b3; trackedworking/staged/HEAD guards
@@ -6013,8 +6013,8 @@ All commands terminal. Use newnamespace forintegratedRGBpackage work.
 
 ## October 6 Native Scaled Readback Correction
 
-Plan bot-docs/plans/scaled-readback-order.md; report
-bot-docs/reports/performance/2026-10-06-scaled-readback-order.md; evidence
+Plan docs/umbrafox/archive/plans/scaled-readback-order.md; report
+docs/umbrafox/archive/reports/performance/2026-10-06-scaled-readback-order.md; evidence
 artifacts/umbralink-control/readback-order/. Actual local GLContext helper
 TexParams_SetClampNoMips sets NEAREST min/mag: sized V2 inherits nearest YUV
 sampling, not the historical convert-full-size-then-LINEAR-RGB route.
@@ -6063,7 +6063,7 @@ build/package and strict realvideo matrix; never use old ordinarylib ascurrent.
 
 ## October 6 Integrated Pixel Gate FAILED
 
-Plan bot-docs/plans/integrated-import-pixels.md; evidence newnamespace
+Plan docs/umbrafox/archive/plans/integrated-import-pixels.md; evidence newnamespace
 artifacts/umbralink-control/integrated-import-pixels. Four identity-only sibling
 scripts reuse existing linearcollector exactly; RED2 admission failures retained,
 23focused+4timeout testsPASS. Initialprepare rejected oldhelpers beforewrite;
@@ -6086,7 +6086,7 @@ Controller1409006/browser1409018,16.5s10:16:06.201..10:16:22.701UTC,38exports
 StrictunpackFAILED preserved; separatefailure extraction retainsoriginalPASS
 transportstatus, failure-analysis.json labelsphaseFAILED. Final29focusedtests
 PASS incl38filehashreplay,oldV2exactjoin,reference22diffs,negativepixelcorruption.
-Report bot-docs/reports/performance/2026-10-06-integrated-import-pixels.md.
+Report docs/umbrafox/archive/reports/performance/2026-10-06-integrated-import-pixels.md.
 Nextactualengineering: scaledreadback conversion/scaling order andfilterrepeat
 source/cache/allocation isolation, not anotherblindmatrix orperformanceretry.
 CurrentDrawImage excludesfilter/shadowfromV2helper, so directblurcausenotproved.
@@ -6106,8 +6106,8 @@ anotherexperiment: shared/freshrawRGBA alreadyfalsifiesdecoder-onlyblurcause.
 
 ## October 6 Integrated V2 Import Package Verified
 
-Plan bot-docs/plans/integrated-import-candidate.md; report
-bot-docs/reports/performance/2026-10-06-integrated-import-candidate.md.
+Plan docs/umbrafox/archive/plans/integrated-import-candidate.md; report
+docs/umbrafox/archive/reports/performance/2026-10-06-integrated-import-candidate.md.
 Evidence artifacts/umbralink-control/integrated-import-candidate; export
 exports/umbrafox-integrated-import-20261006. BuildID20261006095500 matches
 bothINIs/nativeELF; archive107770016B SHA2700a1b01cb4cbd84e36e05a7f1e350fd342b1dfc717cdf409e9bd1862aacb68;
@@ -6137,7 +6137,7 @@ exeSHA39c819f7d5af57fd4d93f8aa304c4ee368f6a4290d38427bf3ff30622afcd515.
 
 ## October 6 Fresh Balanced Confirmation Passed
 
-Plan bot-docs/plans/balanced-import-confirmation.md; new evidence namespace
+Plan docs/umbrafox/archive/plans/balanced-import-confirmation.md; new evidence namespace
 artifacts/umbralink-control/balanced-import-r2, frozen callback95-file harness
 xHixG8/same R2 package. No runtime/native/default changes. Old165-file seal
 rechecked; native16/runtime95/HEAD/staged/unstaged guards pass. Offline
@@ -6159,7 +6159,7 @@ Allfour44files/14samples/12PIDsabsent/271Blog0drops/cleanSIGTERM/packagepostchec
 ONhighcopy medians0(timerlimited)/P951ms; OFFmedians33-36/P9546-49ms.
 Oldmetadatafailure notreproduced/unexplained and originalfailure unchanged.
 New66combinedtestsPASS incl176-file savedreplay andincomplete/regressedrejects.
-Report bot-docs/reports/performance/2026-10-06-balanced-confirmation.md.
+Report docs/umbrafox/archive/reports/performance/2026-10-06-balanced-confirmation.md.
 No session/browser remains. No desktop/Pi/install/default/native/sourcechanges.
 Next gate: source/provenance integration review of import recovery +dailyV2
 scaledfallback, then exactintegratednative/pixel/parity/realisticoperation gates.
@@ -6178,7 +6178,7 @@ failure. Root7EYxZF, controller1389817/browser1389829;44files344018B hashverifie
 48s fourphases297/298/297/297 callbacks,0videoDrops. Nativeinitialaccelerated/
 finalsoftware, actualprofileunchanged. Original bVSxIz staysFAILED; no balanced
 sequence complete, exactfailedpredicate stillUNKNOWN. Report
-bot-docs/reports/performance/2026-10-06-callback-evidence.md. All sessions gone.
+docs/umbrafox/archive/reports/performance/2026-10-06-callback-evidence.md. All sessions gone.
 Future fourarm sequence must be NEW evidence, keep failure-onlycollector and
 predeclaredcriteria, do notcount diagnostic/pool oldruns. Current workingruntime
 95files/native16/old150fileseal/staged+unstaged guards PASS. Final62tests PASS,
@@ -6210,12 +6210,12 @@ package47files475120013B postcheckPASS.39exports133092B hashverified. No ON/seco
 OFF launched; four-arm sequence STOPPED. Exact failing values absent, page=null,
 onlyinitialaccelerated snapshot; causeUNKNOWN, not proofvideo/fastpathbug. Stored
 balanced-import/off-1 +rawexport+manifest unchanged. Report
-bot-docs/reports/performance/2026-10-06-balanced-import.md. Next approved-by-plan
+docs/umbrafox/archive/reports/performance/2026-10-06-balanced-import.md. Next approved-by-plan
 failure-only collector diagnostics in separate callback-import namespace; keep
 all predicates/successpath/limits, solethrowchange AST proof, thenONE freshOFF.
 All tool/browser sessions terminal; no arbitrary retry or relaxed acceptance.
 
-Plan bot-docs/plans/balanced-import-playback.md. New balanced-import siblings
+Plan docs/umbrafox/archive/plans/balanced-import-playback.md. New balanced-import siblings
 reuse exact sealed sustained collector/validator/statistics, only before/after
 native queries, actual profile prefs, natural final software classification.
 No sample listener/event or per-frame nativequery. 53 focused/integration/AST/
@@ -6245,7 +6245,7 @@ absent, clean SIGTERM/271-byte log/0 drops, package postcheck PASS. OFF1 samples
 phase, not exact native transition time or cause. Early one-way fallback is NOT
 reproduction of owner's later smooth/stutter cycling. No forced acceleration.
 
-Report bot-docs/reports/performance/2026-10-06-provider-import.md; comparison.json
+Report docs/umbrafox/archive/reports/performance/2026-10-06-provider-import.md; comparison.json
 explicit performanceAccepted:false. Descriptive OFF/ON summed CPU42.034/27.255
 CPU-seconds over48.239/48.105s; RDD20.662/2.084, browser14.008/19.541 (higherON).
 Four-copy batch medians34/35ms versus0/0 (below timer resolution, not GPUtime).
@@ -6264,7 +6264,7 @@ Phase report/plan/evidence now frozen; use new sibling namespace for next work.
 
 ### Localization Execution History
 
-Plan bot-docs/plans/provider-import-localization.md; new sibling provider-import
+Plan docs/umbrafox/archive/plans/provider-import-localization.md; new sibling provider-import
 workload/capture/driver/preflight/export. No native/shared helper changes.
 25focusedtests PASS: ASTcollector differs ONLY postdraw sampleevent, capture
 onlyimport/mode/summaryfields, driver/preflight/export onlyowned namespace.
@@ -6300,7 +6300,7 @@ validator removed that relation, retains finite/nonnegative/ordered/<90s bounds.
 Saved ON replay passes, OFF still fails acceleration gate; ALL original reports
 remain FAILED. No balanced speed acceptance. First OFF xgVrMh preserved separate.
 
-Report bot-docs/reports/performance/2026-10-06-sustained-import.md; comparison
+Report docs/umbrafox/archive/reports/performance/2026-10-06-sustained-import.md; comparison
 artifacts/umbralink-control/sustained-import-r2/comparison.json explicitly false.
 Four-copy median OFF37/38ms vs ON0/0 (below timer resolution), P9550/55 vs1/1.
 CPU48.137/48.126s windows: sum42.482/26.936 CPU-s; RDD21.101/2.029;
@@ -6350,7 +6350,7 @@ Initial guard wrongly compared diffHEAD with unstagedbaseline, corrected to
 same gitdiff--binary; no source drift. Newtest firstRED had missingfakeclock
 advance and hit10swatchdog; correctedRED preserved separately, not producthang.
 
-Plan bot-docs/plans/sustained-import-playback.md. New diagnostic-only
+Plan docs/umbrafox/archive/plans/sustained-import-playback.md. New diagnostic-only
 sustained-import.mjs/capture plus focused VM/bridge/capture tests; first combined
 15 PASS in sustained-import-all-first.log. No new browser run yet. One320x180
 default canvas, continuous48s1/4/4/1copies, bounded1536five-number tuples,
@@ -6374,7 +6374,7 @@ preflight then firstOFF functional capture. None performed yet; no speed claim.
 
 New corrected R2 same-build OFF/ON48orderedhashes exact, all4retainedRGBA
 buffers byteexact, repeatsstable. comparison.json plus report
-bot-docs/reports/performance/2026-10-06-import-recovery-pixels.md.
+docs/umbrafox/archive/reports/performance/2026-10-06-import-recovery-pixels.md.
 OFF root laptop-import-recovery-pixels-off-20261006-DMuUya, controller1347221/
 browser1347233,16.787s; ON ...on-20261006-jQlAEz controller1350117/browser1350129,
 16.352s. Both PASS,6resource samples,peak65.1MB,cleanSIGTERM/271Blog/0drops,
@@ -6402,7 +6402,7 @@ alone do not prove eachdraw fastpath. Native loss/modifier/OOM gaps remain.
 
 ### Capture History
 
-Plan bot-docs/plans/import-recovery-pixels.md. New4 runtime siblings plus spec;
+Plan docs/umbrafox/archive/plans/import-recovery-pixels.md. New4 runtime siblings plus spec;
 old70 harness inputs byteunchanged, new74file bundle. RED3expectedfail, GREEN25
 focused tests, exact5file Prettier PASS. Native16/alltracked/staged unchanged.
 Corrected R2 package seal rechecked. Package/harness copied+hashverified to
@@ -6433,7 +6433,7 @@ Restoration-r2.json proves16source/alltracked/staged byteexact to before;
 objectdir STILL corrected full-size diagnostic, working source again V2.
 6BuildIDtests,9archivehelpers,10sourcecontracts PASS; exactPython direct Ruff
 and formatting checks follow mach lint (ignored artifact paths checked directly).
-Report bot-docs/reports/performance/2026-10-06-import-playback-candidate.md.
+Report docs/umbrafox/archive/reports/performance/2026-10-06-import-playback-candidate.md.
 Final seal import-playback-candidate-final.sha256 verified174files1168853079B,
 SHA b48ceb0f6655edf570a26ec983db4aeacfee82f231faa115e9d1a05241d3ffe9.
 Direct4fileRuff+format PASS, docs lint0, diffcheck0; final6BuildIDtests PASS
@@ -6445,7 +6445,7 @@ Do not reuse older pixel verdict or broaden desktop install/browser authority.
 
 ### Preserved Build History
 
-Active goal continuation. Plan bot-docs/plans/import-playback-candidate.md.
+Active goal continuation. Plan docs/umbrafox/archive/plans/import-playback-candidate.md.
 Evidence artifacts/umbralink-control/import-playback-candidate/. Exact temporary
 Canvas2D full-size delta was APPLIED (SHA3f2a75fa...), original V2 source
 before.cpp/before.json preserved (SHA50bd5080...). Other24source hashes and
@@ -6472,7 +6472,7 @@ package is defaultOFF isolated diagnostic for prospective pixels/playback.
 
 ## October 6 Native Import Failure Gate
 
-Plan: `bot-docs/plans/canvas-import-failure.md`; evidence under
+Plan: `docs/umbrafox/archive/plans/canvas-import-failure.md`; evidence under
 `artifacts/umbralink-control/import-safety/`. Laptop native RED now reproduced:
 13 executed, 2 importer failures/11 passes/0 skips. Unusable descriptors publish
 surfaces; repeated test does so 16 times. Raw receipts/results/logs copied to
@@ -6500,7 +6500,7 @@ after.json16sourcehashes/actualcopies frozen. GREENtestlibSHA8a934a44...;
 manifestSHA6ac3f4b1...; compatibilitydate20261006052600. Reference loader + new
 testlib is diagnostic ONLY, not a new package or repeat pixel acceptance.
 
-Report bot-docs/reports/performance/2026-10-06-canvas-import-failure.md.
+Report docs/umbrafox/archive/reports/performance/2026-10-06-canvas-import-failure.md.
 Gaps: actualvalidDMABuf afterpooledfailure, contextloss injection, driverOOM/FBO/
 modifierfailure, end-to-end translatorfallback, newcandidate pixel/playback.
 No default/pref/installation/desktop/profile changes. OriginalREDbundle
@@ -6516,8 +6516,8 @@ new follow-up uses new evidence siblings. Broader performance goal ACTIVE.
 ## October 6 Same-Build Full-Size Import Parity
 
 Latest owner status answered while active performance goal continues. Report
-`bot-docs/reports/performance/2026-10-06-fullsize-import-parity.md`; plan
-`bot-docs/plans/fullsize-import-parity.md`. Same reference package BuildID
+`docs/umbrafox/archive/reports/performance/2026-10-06-fullsize-import-parity.md`; plan
+`docs/umbrafox/archive/plans/fullsize-import-parity.md`. Same reference package BuildID
 20261006052600, OFF baseline plus new ON: all48 ordered hashes exact, all
 repeats stable, four retained linearRGBA arrays byte-identical. No tolerance
 or omitted cases. Resolves scoped pixel blocker after V2 sized-readback removal,
@@ -6558,8 +6558,8 @@ native change. No safety tests or new native changes yet. Goal ACTIVE.
 ## October 6 Full-Size Reference Capture
 
 Active performance goal continues. New report:
-`bot-docs/reports/performance/2026-10-06-fullsize-reference.md`; plan
-`bot-docs/plans/fullsize-reference.md`. Temporary ONE-file canvas delta removed
+`docs/umbrafox/archive/reports/performance/2026-10-06-fullsize-reference.md`; plan
+`docs/umbrafox/archive/plans/fullsize-reference.md`. Temporary ONE-file canvas delta removed
 V2 deferred/sized readback and restored pinned upstream HTML video branch,
 retaining import/VideoFrame paths/default OFF and all other work. Source RED
 2PASS/2FAIL, then exact-region proof; compiled admission 5PASS. Build66s and
@@ -6619,8 +6619,8 @@ payloads checked: only AppConstants changed, exact single BuildID substitution.
 ## October 6 Linear Raw Pixels And Reference Correction
 
 Active performance goal progressed through oneOFF+oneON fresh laptop run.
-New report bot-docs/reports/performance/2026-10-06-linear-import-pixels.md;
-plan bot-docs/plans/linear-import-pixels.md. New3 runtime siblings+spec; old
+New report docs/umbrafox/archive/reports/performance/2026-10-06-linear-import-pixels.md;
+plan docs/umbrafox/archive/plans/linear-import-pixels.md. New3 runtime siblings+spec; old
 ordered/blur source/evidence untouched. Collector differs only rawretention
 filter->linear, exactASTtest; capture/driver operationASTchecks too.
 BehavioralRED captured missinglinearbytes; final81testsPASS6.89s including
@@ -6661,8 +6661,8 @@ hascommands/guards. No neededcommandstillrunning; doclint43130exit0.
 ## October 6 Ordered OFF/OFF/ON Pixel Diagnostic
 
 Latest owner status answered; active performance goal continues, not completed.
-Report bot-docs/reports/performance/2026-10-06-ordered-import-pixels.md;
-plan bot-docs/plans/ordered-import-pixels.md. New ordered-pixels validator,
+Report docs/umbrafox/archive/reports/performance/2026-10-06-ordered-import-pixels.md;
+plan docs/umbrafox/archive/plans/ordered-import-pixels.md. New ordered-pixels validator,
 capture/driver/spec siblings preserve old seals and strict original pixel gate.
 69 focused tests PASS, including saved-evidence replay; final-tests.log in
 artifacts/umbralink-control/ordered-pixels/. Two actual behavioral REDs fixed.
@@ -6705,8 +6705,8 @@ docslint session82237 exited0. No needed command remains running.
 ## October 6 Blur Source Lifetime Diagnostic
 
 Newest owner status request answered while continuing active performance goal.
-New report bot-docs/reports/performance/2026-10-06-blur-source-lifetime.md;
-plan bot-docs/plans/blur-source-lifetime.md. New artifact siblings
+New report docs/umbrafox/archive/reports/performance/2026-10-06-blur-source-lifetime.md;
+plan docs/umbrafox/archive/plans/blur-source-lifetime.md. New artifact siblings
 blur-source.mjs, canvas-matrix.mjs, laptop-blur-source.mjs and matching spec.
 63 combined tests PASS; behavioral request-target and unawaited-validator REDs
 preserved then corrected. Previous sealed fixtures untouched; native candidate
@@ -6744,8 +6744,8 @@ plan, fixture and evidence now sealed; use new siblings for subsequent work.
 ## October 6 Blur Source Controls Complete As Diagnostics
 
 Goal turn progressed through new bounded fixture +two real OFF captures.
-Report bot-docs/reports/performance/2026-10-06-blur-controls.md; plan
-bot-docs/plans/blur-controls.md. New artifact siblings blur-controls.mjs,
+Report docs/umbrafox/archive/reports/performance/2026-10-06-blur-controls.md; plan
+docs/umbrafox/archive/plans/blur-controls.md. New artifact siblings blur-controls.mjs,
 blur-controls-capture.mjs,laptop-blur-controls.mjs,test/blur-controls-spec.mjs.
 Existing helpers/source and pixel failures unchanged; candidate OFF/uninstalled.
 57focusedtestsPASS(~6.9s), behavioral malformed max-vs-total RED then corrected;
@@ -6781,8 +6781,8 @@ the original pixel acceptance or general performance goal.
 
 Latest status request answered after reacquiring OFF3 evidence; no new browser
 launched after context recovery. Candidate20261006023500 remains default OFF,
-uninstalled. Desktop browser untouched. New plan bot-docs/plans/dmabuf-pixels.md;
-report bot-docs/reports/performance/2026-10-06-dmabuf-pixels.md. Artifact siblings
+uninstalled. Desktop browser untouched. New plan docs/umbrafox/archive/plans/dmabuf-pixels.md;
+report docs/umbrafox/archive/reports/performance/2026-10-06-dmabuf-pixels.md. Artifact siblings
 dmabuf-pixels.mjs, dmabuf-pixels-capture.mjs, laptop-dmabuf-pixels.mjs and
 test/dmabuf-pixels-spec.mjs under artifacts/umbralink-control/. Final-v3 tests
 50PASS include existing canvas-large/readback regressions. Not runtime PASS.
@@ -6822,8 +6822,8 @@ a3c328e4aff34a383827dc4b23f96001a3975428 (Firefox159, defaultOFF).
 13 native files patched;10 exact upstream deltas verified by reverse hash.
 Manual Canvas2D/GLBlitHelper cpp+h merge preserves V2 helper byte-for-byte and
 scaling boolean, appends destFormat. No default enable/public API/install.
-Plan bot-docs/plans/dmabuf-import.md; report
-bot-docs/reports/performance/2026-10-05-dmabuf-import.md.
+Plan docs/umbrafox/archive/plans/dmabuf-import.md; report
+docs/umbrafox/archive/reports/performance/2026-10-05-dmabuf-import.md.
 Evidence artifacts/umbralink-control/dmabuf-import/ includes upstream.patch,
 before.json/before.patch, implementation.diff, integrated.patch,13sourcehashes,
 tracked-source.patch and11file source supplement. IndexSHA3b78253c unchanged.
@@ -6872,7 +6872,7 @@ valid for their oldCPU/cache purpose, not acceptance of newGPUimport.
 ## October 5 Above-Threshold Canvas Transition
 
 Latest goal progress: new canvas-large artifact siblings, no engine/build/install.
-Report bot-docs/reports/performance/2026-10-05-canvas-large.md; artifacts
+Report docs/umbrafox/archive/reports/performance/2026-10-05-canvas-large.md; artifacts
 artifacts/umbralink-control/canvas-large/. Two baseline320x180 runs PASS.
 Actual min128/max8192,no user values,before/after stable. Default first draw
 provider accelerated/recording then draw120 sharedSkia; readback control shared
@@ -6923,8 +6923,8 @@ Next sibling:320x180 above unchangedcutoff, actualmin/maxpref receipts via
 existingbrowserrequest, nativebackend snapshot, same no-timed-readback protocol.
 Do not lowercutoff/forceGPU or infer allcanvasesCPU. Currentcode/evidence frozen.
 
-Report bot-docs/reports/performance/2026-10-05-canvas-route.md; plan
-bot-docs/plans/canvas-route.md; artifacts/umbralink-control/canvas-route/.
+Report docs/umbrafox/archive/reports/performance/2026-10-05-canvas-route.md; plan
+docs/umbrafox/archive/plans/canvas-route.md; artifacts/umbralink-control/canvas-route/.
 Remoteharness canvas-route-harness-20261006-CZzUl2 (39files23302666B) pre/posthashPASS.
 Remote ~/.cache/codex/laptop-canvas-route-baseline- roots:
 default-20261006-roWTRL ctrl1199171/browser1199666,
@@ -6943,7 +6943,7 @@ new siblings. No active browser/controller/test sessions remain.
 
 New offline-only goal progress; no browser/native/build/install/index action.
 Candidate UNINSTALLED. Report2026-10-05-later-copy-symbols.md under performance
-reports; plan bot-docs/plans/later-copy-symbols.md; artifacts/umbralink-control/later-copy/.
+reports; plan docs/umbrafox/archive/plans/later-copy-symbols.md; artifacts/umbralink-control/later-copy/.
 Same two savedprofiles/exact Mesa symbols. First36/22samples reproduce; later
 baseline samples4/1/4/2/2 and candidate noIPC/2/2/2/1. Nine later IPCwindows:
 no observed compile_shader/create_builtins/schedule_compile frames, all self
@@ -6974,8 +6974,8 @@ Savedcode/evidence frozen; new experiments use siblings.
 
 Status turn continued OFFLINE only; no browser/native/build/install/index change.
 Candidate remains UNINSTALLED; desktop daily browser/profile protected.
-Report bot-docs/reports/performance/2026-10-05-mesa-symbols.md; plan
-bot-docs/plans/driver-symbols.md; artifacts/umbralink-control/driver-symbols/.
+Report docs/umbrafox/archive/reports/performance/2026-10-05-mesa-symbols.md; plan
+docs/umbrafox/archive/plans/driver-symbols.md; artifacts/umbralink-control/driver-symbols/.
 Alternate official ddebs package succeeded after old debuginfod failures.
 HTTPS Ubuntu keyring SHA777b6a23 -> gpgv InRelease good F2ED...F622 -> index
 SHA516b0227 -> package9619d1a2/65987654B -> debug a9d10145/69365760B.
@@ -7005,8 +7005,8 @@ Artifacts now frozen; later scopes use prospective siblings.
 
 Latest goal continuation made evidence progress using SAVED profiles only.
 No browser/native/build/install/index change. Candidate still UNINSTALLED.
-Report bot-docs/reports/performance/2026-10-05-cold-worker-symbols.md;
-plan bot-docs/plans/cold-worker-symbols.md; artifacts/umbralink-control/cold-symbols/.
+Report docs/umbrafox/archive/reports/performance/2026-10-05-cold-worker-symbols.md;
+plan docs/umbrafox/archive/plans/cold-worker-symbols.md; artifacts/umbralink-control/cold-symbols/.
 Local Samply0.13.1 + profiler-cli0.10.0, exact packaged libxul SHA/BreakpadIDs.
 Both first-window worker identity/clock/count gates pass:36/22samples.
 Native inclusive counts baseline/candidate: RecvReadback33/22, sizedDMABuf33/22,
@@ -7057,8 +7057,8 @@ rosterTID only after endpointrecvTid/sendTid crosscheck.998/416parentrecords;
 rawexportsunchanged. Sixscopes/marks/peers/seq/endpoints validated; no rawphaseproof.
 
 Evidence artifacts/umbralink-control/cold-worker; report
-bot-docs/reports/performance/2026-10-05-cold-worker-profile.md; plan
-bot-docs/plans/cold-worker-profile.md. REDclock1/2 andfilter4/5; final54PASS,
+docs/umbrafox/archive/reports/performance/2026-10-05-cold-worker-profile.md; plan
+docs/umbrafox/archive/plans/cold-worker-profile.md. REDclock1/2 andfilter4/5; final54PASS,
 11filePrettierPASS; results/recheck byteidentical. Same24MiBprofilecap,120stotal,
 10squiet,64MiBheadroom,256MiBsampledcap. Profiles21124358/16641802B;7samples/cell,
 peaks233845669/221799616B. AfterHWffmpegRDDH264; no continuousdecodeproof.
@@ -7091,8 +7091,8 @@ Candidate UNINSTALLED; desktop browserprotected; broadgoalremainsACTIVE.
 Latest progress/status turn: one fresh laptop baseline PASS and one candidate
 FAILED new timestamp validator after complete collector+profile dump. No retries.
 No desktop browser/source/build/install change; original candidate UNINSTALLED.
-Report bot-docs/reports/performance/2026-10-05-cold-copy-profile.md; plan
-bot-docs/plans/cold-copy-profile.md; evidence artifacts/umbralink-control/cold-profile/.
+Report docs/umbrafox/archive/reports/performance/2026-10-05-cold-copy-profile.md; plan
+docs/umbrafox/archive/plans/cold-copy-profile.md; evidence artifacts/umbralink-control/cold-profile/.
 
 Six UserTiming scopes around first six copies, same V3 moving workload. First
 native scopes29.329551/24.991172ms; unique same-clock IPC peer+sequence joins
@@ -7160,8 +7160,8 @@ candidatepreworkdiskhigher already, cannotattributetocacheorRSS. No desktop/
 install/build/engine/source-index change. StageddiffSHA3b78253c... unchanged.
 
 Evidence artifacts/umbralink-control/moving-timing/;143exportfiles911144B hashed.
-Report bot-docs/reports/performance/2026-10-05-moving-timing.md; plan
-bot-docs/plans/moving-timing.md. Results.json fullcounts andCPUjsonl retained.
+Report docs/umbrafox/archive/reports/performance/2026-10-05-moving-timing.md; plan
+docs/umbrafox/archive/plans/moving-timing.md. Results.json fullcounts andCPUjsonl retained.
 Harness moving-timing-harness-20261005-xn06kq,36files23277573B,
 manifestb86b1f65bfbffcd18eab0640394465f9dcfac63c919b298a308685cd79824dea,
 before/afterverified. Remote~/.cache/codex/laptop-moving-timing- roots:
@@ -7206,8 +7206,8 @@ failedcontract,observercost => no accepted speedup/YouTube verdict. Afterdecoder
 bothhardwareffmpegRDDH264; beforebothshutdown,continuousbackendunproved.
 
 Evidence artifacts/umbralink-control/moving-observation/; report
-bot-docs/reports/performance/2026-10-05-moving-observation.md; plan
-bot-docs/plans/moving-observation.md. Both exports69files444481B locallyverified.
+docs/umbrafox/archive/reports/performance/2026-10-05-moving-observation.md; plan
+docs/umbrafox/archive/plans/moving-observation.md. Both exports69files444481B locallyverified.
 Harness moving-observation-harness-20261005-6Fbogb,36files23277351B,
 manifestdd03ccdb1e142614ced0bc4e011b29758333f1699112a2b341bb11b917eb3e56.
 Laptopprefix ~/.cache/codex/laptop-moving-observation-:
@@ -7262,7 +7262,7 @@ emptyupdatesdirs. Capture19.760s;5resourcesamples peak153866877B, initialheadroo
 No profiler/newbuild/install/desktop/personalprofile changes. All runtime ended.
 
 Evidence artifacts/umbralink-control/moving-copy/; report
-bot-docs/reports/performance/2026-10-05-moving-copy-baseline.md. Source excerpts
+docs/umbrafox/archive/reports/performance/2026-10-05-moving-copy-baseline.md. Source excerpts
 frozen-source-proof.json/frozen-image-selection.txt. Saved replay3PASS preserves
 failed classification and repeats exactpopulation/cleanup/pauseddecoder limits.
 Final combined49testsPASS and exact8fileformatPASS; no native rerun.
@@ -7290,7 +7290,7 @@ YouTube solved. Standing disposable-laptop authority remains; desktop protected.
 Artifact-only moving-copy.mjs and test/moving-copy-spec.mjs now contain a
 serialized1080p collector/validator and64MiB prospective artifact-headroom gate.
 Four2s phases1/4/4/1 copies per video callback; no browser controller/driver yet.
-Plan bot-docs/plans/moving-readback.md; existing90s1080p H264 asset unchanged.
+Plan docs/umbrafox/archive/plans/moving-readback.md; existing90s1080p H264 asset unchanged.
 Fake-page tests exercise normal callbacks and failures, NOT native media proof.
 
 Retained failure-path RED5PASS4FAIL: quality-read exception left phase unsettled,
@@ -7336,7 +7336,7 @@ newenginecode/build/install or desktopbrowser/profile action. Stagedpatch still
 231628B/SHA3b78253c... (this is gitdiffcached, NOT binary .git/index hash).
 
 Evidence artifacts/umbralink-control/readback-route/; report
-bot-docs/reports/performance/2026-10-05-hardware-readback-route.md.
+docs/umbrafox/archive/reports/performance/2026-10-05-hardware-readback-route.md.
 Final142file5219869B seal readback-route-final.sha256 independently checksPASS;
 sealSHA6bb7ed3ef7e8868b4465cc5bbf171b7cfb26162e1d563b23cccbd11102f0a930.
 Harness readback-route-harness-20261005-MYqQs3, manifest8a4d3492... .
@@ -7360,7 +7360,7 @@ Owner asked for status; reported headed exact-pixel PASS, explicitly not a
 playback speedup or a solved YouTube stutter. New artifact-only diagnostic
 artifacts/umbralink-control/readback-route.mjs uses existing IPC/flow profiler
 features and UserTiming on the owned VP9 fixture. Protocol is
-bot-docs/plans/readback-route.md. Two paused frames, per-frame first/repeat/
+docs/umbrafox/archive/plans/readback-route.md. Two paused frames, per-frame first/repeat/
 different-size/return phases with1/8/8/8 draws; compare against predicted
 baseline1/8/8/8 vs candidate1/0/8/0 requests, not a required result.
 
@@ -7411,7 +7411,7 @@ Remote runs: ~/.cache/codex/laptop-headed-readback-{baseline-20261005-omEESn,
 candidate-20261005-pjUWdi}. Local61-file evidence verified under
 artifacts/umbralink-control/laptop-headed-readback/saved; manifest8a9daed7...,
 20-file harnessbef3b98c... unchanged. Focused106tests PASS, exact replayPASS.
-Report bot-docs/reports/performance/2026-10-05-laptop-headed-readback.md.
+Report docs/umbrafox/archive/reports/performance/2026-10-05-laptop-headed-readback.md.
 Next gates: larger media, hardware same-frame vs new-frame behavior, actual
 readback/cache routing, and matched sustained-playback observers/resources.
 Existing sustained90s1080p asset is pinned aac5b2c5...; prior60s headless pilot
@@ -7429,7 +7429,7 @@ PASSED: one headless laptop browser, 11.324s inside30s, exact parent app/local/t
 and TmpD paths, Build20261003071500, clean SIGTERM/0drops. Browser865122,
 controller865110 and all10 sampled browser children absent. No desktop browser,
 profile, install, build, preference-default or staged-index changes.
-Report bot-docs/reports/performance/2026-10-04-browser-temp-native.md;
+Report docs/umbrafox/archive/reports/performance/2026-10-04-browser-temp-native.md;
 evidence artifacts/umbralink-control/browser-temp-native/.
 Remote harness browser-temp-harness-20261004-YOFDRs; run
 /home/wyatt/.cache/codex/browser-temp-native-20261004-ZRBCxx.
@@ -7459,7 +7459,7 @@ capturecopies retainedin artifacts/umbralink-control/browser-temp-proof/.
 Saved<=20s samples headroom baseline80503036B,candidate204784307B; oldexternaltemp
 uncounted so NOT futureadmission/no-allocationclaim. No priorfailed evidence
 discarded/capchange/securityoptout. Report
-bot-docs/reports/performance/2026-10-03-short-capture-budget.md.
+docs/umbrafox/archive/reports/performance/2026-10-03-short-capture-budget.md.
 Final18file127267B browser-temp-proof-final.sha256 independentlyPASS, SHA
 f94bdb2f07beedd9688490f8ae5f1875e39ef19208ad75b1a9a59617b820ecf0.
 Capture now69189881/spec981f4d90; oldprivate-temp seal34 has32unchanged plus2
@@ -7490,7 +7490,7 @@ inherits ownedtemp; VM nativebody tests NOT realbrowser proof. New nestedtemp ZI
 and stagingfile test counts under unchanged256MiB cap, cap+1 rejects. Existing
 explicitprofile allowance/cadence/deadlines unchanged. All sessions terminal.
 
-Report bot-docs/reports/performance/2026-10-03-browser-temp-containment.md;
+Report docs/umbrafox/archive/reports/performance/2026-10-03-browser-temp-containment.md;
 evidence artifacts/umbralink-control/browser-temp-containment/, before0..5
 snapshots + exact implementation.diff + final verification. Native63/footprint64
 oldseals stillPASS. Oldpair141 has only3intentional currentsource mismatches
@@ -7518,7 +7518,7 @@ c9bd26cc reconstructed/verified in new evidence; old seal remains historical.
 Native receipt verifies PathUtils.profileDir/tempDir and TmpD exact owned
 profile; sharedIOUtils=false, cleanupPresent=true. NOT browser provider proof.
 
-Report bot-docs/reports/performance/2026-10-03-attachment-cleanup-native.md;
+Report docs/umbrafox/archive/reports/performance/2026-10-03-attachment-cleanup-native.md;
 evidence artifacts/umbralink-control/attachment-cleanup-native/.
 Run4R4nWR FAIL preserved; runjUJT8h firstPASS buffered (childPID not retained);
 runhAgiWL finalverbosePASS controller2358965/xpcshell2358989 absent05:18UTC.
@@ -7549,7 +7549,7 @@ must use reviewed ownedroots/TMPDIR; currentbrowserruntimehold unchanged.
 Sourcechecks confirm underlyingzipstreamClose idempotent; not runtimeproof.
 Oldpackages/originalfootprintreproducer untouched (oldpackagerepro remainsRED).
 
-Report bot-docs/reports/performance/2026-10-03-attachment-bundle-cleanup.md;
+Report docs/umbrafox/archive/reports/performance/2026-10-03-attachment-bundle-cleanup.md;
 evidence artifacts/umbralink-control/attachment-cleanup/; finalseal
 attachment-cleanup-final.sha256. Keep separatefromsealedSuggestA/B. No
 build/package/install/staging/commit; ownerbrowser/profile stillprotected.
@@ -7559,7 +7559,7 @@ not a measuredspeedup or claimedvideostutterfix.
 ## October 3 Startup Footprint and Attachment Cleanup Reproducer
 
 Offline audit of the stopped nativeB matched startup pair. Report
-bot-docs/reports/performance/2026-10-03-quicksuggest-footprint.md and evidence
+docs/umbrafox/archive/reports/performance/2026-10-03-quicksuggest-footprint.md and evidence
 artifacts/umbralink-control/quicksuggest-footprint/. No browser/profiler/native
 build/install/source change or fresh remote process this turn. Existing runtime
 HOLD and owner desktop/headed-window boundaries remain.
@@ -7628,7 +7628,7 @@ evidence-20261003-WDFtT6/{candidate,baseline}; no profile/appdata/token contents
 exported or opened by post-run audit; runningharness uses ownprivate discovery
 and ownedrun metadata accounting as before.
 Logs+summaries artifacts/umbralink-control/quicksuggest-updates-pilot/;
-report bot-docs/reports/performance/2026-10-03-quicksuggest-matched-startup.md;
+report docs/umbrafox/archive/reports/performance/2026-10-03-quicksuggest-matched-startup.md;
 newseal quicksuggest-updates-pilot-final.sha256 (141files6661283B verified).
 Reportlint0;all commands terminal. Original stagedbaseline unchanged.
 Next offline artifact-trajectory review; then bounded counterbalanced startup
@@ -7650,7 +7650,7 @@ and later26PASS1FAIL retained; latter fixes stale failure observation after a
 second-inventory race. Real tiny filesystem fixtures plus typed-data/fake-clock
 checks, no browser/native/server/client/remote execution. Exact2file lint0 and
 PrettierPASS. Six prior seals verify; stagedindex unchanged231628B SHA3b78253c...
-Report bot-docs/reports/performance/2026-10-03-installation-update-policy.md;
+Report docs/umbrafox/archive/reports/performance/2026-10-03-installation-update-policy.md;
 logs artifacts/umbralink-control/installation-updates/ and new seal
 installation-updates-final.sha256 (30 files,170574 bytes,verified). Reportlint0;
 all commands terminal. Point-in-time only, no race-free or no-network claim.
@@ -7739,7 +7739,7 @@ unlisted dirs and symlinks reject. Complete failed observations retained+cause.
 21 filesystem Node testsPASS including originalhelperregression, scopedlint0.
 NO runtime/remote/native/product/sharedharness change. Original runtimeFAIL,
 26/152/region seals and stagedindex mustremainunchanged. New report
-bot-docs/reports/performance/2026-10-03-installation-write-policy.md; scratch
+docs/umbrafox/archive/reports/performance/2026-10-03-installation-write-policy.md; scratch
 installation-state/ logs and installation-state-final.sha256.
 Not wired into driver yet. Next actualgate: freshexclusivepackage preparation,
 frontendcandidate jar/provenance integration, savedfailure/cleanup handling and
@@ -7764,7 +7764,7 @@ RED11pass10fail ->21pass; two added queue/idempotence tests +old13 =36PASS.
 New native regression authored/linted NOT RUN; native/browser integration still
 pending. ESLint0errors/1preexistingPreferenceswarning (baseline reproduced).
 No browser/native/build/install/remotehost/profile access. Indexunchanged.
-Report bot-docs/reports/performance/2026-10-03-quicksuggest-region-control.md;
+Report docs/umbrafox/archive/reports/performance/2026-10-03-quicksuggest-region-control.md;
 evidence artifacts/umbralink-control/quicksuggest-region/ and region-final.sha256.
 Prior26+152 seals unchanged. Runtime hold (.parentlock/headroom), pending headed
 GPU consent and ownerbrowser protection remain. No speedup or stutter proof.
@@ -7772,7 +7772,7 @@ GPU consent and ownerbrowser protection remain. No speedup or stutter proof.
 ## October 3 QuickSuggest Startup Audit
 
 Source-only follow-up to sustained footprint; no browser/native runs or product
-edits. New report bot-docs/reports/performance/2026-10-03-quicksuggest-startup.md.
+edits. New report docs/umbrafox/archive/reports/performance/2026-10-03-quicksuggest-startup.md.
 Disposable metadata walk sustained-footprint.json: postexit250921974B, remote-
 settings77962256B, suggest.sqlite35618816B. Earlier live265713225B peak remains.
 Do NOT equate timestamps/file sizes with CPU/network/stutter attribution.
@@ -7830,7 +7830,7 @@ notactualwriterstack or loaded-sourceproof. No new profile/update/networkclaim.
 Before reuse: explicit bounded install-write policy/freshownedpackage and disk
 headroom; no broadcacheprefs/capbump. Headedlaptop consent STILLpending. Owner
 browser/profile/installprotected. Broadgoal ACTIVE, no new agents/build/commit.
-Report bot-docs/reports/performance/2026-10-03-sustained-playback.md.
+Report docs/umbrafox/archive/reports/performance/2026-10-03-sustained-playback.md.
 Finalseal artifacts/umbralink-control/sustained-final.sha256:152files70267058B,
 independentlyverified; prior92seal/41local+remotehashes/71exportsPASS. Real-data
 replay1PASS (30intervalexact+9badjoinstate+CPUunknown), report/auditlint0,
@@ -7857,7 +7857,7 @@ independentlyabsent01:12:13.237ZOct4; notexhaustivecleanup/no-network proof.
 Localcache playback-admission-evidence-20261003-3JypVi (30files136021B+manifest);
 remote capture omit evidence-; harness playback-admission-harness-20261003-TzaHwE.
 34bundledhashes pre/postPASS. All tests/runtime/transfer/lint terminal.
-Report bot-docs/reports/performance/2026-10-03-playback-admission.md; seal
+Report docs/umbrafox/archive/reports/performance/2026-10-03-playback-admission.md; seal
 artifacts/umbralink-control/playback-admission-final.sha256. Sustainedfixture NOT
 finished: longer pinnedmedia stillneeded; headedGPU windowconsent pending, normal
 browser/profile/install protected. Inlinecandidateheld; broadgoal ACTIVE.
@@ -7889,7 +7889,7 @@ remote captures omit evidence-; harness interleaved-control-harness-20261003-50N
 30bundledhashes pass before/after. New scratchonly, no production/toolsourceedits.
 71combinedNodePASS14.135s beforelaunch; final7focused/replayPASS1.068s including
 80realcapturecorruptioncases, not disjointcounts. Scopedwhitespace/trojanlint0.
-Report bot-docs/reports/performance/2026-10-03-interleaved-controls.md; seal
+Report docs/umbrafox/archive/reports/performance/2026-10-03-interleaved-controls.md; seal
 artifacts/umbralink-control/interleaved-control-final.sha256. Goal ACTIVE.
 Final544-file seal2547174B and prior304seal independentlyverified; doc/source
 scopedlint0/diffcheck0/indexunchanged. Final17rootabsence01:02:01.500ZOct4.
@@ -7920,7 +7920,7 @@ ports37523/37524absent00:46:12.520Z. No exhaustive cleanup/network-sandbox claim
 Only profile-capture.mjs+spec testtool adapters changed; original fixture untouched.
 Final70NodePASS13.639s/scoped2lint0; sourcearchive+reviewdiff retained. All27bundle
 hashes/previous599sealPASS,indexunchanged. Report
-bot-docs/reports/performance/2026-10-03-interleaved-profile.md; newseal
+docs/umbrafox/archive/reports/performance/2026-10-03-interleaved-profile.md; newseal
 artifacts/umbralink-control/interleaved-profile-final.sha256. Owner browser,
 profiles/extensions/install/launcher untouched. No owned runtime remains active.
 Final304-file seal21517508B independentlyverified; prior599seal reverified.
@@ -7946,7 +7946,7 @@ Remote harness interleaved-inline-harness-20261003-RDIktu; reused pair F4qaX4.
 Five test-tool files only; mixed collector and timed loop source unchanged.
 Final50 test groups PASS13.655s; scoped lint0; retained before-source tar+diff.
 All24 bundled hashes pass; staged index unchanged. Report
-bot-docs/reports/performance/2026-10-03-interleaved-inline.md; seal
+docs/umbrafox/archive/reports/performance/2026-10-03-interleaved-inline.md; seal
 artifacts/umbralink-control/interleaved-inline-final.sha256. No owned run active.
 
 ## October 3 Inline Mutation Page Comparison
@@ -7973,7 +7973,7 @@ mutation-inline-native-pair-20261003. Originalpackagesuntouched/fullhashgatespas
 14focusedgroupsPASS includingall18savedreplay+24corruptions; INIbyteauditREDfixed
 offlineonly, no capturechanges. Exactwhitespace/trojanlint0/syntax/diffpass.
 FirstquotedshellPIDcheckinvalid/empty; acceptedfinal-absence-2.json fromstdin script.
-Report bot-docs/reports/performance/2026-10-03-mutation-inline-page.md; scratch
+Report docs/umbrafox/archive/reports/performance/2026-10-03-mutation-inline-page.md; scratch
 artifacts/umbralink-control/*mutation-inline-page* pluspairhelper/spec.
 Existingstagedindexunchanged; prior139nativesealPASS. No activeownedruntime/build/
 test/transfer, ownerbrowser/install/launcher/sourceproductionchanges thiswave.
@@ -8028,7 +8028,7 @@ positive is not independent runtime. timingAccepted:false always; no cache-hit,
 physicalcadence/geometry/continuousbackend/clean-source-delta or performanceproof.
 Loader9namedJSON/run,1MiBcap,canonicalroots/nosymlinks; no profile/discoveryread.
 No browser/SSH/profiler/build/install/native/production edits, staging or commit.
-Report bot-docs/reports/performance/2026-10-03-video-comparison-admission.md;
+Report docs/umbrafox/archive/reports/performance/2026-10-03-video-comparison-admission.md;
 artifacts/umbralink-control/readback-context-{green.log,software.json,final.sha256}.
 Next explicitheadedconsent then matchedbackend/pixels, controlledlongerplayback;
 streaming request and rendering comparisons kept separate. GoalstillACTIVE.
@@ -8056,8 +8056,8 @@ corruption and delayedHTTP failure/cap/abort tests. Wrongcwd post-hash attempt
 failed, corrected27pass; bothlogsretained, no browserretry. No activebrowser/test/
 SSH/profiler/agent aftercheckpoint. No build/install/stage/commit/ownerbrowseraction.
 
-Report bot-docs/reports/performance/2026-10-03-request-latency-measurement.md;
-newplan bot-docs/plans/request-latency-measurement.md; artifacts/umbralink-control/
+Report docs/umbrafox/archive/reports/performance/2026-10-03-request-latency-measurement.md;
+newplan docs/umbrafox/archive/plans/request-latency-measurement.md; artifacts/umbralink-control/
 request-latency-analysis.json, final-tests.log, final.sha256 and scratchmodules/specs.
 Old plans/DoDreports sealed unchanged; use this addendum for current status.
 NEXT controlled page/video transfer onquietlaptop; headedGPU ownerdecision remains
@@ -8097,7 +8097,7 @@ freshSHAverifiedarchiveextractionthenexactpairpassed. No relaxedintegritygate.
 exactresourcejoin+subsequentrelativecaps. New scratchsyntax/diffclean.
 9phase2source/testhashesunchanged. No activeCLI/test/browser/SSH/profiler/agent.
 
-Report bot-docs/reports/performance/2026-10-03-request-paired-measurement.md;
+Report docs/umbrafox/archive/reports/performance/2026-10-03-request-paired-measurement.md;
 plan+DoDupdated. artifacts/umbralink-control/request-paired-{analysis.json,
 final-tests-3.log,final.sha256}, newadapter/capture/fileverify/export/auditmodules
 andmirroredscratchtests. Oldsealsunchanged. Next sharedboundedserverdelayfixture
@@ -8134,7 +8134,7 @@ controller-spec unchanged. Production: EventController+Registry+Parent; tests:
 browser events+capability/request specs. No native build/package/install/stage/
 commit/agents/profiler/ownerbrowser action. Existing staged/dirty work preserved.
 
-Report bot-docs/reports/performance/2026-10-03-request-fast-path.md; plan+DoD updated.
+Report docs/umbrafox/archive/reports/performance/2026-10-03-request-fast-path.md; plan+DoD updated.
 artifacts/umbralink-control/request-fastpath-source.tar.gz seals9 request source/
 test files; final.sha256 seals source/log/report/receipts. Old seals stay historical.
 NEXT phase3 requires exact new test-artifact provenance: sealed laptop A/B packages
@@ -8145,7 +8145,7 @@ Owner daily browser protected; broad goal ACTIVE, not complete or blocked.
 
 ## October 3 Request Capability Handoff
 
-Uninstalled phase1 of bot-docs/plans/request-fast-path.md implemented. Native
+Uninstalled phase1 of docs/umbrafox/archive/plans/request-fast-path.md implemented. Native
 controller construction now requires prepareUmbrafoxUserlandRequestCapability
 acknowledgement for its exact WindowGlobal. Parent validates native BC/inner IDs,
 marks actor-private monotonic capability before reply/matching scripts. All3
@@ -8324,7 +8324,7 @@ Samply1688494/1690394 stoppedownedSIGINT exit0;CLI1688689/1691808 stop0finally.
 Exact4PID/namedUnixsockets and TCP37521/37522 absent. Noactivehandles. NoUIopen,
 explicitloopback only; no network-sandboxclaim. 13focusedanalysis/prooftestsPASS;
 newsummaryREDsmissingmoduleonly, originalcalibrationbehavioralREDpreserved.
-Report bot-docs/reports/performance/2026-10-03-sampling-balanced-comparison.md;
+Report docs/umbrafox/archive/reports/performance/2026-10-03-sampling-balanced-comparison.md;
 finalseal artifacts/umbralink-control/sampling-balance-final.sha256. Broadgoal
 active. NEXT actualheadedGPUconsentstillpending, layoutuncertaintyretained;
 cancontinueoffline/nativefalsifiersbutnotguessoptimizationfromsymbolnames.
@@ -8359,7 +8359,7 @@ wrong filteredCount field -> failure/cleanup, preserved; corrected to actual
 filteredMarkerCount with regression, reload SAVED profile only, no browser retry.
 Old exporter/root untouched. Workload6126/5577ms not controlled speed comparison.
 
-Report bot-docs/reports/performance/2026-10-03-sampling-only-proof.md; finalseal
+Report docs/umbrafox/archive/reports/performance/2026-10-03-sampling-only-proof.md; finalseal
 artifacts/umbralink-control/sampling-only-final.sha256. No live handles. NEXT
 counterbalanced OFF/samples-only comparison and matching local symbols, retain
 per-case layout attribution gap; no benefit/YouTube claim from these pilots.
@@ -8394,7 +8394,7 @@ Retained failures: offline audit wrongly expected old plan.profiling; corrected
 literal on, reran audits only. Initial archive attempts failed without filelists;
 replacement *-evidence-2.tar.gz used. Initial remote hash cwd corrected; no capture
 reruns. Driver/auditor local hashes match remote. Report:
-bot-docs/reports/performance/2026-10-03-mutation-marker-calibration.md.
+docs/umbrafox/archive/reports/performance/2026-10-03-mutation-marker-calibration.md.
 Finalseal artifacts/umbralink-control/marker-calibration-final.sha256.
 
 NEXT source-supported alternative to denied external perf: supported feature
@@ -8434,7 +8434,7 @@ CLIoffline127.0.0.1:9-only export cache/window-profile-ab-analysis-20261003-B-on
 1585active (DOM1096/layout264/JS182/GC23). Batched55(44layout/11DOM), noexportedGC
 overlapagain. No native-symbolcomparison. CLI1592269 stop0/PID+socketabsent;
 noSamply/noactivehandles. Driver2tests/audit2tests+6corruptionsPASS. Report
-bot-docs/reports/performance/2026-10-03-profile-observer-effect.md; finalseal
+docs/umbrafox/archive/reports/performance/2026-10-03-profile-observer-effect.md; finalseal
 window-profile-ab-final.sha256. NEXT small page-owned A/B marker-production
 calibration withinexistingcaps (notimplemented), notmorelargebaselineprofiles.
 Externalperf requiresownerpermission/securityreview; no consentrequestedyet.
@@ -8483,7 +8483,7 @@ AllownCLIstop0. Daemons1547974/1549122/1556582/1557549 PID/socketabsent. First
 load numericPIDunavailable, socketabsentonly. Samply1545113 exited124via300s
 SIGINTdeadline; latermanualattempt ENOENT/no signal. PID/port37520 absent.
 No active capture/export/test/server/transfer. Originalfailures/seals retained.
-Report bot-docs/reports/performance/2026-10-03-window-dom-profile.md; finalseal
+Report docs/umbrafox/archive/reports/performance/2026-10-03-window-dom-profile.md; finalseal
 artifacts/umbralink-control/window-profile-final.sha256. Next: matched baselineA
 profile+candidate repetition/controls, baseline-symbol preflight first; no guessed
 mutex/GC/JIT patch. HeadedGPU baseline stillawaits windowconsent. Broadgoalactive.
@@ -8521,7 +8521,7 @@ actualpage-owned mixedprofile with exactsame-doc joins/symbols/observercontrols;
 oldprofile-dom.mjs remains sandbox and MUSTbeadapted beforeuse. No naivewrapper
 or JIToptimization based on oldprofile. Candidateuninstalled; GPUheadedconsent
 stillpending; broadgoalactive. Seal layout-isolated-final.sha256 inartifacts.
-Report bot-docs/reports/performance/2026-10-03-isolated-layout.md; logs
+Report docs/umbrafox/archive/reports/performance/2026-10-03-isolated-layout.md; logs
 artifacts/umbralink-control/layout-isolated-*. Ownerworkbrowser untouched.
 
 ## October 3 Window-Realm Comparison
@@ -8550,7 +8550,7 @@ attached16.4/16.9%, attrs6.0/6.3%, children7.9/17.0%. Batchedlayout SLOWER17.9/9
 with overlapping ranges; retain unresolved regression signal, not noise/causalproof.
 JS+observer controls reverse direction. No frequency/continuoushost control,
 significance/video/layout gain, poolingwithsandbox or runtimegeneralization.
-Report bot-docs/reports/performance/2026-10-03-window-dom-workload.md.
+Report docs/umbrafox/archive/reports/performance/2026-10-03-window-dom-workload.md.
 Savedtrial/order followup: candidate slower3/4adjacentpairs ineachbatch, but
 first4/last4 processhalfmedians first A13/14.5 B17/14.25ms, reverse A12.5/16.75
 B15/16.75ms. Index andpositionconfounded; NOTuniformpenalty, causeunknown.
@@ -8593,7 +8593,7 @@ for this sandbox harness. Preserve all old captures/seals. Next: same-origin
 external page-owned collector with realm guard, same checksums/schedule/caps,
 failure/abort/duplicate-start tests, real headless semantic gate, then fresh
 predeclared laptop comparison. No pooling versions. Not implemented yet.
-Report bot-docs/reports/performance/2026-10-03-dom-profile.md expanded.
+Report docs/umbrafox/archive/reports/performance/2026-10-03-dom-profile.md expanded.
 No engine/tooling production edits this step; scratch audit prefix and docs only.
 Headed baseline consent pending; work browser untouched; broad goal remains active.
 
@@ -8630,7 +8630,7 @@ matchessealedB andcapturedBreakpad7D52E89BB627D44E999B502E44C55A2B0.
 Next local symbolicationpreflight; samply onPATHabsent butexisting
 ~/.mozbuild/samply/samply supports--no-open/--symbol-dir. No server/load started;
 mustreviewremote-lookupdefaults/local-onlyrouting/ownedcleanup beforeusing.
-Report bot-docs/reports/performance/2026-10-03-dom-profile.md; logs/exports/audit
+Report docs/umbrafox/archive/reports/performance/2026-10-03-dom-profile.md; logs/exports/audit
 artifacts/umbralink-control/profile-{budget,offline}-* and
 audit-dom-profile-exports.mjs; finalprofile-followup.sha256 seal.
 AllCLI/SSH/test sessions terminal. Headedbaselinewindow consentstillpending,
@@ -8653,7 +8653,7 @@ ModuleSHA5f0f10369bd55a1f4a90a8508670153c8d5c27606d62846070f923954fe84125;
 manifest/logs/beforecopy artifacts/umbralink-control/request-headers-*.
 Instrumented source removes1fromEntries+1freeze; JSONsize proxy32syntheticheaders
 5730->3096B is NOT actual IPCbytes/latency. No personalheaders/timings collected.
-Report bot-docs/reports/performance/2026-10-03-request-header-copy.md.
+Report docs/umbrafox/archive/reports/performance/2026-10-03-request-header-copy.md.
 No build/package/install/stage/commit; neither sealedcandidate includes change.
 No running test/browser/lint sessions; GPUwindow still needs explicit consent.
 
@@ -8680,7 +8680,7 @@ Scratch adapter artifacts/umbralink-control/profile-dom.mjs+test/profile-dom-
 spec.mjs:4mocktestsPASS, initial RED missingmodule only. Unchanged capture driver
 and collector, planned5passes400samples; profiled timings NEVER pool with prior
 unprofiled batches. Source/seal/logs/audit dom-profile-*; details in
-bot-docs/reports/performance/2026-10-03-page-dom-workload.md#separate-profiling-attempt.
+docs/umbrafox/archive/reports/performance/2026-10-03-page-dom-workload.md#separate-profiling-attempt.
 No native/source/build/install/ownerbrowser changes. GPU matching headedbaseline
 still needs explicit windowconsent; goal active, no automatic profile retry.
 
@@ -8698,7 +8698,7 @@ across12draws/two distinct frames, but0/18match earlier HEADLESS baseline.
 Do not call this parity or cache proof; same-headed baseline needs separate
 consent. Capture/spec tooling now support explicit headed mode, defaultheadless
 unchanged;344tests/lint0. No native changes/build/install. Full report:
-bot-docs/reports/performance/2026-10-03-headless-readback.md.
+docs/umbrafox/archive/reports/performance/2026-10-03-headless-readback.md.
 
 Laptop fixedABBAABBA completed13:39:23-13:41:46UTC:8processes/640samples;
 4processes per build,8trials per case. A=sealedreadback82faf416libxul;
@@ -8715,7 +8715,7 @@ Desktop evidence-onlycopy /home/wyatt/.cache/codex/laptop-dom-evidence-20261003-
 RvMB1h;237whitelistedfiles hashverified. No profile/appdata/discovery exported.
 Analysis/audit/evidence.sha256 retained; logs+auditcode artifacts/umbralink-control/
 laptop-dom-* and audit-laptop-dom.mjs. Earlierdesktopfailedbatches kept separate.
-Report: bot-docs/reports/performance/2026-10-03-page-dom-workload.md.
+Report: docs/umbrafox/archive/reports/performance/2026-10-03-page-dom-workload.md.
 Packages extracted only into private laptopcache, not installed; no ownerbrowser,
 profile,tabs,extensions,launcher,otherprojectprocesses changed. Goal remainsopen.
 
@@ -8744,7 +8744,7 @@ from goalcontinuation. No install/build/newnativepatch/agents. Goalactive.
   CSS and JS optimization. Active work browser must still not be restarted or
   existing tabs/extension settings changed without consent. No new agent wave.
 - Fresh evidence and next steps:
-  bot-docs/reports/performance/2026-10-02-desktop-resumption.md.
+  docs/umbrafox/archive/reports/performance/2026-10-02-desktop-resumption.md.
   Current runtime Build20261001103920/PID3290300; userland active false,
   opacity optimization false, profiler inactive. WebRender NVIDIA RTX2060/X11.
   Paused YouTube context23 reports VP9 1080p60, not AV1. Hardware decode
@@ -8802,7 +8802,7 @@ from goalcontinuation. No install/build/newnativepatch/agents. Goalactive.
   All3 PASS/clean SIGTERM/0logdrops/rootabsence. RootPIDs951687/952584/956120.
   Finalcandidate2 uses final driver dispatch cancellation guard; failing-first
   race regression preserved. Combined tooling304PASS, exact4file lint0.
-  Report: bot-docs/reports/performance/2026-10-03-headless-readback.md.
+  Report: docs/umbrafox/archive/reports/performance/2026-10-03-headless-readback.md.
   No engine changes/build/install/owner-browser action in this follow-up.
   Candidate archive seal unchanged. Asked owner for one temporary headed test
   window <=2min, without touching existing tabs, for hardware-path checks;
@@ -8826,7 +8826,7 @@ Shmem. Serial is texture identity, not a per-frame token; retained references
 are the recycling barrier. Cache payload cap is per live image, not total RSS;
 concurrent misses can duplicate readbacks and first-copy-per-new-frame saves no
 IPC. Source audit and hardware falsifiers added to
-bot-docs/reports/performance/2026-10-03-headless-readback.md. Source manifest:
+docs/umbrafox/archive/reports/performance/2026-10-03-headless-readback.md. Source manifest:
 artifacts/umbralink-control/readback-lifetime-source.sha256. No engine edits,
 runtime/build/install/owner-browser actions during audit. Pending headed consent
 and GPU/pixel/resource gates unchanged; do not treat source audit as runtime proof.
@@ -8842,7 +8842,7 @@ off/on transitions pass on both pre-mirror and candidate packages. Adjacent
 userland browser suites:59 assertions/0fail; new clean package:5/0. Explicitfalse
 native gate median36.65->1.71ns; minimal unattached text update78.80->44.94ns.
 These are synthetic parent-process results, not a YouTube or page-speed claim.
-Report: bot-docs/reports/performance/2026-10-03-mutation-gate.md. New package:
+Report: docs/umbrafox/archive/reports/performance/2026-10-03-mutation-gate.md. New package:
 exports/umbrafox-mutation-mirror-candidate-20261003/; SHA10658410fda22d8a...
 Same pinned BuildID20261003071500 as the earlier readback candidate, different
 libxul/archive; do not use BuildID alone as provenance. Full build/gtest/package
@@ -8862,7 +8862,7 @@ docs changed in this follow-up, no native rebuild/package/install. Final313PASS,
 exact6filelint0. Seven actual DOM processes/560samples pass, plus actual shared
 readback regression with18cases exact prior pixel hashes. All8owned roots absent,
 cleanSIGTERM/0logdrops. Evidence report:
-bot-docs/reports/performance/2026-10-03-page-dom-workload.md.
+docs/umbrafox/archive/reports/performance/2026-10-03-page-dom-workload.md.
 Comparison is INCONCLUSIVE: jx40nS refused before launch; 7sqVXQ and ZV2yDI each
 ran only A B B before unrelated AeorDB cargo/rustc work blocked next admission.
 Lastattempt45s wait exhausted. Do not pool incomplete batches or claim a page
@@ -8897,7 +8897,7 @@ Independent source work found and corrected stale numeric keys in the four
 native userland controller maps. New lazy finalization registry removes only
 the still-current weak-reference entry; replacement/duplicate/live off-on
 semantics retained. Source-only candidate, NOT in either sealed package or
-installed browser. Report: bot-docs/reports/performance/2026-10-03-controller-retention.md.
+installed browser. Report: docs/umbrafox/archive/reports/performance/2026-10-03-controller-retention.md.
 Behavioral RED3pass/13fail; final17 focused and330 combined Node tests PASS,
 two-filelint0. Actual V8 GC3rounds clears16384 entries/round versus original
 16384 dead entries retained; not Gecko heap-byte or stutter evidence. Existing
@@ -8978,7 +8978,7 @@ Headed GPU consent and visible-playing YouTube sample still pending.
 
 ## September 30 handoff
 
-- Read `bot-docs/reports/2026-09-30-bot-handoff.md` for the full continuation
+- Read `docs/umbrafox/archive/reports/2026-09-30-bot-handoff.md` for the full continuation
   guide requested by Wyatt while pausing Codex for token availability.
 - On September 30 the historical `/tmp/codex/teamwork/umbra-perf-20260926/progress.sqlite`
   and entire `/tmp/codex/teamwork/umbra-perf-20260927/` were confirmed absent.
@@ -9000,7 +9000,7 @@ Headed GPU consent and visible-playing YouTube sample still pending.
 
 ## Overnight performance campaign, 2026-09-27
 
-- Canonical scope and gates: `bot-docs/plans/performance-program.md`. The owner
+- Canonical scope and gates: `docs/umbrafox/archive/plans/performance-program.md`. The owner
   requested continued overnight work; physical Pi work remains owned by `l8ros`.
 - Teamwork SQLite: `/tmp/codex/teamwork/umbra-perf-20260926/progress.sqlite`,
   session `perf-night-20260927`. Control bus:
@@ -9015,7 +9015,7 @@ Headed GPU consent and visible-playing YouTube sample still pending.
 - Profiler CLI 0.10.0 marker starts subtract `context.rootRange.start` while
   exported context retains the raw range. Retain the explicit clock conversion;
   raw-pair/incomplete-edge provenance is absent from supported exports. Details:
-  `bot-docs/reports/performance/2026-09-27-pi-renderer-spans.md`.
+  `docs/umbrafox/archive/reports/performance/2026-09-27-pi-renderer-spans.md`.
 - Any future local profiler load must explicitly use symbol server
   `http://127.0.0.1:9`; an earlier daemon advertised the default external server,
   so an unconditional no-network claim for that historical load is unsupported.

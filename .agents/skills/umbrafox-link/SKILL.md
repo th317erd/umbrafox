@@ -14,7 +14,7 @@ Use this skill for UmbraLink, Umbrafox's built-in owner-local loopback control s
 - Preserve the mandatory Umbrafox rulebook: do not change user agent strings, web-exposed APIs, DOM/CSS/JS surfaces, network semantics, or timing surfaces in a way that lets sites distinguish Umbrafox from the corresponding Firefox build by default.
 - Do not use or extend this service to bypass bot detection, defeat anti-abuse systems, or hide automation from a third party. For legitimate QA/security research, keep work scoped to owned systems and document the assumptions.
 - Keep the service bound to loopback with per-run token authentication. Do not expose it on public interfaces or write reusable secrets to world-readable locations.
-- Before editing Umbrafox source code, read `umbrafox-conversion-guide/02-mandatory-modification-rules.md`.
+- Before editing Umbrafox source code, read `docs/umbrafox/conversion-guide/02-mandatory-modification-rules.md`.
 
 ## Source Map
 
@@ -24,6 +24,9 @@ Key files:
 - `toolkit/components/umbrafox/UmbrafoxControlInput.sys.mjs`: privileged input command implementation.
 - `toolkit/components/umbrafox/tests/browser/browser_control_service.js`: browser test coverage for service discovery and command behavior.
 - `tools/umbrafox/diagnose-live.sh`: process, memory, journal, and crash-artifact sampler for live freeze investigations.
+
+Canonical architecture, protocol, and operation references live under
+`docs/umbrafox/`; start at `docs/umbrafox/README.md`.
 
 When changing front-end JS in these files, also use the `firefox-desktop-frontend` skill.
 
@@ -51,7 +54,9 @@ The discovery file has mode `0600` and contains:
 }
 ```
 
-The active profile is usually under `~/.config/umbrafox/umbrafox/`, but prefer reading `control.json` from the real profile rather than guessing.
+Do not infer the active profile from product branding. Firefox-family profiles
+on Linux commonly live below `.mozilla`; read `control.json` from the real
+profile discovered through the process, `about:profiles`, or an explicit launch.
 
 ## Protocol
 
@@ -328,4 +333,6 @@ For control-service changes, run focused checks before broader build work:
 ./mach test --headless toolkit/components/umbrafox/tests/browser/browser_control_service.js
 ```
 
-If runtime behavior changed, build/package/install according to the Umbrafox project rules and verify `~/Programs/umbrafox --version`.
+If runtime behavior changed, build/package/install according to the Umbrafox
+project rules and verify
+`/home/public/wyatt-desktop/Programs/umbrafox --version`.

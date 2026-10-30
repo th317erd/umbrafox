@@ -1,0 +1,248 @@
+# Current Umbrafox conversion state
+
+> **Current conversion guidance.** Verify this operational guidance against source and the canonical Umbrafox documentation before applying it to a new Firefox base.
+
+This document summarizes what has been changed from upstream Firefox so far. It is a map, not a patch.
+
+## High-level goals already implemented
+
+Umbrafox currently changes Firefox in these broad ways:
+
+1. Application identity and branding are changed from Firefox/Mozilla to Umbrafox.
+2. The default browser check is disabled by default.
+3. Session restore is enabled by default via `browser.startup.page = 3`.
+4. The new tab/homepage is reduced toward a search-only experience.
+5. The new tab customize menu, wallpaper entry points, logo toggle, sponsored content, recent activity, weather, widgets, top sites, stories, and Discovery Stream defaults are disabled.
+6. DuckDuckGo is the default search engine.
+7. Google, Bing, Amazon, and eBay search engines are removed or blocked from the search engine list.
+8. Search suggestions and Umbrafox Suggest sponsored/online/recent/trending controls are stripped or default-off.
+9. The Settings data-collection card is removed.
+10. Normandy, Nimbus rollouts, feature studies, technical/interaction data upload, usage ping, extension recommendations, and crash submission prompt defaults are disabled.
+11. en-US visible copy and comments were swept from Firefox to Umbrafox where appropriate.
+12. Focused regression tests were added or adjusted so the Umbrafox defaults remain intentional.
+13. The built browser executable name is explicitly `umbrafox` via `MOZ_APP_NAME`.
+14. Web-facing user-agent identity is forced back to Firefox with `MOZ_APP_UA_NAME = Firefox`, so HTTP `User-Agent` and `navigator.userAgent` do not expose Umbrafox.
+15. Browser chrome panels ignore ordinary keydown events, survive GTK native focus-out caused by non-Escape keyboard shortcuts, and close from keyboard input only on Escape keyup, so extension and permission panels remain usable while typing.
+16. The app menu exposes a browser-chrome-only "UmbraLink" toggle for the local `umbrafox-control` WebSocket service; the service still does not require Marionette, WebDriver BiDi, or Remote Agent.
+17. Inline tab mute buttons/click targets are not created in the tab strip. Tab audio state remains intact, and tab muting remains available from the tab context menu and keyboard shortcut.
+18. Linux `about:keyboard` offers an explicit Chrome-style shortcut preset via
+    the existing CustomKeys store. Firefox defaults remain unchanged until
+    opt-in. Implemented in `25de5d0b584d`; see
+    [recipe 18](recipes/18-chrome-shortcut-preset.md) for exact scope and tests.
+
+## Clipboard override prototype, October 15, 2026
+
+The owner approved the policy of offering No / Yes / Always when a website
+cancels a genuine user copy/paste attempt outside contenteditable. Propagation
+stopping alone does not trigger it. Without an explicit override, Firefox's
+normal behavior remains. The earlier default-on proposal was withdrawn.
+
+Native, actor and permission UI now pass the Linux integrated gate: 808 browser
+assertions, 668 existing snapshot assertions, 148 permission-storage assertions
+and 51 pure UI/actor tests. The initial notice is a dismissed indicator; explicit
+click opens choices. Always saves only after safe native success, with exact
+origin/operation/attributes and standard revocation including reloaded frames.
+Preserve the source map, rebase checks and limits in
+[recipe 19](recipes/19-site-clipboard-override.md). Do not flip the global
+clipboard-events preference. Prototype installation and profile activation are
+separate: the current daily browser must not be interrupted, and its profile
+mapping must be preserved. See the export's receipt for actual installation state.
+
+## Userland scripts state
+
+The userland scripts feature has an architecture note and recipe:
+
+- `03-userland-scripts-architecture.md`
+- `recipes/09-userland-scripts.md`
+
+The canonical user-facing userland documentation now lives in
+`toolkit/components/umbrafox/docs/userland.md` and is registered with Firefox
+Source Docs through `toolkit/components/umbrafox/moz.build`. A browser-visible
+internal help page is registered as `about:umbrafox-userland` and maps to
+`browser/base/content/aboutUmbrafoxUserland.xhtml`.
+
+The profile-local script store is implemented in `toolkit/components/umbrafox/UmbrafoxUserlandScriptStore.sys.mjs` with xpcshell coverage. Scope derivation is implemented in `toolkit/components/umbrafox/UmbrafoxUserlandScriptScope.sys.mjs`, and the Debugger source tree can create disabled userland script records from its context menu and footer `New Script` button. Created scripts now appear under matching domain groups in a `Userland` folder, can be enabled or disabled from that tree row, and open editable stored code in the Debugger editor.
+
+The async wrapper ABI and runner primitive are implemented in `toolkit/components/umbrafox/UmbrafoxUserlandScriptRunner.sys.mjs` with xpcshell coverage. The conceptual wrapper requested for userland scripts was:
+
+```js
+(async function ({
+  window,
+  document,
+  globalThis,
+  location,
+  navigator,
+  console,
+  userland,
+}) {
+  "use strict";
+
+  // User script source is inserted here.
+});
+```
+
+JavaScript does not allow a `"use strict"` directive inside a function with a destructuring parameter, so the generated implementation uses the equivalent strict form:
+
+```js
+(async function (context) {
+  "use strict";
+  const {
+    window,
+    document,
+    globalThis,
+    location,
+    navigator,
+    console,
+    alert,
+    userland,
+  } = context;
+
+  // User script source is inserted here.
+});
+```
+
+The runner freezes the outer context object, passes the page console, provides a page-window-bound lexical `alert`, keeps `userland` lexical instead of installing it on page globals, and awaits enabled scripts sequentially.
+
+The first document-start runtime slice is implemented. Browser startup and DevTools script mutations publish the profile-local script list through process shared data, update `initialProcessData`, and mirror active state to the internal `umbrafox.userlandScripts.active` pref so already-running content processes know when scripts become enabled. `ActorManagerParent.sys.mjs` registers the `UmbrafoxUserland` JSWindowActor for browser documents. Its child actor listens for `DOMDocElementInserted`, avoids parent queries when no enabled userland scripts exist, asks the parent actor for exact-origin matching document scripts when active, and calls `UmbrafoxUserlandScriptRuntime.sys.mjs`. Matching scripts are run through the async wrapper runner with waived page references and page-window sandbox prototype lookup, while parser blocking uses the unwaived document. The runtime calls `document.blockParsing(...)` on the returned promise so parser/page script progress waits until userland scripts resolve.
+
+The first userland event slices are implemented in `toolkit/components/umbrafox/UmbrafoxUserlandEventController.sys.mjs`. Enabled document scripts can call `userland.on(...)` for `alert`, `prompt`, `confirm`, `navigation`, `script`, and `request` events. Dialog events are cancellable and can provide prompt/confirm return values. Navigation events can be cancelled or rewritten by changing `event.href`. Script events can rewrite `event.source` before Gecko compiles DOM document classic scripts, JavaScript modules, direct eval, indirect eval, and Function constructor bodies. Request events can mutate document-associated HTTP(S) request URLs, methods, and headers before send, hard-cancel explicit userland requests, or synthesize a successful string/object response through `respondWith(...)`.
+
+Navigation coverage now combines the `window.open(...)` wrapper with a native docshell bridge in `docshell/base/nsDocShell.cpp`. The bridge uses an internal observer topic and mutable property bag keyed by browsing-context id, with an internal `nsDocShellLoadState` marker serialized through `dom/ipc/DOMTypes.ipdlh` to avoid duplicate dispatch. Covered paths include primary anchor/area clicks, form submits, `location.assign(...)`, `location.replace(...)`, `location.href = ...`, hash navigations, meta refresh, and docshell external-protocol paths such as `zoom://` before external protocol dispatch. HTTP/server redirects are intentionally outside the `navigation` event and should be handled by future network interception/substitution APIs. History API URL changes still need a separate hook.
+
+The native docshell bridge is explicitly inert when `umbrafox.userlandScripts.active` is false and checks observer presence before marking a load state as handled. This preserves Firefox-equivalent default navigation behavior and prevents previously installed userland navigation handlers from observing future navigations after userland has been disabled.
+
+Script-source mutation coverage now combines `dom/script/ScriptLoader.cpp`, `dom/script/ScriptLoader.h`, `dom/script/ModuleLoader.cpp`, `js/public/Principals.h`, `js/src/vm/JSContext.cpp`, `js/src/vm/JSContext.h`, `js/src/builtin/Eval.cpp`, `js/src/vm/JSFunction.cpp`, `caps/nsScriptSecurityManager.cpp`, and `caps/nsScriptSecurityManager.h` with the same content-process event controller. The native hook emits `umbrafox-userland-script-source` after DOM script source is available and before classic/module source compilation. A separate SpiderMonkey host callback bridges direct eval, indirect eval, and Function constructor body source through the same event. While userland scripts are active, compiled script cache paths are bypassed or disabled so DOM source events are not skipped and rewritten compiled stencils are not reused outside userland. Workers, worklets, import maps, JSON modules, CSS modules, and WebAssembly modules still need separate hooks.
+
+Request interception is implemented as a parent/content bridge, because `http-on-*` observers only work in the parent process. `UmbrafoxUserlandParent.sys.mjs` ensures the parent request observer is registered once userland scripts are queried. The observer listens for `http-on-modify-request`, derives the channel browsing-context id from `nsILoadInfo`, suspends the channel, sends `DispatchUserlandRequest` through the matching `UmbrafoxUserland` JSWindowActor, applies the returned decision, and resumes the channel. `UmbrafoxUserlandChild.sys.mjs` dispatches the message into the content-process event controller that the document userland script registered with. Synthetic responses currently redirect to generated `data:` responses; full response headers/status, response stream swapping, request body mutation, media stream replacement, worker requests, sockets, and startup/global rules still need future hooks. The initial top-level document request is not covered by document userland because no document context exists before that request starts.
+
+This first runtime slice is intentionally document-only. Worker support, full network APIs, and a hardened isolated-world implementation still need to land. The current runtime must remain limited to explicit enabled user scripts and must not install Umbrafox or userland markers on page-visible globals.
+
+## Important state note
+
+At the time this guide was first created, Umbrafox changes were working-tree modifications. They were later committed as `5d89f338f5e9 Convert Firefox to Umbrafox`.
+
+Future major Umbrafox changes should preferably be committed in subsystem-sized commits. A practical split would be:
+
+1. Identity and branding.
+2. Branding assets and localization sweep.
+3. Homepage/newtab defaults and UI stripping.
+4. Search engine policy.
+5. Preferences data-collection and suggest stripping.
+6. Tests.
+
+That split will make future rebases and conflict diagnosis much easier than another large snapshot commit.
+
+## Profile behavior note
+
+Do not assume user data lives under
+`/home/public/wyatt-desktop/.config/umbrafox`.
+
+This source tree changes application identity, but Firefox profile location behavior is controlled by the built application metadata and toolkit profile service behavior. The built `application.ini` currently contains:
+
+```ini
+Vendor=Umbrafox
+Name=Umbrafox
+```
+
+On Linux, Firefox-family profiles are normally under
+`/home/public/wyatt-desktop/.mozilla/`, not
+`/home/public/wyatt-desktop/.config/`. Always verify the exact active profile
+path in `about:profiles`, or run with an explicit profile:
+
+```bash
+./mach run --temp-profile
+./mach run --profile /absolute/path/to/profile
+```
+
+When testing default prefs, use a new or temporary profile. Existing `prefs.js` values can override changed defaults.
+
+When testing changed chrome JS from a direct `dist/bin/umbrafox` launch, purge the profile startup cache after `./mach build faster` if the application `BuildID` did not change. Otherwise the profile can reuse stale bytecode for `resource://` modules even though files under `dist/bin/modules/` were updated. Use one of:
+
+```bash
+MOZ_PURGE_CACHES=1 obj-x86_64-pc-linux-gnu/dist/bin/umbrafox -no-remote -profile /absolute/path/to/profile
+```
+
+Alternatively, remove only the verified disposable profile's exact
+`startupCache` directory under
+`/home/public/wyatt-desktop/.cache/umbrafox/umbrafox/`; never delete the
+surrounding cache tree by pattern.
+
+This matters for userland runtime work because stale cached `UmbrafoxUserland*.sys.mjs` modules can make DevTools show an enabled script while the content actor still runs the previous implementation.
+
+## Last verified commands
+
+The current conversion state was verified with:
+
+```bash
+./mach lint browser/components/preferences/config/search.mjs browser/components/preferences/home.inc.xhtml browser/components/preferences/config/permissions-data.mjs browser/extensions/newtab/lib/AboutPreferences.sys.mjs browser/app/profile/firefox.js modules/libpref/init/all.js browser/components/newtab/test/xpcshell/test_UmbrafoxHomeDefaults.js
+./mach xpcshell-test browser/components/newtab/test/xpcshell/test_UmbrafoxHomeDefaults.js
+./mach build faster
+git diff --check
+```
+
+The userland document-start/dialog/native-navigation slice was later verified with:
+
+```bash
+./mach build export
+./mach build binaries
+./mach build faster
+./mach lint toolkit/components/umbrafox docshell/base/nsDocShell.cpp docshell/base/nsDocShell.h docshell/base/nsDocShellLoadState.cpp docshell/base/nsDocShellLoadState.h dom/ipc/DOMTypes.ipdlh
+./mach test --headless toolkit/components/umbrafox/tests/browser/browser_userland_document_start.js toolkit/components/umbrafox/tests/browser/browser_userland_events.js
+./mach xpcshell-test --force toolkit/components/umbrafox/tests/xpcshell
+```
+
+The first userland request-event slice was later verified with:
+
+```bash
+./mach lint toolkit/components/umbrafox toolkit/actors/UmbrafoxUserlandChild.sys.mjs toolkit/actors/UmbrafoxUserlandParent.sys.mjs
+./mach test --headless toolkit/components/umbrafox/tests/browser/browser_userland_events.js
+```
+
+The Firefox-equivalent web identity fix was later verified with:
+
+```bash
+./mach build
+./mach lint browser/moz.configure
+./mach package
+```
+
+Manual/local probes confirmed both web-visible surfaces omit Umbrafox:
+
+```text
+HTTP_USER_AGENT=Mozilla/5.0 (X11; Linux x86_64; rv:154.0) Gecko/20100101 Firefox/154.0
+NAVIGATOR_USER_AGENT=Mozilla/5.0 (X11; Linux x86_64; rv:154.0) Gecko/20100101 Firefox/154.0
+```
+
+The browser panel key handling fix was later verified with:
+
+```bash
+./mach lint layout/xul/nsXULPopupManager.cpp layout/xul/nsXULPopupManager.h widget/gtk/nsWindow.cpp browser/components/customizableui/test/browser_PanelMultiView_keyboard.js
+./mach build binaries
+./mach test --headless browser/components/customizableui/test/browser_PanelMultiView_keyboard.js
+./mach test --headless toolkit/content/tests/chrome/test_panel_keyup_escape.xhtml
+./mach package
+```
+
+The search-engine selector test was previously verified with:
+
+```bash
+./mach xpcshell-test toolkit/components/search/tests/xpcshell/test_engine_selector_remote_settings.js
+```
+
+The disabled-userland native navigation guard was later verified with:
+
+```bash
+./mach build binaries
+./mach test --headless toolkit/components/umbrafox/tests/browser/browser_userland_events.js
+./mach lint docshell/base/nsDocShell.cpp toolkit/components/umbrafox/tests/browser/browser_userland_events.js
+./mach package
+```
+
+The browser chrome control UI slice was later verified with:
+
+```bash
+./mach lint browser/base/content/appmenu-viewcache.inc.xhtml browser/components/customizableui/content/panelUI.js browser/locales/en-US/browser/appmenu.ftl browser/components/customizableui/test/browser_umbrafox_control_toggle.js browser/components/customizableui/test/browser.toml browser/components/tabbrowser/content/tab.js browser/components/tabbrowser/content/tabs.mjs browser/components/tabbrowser/Tabbrowser.sys.mjs browser/themes/shared/tabbrowser/tabs.css browser/components/tabbrowser/test/browser/tabs/head.js browser/components/tabbrowser/test/browser/tabs/browser_audioTabIcon.js browser/components/tabbrowser/test/browser/tabs/browser_multiselect_tabs_mute_unmute.js browser/components/tabbrowser/test/browser/tabs/browser_tab_play.js browser/components/tabbrowser/test/browser/tabs/browser_multiselect_tabs_play.js browser/components/tabbrowser/test/browser/tabMediaIndicator/head.js browser/components/tabbrowser/test/browser/tabMediaIndicator/browser_mute_webAudio.js browser/components/sidebar/tests/browser/browser_sidebar_expand_on_hover.js browser/tools/mozscreenshots/mozscreenshots/extension/configurations/Nova.sys.mjs toolkit/content/tests/browser/browser_delay_autoplay_silentAudioTrack_media.js toolkit/components/pictureinpicture/tests/browser_tabIconOverlayPiP.js
+./mach test --headless browser/components/customizableui/test/browser_umbrafox_control_toggle.js
+./mach test --headless browser/components/tabbrowser/test/browser/tabs/browser_audioTabIcon.js browser/components/tabbrowser/test/browser/tabs/browser_multiselect_tabs_mute_unmute.js browser/components/tabbrowser/test/browser/tabs/browser_tab_play.js browser/components/tabbrowser/test/browser/tabs/browser_multiselect_tabs_play.js browser/components/tabbrowser/test/browser/tabMediaIndicator/browser_mute_webAudio.js
+./mach test --headless browser/components/sidebar/tests/browser/browser_sidebar_expand_on_hover.js toolkit/content/tests/browser/browser_delay_autoplay_silentAudioTrack_media.js toolkit/components/pictureinpicture/tests/browser_tabIconOverlayPiP.js
+```

@@ -1,0 +1,126 @@
+# Known gotchas
+
+> **Current conversion guidance.** Verify this operational guidance against source and the canonical Umbrafox documentation before applying it to a new Firefox base.
+
+## Existing profiles hide default-pref changes
+
+Many Umbrafox changes are default prefs. Existing profiles can keep old values in `prefs.js`.
+
+Use:
+
+```bash
+./mach run --temp-profile
+```
+
+or create a new profile from `about:profiles`.
+
+## Do not clear only the `.config/umbrafox` tree
+
+Firefox-family profile data is not normally stored under
+`/home/public/wyatt-desktop/.config/umbrafox`. Verify paths in
+`about:profiles`. On Linux, expect paths under
+`/home/public/wyatt-desktop/.mozilla/` unless profile directory behavior is
+explicitly changed.
+
+## Search engine dumps are not enough
+
+Removing engines from `services/settings/dumps/main/search-config-v2.json` does not fully solve engine reappearance. Runtime Remote Settings data can reintroduce engines. Keep the `SearchEngineSelector.sys.mjs` blocklist.
+
+## `lintpref` catches duplicate static prefs
+
+Do not set `datareporting.healthreport.uploadEnabled` in `modules/libpref/init/all.js` when `StaticPrefList.yaml` already has the same value. The `lintpref` rule treats that as a duplicate error.
+
+## Internal `firefox` identifiers often stay
+
+Do not rename IDs just because they contain `firefox`.
+
+Examples that currently remain:
+
+- `-firefox-home-brand-name`
+- `-firefox-suggest-brand-name`
+- `firefoxHomeDeps`
+- support page identifiers such as `firefox-suggest`
+- filenames such as `firefox-wordmark.svg`
+
+Rename identifiers only when every reference path is traced.
+
+## Local branding can leak through the user agent
+
+`MOZ_APP_NAME`, `MOZ_APP_BASENAME`, `MOZ_APP_DISPLAYNAME`, and
+`MOZ_APP_VENDOR` are local branding fields. They must not drive web-facing
+identity.
+
+Keep this in `browser/moz.configure`:
+
+```python
+imply_option("MOZ_APP_UA_NAME", "Firefox")
+```
+
+If `MOZ_APP_UA_NAME` is unset, `nsHttpHandler` can fall back to Umbrafox app
+metadata and expose Umbrafox through the HTTP `User-Agent` header and
+`navigator.userAgent`. AMO used this to treat Umbrafox as not Firefox.
+
+Do not move this setting to `browser/confvars.sh`; configure rejects it there.
+After upstream rebases, verify both the generated config and the live browser
+surface:
+
+```bash
+grep -n "MOZ_APP_UA_NAME" obj-*/config.status
+```
+
+Expected live surface:
+
+```text
+Mozilla/5.0 (X11; Linux x86_64; rv:<version>) Gecko/20100101 Firefox/<version>
+```
+
+No web-visible value may contain `Umbrafox`.
+
+## Browser tests may need opt-in prefs
+
+Because Umbrafox defaults the customize menu off, upstream tests that expect it must push:
+
+```js
+["browser.newtabpage.activity-stream.customizeMenu.enabled", true]
+```
+
+## Toolkit actors must match their chrome URI scheme
+
+Umbrafox toolkit actors live under `toolkit/actors/` and are listed in
+`toolkit/actors/moz.build` as `MOZ_SRC_FILES`. Register them with
+`moz-src:///toolkit/actors/<Actor>.sys.mjs` in
+`toolkit/modules/ActorManagerParent.sys.mjs`.
+
+Do not register those files as `resource://gre/actors/<Actor>.sys.mjs` unless
+they are also packaged into `FINAL_TARGET_FILES.actors`. A full build can still
+succeed with the wrong URI, but the packaged browser can crash at startup with a
+missing chrome/resource URL such as:
+
+```text
+Missing chrome or resource URLs: resource://gre/actors/UmbrafoxUserlandChild.sys.mjs
+```
+
+After touching actor registrations, run at least one packaged or objdir startup
+test that instantiates the actor. The panel keyup chrome test caught this class
+of issue because `DOMDocElementInserted` creates the `UmbrafoxUserland` actor at
+startup.
+
+## Regenerate exports after upstream IPDL changes
+
+After a large upstream merge, generated IPDL headers under `obj-*/ipc/ipdl/_ipdlheaders/` can be stale even when the source `.ipdl` files are current. If `./mach build binaries` fails with constructor arity mismatches such as `SendPDocAccessibleConstructor` or `RecvPExternalHelperAppConstructor`, run:
+
+```bash
+./mach build export
+./mach build binaries
+```
+
+## Umbrafox project docs and subsystem Source Docs are distinct
+
+Canonical fork documentation and conversion recipes live under
+`docs/umbrafox/`. Userland and control subsystem pages registered through
+`toolkit/components/umbrafox/moz.build` remain the Source Docs-facing API/user
+guides. Keep both indexes and their cross-links valid when moving pages.
+
+## en-US sweep does not cover all locales
+
+The current conversion touches en-US strings. Localized builds may still contain Firefox references until localization strategy is defined.

@@ -1,5 +1,23 @@
 ![Firefox Browser](./docs/readme/readme-banner.svg)
 
+# Umbrafox
+
+Umbrafox is a power-user Firefox fork. It preserves Firefox-equivalent default
+web identity while adding internal branding, quieter defaults, explicit
+userland interception controls, the owner-local UmbraLink control channel, and
+Linux graphics/media experiments.
+
+Start with the [Umbrafox documentation index](docs/umbrafox/README.md). The
+[Firefox source documentation](docs/index.md) remains authoritative for
+unchanged upstream subsystems.
+
+The [mandatory modification rules](docs/umbrafox/conversion-guide/02-mandatory-modification-rules.md)
+govern every Umbrafox source change. The central rule is that sites and servers
+must not be able to distinguish default Umbrafox from the corresponding Firefox
+build.
+
+## Upstream Firefox
+
 [Firefox](https://firefox.com/) is a fast, reliable and private web browser from the non-profit [Mozilla organization](https://mozilla.org/).
 
 ### Contributing

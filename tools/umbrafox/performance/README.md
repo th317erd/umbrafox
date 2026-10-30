@@ -4,15 +4,15 @@ The isolated runner exercises an existing Linux x86 Umbrafox binary through its
 private UmbraLink service. It creates a fresh profile, never attaches to the
 user's browser, and does not build or install anything. The separately authorized
 live playback sampler below attaches read-only. Neither adds browser interfaces.
-Read the [measurement contract](../../../bot-docs/docs/performance/measurement-contract.md)
-and [catalog](../../../bot-docs/docs/performance/catalog.md) first.
+Read the [measurement contract](../../../docs/umbrafox/archive/docs/performance/measurement-contract.md)
+and [catalog](../../../docs/umbrafox/archive/docs/performance/catalog.md) first.
 
 **Browser execution hold, 2026-09-27:** the first extended lifecycle run exposed
 crash-ping maintenance using application data outside the fresh profile. Do not
 run the capture commands below until the owned application-data correction and
 native directory-resolution proof have passed review. Failed TLS attempts are
 not proof of no upload. Do not inspect or clear shared crash queues. See the
-[containment finding](../../../bot-docs/reports/performance/2026-09-27-lifecycle.md#application-data-containment).
+[containment finding](../../../docs/umbrafox/archive/reports/performance/2026-09-27-lifecycle.md#application-data-containment).
 
 ## Tests and capture
 
@@ -205,7 +205,7 @@ The first completed no-record/disabled/unrelated controls verify memory-cache
 suppression, not elapsed-time impact or disk-cache behavior. The visited-origin
 cell uses an awaited userland DOM sentinel observed by a page-realm readiness
 POST. Earlier request-options failures remain preserved; see the
-[current report](../../../bot-docs/reports/performance/2026-09-27-userland-cache.md)
+[current report](../../../docs/umbrafox/archive/reports/performance/2026-09-27-userland-cache.md)
 for evidence and limits. This diagnostic suite is not a production benchmark or a
 registry-publication/HTTP-observer instrumentation API.
 
@@ -281,7 +281,7 @@ An `unsettledCleanup` record is a failure, not proof an OS operation was cancele
 SIGKILL is never automatic. Preserve failed captures and diagnose before trying
 again. A successful smoke proves the tested schedule/controls only, not object
 ownership, a memory-leak slope, a long-session fix, zero observer cost or a
-performance improvement. See the [lifecycle checkpoint](../../../bot-docs/reports/performance/2026-09-27-lifecycle.md).
+performance improvement. See the [lifecycle checkpoint](../../../docs/umbrafox/archive/reports/performance/2026-09-27-lifecycle.md).
 
 ## Bounded NONE soak
 
@@ -327,5 +327,5 @@ Preserve every STOP, including ordinary cache growth reaching the artifact cap.
 A capped run is censored, not a leak verdict. Review its evidence and cleanup
 before separately deciding on an identical repetition. Userland soaks, repeated-
 read observer controls and two-hour plans are not implemented or authorized by
-this command. See the [canonical plan](../../../bot-docs/plans/performance-program.md)
+this command. See the [canonical plan](../../../docs/umbrafox/archive/plans/performance-program.md)
 for the schedule, file limits and acceptance gates.
