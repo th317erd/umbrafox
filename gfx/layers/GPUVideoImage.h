@@ -9,6 +9,7 @@
 #include "mozilla/Atomics.h"
 #include "mozilla/DataMutex.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/ThreadSafeWeakPtr.h"
 #include "mozilla/layers/CompositableClient.h"
 #include "mozilla/layers/GPUVideoTextureClient.h"
 #include "mozilla/layers/ImageBridgeChild.h"
@@ -131,19 +132,18 @@ class GPUVideoImage final : public Image {
         mYUVColorSpace(aYUVColorSpace),
         mManager(aManager),
         mSD(aSD),
+        // Create the TextureClient immediately since the GPUVideoTextureData
+        // is responsible for deallocating the SurfaceDescriptor.
+        //
+        // Use the RECYCLE texture flag, since it's likely that our 'real'
+        // TextureData (in the decoder thread of the GPU process) is using
+        // it too, and we want to make sure we don't send the delete message
+        // until we've stopped being used on the compositor.
+        mTextureClient(TextureClient::CreateWithData(
+            new GPUVideoTextureData(aManager, aSD, aSize),
+            TextureFlags::RECYCLE, ImageBridgeChild::GetSingleton().get())),
         mTransferFunction(aTransferFunction),
-        mColorRange(aColorRange) {
-    // Create the TextureClient immediately since the GPUVideoTextureData
-    // is responsible for deallocating the SurfaceDescriptor.
-    //
-    // Use the RECYCLE texture flag, since it's likely that our 'real'
-    // TextureData (in the decoder thread of the GPU process) is using
-    // it too, and we want to make sure we don't send the delete message
-    // until we've stopped being used on the compositor.
-    mTextureClient = TextureClient::CreateWithData(
-        new GPUVideoTextureData(aManager, aSD, aSize), TextureFlags::RECYCLE,
-        ImageBridgeChild::GetSingleton().get());
-  }
+        mColorRange(aColorRange) {}
 
   virtual ~GPUVideoImage() = default;
 

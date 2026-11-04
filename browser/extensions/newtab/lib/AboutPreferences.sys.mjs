@@ -4,12 +4,13 @@
 
 /**
  * @import {Store} from "resource://newtab/lib/Store.sys.mjs"
- * @import {WidgetRegistryEntry} from "resource://newtab/common/WidgetsRegistry.mjs"
  */
 
 import { actionTypes as at } from "resource://newtab/common/Actions.mjs";
 import {
   WIDGET_REGISTRY,
+  PREF_WIDGETS_SYSTEM_WEATHER_ENABLED,
+  PREF_WIDGETS_WEATHER_ENABLED,
   isWidgetToggleVisible,
   isWidgetsContainerVisible,
 } from "resource://newtab/common/WidgetsRegistry.mjs";
@@ -118,10 +119,14 @@ export class AboutPreferences {
         id: "browser.newtabpage.activity-stream.widgets.enabled",
         type: "bool",
       },
-      ...WIDGET_REGISTRY.filter(w => !w.retired).flatMap(w => [
-        { id: ACTIVITY_STREAM_PREF_BRANCH + w.systemEnabledPref, type: "bool" },
-        { id: ACTIVITY_STREAM_PREF_BRANCH + w.enabledPref, type: "bool" },
-      ]),
+      {
+        id: ACTIVITY_STREAM_PREF_BRANCH + PREF_WIDGETS_SYSTEM_WEATHER_ENABLED,
+        type: "bool",
+      },
+      {
+        id: ACTIVITY_STREAM_PREF_BRANCH + PREF_WIDGETS_WEATHER_ENABLED,
+        type: "bool",
+      },
       {
         id: "browser.newtabpage.activity-stream.feeds.topsites",
         type: "bool",
@@ -194,11 +199,6 @@ export class AboutPreferences {
   _setupHomeGroup(window) {
     const { Preferences } = window;
 
-    // A widget toggle is shown when its system pref is on OR a trainhop (Nimbus)
-    // config enables it. The system-pref half reads the live dep value so the
-    // toggle reacts to pref changes without a page refresh; the trainhopConfig
-    // half is a snapshot (Nimbus sets it at load, it doesn't change live). The
-    // dep id is the same as the registry trainhopEnabledKey.
     const widgetPrefs = this.store.getState()?.Prefs?.values ?? {};
     const widgetToggleVisible = widget => deps =>
       isWidgetToggleVisible(widget, {
@@ -217,6 +217,7 @@ export class AboutPreferences {
 
     const HOME_CUSTOMIZE_URL = "about:home#customize";
     const HOME_CUSTOMIZE_TOPICS_URL = "about:home#customize-topics";
+    const HOME_CUSTOMIZE_WIDGETS_URL = "about:home#customize-widgets";
 
     // Open in a new tab if "New tabs" is Firefox Home, else a new window.
     const dispatchForHomeLink = ({ homepageNewTabs }) =>
@@ -233,6 +234,11 @@ export class AboutPreferences {
       "browser.newtabpage.activity-stream.nova.enabled",
       false
     );
+
+    // Read once at page load. With Nova, Weather is one of the widgets, so
+    // while the Widgets container is shown it is managed on New Tab and gets
+    // no row here. Without Nova it is not a widget and keeps its own row.
+    const weatherNested = novaEnabled && isWidgetsContainerVisible(widgetPrefs);
 
     // hideLogo only affects rendering when Nova is enabled (see Base.jsx),
     // so the toggle is registered only in that branch.
@@ -271,31 +277,43 @@ export class AboutPreferences {
       disabled: deps => !firefoxHomeActive(deps),
     });
 
-    // Widgets: one settings pair per registry entry.
-    const prefsWidgets = WIDGET_REGISTRY.filter(w => !w.retired);
-    for (const widget of prefsWidgets) {
-      Preferences.addSetting({
-        id: widget.trainhopEnabledKey,
-        pref: ACTIVITY_STREAM_PREF_BRANCH + widget.systemEnabledPref,
-      });
+    // moz-box-link has no disabled state, so the link is hidden while Widgets
+    // is off. Otherwise it would stay clickable under the off toggle.
+    Preferences.addSetting({
+      id: "manageWidgets",
+      deps: ["widgets", ...firefoxHomeDeps],
+      visible: deps => firefoxHomeActive(deps) && deps.widgets.value,
+      onUserClick: (e, deps) => {
+        e.preventDefault();
+        window.openTrustedLinkIn(
+          HOME_CUSTOMIZE_WIDGETS_URL,
+          dispatchForHomeLink(deps)
+        );
+      },
+    });
 
-      Preferences.addSetting({
-        id: widget.id,
-        pref: ACTIVITY_STREAM_PREF_BRANCH + widget.enabledPref,
-        deps: [widget.trainhopEnabledKey],
-        visible: widgetToggleVisible(widget),
-      });
-    }
-
-    // Weather's own top-level row, used when it is not nested in the Widgets group.
+    // Weather's own top-level row, used when the Widgets container is hidden.
     // @nova-cleanup(remove-conditional): Remove novaEnabled check and else branch; keep only the Nova registration block.
-    const weatherWidget = WIDGET_REGISTRY.find(w => w.id === "weather");
     if (novaEnabled) {
+      const weatherWidget = WIDGET_REGISTRY.find(w => w.id === "weather");
+      Preferences.addSetting({
+        id: weatherWidget.trainhopEnabledKey,
+        pref: ACTIVITY_STREAM_PREF_BRANCH + weatherWidget.systemEnabledPref,
+      });
       Preferences.addSetting({
         id: "weatherStandalone",
         pref: ACTIVITY_STREAM_PREF_BRANCH + weatherWidget.enabledPref,
         deps: [weatherWidget.trainhopEnabledKey, ...firefoxHomeDeps],
-        visible: widgetToggleVisible(weatherWidget),
+        // Shown when the system pref or a trainhop (Nimbus) config enables
+        // Weather. The system pref comes from the live setting value, so the
+        // row reacts without a page refresh. trainhopConfig is read at page
+        // load only.
+        visible: deps =>
+          isWidgetToggleVisible(weatherWidget, {
+            ...widgetPrefs,
+            [weatherWidget.systemEnabledPref]:
+              deps[weatherWidget.trainhopEnabledKey]?.value,
+          }),
         disabled: deps => !firefoxHomeActive(deps),
       });
     } else {
@@ -479,12 +497,6 @@ export class AboutPreferences {
           },
         },
         {
-          id: "webSearch",
-          subcategory: "web-search",
-          l10nId: "home-prefs-search-header2",
-          control: "moz-toggle",
-        },
-        {
           id: "chooseWallpaper",
           l10nId: "home-prefs-choose-wallpaper-link2",
           control: "moz-box-link",
@@ -493,15 +505,39 @@ export class AboutPreferences {
           },
           iconSrc: "chrome://browser/skin/customize.svg",
         },
-        ...(novaEnabled
-          ? [
-              {
-                id: "firefoxLogo",
-                l10nId: "home-prefs-firefox-logo-header",
-                control: "moz-toggle",
-              },
-            ]
-          : []),
+        {
+          id: "supportFirefox",
+          subcategory: "support-firefox",
+          l10nId: "home-prefs-support-firefox-header-srd",
+          control: "moz-toggle",
+          items: [
+            {
+              id: "sponsoredShortcuts",
+              l10nId: "home-prefs-shortcuts-by-option-sponsored-srd",
+            },
+            {
+              id: "sponsoredStories",
+              l10nId: "home-prefs-recommended-by-option-sponsored-stories-srd",
+            },
+            {
+              id: "supportFirefoxPromo",
+              l10nId: "home-prefs-mission-message2",
+              control: "moz-promo",
+              options: [
+                {
+                  control: "a",
+                  l10nId: "home-prefs-mission-message-learn-more-link-srd",
+                  slot: "support-link",
+                  controlAttrs: {
+                    is: "moz-support-link",
+                    "support-page": "sponsor-privacy",
+                    "utm-content": "inproduct",
+                  },
+                },
+              ],
+            },
+          ],
+        },
       ],
     };
   }

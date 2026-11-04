@@ -770,7 +770,7 @@ NS_IMETHODIMP
 HttpBaseChannel::SetContentDispositionFilename(
     const nsAString& aContentDispositionFilename) {
   mContentDispositionFilename =
-      MakeUnique<nsString>(aContentDispositionFilename);
+      std::make_unique<nsString>(aContentDispositionFilename);
 
   // For safety reasons ensure the filename doesn't contain null characters and
   // replace them with underscores. We may later pass the extension to system
@@ -4170,13 +4170,6 @@ HttpBaseChannel::GetTrrSkipReason(nsITRRSkipReason::value* aTrrSkipReason) {
 }
 
 NS_IMETHODIMP
-HttpBaseChannel::GetIsLoadedBySocketProcess(bool* aResult) {
-  NS_ENSURE_ARG_POINTER(aResult);
-  *aResult = LoadLoadedBySocketProcess();
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 HttpBaseChannel::GetTlsFlags(uint32_t* aTlsFlags) {
   NS_ENSURE_ARG_POINTER(aTlsFlags);
 
@@ -4489,16 +4482,21 @@ bool HttpBaseChannel::IsNavigation() {
   return LoadForceMainDocumentChannel() || (mLoadFlags & LOAD_DOCUMENT_URI);
 }
 
-nsresult HttpBaseChannel::GetAltDataBindingOrigin(nsACString& aOrigin) {
-  aOrigin.Truncate();
+nsIPrincipal* HttpBaseChannel::GetAltDataBindingPrincipal() {
   if (!mLoadInfo) {
-    return NS_ERROR_FAILURE;
+    return nullptr;
   }
 
-  nsCOMPtr<nsIPrincipal> principal = mLoadInfo->GetLoadingPrincipal();
+  nsIPrincipal* principal = mLoadInfo->GetLoadingPrincipal();
   if (!principal) {
     principal = mLoadInfo->TriggeringPrincipal();
   }
+  return principal;
+}
+
+nsresult HttpBaseChannel::GetAltDataBindingOrigin(nsACString& aOrigin) {
+  aOrigin.Truncate();
+  nsIPrincipal* principal = GetAltDataBindingPrincipal();
   if (!principal) {
     return NS_ERROR_FAILURE;
   }
@@ -6170,6 +6168,14 @@ IMPL_TIMING_ATTR(TransactionPending)
 
 #undef IMPL_TIMING_ATTR
 
+void HttpBaseChannel::MaybeReportTimingDataForRedirect(
+    nsISupports* aNewChannel) {
+  nsCOMPtr<nsITimedChannel> newTimedChannel = do_QueryInterface(aNewChannel);
+  if (!newTimedChannel) {
+    MaybeReportTimingData();
+  }
+}
+
 void HttpBaseChannel::MaybeReportTimingData() {
   // There is no point in continuing, since the performance object in the parent
   // isn't the same as the one in the child which will be reporting resource
@@ -6769,7 +6775,7 @@ HttpBaseChannel::MaybeCloneResponseHeadForCachedResource() {
     return nullptr;
   }
 
-  return MakeUnique<nsHttpResponseHead>(*mResponseHead);
+  return std::make_unique<nsHttpResponseHead>(*mResponseHead);
 }
 
 void HttpBaseChannel::SetDummyChannelForCachedResource(
@@ -6778,9 +6784,9 @@ void HttpBaseChannel::SetDummyChannelForCachedResource(
   MOZ_ASSERT(!mResponseHead,
              "SetDummyChannelForCachedResource should only be called once");
   if (aMaybeResponseHead) {
-    mResponseHead = MakeUnique<nsHttpResponseHead>(*aMaybeResponseHead);
+    mResponseHead = std::make_unique<nsHttpResponseHead>(*aMaybeResponseHead);
   } else {
-    mResponseHead = MakeUnique<nsHttpResponseHead>();
+    mResponseHead = std::make_unique<nsHttpResponseHead>();
   }
 }
 

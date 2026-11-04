@@ -287,7 +287,6 @@ class HttpBaseChannel : public nsHashPropertyBag,
   NS_IMETHOD GetEffectiveTRRMode(
       nsIRequest::TRRMode* aEffectiveTRRMode) override;
   NS_IMETHOD GetTrrSkipReason(nsITRRSkipReason::value* aTrrSkipReason) override;
-  NS_IMETHOD GetIsLoadedBySocketProcess(bool* aResult) override;
   NS_IMETHOD GetIsOCSP(bool* value) override;
   NS_IMETHOD SetIsOCSP(bool value) override;
   NS_IMETHOD GetTlsFlags(uint32_t* aTlsFlags) override;
@@ -503,8 +502,9 @@ class HttpBaseChannel : public nsHashPropertyBag,
 
   bool IsDeliveringAltData() const { return LoadDeliveringAltData(); }
 
-  // Computes the origin used to bind alternative (bytecode) cache data to the
-  // principal that produced it.
+  // The principal, and its origin, used to bind alternative (bytecode) cache
+  // data to the principal that produced it.
+  nsIPrincipal* GetAltDataBindingPrincipal();
   nsresult GetAltDataBindingOrigin(nsACString& aOrigin);
 
   static void PropagateReferenceIfNeeded(nsIURI* aURI,
@@ -537,6 +537,12 @@ class HttpBaseChannel : public nsHashPropertyBag,
     StoreUploadStreamIsStreaming(aIsStreaming);
   }
   bool UploadStreamIsStreaming() const { return LoadUploadStreamIsStreaming(); }
+
+  // Transfers ownership of the upload stream to the caller, leaving the
+  // request method and headers untouched.
+  already_AddRefed<nsIInputStream> TakeUploadStream() {
+    return mUploadStream.forget();
+  }
 
   virtual nsresult SetReferrerHeader(const nsACString& aReferrer,
                                      bool aRespectBeforeConnect = true) {
@@ -643,6 +649,9 @@ class HttpBaseChannel : public nsHashPropertyBag,
   virtual void DoAsyncAbort(nsresult aStatus) = 0;
 
   void MaybeReportTimingData();
+  // Reports timing data for this channel if aNewChannel, the target of a
+  // redirect, will not report it itself (e.g. moz-extension: channels).
+  void MaybeReportTimingDataForRedirect(nsISupports* aNewChannel);
   nsIURI* GetReferringPage();
   nsPIDOMWindowInner* GetInnerDOMWindow();
 
@@ -1012,10 +1021,6 @@ class HttpBaseChannel : public nsHashPropertyBag,
     // Used by system requests such as remote settings and updates to
     // retry requests without proxies.
     (uint32_t, BypassProxy, 1),
-
-    // Indicate whether the response of this channel is coming from
-    // socket process.
-    (uint32_t, LoadedBySocketProcess, 1),
 
     // Indicates whether the user-agent header has been modifed since the channel
     // was created.

@@ -44,6 +44,7 @@ import org.mozilla.fenix.ext.showToolbar
 import org.mozilla.fenix.ext.showToolbarWithIconButton
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.utils.SecretSettingsPrefDefaults
+import org.mozilla.gecko.search.SearchWidgetProvider
 
 /** Settings screen allowing users to configure options not intended for general release. */
 class SecretSettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFragment {
@@ -211,6 +212,11 @@ class SecretSettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFra
 
         requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_homepage_weather_widget).apply {
             isChecked = settings.enableHomepageWeatherWidget
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
+        requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_homepage_wrexham_widget).apply {
+            isChecked = settings.enableHomepageWrexhamWidget
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
@@ -406,6 +412,17 @@ class SecretSettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFra
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
+        requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_sync_decoupling).apply {
+            isChecked = settings.syncDecouplingEnabled
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
+        requirePreference<SwitchPreferenceCompat>(R.string.pref_key_open_links_in_youtube_feature_enabled).apply {
+            isVisible = Config.channel.isDebug
+            isChecked = settings.openLinksInYoutubeFeatureEnabled
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
         requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_homepage_customization).apply {
             isChecked = settings.enableHomepageCustomization
             onPreferenceChangeListener = SharedPreferenceUpdater()
@@ -486,6 +503,12 @@ class SecretSettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFra
         requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_app_zygote_process).apply {
             isVisible = Config.channel.isNightlyOrDebug && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
             isChecked = settings.isAppZygoteEnabled
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
+        requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_qwac_ui).apply {
+            isVisible = Config.channel.isNightlyOrDebug
+            isChecked = settings.isQwacUiEnabled
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
@@ -575,7 +598,14 @@ class SecretSettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFra
         requirePreference<SwitchPreferenceCompat>(R.string.pref_key_google_lens_integration).apply {
             isVisible = Config.channel.isNightlyOrDebug || Config.channel.isBeta
             isChecked = settings.googleLensIntegrationEnabled
-            onPreferenceChangeListener = SharedPreferenceUpdater()
+            onPreferenceChangeListener =
+                object : SharedPreferenceUpdater() {
+                    override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
+                        val persisted = super.onPreferenceChange(preference, newValue)
+                        SearchWidgetProvider.updateAllWidgets(context)
+                        return persisted
+                    }
+                }
         }
 
         requirePreference<SwitchPreferenceCompat>(R.string.pref_key_show_voice_search_in_display_toolbar).apply {
@@ -590,9 +620,9 @@ class SecretSettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFra
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
-        requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_menu_customization).apply {
+        requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_menu_customization_screen).apply {
             isVisible = Config.channel.isDebug
-            isChecked = context.components.settings.isMenuCustomizationEnabled
+            isChecked = context.components.settings.isMenuCustomizationScreenEnabled
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
     }

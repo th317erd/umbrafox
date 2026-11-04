@@ -32,6 +32,7 @@ import org.mozilla.fenix.browser.ForwardMenuItemProvider
 import org.mozilla.fenix.browser.RefreshMenuItemProvider
 import org.mozilla.fenix.browser.ShareMenuItemProvider
 import org.mozilla.fenix.browser.applinks.OpenInAppMenuItemProvider
+import org.mozilla.fenix.browser.applinks.OpenInFirefoxMenuItemProvider
 import org.mozilla.fenix.browser.menu.MoreMenuItemsProvider
 import org.mozilla.fenix.browser.menu.MoveToNormalTabsMenuItemProvider
 import org.mozilla.fenix.browser.readermode.ReaderViewMenuItemProvider
@@ -40,6 +41,7 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.FindInPageMenuItemProvider
 import org.mozilla.fenix.components.accounts.MozillaAccountMenuItemProvider
 import org.mozilla.fenix.components.menu.fake.reachableEvents
+import org.mozilla.fenix.customtabs.CustomTabAppMenuItemProvider
 import org.mozilla.fenix.downloads.DownloadsMenuItemProvider
 import org.mozilla.fenix.home.CustomizeHomepageMenuItemProvider
 import org.mozilla.fenix.home.topsites.ShortcutMenuItemProvider
@@ -95,7 +97,7 @@ class MenuItemProvidersFactoryTest {
         val registry =
             MenuItemsRegistry(configuration = MenuConfigurations.home(), resolver = factory::buildProviderFor)
 
-        val shown = registry.providers.filterValues { it.itemFlow.value != null }.keys
+        val shown = registry.providers.filterValues { it.itemsFlow.value.isNotEmpty() }.keys
         assertEquals(
             listOf(
                 FenixMenuItem.DefaultBrowserBanner,
@@ -113,7 +115,7 @@ class MenuItemProvidersFactoryTest {
             shown.toList(),
         )
         registry.providers.values
-            .mapNotNull { it.itemFlow.value }
+            .flatMap { it.itemsFlow.value }
             .flatMap { it.reachableEvents() }
             .forEach { event ->
                 assertEquals(1, registry.providers.values.count { it.handles(event) }, "Handlers of $event")
@@ -182,6 +184,8 @@ class MenuItemProvidersFactoryTest {
             FenixMenuItem.AddToHomeScreen::class to AddToHomeScreenMenuItemProvider::class,
             FenixMenuItem.SaveToCollection::class to SaveToCollectionMenuItemProvider::class,
             FenixMenuItem.OpenInApp::class to OpenInAppMenuItemProvider::class,
+            FenixMenuItem.OpenInFirefox::class to OpenInFirefoxMenuItemProvider::class,
+            FenixMenuItem.CustomTabAppItems::class to CustomTabAppMenuItemProvider::class,
             FenixMenuItem.SaveAsPdf::class to SaveAsPdfMenuItemProvider::class,
             FenixMenuItem.Print::class to PrintMenuItemProvider::class,
             FenixMenuItem.MozillaAccount::class to MozillaAccountMenuItemProvider::class,

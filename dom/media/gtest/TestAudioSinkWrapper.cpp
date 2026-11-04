@@ -1086,11 +1086,9 @@ TEST_F(AudioSinkWrapperReuseTest,
   const media::TimeUnit target = media::TimeUnit::FromSeconds(10);
 
   ASSERT_NO_FATAL_FAILURE(PlayFromZeroToSteadyState());
-
-  // Pause first, so the seek resume restarts a stopped backend rather than
-  // taking over a running one.
   mWrapper->SetPlaying(false);
   SeekAndResumeAt(target);
+  ASSERT_EQ(mDestroys, 1) << "a stream stopped by a pause must not be reused";
 
   ASSERT_EQ(mDestroys, 1) << "the stopped stream must be destroyed";
   ExpectClockHoldsAtTargetWhileSilent(target, ReuseStream::Disabled);

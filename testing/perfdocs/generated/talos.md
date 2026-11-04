@@ -568,11 +568,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -600,11 +595,6 @@ For the sample commands found below, note that the capitalization used is import
   - ❌
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **talos-other-swr**
   - ❌
   - ❌
@@ -623,11 +613,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ✅
   - ✅
   - ❌
@@ -659,11 +644,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -687,11 +667,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ❌
   - ❌
   - ❌
@@ -780,11 +755,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-chrome-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-chrome-profiling**
   - ❌
   - ❌
@@ -812,11 +782,6 @@ For the sample commands found below, note that the capitalization used is import
   - ❌
   - ❌
   - ❌
-* - **talos-chrome-no-nv**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **talos-chrome-swr**
   - ❌
   - ❌
@@ -835,11 +800,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-chrome**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **talos-chrome-no-nv**
   - ✅
   - ✅
   - ❌
@@ -871,11 +831,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-chrome-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-chrome-profiling**
   - ❌
   - ❌
@@ -899,11 +854,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-chrome**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **talos-chrome-no-nv**
   - ❌
   - ❌
   - ❌
@@ -1325,11 +1275,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -1357,11 +1302,6 @@ For the sample commands found below, note that the capitalization used is import
   - ❌
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **talos-other-swr**
   - ❌
   - ❌
@@ -1380,11 +1320,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ✅
   - ✅
   - ❌
@@ -1416,11 +1351,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -1444,11 +1374,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ❌
   - ❌
   - ❌
@@ -1510,11 +1435,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -1542,11 +1462,6 @@ For the sample commands found below, note that the capitalization used is import
   - ❌
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **talos-other-swr**
   - ❌
   - ❌
@@ -1565,11 +1480,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ✅
   - ✅
   - ❌
@@ -1601,11 +1511,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -1629,11 +1534,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ❌
   - ❌
   - ❌
@@ -4999,9 +4899,10 @@ For the sample commands found below, note that the capitalization used is import
 * description:
       | Runs through a set of chunks. Each chunk runs 100 PDFs with 5 iterations each.
         If --pdfPaintChunk is not used when running the test locally, all PDFs will be tested
-        by default with only 1 cycle each. The PDFs that are run are found in the Mozilla pdf.js
-        repository, and this test pulls those in for testing locally through a toolchain artifact
-        called talos-pdfs.
+        by default with only 1 cycle each. The PDFs that are run are found in a private Mozilla
+        repository. Locally, the artifact from the toolchain task in CI needs to be downloaded and
+        installed manually to run this test. Running the test locally with outdated/non-existent PDFs will
+        provide a link to the latest artifact that needs to be downloaded and installed.
 * alert_threshold: 6.0
 * pdfpaint: True
 * subtest_alerts: True
@@ -6341,11 +6242,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -6373,11 +6269,6 @@ For the sample commands found below, note that the capitalization used is import
   - ❌
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **talos-other-swr**
   - ❌
   - ❌
@@ -6396,11 +6287,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ✅
   - ✅
   - ❌
@@ -6432,11 +6318,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -6460,11 +6341,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ❌
   - ❌
   - ❌
@@ -6508,11 +6384,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-sessionrestore-many-windows-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-sessionrestore-many-windows-profiling**
   - ❌
   - ❌
@@ -6540,11 +6411,6 @@ For the sample commands found below, note that the capitalization used is import
   - ❌
   - ❌
   - ❌
-* - **talos-sessionrestore-many-windows-no-nv**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **talos-sessionrestore-many-windows-swr**
   - ❌
   - ❌
@@ -6563,11 +6429,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-sessionrestore-many-windows**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **talos-sessionrestore-many-windows-no-nv**
   - ✅
   - ✅
   - ❌
@@ -6599,11 +6460,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-sessionrestore-many-windows-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-sessionrestore-many-windows-profiling**
   - ❌
   - ❌
@@ -6627,11 +6483,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-sessionrestore-many-windows**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **talos-sessionrestore-many-windows-no-nv**
   - ❌
   - ❌
   - ❌
@@ -6676,11 +6527,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -6708,11 +6554,6 @@ For the sample commands found below, note that the capitalization used is import
   - ❌
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **talos-other-swr**
   - ❌
   - ❌
@@ -6731,11 +6572,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ✅
   - ✅
   - ❌
@@ -6767,11 +6603,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -6795,11 +6626,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ❌
   - ❌
   - ❌
@@ -6860,11 +6686,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -6892,11 +6713,6 @@ For the sample commands found below, note that the capitalization used is import
   - ❌
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **talos-other-swr**
   - ❌
   - ❌
@@ -6915,11 +6731,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ✅
   - ✅
   - ❌
@@ -6951,11 +6762,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -6979,11 +6785,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ❌
   - ❌
   - ❌
@@ -7035,11 +6836,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -7067,11 +6863,6 @@ For the sample commands found below, note that the capitalization used is import
   - ❌
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **talos-other-swr**
   - ❌
   - ❌
@@ -7090,11 +6881,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ✅
   - ✅
   - ❌
@@ -7126,11 +6912,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -7154,11 +6935,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ❌
   - ❌
   - ❌
@@ -7386,11 +7162,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -7418,11 +7189,6 @@ For the sample commands found below, note that the capitalization used is import
   - ❌
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **talos-other-swr**
   - ❌
   - ❌
@@ -7441,11 +7207,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ✅
   - ✅
   - ❌
@@ -7477,11 +7238,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -7505,11 +7261,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ❌
   - ❌
   - ❌
@@ -7626,11 +7377,6 @@ For the sample commands found below, note that the capitalization used is import
   - ❌
   - ❌
   - ❌
-* - **talos-tabswitch-no-nv**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **talos-tabswitch-profiling**
   - ❌
   - ❌
@@ -7658,11 +7404,6 @@ For the sample commands found below, note that the capitalization used is import
   - ❌
   - ❌
   - ❌
-* - **talos-tabswitch-no-nv**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **talos-tabswitch-swr**
   - ❌
   - ❌
@@ -7681,11 +7422,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-tabswitch**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **talos-tabswitch-no-nv**
   - ❌
   - ❌
   - ❌
@@ -7717,11 +7453,6 @@ For the sample commands found below, note that the capitalization used is import
   - ❌
   - ❌
   - ❌
-* - **talos-tabswitch-no-nv**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **talos-tabswitch-profiling**
   - ❌
   - ❌
@@ -7745,11 +7476,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-tabswitch**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **talos-tabswitch-no-nv**
   - ❌
   - ❌
   - ❌
@@ -8761,11 +8487,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-chrome-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-chrome-profiling**
   - ❌
   - ❌
@@ -8793,11 +8514,6 @@ For the sample commands found below, note that the capitalization used is import
   - ❌
   - ❌
   - ❌
-* - **talos-chrome-no-nv**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **talos-chrome-swr**
   - ❌
   - ❌
@@ -8816,11 +8532,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-chrome**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **talos-chrome-no-nv**
   - ✅
   - ✅
   - ❌
@@ -8852,11 +8563,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-chrome-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-chrome-profiling**
   - ❌
   - ❌
@@ -8880,11 +8586,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-chrome**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **talos-chrome-no-nv**
   - ❌
   - ❌
   - ❌
@@ -8959,11 +8660,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -8991,11 +8687,6 @@ For the sample commands found below, note that the capitalization used is import
   - ❌
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **talos-other-swr**
   - ❌
   - ❌
@@ -9014,11 +8705,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ✅
   - ✅
   - ❌
@@ -9050,11 +8736,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -9078,11 +8759,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ❌
   - ❌
   - ❌
@@ -10186,11 +9862,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -10218,11 +9889,6 @@ For the sample commands found below, note that the capitalization used is import
   - ❌
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **talos-other-swr**
   - ❌
   - ❌
@@ -10241,11 +9907,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ✅
   - ✅
   - ❌
@@ -10277,11 +9938,6 @@ For the sample commands found below, note that the capitalization used is import
   - ✅
   - ❌
   - ❌
-* - **talos-other-no-nv**
-  - ✅
-  - ✅
-  - ❌
-  - ❌
 * - **talos-other-profiling**
   - ❌
   - ❌
@@ -10305,11 +9961,6 @@ For the sample commands found below, note that the capitalization used is import
   - mozilla-release
   - mozilla-beta
 * - **talos-other**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **talos-other-no-nv**
   - ❌
   - ❌
   - ❌

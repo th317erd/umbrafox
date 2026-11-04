@@ -12,16 +12,19 @@ import UrlbarPrefs from "chrome://browser/content/urlbar/UrlbarContentPrefs.mjs"
 import { UrlbarShared } from "chrome://browser/content/urlbar/UrlbarShared.mjs";
 import { UrlbarResult } from "chrome://browser/content/urlbar/UrlbarResult.mjs";
 
-/**
- * @import {UrlbarSearchStringTokenData} from "moz-src:///browser/components/urlbar/UrlbarTokenizer.sys.mjs"
- */
+const { XPCOMUtils } =
+  typeof ChromeUtils == "undefined"
+    ? { XPCOMUtils: null }
+    : ChromeUtils.importESModule("resource://gre/modules/XPCOMUtils.sys.mjs");
+
+const lazy = XPCOMUtils?.declareLazy({
+  TemporalSuggestions:
+    "moz-src:///browser/components/urlbar/private/TemporalSuggestions.sys.mjs",
+});
 
 /**
- * @typedef UrlbarSearchModeData
- * @property {Values<typeof UrlbarShared.RESULT_SOURCE>} source
- *   The source from which search mode was entered.
- * @property {string} [engineName]
- *   The search engine name associated with the search mode.
+ * @import {UrlbarSearchStringTokenData} from "moz-src:///browser/components/urlbar/UrlbarTokenizer.sys.mjs"
+ * @import {SearchMode} from "moz-src:///browser/components/urlbar/content/UrlbarInputBase.mjs"
  */
 
 // Source of the per-context `id`. Ids only have to be unique among the queries
@@ -39,9 +42,8 @@ export class UrlbarQueryContext {
    *
    * @param {object} options
    *   The initial options for UrlbarQueryContext.
-   * @param {string} options.sapName
-   *   The search access point name of the UrlbarInput for use with telemetry or
-   *   logging, e.g. `urlbar`, `searchbar`.
+   * @param {UrlbarSapName} options.sapName
+   *   The search access point name of the UrlbarInput.
    * @param {string} options.searchString
    *   The string the user entered in autocomplete. Could be the empty string
    *   in the case of the user opening the popup via the mouse.
@@ -201,9 +203,94 @@ export class UrlbarQueryContext {
 
   /**
    * @type {number}
-   *   The maximum number of results that will be displayed for this query.
+   *   The `maxResults` value passed to the constructor or last assigned.
    */
-  maxResults;
+  _maxResults;
+
+  /**
+   * The maximum number of results that should be displayed for this query.
+   *
+   * @type {number}
+   */
+  get maxResults() {
+    // When temporal suggestions are active and the SAP is urlbar, override the
+    // usual `maxRichResults` unless the user modified it.
+    if (
+      this.isTemporalZeroPrefix &&
+      this._maxResults == UrlbarPrefs.get("maxRichResults") &&
+      !UrlbarPrefs.hasUserValue("maxRichResults")
+    ) {
+      return UrlbarPrefs.get("temporal.zeroPrefixMaxRichResults");
+    }
+    return this._maxResults;
+  }
+
+  set maxResults(value) {
+    this._maxResults = value;
+  }
+
+  /**
+   * Whether the zero prefix layout and result count for temporal search
+   * suggestions apply to this query. They only apply to the urlbar SAP, and
+   * only when `TemporalSuggestions.isEnabled` is true.
+   *
+   * @type {boolean}
+   */
+  get isTemporalZeroPrefix() {
+    return (
+      this.sapName == "urlbar" &&
+      !!lazy?.TemporalSuggestions.isEnabled &&
+      !this.searchString &&
+      !this.searchMode
+    );
+  }
+
+  /**
+   * Whether search suggestions should be shown before general results.
+   *
+   * @type {boolean}
+   */
+  get showSearchSuggestionsFirst() {
+    switch (this.sapName) {
+      case "urlbar":
+        return this._getShowSearchSuggestionsFirst(
+          "showSearchSuggestionsFirst"
+        );
+      case "smartbar":
+        return this._getShowSearchSuggestionsFirst(
+          "smartbar.showSearchSuggestionsFirst"
+        );
+      default:
+        return true;
+    }
+  }
+
+  /**
+   * Returns whether search suggestions should be shown before general results.
+   *
+   * @param {string} pref
+   *   The SAP's `showSearchSuggestionsFirst` pref.
+   * @returns {boolean}
+   */
+  _getShowSearchSuggestionsFirst(pref) {
+    if (this.isTemporalZeroPrefix) {
+      return false;
+    }
+
+    let showSearchSuggestionsFirst =
+      !!this.searchString ||
+      (!UrlbarPrefs.get("suggest.trending") &&
+        !UrlbarPrefs.get("suggest.recentsearches"));
+
+    let inSearchEngineMode = !!this.searchMode?.engineName;
+
+    // If we're in a case were search suggestions would be shown first, but not
+    // in search engine mode, then just use the preference.
+    if (!inSearchEngineMode && showSearchSuggestionsFirst) {
+      showSearchSuggestionsFirst = UrlbarPrefs.get(pref);
+    }
+    return showSearchSuggestionsFirst;
+  }
 
   /**
    * @type {string}
@@ -249,9 +336,8 @@ export class UrlbarQueryContext {
   results;
 
   /**
-   * @type {string}
-   *   The search access point name of the UrlbarInput for use with telemetry or
-   *   logging, e.g. `urlbar`, `searchbar`.
+   * @type {UrlbarSapName}
+   *   The search access point name of the UrlbarInput.
    */
   sapName;
 
@@ -301,7 +387,7 @@ export class UrlbarQueryContext {
   }
 
   /**
-   * @type {UrlbarSearchModeData}
+   * @type {SearchMode}
    *   Details about the search mode associated with this context.
    */
   searchMode;

@@ -45,6 +45,11 @@
     :exclude-members: CreditCardBulkTombstoneResultEntry
 ```
 
+```{js:autoclass} RustAutofill.sys.CreditCardCandidate
+    :members:
+    :exclude-members: CreditCardCandidate
+```
+
 ```{js:autoclass} RustAutofill.sys.CreditCardMeta
     :members:
     :exclude-members: CreditCardMeta
@@ -53,6 +58,11 @@
 ```{js:autoclass} RustAutofill.sys.CreditCardTombstone
     :members:
     :exclude-members: CreditCardTombstone
+```
+
+```{js:autoclass} RustAutofill.sys.CreditCardsBridgedEngine
+    :members:
+    :exclude-members: CreditCardsBridgedEngine
 ```
 
 ```{js:autoclass} RustAutofill.sys.CreditCardsDeletionMetrics
@@ -122,10 +132,4 @@
 ```
 
 ```{js:autofunction} RustAutofill.sys.createAutofillStoreWithStaticKeyManager
-```
-
-```{js:autofunction} RustAutofill.sys.createManagedEncdec
-```
-
-```{js:autofunction} RustAutofill.sys.createStaticKeyManager
 ```

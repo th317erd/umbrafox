@@ -181,7 +181,7 @@ AndroidHardwareBuffer::DeserializeFromFileDescriptor(UniqueFileHandle&& aFd) {
 int AndroidHardwareBuffer::Lock(uint64_t aUsage, const ARect* aRect,
                                 void** aOutVirtualAddress) {
   UniqueFileHandle fd = GetAndResetReleaseFence();
-  return AHardwareBuffer_lock(mNativeBuffer, aUsage, fd.get(), aRect,
+  return AHardwareBuffer_lock(mNativeBuffer, aUsage, fd.release(), aRect,
                               aOutVirtualAddress);
 }
 
@@ -230,7 +230,9 @@ void AndroidHardwareBuffer::SetReleaseFence(UniqueFileHandle&& aFenceFd) {
 void AndroidHardwareBuffer::SetAcquireFence(UniqueFileHandle&& aFenceFd) {
   MonitorAutoLock lock(mMonitor);
 
-  mAcquireFenceFd = std::move(aFenceFd);
+  // Preserve an unconsumed acquire fence rather than silently dropping it.
+  mAcquireFenceFd =
+      MergeFences(std::move(mAcquireFenceFd), std::move(aFenceFd));
 }
 
 UniqueFileHandle AndroidHardwareBuffer::GetAndResetReleaseFence() {

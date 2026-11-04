@@ -168,10 +168,12 @@ void nsTableFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
   // Let the base class do its processing
   nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
 
-  // see if border collapse is on, if so set it
-  const nsStyleTableBorder* tableStyle = StyleTableBorder();
-  bool borderCollapse =
-      (StyleBorderCollapse::Collapse == tableStyle->mBorderCollapse);
+  // Continuations share the first-in-flow's cell map and cell frame types.
+  // Keep their border model consistent even if their computed styles differ.
+  const bool borderCollapse =
+      aPrevInFlow ? static_cast<nsTableFrame*>(aPrevInFlow)->IsBorderCollapse()
+                  : StyleTableBorder()->mBorderCollapse ==
+                        StyleBorderCollapse::Collapse;
   SetBorderCollapse(borderCollapse);
   if (borderCollapse) {
     SetNeedToCalcHasBCBorders(true);
@@ -180,11 +182,11 @@ void nsTableFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
   if (!aPrevInFlow) {
     // If we're the first-in-flow, we manage the cell map & layout strategy that
     // get used by our continuation chain:
-    mCellMap = MakeUnique<nsTableCellMap>(*this, borderCollapse);
+    mCellMap = std::make_unique<nsTableCellMap>(*this, borderCollapse);
     if (IsAutoLayout()) {
-      mTableLayoutStrategy = MakeUnique<BasicTableLayoutStrategy>(this);
+      mTableLayoutStrategy = std::make_unique<BasicTableLayoutStrategy>(this);
     } else {
-      mTableLayoutStrategy = MakeUnique<FixedTableLayoutStrategy>(this);
+      mTableLayoutStrategy = std::make_unique<FixedTableLayoutStrategy>(this);
     }
   } else {
     // Set my isize, because all frames in a table flow are the same isize and
@@ -1961,9 +1963,9 @@ void nsTableFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
   bool isAuto = IsAutoLayout();
   if (isAuto != (LayoutStrategy()->GetType() == nsITableLayoutStrategy::Auto)) {
     if (isAuto) {
-      mTableLayoutStrategy = MakeUnique<BasicTableLayoutStrategy>(this);
+      mTableLayoutStrategy = std::make_unique<BasicTableLayoutStrategy>(this);
     } else {
-      mTableLayoutStrategy = MakeUnique<FixedTableLayoutStrategy>(this);
+      mTableLayoutStrategy = std::make_unique<FixedTableLayoutStrategy>(this);
     }
   }
 }
@@ -3168,7 +3170,7 @@ Maybe<nscoord> nsTableFrame::GetNaturalBaselineBOffset(
 /* ----- global methods ----- */
 
 nsTableFrame* NS_NewTableFrame(PresShell* aPresShell, ComputedStyle* aStyle) {
-  return new (aPresShell) nsTableFrame(aStyle, aPresShell->GetPresContext());
+  return new nsTableFrame(aStyle, aPresShell->GetPresContext());
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsTableFrame)
@@ -4434,7 +4436,7 @@ BCCorners::BCCorners(int32_t aNumCorners, int32_t aStartIndex) {
   NS_ASSERTION((aNumCorners > 0) && (aStartIndex >= 0), "program error");
   startIndex = aStartIndex;
   endIndex = aStartIndex + aNumCorners - 1;
-  corners = MakeUnique<BCCornerInfo[]>(aNumCorners);
+  corners = std::make_unique<BCCornerInfo[]>(aNumCorners);
 }
 
 struct BCCellBorders {
@@ -4454,7 +4456,7 @@ BCCellBorders::BCCellBorders(int32_t aNumBorders, int32_t aStartIndex) {
   NS_ASSERTION((aNumBorders > 0) && (aStartIndex >= 0), "program error");
   startIndex = aStartIndex;
   endIndex = aStartIndex + aNumBorders - 1;
-  borders = MakeUnique<BCCellBorder[]>(aNumBorders);
+  borders = std::make_unique<BCCellBorder[]>(aNumBorders);
 }
 
 // this function sets the new border properties and returns true if the border
@@ -4495,10 +4497,11 @@ void nsTableFrame::ExpandBCDamageArea(TableArea& aArea) const {
   int32_t numRows = GetRowCount();
   int32_t numCols = GetColCount();
 
-  int32_t firstColIdx = aArea.StartCol();
-  int32_t lastColIdx = aArea.EndCol() - 1;
-  int32_t startRowIdx = aArea.StartRow();
-  int32_t endRowIdx = aArea.EndRow() - 1;
+  // Clamp to the table, the damage area can be out of sync with the cell map.
+  int32_t firstColIdx = std::min(aArea.StartCol(), numCols - 1);
+  int32_t lastColIdx = std::min(aArea.EndCol(), numCols) - 1;
+  int32_t startRowIdx = std::min(aArea.StartRow(), numRows - 1);
+  int32_t endRowIdx = std::min(aArea.EndRow(), numRows) - 1;
 
   // expand the damage area in each direction
   if (firstColIdx > 0) {
@@ -5870,7 +5873,7 @@ bool BCPaintBorderIterator::SetDamageArea(const nsRect& aDirtyRect) {
                 1 + endRowIndex - startRowIndex);
 
   Reset();
-  mBlockDirInfo = MakeUnique<BCBlockDirSeg[]>(mDamageArea.ColCount() + 1);
+  mBlockDirInfo = std::make_unique<BCBlockDirSeg[]>(mDamageArea.ColCount() + 1);
   return true;
 }
 
@@ -7132,9 +7135,7 @@ nsRect nsDisplayTableItem::GetBounds(nsDisplayListBuilder* aBuilder,
 
 nsDisplayTableBackgroundSet::nsDisplayTableBackgroundSet(
     nsDisplayListBuilder* aBuilder, nsIFrame* aTable)
-    : mBuilder(aBuilder),
-      mColGroupBackgrounds(aBuilder),
-      mColBackgrounds(aBuilder) {
+    : mBuilder(aBuilder) {
   mPrevTableBackgroundSet = mBuilder->SetTableBackgroundSet(this);
   mozilla::DebugOnly<const nsIFrame*> reference =
       mBuilder->FindReferenceFrameFor(aTable, &mToReferenceFrame);

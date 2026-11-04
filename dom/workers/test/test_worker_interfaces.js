@@ -157,6 +157,8 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "ByteLengthQueuingStrategy", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "CSS", insecureContext: true, nightly: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CSSImageValue", insecureContext: true, nightly: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CSSKeywordValue", insecureContext: true, nightly: true },
@@ -542,6 +544,8 @@ let interfaceNamesInGlobalScope = [
   "PushSubscription",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "PushSubscriptionOptions",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "QuotaExceededError", insecureContext: true, nightly: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "RTCDataChannel", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!

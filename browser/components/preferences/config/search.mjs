@@ -997,6 +997,7 @@ SettingGroupManager.registerGroups({
       },
       {
         id: "engineList",
+        l10nId: "search-engine-list",
         control: "moz-box-group",
         controlAttrs: {
           type: "reorderable-list",

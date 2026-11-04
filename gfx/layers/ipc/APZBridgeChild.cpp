@@ -29,7 +29,7 @@ RefPtr<APZBridgeChild> APZBridgeChild::Create(
     const uint64_t& aProcessToken, Endpoint<PAPZBridgeChild>&& aEndpoint) {
   RefPtr<APZBridgeChild> child = new APZBridgeChild(aProcessToken);
 
-  MOZ_ASSERT(APZThreadUtils::IsControllerThreadAlive());
+  MOZ_RELEASE_ASSERT(APZThreadUtils::IsControllerThreadAlive());
 
   APZThreadUtils::RunOnControllerThread(
       NewRunnableMethod<Endpoint<PAPZBridgeChild>&&>(
@@ -43,8 +43,8 @@ APZBridgeChild::APZBridgeChild(const uint64_t& aProcessToken)
     : mIsOpen(false),
       mProcessToken(aProcessToken),
       mCompositorSession(nullptr) {
-  MOZ_ASSERT(XRE_IsParentProcess());
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(XRE_IsParentProcess());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
 }
 
 APZBridgeChild::~APZBridgeChild() = default;
@@ -69,8 +69,8 @@ void APZBridgeChild::Open(Endpoint<PAPZBridgeChild>&& aEndpoint) {
 }
 
 void APZBridgeChild::Destroy() {
-  MOZ_ASSERT(XRE_IsParentProcess());
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(XRE_IsParentProcess());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
   // Destroy will get called from the main thread, so we must synchronously
   // dispatch to the controller thread to close the bridge.
@@ -104,17 +104,21 @@ void APZBridgeChild::ActorDestroy(ActorDestroyReason aWhy) {
 
 APZEventResult APZBridgeChild::ReceiveInputEvent(
     InputData& aEvent, InputBlockCallback&& aCallback) {
-  MOZ_ASSERT(mIsOpen);
   APZThreadUtils::AssertOnControllerThread();
 
   APZEventResult res;
+  if (!mIsOpen) {
+    return res;
+  }
   switch (aEvent.mInputType) {
     case MULTITOUCH_INPUT: {
       MultiTouchInput& event = aEvent.AsMultiTouchInput();
       MultiTouchInput processedEvent;
 
-      SendReceiveMultiTouchInputEvent(event, !!aCallback, &res,
-                                      &processedEvent);
+      if (!SendReceiveMultiTouchInputEvent(event, !!aCallback, &res,
+                                           &processedEvent)) {
+        return APZEventResult();
+      }
 
       event = std::move(processedEvent);
       break;
@@ -123,7 +127,10 @@ APZEventResult APZBridgeChild::ReceiveInputEvent(
       MouseInput& event = aEvent.AsMouseInput();
       MouseInput processedEvent;
 
-      SendReceiveMouseInputEvent(event, !!aCallback, &res, &processedEvent);
+      if (!SendReceiveMouseInputEvent(event, !!aCallback, &res,
+                                      &processedEvent)) {
+        return APZEventResult();
+      }
 
       event = std::move(processedEvent);
       break;
@@ -132,8 +139,10 @@ APZEventResult APZBridgeChild::ReceiveInputEvent(
       PanGestureInput& event = aEvent.AsPanGestureInput();
       PanGestureInput processedEvent;
 
-      SendReceivePanGestureInputEvent(event, !!aCallback, &res,
-                                      &processedEvent);
+      if (!SendReceivePanGestureInputEvent(event, !!aCallback, &res,
+                                           &processedEvent)) {
+        return APZEventResult();
+      }
 
       event = std::move(processedEvent);
       break;
@@ -142,8 +151,10 @@ APZEventResult APZBridgeChild::ReceiveInputEvent(
       PinchGestureInput& event = aEvent.AsPinchGestureInput();
       PinchGestureInput processedEvent;
 
-      SendReceivePinchGestureInputEvent(event, !!aCallback, &res,
-                                        &processedEvent);
+      if (!SendReceivePinchGestureInputEvent(event, !!aCallback, &res,
+                                             &processedEvent)) {
+        return APZEventResult();
+      }
 
       event = std::move(processedEvent);
       break;
@@ -152,8 +163,10 @@ APZEventResult APZBridgeChild::ReceiveInputEvent(
       TapGestureInput& event = aEvent.AsTapGestureInput();
       TapGestureInput processedEvent;
 
-      SendReceiveTapGestureInputEvent(event, !!aCallback, &res,
-                                      &processedEvent);
+      if (!SendReceiveTapGestureInputEvent(event, !!aCallback, &res,
+                                           &processedEvent)) {
+        return APZEventResult();
+      }
 
       event = std::move(processedEvent);
       break;
@@ -162,8 +175,10 @@ APZEventResult APZBridgeChild::ReceiveInputEvent(
       ScrollWheelInput& event = aEvent.AsScrollWheelInput();
       ScrollWheelInput processedEvent;
 
-      SendReceiveScrollWheelInputEvent(event, !!aCallback, &res,
-                                       &processedEvent);
+      if (!SendReceiveScrollWheelInputEvent(event, !!aCallback, &res,
+                                            &processedEvent)) {
+        return APZEventResult();
+      }
 
       event = std::move(processedEvent);
       break;
@@ -172,7 +187,10 @@ APZEventResult APZBridgeChild::ReceiveInputEvent(
       KeyboardInput& event = aEvent.AsKeyboardInput();
       KeyboardInput processedEvent;
 
-      SendReceiveKeyboardInputEvent(event, !!aCallback, &res, &processedEvent);
+      if (!SendReceiveKeyboardInputEvent(event, !!aCallback, &res,
+                                         &processedEvent)) {
+        return APZEventResult();
+      }
 
       event = std::move(processedEvent);
       break;
@@ -184,7 +202,7 @@ APZEventResult APZBridgeChild::ReceiveInputEvent(
     }
   }
 
-  if (aCallback && res.WillHaveDelayedResult()) {
+  if (mIsOpen && aCallback && res.WillHaveDelayedResult()) {
     mInputBlockCallbacks.emplace(res.mInputBlockId, std::move(aCallback));
   }
 
@@ -265,7 +283,7 @@ mozilla::ipc::IPCResult APZBridgeChild::RecvCallInputBlockCallback(
 void APZBridgeChild::NotifyPinchGestureOnMainThread(
     const PinchGestureType& aType, const LayoutDevicePoint& aFocusPoint,
     const LayoutDeviceCoord& aSpanChange, const Modifiers& aModifiers) {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
   if (mCompositorSession && mCompositorSession->GetWidget()) {
     APZCCallbackHelper::NotifyPinchGesture(aType, aFocusPoint, aSpanChange,
@@ -310,7 +328,7 @@ mozilla::ipc::IPCResult APZBridgeChild::RecvCancelAutoscroll(
 // Note APZCCallbackHelper::NotifyScaleGestureComplete() must be called on the
 // main thread.
 void APZBridgeChild::NotifyScaleGestureCompleteOnMainThread(float aScale) {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
   if (mCompositorSession && mCompositorSession->GetWidget()) {
     APZCCallbackHelper::NotifyScaleGestureComplete(
@@ -334,8 +352,11 @@ void APZBridgeChild::ProcessUnhandledEvent(LayoutDeviceIntPoint* aRefPoint,
                                            ScrollableLayerGuid* aOutTargetGuid,
                                            uint64_t* aOutFocusSequenceNumber,
                                            LayersId* aOutLayersId) {
-  MOZ_ASSERT(mIsOpen);
   APZThreadUtils::AssertOnControllerThread();
+
+  if (!mIsOpen) {
+    return;
+  }
 
   SendProcessUnhandledEvent(*aRefPoint, aRefPoint, aOutTargetGuid,
                             aOutFocusSequenceNumber, aOutLayersId);
@@ -344,8 +365,11 @@ void APZBridgeChild::ProcessUnhandledEvent(LayoutDeviceIntPoint* aRefPoint,
 void APZBridgeChild::UpdateWheelTransaction(
     LayoutDeviceIntPoint aRefPoint, EventMessage aEventMessage,
     const Maybe<ScrollableLayerGuid>& aTargetGuid) {
-  MOZ_ASSERT(mIsOpen);
   APZThreadUtils::AssertOnControllerThread();
+
+  if (!mIsOpen) {
+    return;
+  }
 
   SendUpdateWheelTransaction(aRefPoint, aEventMessage, aTargetGuid);
 }
@@ -460,7 +484,7 @@ void APZBridgeChild::SetLongTapEnabled(bool aTapGestureEnabled) {
 
 // Note mCompositorSession is currently used by the main thread.
 GeckoContentController* APZBridgeChild::GetContentController() {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
   if (!mCompositorSession) {
     return nullptr;
@@ -470,7 +494,7 @@ GeckoContentController* APZBridgeChild::GetContentController() {
 
 void APZBridgeChild::NotifyLayerTransformsOnMainThread(
     nsTArray<MatrixMessage>&& aTransforms) {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
   if (RefPtr<GeckoContentController> controller = GetContentController()) {
     controller->NotifyLayerTransforms(std::move(aTransforms));
@@ -493,7 +517,7 @@ mozilla::ipc::IPCResult APZBridgeChild::RecvLayerTransforms(
 
 void APZBridgeChild::UpdateOverscrollVelocityOnMainThread(
     const ScrollableLayerGuid& aGuid, float aX, float aY, bool aIsRootContent) {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
   if (RefPtr<GeckoContentController> controller = GetContentController()) {
     controller->UpdateOverscrollVelocity(aGuid, aX, aY, aIsRootContent);
@@ -517,7 +541,7 @@ mozilla::ipc::IPCResult APZBridgeChild::RecvUpdateOverscrollVelocity(
 
 void APZBridgeChild::UpdateOverscrollOffsetOnMainThread(
     const ScrollableLayerGuid& aGuid, float aX, float aY, bool aIsRootContent) {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
   if (RefPtr<GeckoContentController> controller = GetContentController()) {
     controller->UpdateOverscrollOffset(aGuid, aX, aY, aIsRootContent);
@@ -540,7 +564,7 @@ mozilla::ipc::IPCResult APZBridgeChild::RecvUpdateOverscrollOffset(
 }
 
 void APZBridgeChild::HideDynamicToolbarOnMainThread() {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
   if (RefPtr<GeckoContentController> controller = GetContentController()) {
     // Only the RemoteContentController implementation uses the

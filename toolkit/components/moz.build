@@ -94,6 +94,7 @@ DIRS += [
     "url-classifier",
     "urlformatter",
     "viewsource",
+    "widgets",
     "windowcreator",
     "windowwatcher",
     "workerloader",

@@ -983,8 +983,7 @@ void CodeGeneratorShared::markSafepointAt(uint32_t offset, LInstruction* ins) {
     sp->setRecordedInSafepointIndices();
   }
 #endif
-  masm.propagateOOM(safepointIndices_.append(
-      CodegenSafepointIndex(offset, ins->safepoint())));
+  masm.propagateOOM(safepointIndices_.emplaceBack(offset, ins->safepoint()));
 }
 
 void CodeGeneratorShared::ensureOsiSpace() {
@@ -1021,7 +1020,7 @@ uint32_t CodeGeneratorShared::markOsiPoint(LOsiPoint* ins) {
 
   uint32_t offset = masm.currentOffset();
   SnapshotOffset so = ins->snapshot()->snapshotOffset();
-  masm.propagateOOM(osiIndices_.append(OsiIndex(offset, so)));
+  masm.propagateOOM(osiIndices_.emplaceBack(offset, so));
   lastOsiPointOffset_ = offset;
 
   return offset;
@@ -1115,14 +1114,6 @@ bool CodeGeneratorShared::omitOverRecursedStackCheck() const {
 
 bool CodeGeneratorShared::omitOverRecursedInterruptCheck() const {
   return !gen->needsOverrecursedCheck();
-}
-
-void CodeGeneratorShared::emitPreBarrier(Address address) {
-  masm.guardedCallPreBarrier(address, MIRType::Value);
-}
-
-void CodeGeneratorShared::emitPreBarrier(BaseObjectElementIndex address) {
-  masm.guardedCallPreBarrier(address, MIRType::Value);
 }
 
 void CodeGeneratorShared::jumpToBlock(MBasicBlock* mir) {

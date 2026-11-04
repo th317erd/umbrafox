@@ -5,7 +5,6 @@
 #include "MockNetworkLayerController.h"
 
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/net/SocketProcessParent.h"
 #include "nsIOService.h"
 #include "nsNetAddr.h"
 
@@ -103,12 +102,6 @@ NS_IMETHODIMP MockNetworkLayerController::AddNetAddrOverride(nsINetAddr* aFrom,
     AutoWriteLock lock(mLock);
     mNetAddrOverrides.InsertOrUpdate(addrPort, toAddr);
   }
-  if (nsIOService::UseSocketProcess()) {
-    RefPtr<SocketProcessParent> parent = SocketProcessParent::GetSingleton();
-    if (parent) {
-      (void)parent->SendAddNetAddrOverride(fromAddr, toAddr);
-    }
-  }
   return NS_OK;
 }
 
@@ -117,12 +110,6 @@ NS_IMETHODIMP MockNetworkLayerController::ClearNetAddrOverrides() {
   {
     AutoWriteLock lock(mLock);
     mNetAddrOverrides.Clear();
-  }
-  if (nsIOService::UseSocketProcess()) {
-    RefPtr<SocketProcessParent> parent = SocketProcessParent::GetSingleton();
-    if (parent) {
-      (void)parent->SendClearNetAddrOverrides();
-    }
   }
   return NS_OK;
 }
@@ -231,4 +218,59 @@ NS_IMETHODIMP MockNetworkLayerController::ClearFailedUDPAddr() {
   return NS_OK;
 }
 
+bool FindWouldBlockUDPAddr(const NetAddr& aInput) {
+  RefPtr<MockNetworkLayerController> controller = gController;
+  if (!controller) {
+    return false;
+  }
+
+  nsAutoCString addrPort;
+  aInput.ToAddrPortString(addrPort);
+  AutoReadLock lock(controller->mLock);
+  return controller->mWouldBlockUDPAddresses.Contains(addrPort);
+}
+
+NS_IMETHODIMP MockNetworkLayerController::WouldBlockUDPAddrIO(
+    nsINetAddr* aAddr) {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  NetAddr addr;
+  aAddr->GetNetAddr(&addr);
+  nsAutoCString addrPort;
+  addr.ToAddrPortString(addrPort);
+  {
+    AutoWriteLock lock(mLock);
+    mWouldBlockUDPAddresses.Insert(addrPort);
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP MockNetworkLayerController::ClearWouldBlockUDPAddr() {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  AutoWriteLock lock(mLock);
+  mWouldBlockUDPAddresses.Clear();
+  return NS_OK;
+}
+
 }  // namespace mozilla::net
+
+// Lets neqo_glue apply the mock UDP would-block list when it does its own I/O.
+extern "C" bool moz_mock_network_udp_send_would_block(uint16_t aFamily,
+                                                      const uint8_t* aAddr,
+                                                      uint16_t aPort) {
+  mozilla::net::NetAddr addr;
+  if (aFamily == AF_INET) {
+    addr.inet.family = AF_INET;
+    addr.inet.port = htons(aPort);
+    memcpy(&addr.inet.ip, aAddr, 4);
+  } else if (aFamily == AF_INET6) {
+    addr.inet6.family = AF_INET6;
+    addr.inet6.port = htons(aPort);
+    memcpy(&addr.inet6.ip.u8, aAddr, 16);
+  } else {
+    return false;
+  }
+  return mozilla::net::FindWouldBlockUDPAddr(addr);
+}

@@ -132,6 +132,7 @@ class MainMenuTest {
 
         navigationToolbar(composeTestRule) {}
             .enterURLAndEnterToBrowser(pdfPage.url) {
+                clickPageObject(composeTestRule, itemContainingText("Stay in"))
                 waitForPageToLoad()
                 verifyPageContent(pdfPage.content)
             }
@@ -604,6 +605,7 @@ class MainMenuTest {
 
         navigationToolbar(composeTestRule) {}
             .enterURLAndEnterToBrowser(youtubeURL) {
+                clickPageObject(composeTestRule, itemContainingText("Stay in"))
                 waitForPageToLoad(waitingTime)
             }
             .openThreeDotMenu {
@@ -1669,13 +1671,14 @@ class MainMenuTest {
         )
 
         browserScreen(composeTestRule) {
+            clickPageObject(composeTestRule, itemContainingText("Stay in"))
             verifyPageContent(customTabPDF.content)
         }
 
         customTabScreen(composeTestRule) {}
             .openMainMenu {
                 verifySwitchToDesktopSiteButton()
-                verifyDesktopSiteButtonState(isEnabled = false)
+                verifyDesktopSiteButtonIsDisabled()
             }
     }
 

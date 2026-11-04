@@ -16,7 +16,6 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/RelativeTo.h"
-#include "mozilla/SVGImageContext.h"
 #include "mozilla/Span.h"
 #include "mozilla/StaticPrefs_nglayout.h"
 #include "mozilla/SurfaceFromElementResult.h"
@@ -67,6 +66,7 @@ class nsDisplayList;
 class nsDisplayListBuilder;
 enum class nsDisplayListBuilderMode : uint8_t;
 class RetainedDisplayListBuilder;
+class SVGImageContext;
 struct AspectRatio;
 class ComputedStyle;
 class DisplayPortUtils;
@@ -120,6 +120,9 @@ class WebRenderLayerManager;
 namespace widget {
 enum class TransparencyMode : uint8_t;
 }
+namespace wr {
+class DisplayListBuilder;
+}  // namespace wr
 }  // namespace mozilla
 
 // Flags to customize the behavior of nsLayoutUtils::DrawString.
@@ -388,6 +391,12 @@ class nsLayoutUtils {
   static nsIFrame* GetPrimaryFrameFromStyleFrame(nsIFrame* aStyleFrame);
   static const nsIFrame* GetPrimaryFrameFromStyleFrame(
       const nsIFrame* aStyleFrame);
+
+  /**
+   * Returns the primary frame of aContent, or the frame of the image using the
+   * image map if aContent is an <area>.  Areas have no frame of their own.
+   */
+  static nsIFrame* GetPrimaryOrAreaImageFrame(const nsIContent* aContent);
 
   /**
    * Similar to nsIFrame::IsPrimaryFrame except that this will return true
@@ -2193,6 +2202,7 @@ class nsLayoutUtils {
   static mozilla::gfx::IntSize ComputeImageContainerDrawingParameters(
       imgIContainer* aImage, nsIFrame* aForFrame,
       const LayoutDeviceRect& aDestRect, const LayoutDeviceRect& aFillRect,
+      mozilla::wr::DisplayListBuilder& aBuilder,
       const StackingContextHelper& aSc, uint32_t aFlags,
       mozilla::SVGImageContext& aSVGContext,
       mozilla::Maybe<mozilla::image::ImageIntRegion>& aRegion,
@@ -2859,8 +2869,7 @@ class nsLayoutUtils {
    * are likely to need special-case handling of the RCD-RSF.
    */
   static nsSize CalculateCompositionSizeForFrame(
-      nsIFrame* aFrame, bool aSubtractScrollbars = true,
-      const nsSize* aOverrideScrollPortSize = nullptr,
+      nsIFrame* aFrame, const nsSize* aOverrideScrollPortSize = nullptr,
       IncludeDynamicToolbar aIncludeDynamicToolbar =
           IncludeDynamicToolbar::Auto);
 

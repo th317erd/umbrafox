@@ -562,17 +562,18 @@ def _recording_resource_usage(command_context):
     finally:
         monitor.stop()
 
-        if os.environ.get("MOZ_AUTOMATION") == "1":
-            profile_path = "/builds/worker/profile_resource-usage.json"
-        else:
-            log_subdir = os.path.join("logs", "static-analysis")
-            command_context._ensure_state_subdir_exists(log_subdir)
-            profile_path = command_context._get_state_filename(
-                construct_log_filename("profile"), subdir=log_subdir
-            )
+        if not monitor.forwarding:
+            if os.environ.get("MOZ_AUTOMATION") == "1":
+                profile_path = "/builds/worker/profile_resource-usage.json"
+            else:
+                log_subdir = os.path.join("logs", "static-analysis")
+                command_context._ensure_state_subdir_exists(log_subdir)
+                profile_path = command_context._get_state_filename(
+                    construct_log_filename("profile"), subdir=log_subdir
+                )
 
-        with open(profile_path, "w", encoding="utf-8", newline="\n") as f:
-            json.dump(monitor.as_profile(), f, separators=(",", ":"))
+            with open(profile_path, "w", encoding="utf-8", newline="\n") as f:
+                json.dump(monitor.as_profile(), f, separators=(",", ":"))
 
 
 @contextlib.contextmanager
@@ -854,36 +855,18 @@ def _build_compile_db(command_context, verbose=False):
 
 
 def _build_export(command_context, jobs, verbose=False):
-    def on_line(line):
-        command_context.log(logging.INFO, "build_output", {"line": line}, "{line}")
-
-    # First install what we can through install manifests.
-    # Then build the rest of the build dependencies by running the full
-    # export target, because we can't do anything better.
-    for target in ("pre-export", "export", "pre-compile"):
-        output = []
-        rc = command_context._run_make(
-            directory=command_context.topobjdir,
-            target=target,
-            line_handler=None if verbose else output.append,
-            print_directory=verbose,
-            log=verbose,
-            silent=not verbose,
-            num_jobs=jobs,
-            append_env={"NO_BUILDSTATUS_MESSAGES": "1"},
-            ensure_exit_code=False,
-        )
-        if rc != 0:
-            for line in output:
-                on_line(line.rstrip())
-            command_context.log(
-                logging.ERROR,
-                "static-analysis",
-                {"target": target, "rc": rc},
-                "Running make {target} failed with exit code {rc}.",
-            )
-            return rc
-    return 0
+    # Build the dependencies of every compile by running the tiers before
+    # compilation, because we can't do anything better.
+    return command_context._mach_context.commands.dispatch(
+        "build",
+        command_context._mach_context,
+        what=["analysis-prereqs"],
+        directory=".",
+        jobs=jobs,
+        verbose=verbose,
+        priority="normal",
+        no_completion_messages=True,
+    )
 
 
 def _set_clang_tools_paths(command_context):

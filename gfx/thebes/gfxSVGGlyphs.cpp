@@ -115,10 +115,12 @@ gfxSVGGlyphsDocument* gfxSVGGlyphs::FindOrCreateGlyphsDocument(
   if (entry->mDocOffset > 0 && uint64_t(mHeader->mDocIndexOffset) +
                                        entry->mDocOffset + entry->mDocLength <=
                                    length) {
-    auto doc = MakeUnique<gfxSVGGlyphsDocument>(
+    auto doc = std::make_unique<gfxSVGGlyphsDocument>(
         data + mHeader->mDocIndexOffset + entry->mDocOffset, entry->mDocLength,
         this);
-    return mGlyphDocs.InsertOrUpdate(entry->mDocOffset, std::move(doc)).get();
+    // Similarly to the Lookup() call above, if we've already created a separate
+    // document, keep it rather than overriding it.
+    return mGlyphDocs.LookupOrInsert(entry->mDocOffset, std::move(doc)).get();
   }
 
   return nullptr;

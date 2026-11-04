@@ -5470,10 +5470,6 @@ var gCSSProperties = {
       "counters(bar, '.', none)",
       "counters(foo)",
       'counter(foo, ".")',
-      'attr("title")',
-      "attr('title')",
-      "attr(2)",
-      "attr(-2)",
       "counter(2)",
       "counters(-2, '.')",
       "-moz-alt-content",
@@ -12815,6 +12811,21 @@ if (isDisplayGridLanesEnabled) {
     "grid-lanes",
     "inline-grid-lanes"
   );
+  gCSSProperties["fit-tolerance"] = {
+    domProp: "fitTolerance",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: ["normal"],
+    other_values: ["infinite", "0", "1em", "4%", "calc(2px + 10%)"],
+    invalid_values: ["none", "-1px", "-1%", "1", "normal 1px", "1px infinite"],
+  };
+  gCSSProperties["flow-tolerance"] = {
+    domProp: "flowTolerance",
+    inherited: false,
+    type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
+    alias_for: "fit-tolerance",
+    subproperties: ["fit-tolerance"],
+  };
 }
 
 gCSSProperties["display"].other_values.push("grid", "inline-grid");
@@ -14494,6 +14505,22 @@ if (IsCSSPropertyPrefEnabled("layout.css.text-autospace.enabled")) {
         "-10%",
         "calc(10% + 1cm)",
       ],
+    },
+  });
+}
+
+if (IsCSSPropertyPrefEnabled("layout.css.text-autospace-size.enabled")) {
+  Object.assign(gCSSProperties, {
+    "text-autospace-size": {
+      domProp: "textAutospaceSize",
+      inherited: true,
+      type: CSS_TYPE_LONGHAND,
+      applies_to_first_letter: true,
+      applies_to_first_line: true,
+      applies_to_placeholder: true,
+      initial_values: ["0.125"],
+      other_values: ["0", "0.5", "-0.25", "calc(1 / 3)"],
+      invalid_values: ["normal", "auto", "10%", "2px", "calc(1em / 4)"],
     },
   });
 }

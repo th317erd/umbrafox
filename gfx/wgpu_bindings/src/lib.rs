@@ -1,3 +1,5 @@
+#![deny(unsafe_op_in_unsafe_fn)]
+
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -73,7 +75,7 @@ impl<'a, T> FfiSlice<'a, T> {
             return &[];
         }
 
-        std::slice::from_raw_parts(self.data, self.length)
+        unsafe { std::slice::from_raw_parts(self.data, self.length) }
     }
 }
 
@@ -119,7 +121,7 @@ impl ByteBuf {
     }
 
     unsafe fn as_slice(&self) -> &[u8] {
-        slice::from_raw_parts(self.data, self.len)
+        unsafe { slice::from_raw_parts(self.data, self.len) }
     }
 }
 
@@ -453,7 +455,11 @@ pub enum BufferMapResult<'a> {
 #[derive(serde::Serialize, serde::Deserialize)]
 enum ServerMessage<'a> {
     RequestAdapterResponse(id::AdapterId, Option<AdapterInformation<Cow<'a, str>>>),
-    RequestDeviceResponse(id::DeviceId, id::QueueId, Result<wgt::Limits, RequestDeviceError>),
+    RequestDeviceResponse(
+        id::DeviceId,
+        id::QueueId,
+        Result<wgt::Limits, RequestDeviceError>,
+    ),
     PopErrorScopeResponse(id::DeviceId, FfiPopErrorScopeResultType, Cow<'a, str>),
     CreateRenderPipelineResponse {
         pipeline_id: id::RenderPipelineId,

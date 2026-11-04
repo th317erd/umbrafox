@@ -97,7 +97,6 @@ enum class PrefersColorSchemeOverride : uint8_t;
 }  // namespace dom
 namespace gfx {
 class FontPaletteValueSet;
-class PaletteCache;
 }  // namespace gfx
 }  // namespace mozilla
 
@@ -581,7 +580,10 @@ class nsPresContext : public nsISupports,
   // emulation, or printing.
   //
   // NOTE(emilio): This might be called from an stylo thread.
-  Maybe<mozilla::ColorScheme> GetOverriddenOrEmbedderColorScheme() const;
+  mozilla::dom::PrefersColorSchemeOverride GetOverriddenOrEmbedderColorScheme()
+      const {
+    return mOverriddenOrEmbedderColorScheme;
+  }
 
   /**
    * Recomputes the data dependent on the browsing context, like zoom and text
@@ -945,8 +947,6 @@ class nsPresContext : public nsISupports,
   void FlushFontPaletteValues();
   void MarkFontPaletteValuesDirty() { mFontPaletteValuesDirty = true; }
 
-  mozilla::gfx::PaletteCache& FontPaletteCache();
-
   // Ensure that it is safe to hand out CSS rules outside the layout
   // engine by ensuring that all CSS style sheets have unique inners
   // and, if necessary, synchronously rebuilding all style data.
@@ -961,6 +961,18 @@ class nsPresContext : public nsISupports,
       TransactionId aTransactionId = TransactionId{0},
       const mozilla::TimeStamp& aTimeStamp = mozilla::TimeStamp());
   void NotifyRevokingDidPaint(TransactionId aTransactionId);
+
+  // Tells the parent to stop painting the previous document of this browser.
+  // Deferred for an inbound view transition, see Document::Reveal.
+  void SendReadyToReplaceRetainedPaint();
+  void DeferReadyToReplaceRetainedPaint() {
+    mReadyToReplaceRetainedPaintDeferred = true;
+  }
+  bool IsReadyToReplaceRetainedPaintDeferred() const {
+    return mReadyToReplaceRetainedPaintDeferred;
+  }
+  void SendReadyToReplaceRetainedPaintAfterNextComposite();
+  void FlushDeferredReadyToReplaceRetainedPaint();
   // TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1415230)
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void FireDOMPaintEvent(
       nsTArray<nsRect>* aList, TransactionId aTransactionId,
@@ -1034,10 +1046,11 @@ class nsPresContext : public nsISupports,
   /**
    * If we have a presshell, and if the given content's current
    * document is the same as our presshell's document, return the
-   * content's primary frame.  Otherwise, return null.  Only use this
-   * if you care about which presshell the primary frame is in.
+   * content's primary frame, or the image frame if the content is an
+   * <area>.  Otherwise, return null.  Only use this if you care about
+   * which presshell the frame is in.
    */
-  nsIFrame* GetPrimaryFrameFor(nsIContent* aContent);
+  nsIFrame* GetPrimaryOrAreaImageFrameFor(nsIContent* aContent);
 
   virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
   virtual size_t SizeOfIncludingThis(
@@ -1240,8 +1253,6 @@ class nsPresContext : public nsISupports,
   RefPtr<gfxFontFeatureValueSet> mFontFeatureValuesLookup;
   RefPtr<mozilla::gfx::FontPaletteValueSet> mFontPaletteValueSet;
 
-  mozilla::UniquePtr<mozilla::gfx::PaletteCache> mFontPaletteCache;
-
   // TODO(emilio): Maybe lazily create and put under a UniquePtr if this grows a
   // lot?
   MediaEmulationData mMediaEmulationData;
@@ -1314,6 +1325,11 @@ class nsPresContext : public nsISupports,
   mozilla::TimeStamp mMarkPaintTimingStart;
 
   Maybe<TransactionId> mFirstContentfulPaintTransactionId;
+
+  // ReadyToReplaceRetainedPaint is sent when this transaction, or a later one,
+  // has been composited. The refresh driver can have older transactions in
+  // flight.
+  Maybe<TransactionId> mReadyToReplaceRetainedPaintTransactionId;
 
   mozilla::UniquePtr<mozilla::MediaFeatureChange>
       mPendingMediaFeatureValuesChange;
@@ -1436,6 +1452,8 @@ class nsPresContext : public nsISupports,
 
   // Has NotifyDidPaintForSubtree been called for a contentful paint?
   unsigned mHadContentfulPaintComposite : 1;
+  // Whether ReadyToReplaceRetainedPaint waits for an inbound view transition.
+  unsigned mReadyToReplaceRetainedPaintDeferred : 1;
 
   // Whether we might need to update c-v state for animations.
   unsigned mNeedsToUpdateHiddenByContentVisibilityForAnimations : 1;

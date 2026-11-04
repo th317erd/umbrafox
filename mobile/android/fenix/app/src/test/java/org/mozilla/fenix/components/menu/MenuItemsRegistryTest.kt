@@ -63,7 +63,8 @@ class MenuItemsRegistryTest {
                 configuration = MenuConfigurations.browser(isToolbarAtBottom = false, isExpandedToolbarEnabled = false),
                 resolver = { item ->
                     when (item) {
-                        FenixMenuItem.Back -> BackMenuItemProvider(browserStore, session, mockk(), backgroundScope)
+                        FenixMenuItem.Back ->
+                            BackMenuItemProvider(browserStore, session, mockk(), mockk(), backgroundScope)
                         FenixMenuItem.Forward ->
                             ForwardMenuItemProvider(browserStore, session, mockk(), backgroundScope)
                         FenixMenuItem.Share -> ShareMenuItemProvider(browserStore, session, mockk())
@@ -94,7 +95,7 @@ class MenuItemsRegistryTest {
         MenuSectionConfiguration(id = "section", presentationMode = Row, items = items.toList())
 
     private class FakeMenuItemProvider : MenuItemProvider {
-        override val itemFlow = MutableStateFlow<MenuItem?>(null)
+        override val itemsFlow = MutableStateFlow<List<MenuItem>>(emptyList())
 
         override fun handles(event: MenuEvent) = false
 

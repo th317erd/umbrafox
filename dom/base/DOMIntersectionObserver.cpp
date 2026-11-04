@@ -18,6 +18,7 @@
 #include "mozilla/dom/ElementInlines.h"
 #include "mozilla/dom/HTMLIFrameElement.h"
 #include "mozilla/dom/HTMLImageElement.h"
+#include "mozilla/dom/HTMLMediaElement.h"
 #include "nsContainerFrame.h"
 #include "nsContentUtils.h"
 #include "nsIFrame.h"
@@ -194,9 +195,12 @@ static void LazyLoadCallback(
         image->StopLazyLoading(HTMLImageElement::StartLoad::Yes);
       } else if (auto* iframe = HTMLIFrameElement::FromNode(target)) {
         iframe->StopLazyLoading(HTMLIFrameElement::TriggerLoad::Yes);
+      } else if (auto* media = HTMLMediaElement::FromNode(target)) {
+        media->StopLazyLoading(HTMLMediaElement::StartLoad::Yes);
       } else {
         MOZ_ASSERT_UNREACHABLE(
-            "Only <img> and <iframe> should be observed by lazy load observer");
+            "Only <img>, <iframe>, <video>, and <audio> should be observed by "
+            "lazy load observer");
       }
     }
   }
@@ -527,6 +531,11 @@ static Maybe<nsRect> ComputeTheIntersection(
         }
         target = containerFrame;
       }
+    }
+    // Preserve the popup's own clip, but skip ancestor clips since popups
+    // can extend outside their embedding document's viewport.
+    if (containerFrame->IsMenuPopupFrame()) {
+      break;
     }
     // 3.5 If container is the root element of a browsing context, update
     // container to be the browsing context’s document; otherwise, update

@@ -802,12 +802,15 @@ async function cacheAllAndCheckCleanup(target = downloader, force = false) {
 }
 
 add_task(async function test_cacheAll_happy_path() {
+  const zipsBefore = await listTempZipFiles();
+
   // verify bundle is downloaded succesfully
   const allSuccess = await cacheAllAndCheckCleanup();
   Assert.ok(
     allSuccess,
     "Attachments cacheAll succesfully downloaded a bundle and saved all attachments"
   );
+  await assertNoTempZipLeftBehind(zipsBefore);
 
   // verify accuracy of attachments downloaded
   Assert.equal(
@@ -934,6 +937,7 @@ add_task(async function test_cacheAll_failed_unzip() {
     false,
     "Attachments cacheAll request failed to extract a bundle and returned false"
   );
+  await assertNoTempZipLeftBehind(zipsBefore);
 });
 
 add_task(clear_state);

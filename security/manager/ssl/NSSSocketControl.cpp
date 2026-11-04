@@ -13,6 +13,7 @@
 #include "nsISocketProvider.h"
 #include "nsNSSCallbacks.h"
 #include "nsNSSComponent.h"
+#include "nsNetCID.h"
 #include "nsProxyRelease.h"
 #include "secerr.h"
 #include "ssl.h"
@@ -43,9 +44,7 @@ NSSSocketControl::NSSSocketControl(
       mDrewResumptionToken(false),
       mNotedTimeUntilReady(false),
       mEchExtensionStatus(EchExtensionStatus::kNotPresent),
-      mIsShortWritePending(false),
-      mShortWritePendingByte(0),
-      mShortWriteOriginalAmount(-1),
+      mMaybeShortWrite(Nothing()),
       mKEAUsed(nsITLSSocketControl::KEY_EXCHANGE_UNKNOWN),
       mKEAKeyBits(0),
       mMACAlgorithmUsed(nsITLSSocketControl::SSL_MAC_UNKNOWN),
@@ -463,8 +462,7 @@ void NSSSocketControl::ClientAuthCertificateSelected(
       const_cast<uint8_t*>(certBytes.Elements()),
       static_cast<unsigned int>(certBytes.Length()),
   };
-  // Ensure that osclientcerts (or ipcclientcerts, in the socket process) will
-  // populate its list of certificates and keys.
+  // Ensure that osclientcerts will populate its list of certificates and keys.
   AutoSearchingForClientAuthCertificates _;
   UniqueCERTCertificate cert(CERT_NewTempCertificate(
       CERT_GetDefaultCertDB(), &certItem, nullptr, false, true));

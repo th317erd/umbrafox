@@ -9,7 +9,7 @@ import { INITIAL_STATE, reducers } from "common/Reducers.sys.mjs";
 import { WIDGET_REGISTRY } from "common/WidgetsRegistry.mjs";
 import { WidgetsManagementPanel } from "content-src/components/Nova/CustomizeMenu/WidgetsManagementPanel/WidgetsManagementPanel";
 
-// The nine active widgets in registry order, kept as literals so a renamed
+// The active widgets in registry order, kept as literals so a renamed
 // string, id or telemetry source fails here. The rendered order is pinned by
 // EN_US_ORDER and the other order constants below.
 const WIDGETS = [
@@ -93,6 +93,22 @@ const WIDGETS = [
     preference: "widgets.horoscopes.enabled",
     widgetSize: "medium",
   },
+  {
+    id: "travel",
+    l10nId: "newtab-custom-widget-travel-toggle",
+    source: "WIDGET_TRAVEL",
+    widget_name: "travel",
+    preference: "widgets.travel.enabled",
+    widgetSize: "medium",
+  },
+  {
+    id: "solitaire",
+    l10nId: "newtab-custom-widget-solitaire-toggle",
+    source: "WIDGET_SOLITAIRE",
+    widget_name: "solitaire",
+    preference: "widgets.solitaire.enabled",
+    widgetSize: "medium",
+  },
 ];
 
 // The minimum entry the panel renders from; the registry helpers tolerate the
@@ -117,15 +133,17 @@ const PANEL_LABELS = {
   "newtab-custom-widget-picture-toggle": "Picture of the day",
   "newtab-custom-widget-privacy-toggle": "Privacy",
   "newtab-custom-widget-search-toggle": "Search",
+  "newtab-custom-widget-solitaire-toggle": "Solitaire",
   "newtab-custom-widget-stocks-toggle2": "Finance",
   "newtab-custom-widget-timer-toggle": "Timer",
+  "newtab-custom-widget-travel-toggle": "Travel",
   "newtab-custom-widget-weather-toggle": "Weather",
   "newtab-custom-widget-fixture-toggle": "Fixture widget",
 };
 
 // The German, Greek and Japanese labels are Firefox's own translations, apart
-// from the fixture widget's, the Japanese Search label and the Horoscopes
-// labels, which have no translations yet. The Finance fixtures reuse the Stocks
+// from the fixture widget's, the Japanese Search label, and the Horoscopes,
+// Travel and Solitaire labels, which have no translations yet. The Finance fixtures reuse the Stocks
 // translations as stand-ins until the renamed message is translated.
 // Übersicht sorts before Uhr only under locale-aware collation; a code point
 // comparison would put it after Wetter.
@@ -136,6 +154,8 @@ const GERMAN_PANEL_LABELS = {
   "newtab-custom-widget-horoscopes-toggle": "Horoskope",
   "newtab-custom-widget-crossword-toggle": "Kreuzworträtsel",
   "newtab-custom-widget-lists-toggle": "Listen",
+  "newtab-custom-widget-travel-toggle": "Reisen",
+  "newtab-custom-widget-solitaire-toggle": "Solitär",
   "newtab-custom-widget-search-toggle": "Suche",
   "newtab-custom-widget-timer-toggle": "Timer",
   "newtab-custom-widget-fixture-toggle": "Übersicht",
@@ -151,8 +171,10 @@ const GREEK_PANEL_LABELS = {
   "newtab-custom-widget-weather-toggle": "Καιρός",
   "newtab-custom-widget-lists-toggle": "Λίστες",
   "newtab-custom-widget-stocks-toggle2": "Μετοχές",
+  "newtab-custom-widget-solitaire-toggle": "Πασιέντζα",
   "newtab-custom-widget-clock-toggle": "Ρολόι",
   "newtab-custom-widget-crossword-toggle": "Σταυρόλεξο",
+  "newtab-custom-widget-travel-toggle": "Ταξίδια",
   "newtab-custom-widget-horoscopes-toggle": "Ωροσκόπια",
 };
 
@@ -161,7 +183,9 @@ const GREEK_PANEL_LABELS = {
 const JAPANESE_PANEL_LABELS = {
   "newtab-custom-widget-lists-toggle": "ToDo リスト",
   "newtab-custom-widget-crossword-toggle": "クロスワードパズル",
+  "newtab-custom-widget-solitaire-toggle": "ソリティア",
   "newtab-custom-widget-timer-toggle": "タイマー",
+  "newtab-custom-widget-travel-toggle": "トラベル",
   "newtab-custom-widget-privacy-toggle": "プライバシー",
   "newtab-custom-widget-horoscopes-toggle": "ホロスコープ",
   "newtab-custom-widget-picture-toggle": "今日の一枚",
@@ -181,7 +205,9 @@ const EN_US_ORDER = [
   "pictureOfTheDay",
   "privacy",
   "recentSearches",
+  "solitaire",
   "focusTimer",
+  "travel",
   "weather",
 ];
 
@@ -196,7 +222,9 @@ const EN_US_ORDER_WITH_FIXTURE = [
   "pictureOfTheDay",
   "privacy",
   "recentSearches",
+  "solitaire",
   "focusTimer",
+  "travel",
   "weather",
 ];
 
@@ -207,6 +235,8 @@ const GERMAN_ORDER = [
   "horoscopes",
   "crossword",
   "lists",
+  "travel",
+  "solitaire",
   "recentSearches",
   "focusTimer",
   "fixtureWidget",
@@ -222,15 +252,19 @@ const GREEK_ORDER = [
   "weather",
   "lists",
   "stocks",
+  "solitaire",
   "clocks",
   "crossword",
+  "travel",
   "horoscopes",
 ];
 
 const JAPANESE_ORDER = [
   "lists",
   "crossword",
+  "solitaire",
   "focusTimer",
+  "travel",
   "privacy",
   "horoscopes",
   "pictureOfTheDay",
@@ -252,6 +286,8 @@ const TIMER_ID_SORT_ORDER = [
   "pictureOfTheDay",
   "privacy",
   "recentSearches",
+  "solitaire",
+  "travel",
   "weather",
 ];
 
@@ -265,7 +301,9 @@ const ID_ORDER = [
   "pictureOfTheDay",
   "privacy",
   "recentSearches",
+  "solitaire",
   "stocks",
+  "travel",
   "weather",
 ];
 
@@ -294,9 +332,10 @@ describe("<WidgetsManagementPanel>", () => {
     return { ...prefs, ...extra };
   }
 
-  async function renderPanel(overrides = {}, prefValues = {}) {
+  async function renderPanel(overrides = {}, prefValues = {}, state = {}) {
     const store = createStore(combineReducers(reducers), {
       ...INITIAL_STATE,
+      ...state,
       Prefs: {
         ...INITIAL_STATE.Prefs,
         values: { ...INITIAL_STATE.Prefs.values, ...prefValues },
@@ -369,6 +408,72 @@ describe("<WidgetsManagementPanel>", () => {
     expect(container.querySelector("moz-box-button")).toBeInTheDocument();
   });
 
+  describe("while the user places widgets on Home", () => {
+    const placement = homeWidgets => ({
+      "pageLayouts.variant": "spaces-thematic-v1",
+      trainhopConfig: {
+        spaces: {
+          order: ["home", "widgets"],
+          default: "home",
+          widgetLibrary: "widgets",
+          spaces: {
+            home: { label: "Home", widgets: ["pictureOfTheDay"] },
+            widgets: { label: "Widgets" },
+          },
+        },
+      },
+      "widgets.home": homeWidgets,
+      "widgets.enabled": true,
+      "widgets.crossword.enabled": true,
+      "widgets.lists.enabled": true,
+    });
+    const homeWrites = store =>
+      store.dispatch.mock.calls
+        .map(([action]) => action)
+        .filter(action => action.data?.name === "widgets.home")
+        .map(action => action.data.value);
+
+    it("keeps the toggles as on/off", async () => {
+      const { container } = await renderPanel(
+        {},
+        allWidgetsVisible({
+          ...placement('["crossword"]'),
+          "widgets.clocks.enabled": false,
+        })
+      );
+      expect(container.querySelector("#lists-toggle")).toHaveAttribute(
+        "pressed"
+      );
+      expect(container.querySelector("#clocks-toggle")).not.toHaveAttribute(
+        "pressed"
+      );
+    });
+
+    // Otherwise a turned-off widget would hold one of Home's two slots.
+    it("unpins a pinned widget it turns off", async () => {
+      const { container, store } = await renderPanel(
+        {},
+        allWidgetsVisible(placement('["crossword"]'))
+      );
+      fireToggle(container.querySelector("#crossword-toggle"), false);
+      expect(props.setPref).toHaveBeenCalledWith(
+        "widgets.crossword.enabled",
+        false
+      );
+      expect(homeWrites(store)).toEqual(["[]"]);
+    });
+
+    it("leaves the Home list alone for widgets that aren't pinned", async () => {
+      const { container, store } = await renderPanel(
+        {},
+        allWidgetsVisible(placement('["crossword"]'))
+      );
+      fireToggle(container.querySelector("#lists-toggle"), false);
+      fireToggle(container.querySelector("#clocks-toggle"), true);
+      expect(homeWrites(store)).toEqual([]);
+    });
+  });
+
   it("calls togglePanel when the manage widgets button is clicked", async () => {
     const { container } = await renderPanel({ showPanel: false });
     fireEvent.click(container.querySelector("moz-box-button"));
@@ -409,6 +514,20 @@ describe("<WidgetsManagementPanel>", () => {
       const { container } = await renderPanel({}, allWidgetsVisible());
       expect(toggleIds(container)).toEqual(
         EN_US_ORDER.map(id => `${id}-toggle`)
+      );
+    });
+
+    it("disables the toggle of a widget whose pref is locked", async () => {
+      const { container } = await renderPanel(
+        {},
+        allWidgetsVisible({ lockedPrefs: ["widgets.lists.enabled"] })
+      );
+
+      expect(container.querySelector("#lists-toggle")).toHaveAttribute(
+        "disabled"
+      );
+      expect(container.querySelector("#clocks-toggle")).not.toHaveAttribute(
+        "disabled"
       );
     });
 
@@ -479,6 +598,24 @@ describe("<WidgetsManagementPanel>", () => {
       );
       expect(toggleIds(container)).toEqual(
         EN_US_ORDER_WITH_FIXTURE.map(id => `${id}-toggle`)
+      );
+    });
+
+    it("labels an extension widget's toggle with its extension's name", async () => {
+      withFixtureWidget({
+        extensionID: "fixture-widget@mozilla.org",
+        customizeL10nId: undefined,
+      });
+
+      const { container } = await renderPanel({}, allWidgetsVisible(), {
+        ExtensionWidgets: {
+          "fixture-widget@mozilla.org": { src: "", name: "Tally" },
+        },
+      });
+
+      expect(container.querySelector("#fixtureWidget-toggle")).toHaveAttribute(
+        "label",
+        "Tally"
       );
     });
 
@@ -591,7 +728,9 @@ describe("<WidgetsManagementPanel>", () => {
         "horoscopes-toggle",
         "pictureOfTheDay-toggle",
         "recentSearches-toggle",
+        "solitaire-toggle",
         "focusTimer-toggle",
+        "travel-toggle",
         "weather-toggle",
       ]);
     });

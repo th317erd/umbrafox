@@ -58,7 +58,6 @@ about-processes-gmp-plugin-process = Gecko Media Plugins ({ $pid })
 about-processes-gpu-process = GPU ({ $pid })
 about-processes-vr-process = VR ({ $pid })
 about-processes-rdd-process = Data Decoder ({ $pid })
-about-processes-socket-process = Network ({ $pid })
 about-processes-fork-server-process = Fork Server ({ $pid })
 about-processes-preallocated-process = Preallocated ({ $pid })
 about-processes-utility-process = Utility ({ $pid })
@@ -124,6 +123,14 @@ about-processes-thread-name-and-id = { $name }
 #   $name (String) The name of the tab (typically the title of the page, might be the url while the page is loading).
 about-processes-tab-name = Tab: { $name }
 about-processes-preloaded-tab = Preloaded New Tab
+
+# Tab count shown in the groupby=tab view's totals bar.
+# Variables:
+#   $count (Number) The number of open tabs currently listed. Always ≥ 0.
+about-processes-tab-count = { $count ->
+   [one] { $count } tab
+  *[other] { $count } tabs
+}
 
 # Single subframe
 # Variables:

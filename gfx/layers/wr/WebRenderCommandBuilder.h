@@ -60,6 +60,25 @@ class WebRenderCommandBuilder final {
                           const wr::WrSpatialId& aSpatialId);
   void PopOverrideForASR(const ActiveScrolledRoot* aASR);
 
+  // The reference frames a frame can create, which together with the frame
+  // identify a reference frame.
+  enum class FrameReferenceFrame : uint8_t {
+    Transform,
+    TransformSeparator,
+    SVGOrigin,
+    Perspective,
+    OwnLayer,
+    ViewTransitionCapture,
+  };
+
+  // Defines reference frame aKind of aFrame in the current space. Every
+  // reference frame created for a frame goes through here.
+  wr::WrSpatialId DefineReferenceFrame(wr::DisplayListBuilder& aBuilder,
+                                       nsIFrame* aFrame,
+                                       FrameReferenceFrame aKind,
+                                       const LayoutDevicePoint& aOrigin,
+                                       const wr::ReferenceFrameParams& aParams);
+
   Maybe<wr::ImageKey> CreateImageKey(
       nsDisplayItem* aItem, ImageContainer* aContainer,
       mozilla::wr::DisplayListBuilder& aBuilder,
@@ -82,6 +101,7 @@ class WebRenderCommandBuilder final {
                  const StackingContextHelper& aSc,
                  const LayoutDeviceRect& aRect, const LayoutDeviceRect& aClip);
 
+  // aOpacity is applied through the image's color multiplier.
   bool PushImageProvider(nsDisplayItem* aItem,
                          image::WebRenderImageProvider* aProvider,
                          image::ImgDrawResult aDrawResult,
@@ -89,7 +109,8 @@ class WebRenderCommandBuilder final {
                          mozilla::wr::IpcResourceUpdateQueue& aResources,
                          const LayoutDeviceRect& aRect,
                          const LayoutDeviceRect& aClip,
-                         bool aRasterizedForRect = false);
+                         bool aRasterizedForRect = false,
+                         float aOpacity = 1.0f);
 
   Maybe<wr::ImageMask> BuildWrMaskImage(
       nsDisplayMasksAndClipPaths* aMaskItem, wr::DisplayListBuilder& aBuilder,

@@ -71,11 +71,6 @@ static BlockAction CheckBlockInfo(const DllBlockInfo* aInfo,
     return BlockAction::Allow;
   }
 
-  if ((aInfo->mFlags & DllBlockInfoFlags::SOCKET_PROCESSES_ONLY) &&
-      !(gBlocklistInitFlags & eDllBlocklistInitFlagIsSocketProcess)) {
-    return BlockAction::Allow;
-  }
-
   if ((aInfo->mFlags & DllBlockInfoFlags::GPU_PROCESSES_ONLY) &&
       !(gBlocklistInitFlags & eDllBlocklistInitFlagIsGPUProcess)) {
     return BlockAction::Allow;
@@ -355,7 +350,10 @@ NTSTATUS NTAPI patched_NtCreateSection(PHANDLE aSectionHandle,
 
   // Drop any handle still pending, since its section was never mapped.
   nt::AutoHandle stale(TakePendingFileHandle());
-  sPendingFileHandle.set(duplicate);
+  if (!sPendingFileHandle.set(duplicate)) {
+    // This thread is not main and has no TLS yet, so we can't track this.
+    ::NtClose(duplicate);
+  }
   return stubStatus;
 }
 

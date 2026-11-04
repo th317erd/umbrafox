@@ -591,6 +591,19 @@ bool SharedContextWebgl::Initialize() {
 
   mMaxTextureSize = initResult.limits.maxTex2dSize;
 
+  // Disable PBO upload path on D3D ANGLE where testing has shown this to be a
+  // performance loss.
+  if (mWebgl->GL()->IsD3DANGLE()) {
+    mUseUploadBuffer = false;
+  }
+
+  // Disable PBO upload path on Intel GPUs on macOS with native GL driver due to
+  // broken uploads. See bug 2080436.
+  if (kIsMacOS && initResult.vendor == gl::GLVendor::Intel &&
+      !mWebgl->GL()->IsMetalANGLE()) {
+    mUseUploadBuffer = false;
+  }
+
   if (kIsMacOS) {
     mRasterizationTruncates = initResult.vendor == gl::GLVendor::ATI;
   }
@@ -777,19 +790,19 @@ bool SharedContextWebgl::SetClipMask(const RefPtr<WebGLTexture>& aTex) {
   return true;
 }
 
-bool SharedContextWebgl::SetNoClipMask() {
-  if (mNoClipMask) {
-    return SetClipMask(mNoClipMask);
+bool SharedContextWebgl::InitSolidMask(uint32_t aTexUnit) {
+  if (mSolidMask) {
+    return true;
   }
   if (!mWebgl) {
     return false;
   }
-  mNoClipMask = mWebgl->CreateTexture();
-  if (!mNoClipMask) {
+  mSolidMask = mWebgl->CreateTexture();
+  if (!mSolidMask) {
     return false;
   }
-  mWebgl->ActiveTexture(1);
-  mWebgl->BindTexture(LOCAL_GL_TEXTURE_2D, mNoClipMask);
+  mWebgl->ActiveTexture(aTexUnit);
+  mWebgl->BindTexture(LOCAL_GL_TEXTURE_2D, mSolidMask);
   static const auto solidMask =
       std::array<const uint8_t, 4>{0xFF, 0xFF, 0xFF, 0xFF};
   mWebgl->TexImage(0, LOCAL_GL_RGBA8, {0, 0, 0},
@@ -798,10 +811,27 @@ bool SharedContextWebgl::SetNoClipMask() {
                     {1, 1, 1},
                     gfxAlphaType::NonPremult,
                     Some(Span{solidMask})});
-  InitTexParameters(mNoClipMask, false);
+  InitTexParameters(mSolidMask, false);
   mWebgl->ActiveTexture(0);
-  mLastClipMask = mNoClipMask;
+  switch (aTexUnit) {
+    case 0:
+      mLastTexture = mSolidMask;
+      break;
+    case 1:
+      mLastClipMask = mSolidMask;
+      break;
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unexpected texture unit");
+      break;
+  }
   return true;
+}
+
+bool SharedContextWebgl::SetNoClipMask() {
+  if (mSolidMask) {
+    return SetClipMask(mSolidMask);
+  }
+  return InitSolidMask(1);
 }
 
 inline bool DrawTargetWebgl::ClipStack::operator==(
@@ -1696,93 +1726,6 @@ bool SharedContextWebgl::CreateShaders() {
     attribDesc.normalized = false;
     mWebgl->VertexAttribPointer(0, attribDesc);
   }
-  if (!mSolidProgram) {
-    // AA is computed by using the basis vectors of the transform to determine
-    // both the scale and orientation. The scale is then used to extrude the
-    // rectangle outward by 1 screen-space pixel to account for the AA region.
-    // The distance to the rectangle edges is passed to the fragment shader in
-    // an interpolant, biased by 0.5 so it represents the desired coverage. The
-    // minimum coverage is then chosen by the fragment shader to use as an AA
-    // coverage value to modulate the color.
-    auto vsSource =
-        "attribute vec3 a_vertex;\n"
-        "uniform vec2 u_transform[3];\n"
-        "uniform vec2 u_viewport;\n"
-        "uniform vec4 u_clipbounds;\n"
-        "uniform float u_aa;\n"
-        "varying vec2 v_cliptc;\n"
-        "varying vec4 v_clipdist;\n"
-        "varying vec4 v_dist;\n"
-        "varying float v_alpha;\n"
-        "void main() {\n"
-        "   vec2 scale = vec2(dot(u_transform[0], u_transform[0]),\n"
-        "                     dot(u_transform[1], u_transform[1]));\n"
-        "   vec2 invScale = u_aa * inversesqrt(scale + 1.0e-6);\n"
-        "   scale *= invScale;\n"
-        "   vec2 extrude = a_vertex.xy +\n"
-        "                  invScale * (2.0 * a_vertex.xy - 1.0);\n"
-        "   vec2 vertex = u_transform[0] * extrude.x +\n"
-        "                 u_transform[1] * extrude.y +\n"
-        "                 u_transform[2];\n"
-        "   gl_Position = vec4(vertex * 2.0 / u_viewport - 1.0, 0.0, 1.0);\n"
-        "   v_cliptc = vertex / u_viewport;\n"
-        "   v_clipdist = vec4(vertex - u_clipbounds.xy,\n"
-        "                     u_clipbounds.zw - vertex);\n"
-        "   float noAA = 1.0 - u_aa;\n"
-        "   v_dist = vec4(extrude, 1.0 - extrude) * scale.xyxy + 0.5 + noAA;\n"
-        "   v_alpha = min(a_vertex.z,\n"
-        "                 min(scale.x, 1.0) * min(scale.y, 1.0) + noAA);\n"
-        "}\n";
-    auto fsSource =
-        "precision mediump float;\n"
-        "uniform vec4 u_color;\n"
-        "uniform sampler2D u_clipmask;\n"
-        "varying highp vec2 v_cliptc;\n"
-        "varying vec4 v_clipdist;\n"
-        "varying vec4 v_dist;\n"
-        "varying float v_alpha;\n"
-        "void main() {\n"
-        "   float clip = texture2D(u_clipmask, v_cliptc).r;\n"
-        "   vec4 dist = min(v_dist, v_clipdist);\n"
-        "   dist.xy = min(dist.xy, dist.zw);\n"
-        "   float aa = clamp(min(dist.x, dist.y), 0.0, v_alpha);\n"
-        "   gl_FragColor = clip * aa * u_color;\n"
-        "}\n";
-    RefPtr<WebGLShader> vsId = mWebgl->CreateShader(LOCAL_GL_VERTEX_SHADER);
-    mWebgl->ShaderSource(*vsId, vsSource);
-    mWebgl->CompileShader(*vsId);
-    if (!mWebgl->GetCompileResult(*vsId).success) {
-      return false;
-    }
-    RefPtr<WebGLShader> fsId = mWebgl->CreateShader(LOCAL_GL_FRAGMENT_SHADER);
-    mWebgl->ShaderSource(*fsId, fsSource);
-    mWebgl->CompileShader(*fsId);
-    if (!mWebgl->GetCompileResult(*fsId).success) {
-      return false;
-    }
-    mSolidProgram = mWebgl->CreateProgram();
-    mWebgl->AttachShader(*mSolidProgram, *vsId);
-    mWebgl->AttachShader(*mSolidProgram, *fsId);
-    mWebgl->BindAttribLocation(*mSolidProgram, 0, "a_vertex");
-    mWebgl->LinkProgram(*mSolidProgram);
-    if (!mWebgl->GetLinkResult(*mSolidProgram).success) {
-      return false;
-    }
-    mSolidProgramViewport = GetUniformLocation(mSolidProgram, "u_viewport");
-    mSolidProgramAA = GetUniformLocation(mSolidProgram, "u_aa");
-    mSolidProgramTransform = GetUniformLocation(mSolidProgram, "u_transform");
-    mSolidProgramColor = GetUniformLocation(mSolidProgram, "u_color");
-    mSolidProgramClipMask = GetUniformLocation(mSolidProgram, "u_clipmask");
-    mSolidProgramClipBounds = GetUniformLocation(mSolidProgram, "u_clipbounds");
-    if (!mSolidProgramViewport || !mSolidProgramAA || !mSolidProgramTransform ||
-        !mSolidProgramColor || !mSolidProgramClipMask ||
-        !mSolidProgramClipBounds) {
-      return false;
-    }
-    mWebgl->UseProgram(mSolidProgram);
-    UniformData(LOCAL_GL_INT, mSolidProgramClipMask, Array<int32_t, 1>{1});
-  }
-
   if (!mImageProgram) {
     auto vsSource =
         "attribute vec3 a_vertex;\n"
@@ -1822,6 +1765,7 @@ bool SharedContextWebgl::CreateShaders() {
         "precision mediump float;\n"
         "uniform vec4 u_texbounds;\n"
         "uniform vec4 u_color;\n"
+        "uniform bool u_texmode;\n"
         "uniform float u_swizzle;\n"
         "uniform sampler2D u_sampler;\n"
         "uniform sampler2D u_clipmask;\n"
@@ -1831,15 +1775,18 @@ bool SharedContextWebgl::CreateShaders() {
         "varying vec4 v_dist;\n"
         "varying float v_alpha;\n"
         "void main() {\n"
-        "   highp vec2 tc = clamp(v_texcoord, u_texbounds.xy,\n"
-        "                         u_texbounds.zw);\n"
-        "   vec4 image = texture2D(u_sampler, tc);\n"
+        "   vec4 color = u_color;\n"
+        "   if (u_texmode) {\n"
+        "     highp vec2 tc = clamp(v_texcoord, u_texbounds.xy,\n"
+        "                           u_texbounds.zw);\n"
+        "     vec4 image = texture2D(u_sampler, tc);\n"
+        "     color *= mix(image, image.rrrr, u_swizzle);\n"
+        "   }\n"
         "   float clip = texture2D(u_clipmask, v_cliptc).r;\n"
         "   vec4 dist = min(v_dist, v_clipdist);\n"
         "   dist.xy = min(dist.xy, dist.zw);\n"
         "   float aa = clamp(min(dist.x, dist.y), 0.0, v_alpha);\n"
-        "   gl_FragColor = clip * aa * u_color *\n"
-        "                  mix(image, image.rrrr, u_swizzle);\n"
+        "   gl_FragColor = clip * aa * color;\n"
         "}\n";
     RefPtr<WebGLShader> vsId = mWebgl->CreateShader(LOCAL_GL_VERTEX_SHADER);
     mWebgl->ShaderSource(*vsId, vsSource);
@@ -1871,10 +1818,12 @@ bool SharedContextWebgl::CreateShaders() {
     mImageProgramSampler = GetUniformLocation(mImageProgram, "u_sampler");
     mImageProgramClipMask = GetUniformLocation(mImageProgram, "u_clipmask");
     mImageProgramClipBounds = GetUniformLocation(mImageProgram, "u_clipbounds");
+    mImageProgramTexMode = GetUniformLocation(mImageProgram, "u_texmode");
     if (!mImageProgramViewport || !mImageProgramAA || !mImageProgramTransform ||
         !mImageProgramTexMatrix || !mImageProgramTexBounds ||
         !mImageProgramSwizzle || !mImageProgramColor || !mImageProgramSampler ||
-        !mImageProgramClipMask || !mImageProgramClipBounds) {
+        !mImageProgramClipMask || !mImageProgramClipBounds ||
+        !mImageProgramTexMode) {
       return false;
     }
     mWebgl->UseProgram(mImageProgram);
@@ -2669,10 +2618,9 @@ bool SharedContextWebgl::UploadSurface(DataSourceSurface* aData,
     Span<const uint8_t> range(
         map->GetData() + srcRect.y * size_t(stride) + srcRect.x * bpp,
         std::max(srcRect.height - 1, 0) * size_t(stride) + srcRect.width * bpp);
-    // Use the shared upload PBO if the data can fit within it. We always use a
-    // fixed size to help allocation performance. Avoid on D3D ANGLE where
-    // testing has shown this to be a performance loss.
-    if (range.Length() <= kUploadBufferSize && !mWebgl->GL()->IsD3DANGLE()) {
+    // Use the shared upload PBO if enabled and the data can fit within it. We
+    // always use a fixed size to help allocation performance.
+    if (mUseUploadBuffer && range.Length() <= kUploadBufferSize) {
       CheckedInt<size_t> uploadOffset =
           RoundUpToMultipleOf(CheckedInt<size_t>(mUploadBufferOffset), 4);
       if (!uploadOffset.isValid()) {
@@ -2807,6 +2755,7 @@ void SharedContextWebgl::BindAndInitRenderTex(const RefPtr<WebGLTexture>& aTex,
                                               SurfaceFormat aFormat,
                                               const IntSize& aSize) {
   mWebgl->BindTexture(LOCAL_GL_TEXTURE_2D, aTex);
+  mWebgl->HintTexRenderTarget(LOCAL_GL_TEXTURE_2D);
   mWebgl->TexStorage(
       LOCAL_GL_TEXTURE_2D, 1,
       aFormat == SurfaceFormat::A8 ? LOCAL_GL_R8 : LOCAL_GL_RGBA8,
@@ -3051,6 +3000,36 @@ void SharedContextWebgl::MaybeUniformData(GLenum aFuncElemType,
   }
 }
 
+void SharedContextWebgl::SetProgram(const RefPtr<WebGLProgram>& aProgram) {
+  if (mLastProgram != aProgram) {
+    mWebgl->UseProgram(aProgram);
+    mLastProgram = aProgram;
+  }
+}
+
+void SharedContextWebgl::SetImageProgram(bool aTexMode) {
+  SetProgram(mImageProgram);
+  // For the image program, the texture mode must be specified toggle texture
+  // sampling.
+  Array<int32_t, 1> texModeData = {aTexMode ? 1 : 0};
+  MaybeUniformData(LOCAL_GL_BOOL, mImageProgramTexMode, texModeData,
+                   mImageProgramUniformState.mTexMode);
+}
+
+void SharedContextWebgl::SetSolidColorProgram() {
+  SetImageProgram(false);
+  // Set the current texture to a known safe texture that can't also be bound to
+  // the framebuffer so as to avoid undefined behavior. It will not actually be
+  // sampled by the shader since texture mode is toggled off.
+  if (!InitSolidMask(0)) {
+    mWebgl->BindTexture(LOCAL_GL_TEXTURE_2D, nullptr);
+    mLastTexture = nullptr;
+  } else if (mLastTexture != mSolidMask) {
+    mWebgl->BindTexture(LOCAL_GL_TEXTURE_2D, mSolidMask);
+    mLastTexture = mSolidMask;
+  }
+}
+
 inline void SharedContextWebgl::DrawQuad() {
   mWebgl->DrawArraysInstanced(LOCAL_GL_TRIANGLE_FAN, 0, 4, 1);
 }
@@ -3211,27 +3190,25 @@ bool SharedContextWebgl::DrawRectAccel(
       SetBlendState(aOptions.mCompositionOp, blendColor, aBlendStage);
       // Since it couldn't be mapped to a scissored clear, we need to use the
       // solid color shader with supplied transform.
-      if (mLastProgram != mSolidProgram) {
-        mWebgl->UseProgram(mSolidProgram);
-        mLastProgram = mSolidProgram;
-      }
+      SetSolidColorProgram();
+
       Array<float, 2> viewportData = {float(mViewportSize.width),
                                       float(mViewportSize.height)};
-      MaybeUniformData(LOCAL_GL_FLOAT_VEC2, mSolidProgramViewport, viewportData,
-                       mSolidProgramUniformState.mViewport);
+      MaybeUniformData(LOCAL_GL_FLOAT_VEC2, mImageProgramViewport, viewportData,
+                       mImageProgramUniformState.mViewport);
 
       // Generated paths provide their own AA as vertex alpha.
       Array<float, 1> aaData = {aVertexRange ? 0.0f : 1.0f};
-      MaybeUniformData(LOCAL_GL_FLOAT, mSolidProgramAA, aaData,
-                       mSolidProgramUniformState.mAA);
+      MaybeUniformData(LOCAL_GL_FLOAT, mImageProgramAA, aaData,
+                       mImageProgramUniformState.mAA);
 
       // Offset the clip AA bounds by 0.5 to ensure AA falls to 0 at pixel
       // boundary.
       Array<float, 4> clipData = {mClipAARect.x - 0.5f, mClipAARect.y - 0.5f,
                                   mClipAARect.XMost() + 0.5f,
                                   mClipAARect.YMost() + 0.5f};
-      MaybeUniformData(LOCAL_GL_FLOAT_VEC4, mSolidProgramClipBounds, clipData,
-                       mSolidProgramUniformState.mClipBounds);
+      MaybeUniformData(LOCAL_GL_FLOAT_VEC4, mImageProgramClipBounds, clipData,
+                       mImageProgramUniformState.mClipBounds);
 
       Array<float, 4> colorData = {color.b, color.g, color.r, color.a};
       Matrix xform(aRect.width, 0.0f, 0.0f, aRect.height, aRect.x, aRect.y);
@@ -3240,11 +3217,11 @@ bool SharedContextWebgl::DrawRectAccel(
       }
       Array<float, 6> xformData = {xform._11, xform._12, xform._21,
                                    xform._22, xform._31, xform._32};
-      MaybeUniformData(LOCAL_GL_FLOAT_VEC2, mSolidProgramTransform, xformData,
-                       mSolidProgramUniformState.mTransform);
+      MaybeUniformData(LOCAL_GL_FLOAT_VEC2, mImageProgramTransform, xformData,
+                       mImageProgramUniformState.mTransform);
 
-      MaybeUniformData(LOCAL_GL_FLOAT_VEC4, mSolidProgramColor, colorData,
-                       mSolidProgramUniformState.mColor);
+      MaybeUniformData(LOCAL_GL_FLOAT_VEC4, mImageProgramColor, colorData,
+                       mImageProgramUniformState.mColor);
 
       // Finally draw the colored rectangle.
       if (aVertexRange) {
@@ -3403,10 +3380,7 @@ bool SharedContextWebgl::DrawRectAccel(
                     format != SurfaceFormat::A8 ? aMaskColor : Nothing(),
                     aBlendStage);
       // Switch to the image shader and set up relevant transforms.
-      if (mLastProgram != mImageProgram) {
-        mWebgl->UseProgram(mImageProgram);
-        mLastProgram = mImageProgram;
-      }
+      SetImageProgram();
 
       Array<float, 2> viewportData = {float(mViewportSize.width),
                                       float(mViewportSize.height)};
@@ -3691,10 +3665,7 @@ bool SharedContextWebgl::FilterRect(const Rect& aDestRect,
   }
 
   // Switch to the filter shader and set up relevant transforms.
-  if (mLastProgram != mFilterProgram) {
-    mWebgl->UseProgram(mFilterProgram);
-    mLastProgram = mFilterProgram;
-  }
+  SetProgram(mFilterProgram);
 
   Array<float, 2> viewportData = {float(viewportSize.width),
                                   float(viewportSize.height)};
@@ -3883,10 +3854,7 @@ bool SharedContextWebgl::BlurRectPass(
   }
 
   // Switch to the blur shader and set up relevant transforms.
-  if (mLastProgram != mBlurProgram) {
-    mWebgl->UseProgram(mBlurProgram);
-    mLastProgram = mBlurProgram;
-  }
+  SetProgram(mBlurProgram);
 
   Array<float, 2> viewportData = {float(viewportSize.width),
                                   float(viewportSize.height)};
@@ -4580,7 +4548,7 @@ inline bool PathCacheEntry::MatchesPath(
     const QuantizedPath& aPath, const Pattern* aPattern,
     const StrokeOptions* aStrokeOptions, AAStrokeMode aStrokeMode,
     const Matrix& aTransform, const IntRect& aBounds, const Point& aOrigin,
-    HashNumber aHash, float aSigma) {
+    const Point& aPatternOffset, HashNumber aHash, float aSigma) {
   return aHash == mHash && HasMatchingScale(aTransform, mTransform) &&
          // Ensure the clipped relative bounds fit inside those of the entry
          aBounds.x - aOrigin.x >= mBounds.x - mOrigin.x &&
@@ -4590,7 +4558,13 @@ inline bool PathCacheEntry::MatchesPath(
          (aBounds.y - aOrigin.y) + aBounds.height <=
              (mBounds.y - mOrigin.y) + mBounds.height &&
          aPath == mPath &&
-         (!aPattern ? !mPattern : mPattern && *aPattern == *mPattern) &&
+         // The path may move independently of the pattern, so a pattern
+         // rasterized into a texture is only reusable at the same offset
+         // relative to the path.
+         (!aPattern
+              ? !mPattern
+              : mPattern && *aPattern == *mPattern &&
+                    (!HasBakedTexture() || aPatternOffset == mPatternOffset)) &&
          (!aStrokeOptions
               ? !mStrokeOptions
               : mStrokeOptions && *aStrokeOptions == *mStrokeOptions &&
@@ -4620,12 +4594,13 @@ already_AddRefed<PathCacheEntry> PathCache::FindOrInsertEntry(
     QuantizedPath aPath, const Pattern* aPattern,
     const StrokeOptions* aStrokeOptions, AAStrokeMode aStrokeMode,
     const Matrix& aTransform, const IntRect& aBounds, const Point& aOrigin,
-    float aSigma) {
+    const Point& aPatternOffset, float aSigma) {
   HashNumber hash =
       PathCacheEntry::HashPath(aPath, aPattern, aTransform, aBounds, aOrigin);
   for (PathCacheEntry* entry : GetChain(hash)) {
     if (entry->MatchesPath(aPath, aPattern, aStrokeOptions, aStrokeMode,
-                           aTransform, aBounds, aOrigin, hash, aSigma)) {
+                           aTransform, aBounds, aOrigin, aPatternOffset, hash,
+                           aSigma)) {
       return do_AddRef(entry);
     }
   }
@@ -4656,12 +4631,13 @@ already_AddRefed<PathCacheEntry> PathCache::FindEntry(
     const QuantizedPath& aPath, const Pattern* aPattern,
     const StrokeOptions* aStrokeOptions, AAStrokeMode aStrokeMode,
     const Matrix& aTransform, const IntRect& aBounds, const Point& aOrigin,
-    float aSigma, bool aHasSecondaryHandle) {
+    const Point& aPatternOffset, float aSigma, bool aHasSecondaryHandle) {
   HashNumber hash =
       PathCacheEntry::HashPath(aPath, aPattern, aTransform, aBounds, aOrigin);
   for (PathCacheEntry* entry : GetChain(hash)) {
     if (entry->MatchesPath(aPath, aPattern, aStrokeOptions, aStrokeMode,
-                           aTransform, aBounds, aOrigin, hash, aSigma) &&
+                           aTransform, aBounds, aOrigin, aPatternOffset, hash,
+                           aSigma) &&
         (!aHasSecondaryHandle || (entry->GetSecondaryHandle() &&
                                   entry->GetSecondaryHandle()->IsValid()))) {
       return do_AddRef(entry);
@@ -5049,27 +5025,25 @@ already_AddRefed<TextureHandle> SharedContextWebgl::DrawStrokeMask(
   SetBlendState(CompositionOp::OP_OVER);
 
   // Set up the solid color shader to draw a simple opaque mask.
-  if (mLastProgram != mSolidProgram) {
-    mWebgl->UseProgram(mSolidProgram);
-    mLastProgram = mSolidProgram;
-  }
+  SetSolidColorProgram();
+
   Array<float, 2> viewportData = {float(texBounds.width),
                                   float(texBounds.height)};
-  MaybeUniformData(LOCAL_GL_FLOAT_VEC2, mSolidProgramViewport, viewportData,
-                   mSolidProgramUniformState.mViewport);
+  MaybeUniformData(LOCAL_GL_FLOAT_VEC2, mImageProgramViewport, viewportData,
+                   mImageProgramUniformState.mViewport);
   Array<float, 1> aaData = {0.0f};
-  MaybeUniformData(LOCAL_GL_FLOAT, mSolidProgramAA, aaData,
-                   mSolidProgramUniformState.mAA);
+  MaybeUniformData(LOCAL_GL_FLOAT, mImageProgramAA, aaData,
+                   mImageProgramUniformState.mAA);
   Array<float, 4> clipData = {-0.5f, -0.5f, float(texBounds.width) + 0.5f,
                               float(texBounds.height) + 0.5f};
-  MaybeUniformData(LOCAL_GL_FLOAT_VEC4, mSolidProgramClipBounds, clipData,
-                   mSolidProgramUniformState.mClipBounds);
+  MaybeUniformData(LOCAL_GL_FLOAT_VEC4, mImageProgramClipBounds, clipData,
+                   mImageProgramUniformState.mClipBounds);
   Array<float, 4> colorData = {1.0f, 1.0f, 1.0f, 1.0f};
-  MaybeUniformData(LOCAL_GL_FLOAT_VEC4, mSolidProgramColor, colorData,
-                   mSolidProgramUniformState.mColor);
+  MaybeUniformData(LOCAL_GL_FLOAT_VEC4, mImageProgramColor, colorData,
+                   mImageProgramUniformState.mColor);
   Array<float, 6> xformData = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
-  MaybeUniformData(LOCAL_GL_FLOAT_VEC2, mSolidProgramTransform, xformData,
-                   mSolidProgramUniformState.mTransform);
+  MaybeUniformData(LOCAL_GL_FLOAT_VEC2, mImageProgramTransform, xformData,
+                   mImageProgramUniformState.mTransform);
 
   // Ensure the current clip mask is ignored.
   RefPtr<WebGLTexture> prevClipMask = mLastClipMask;
@@ -5090,7 +5064,7 @@ bool SharedContextWebgl::DrawWGRPath(
     const Matrix& aPathXform, RefPtr<PathCacheEntry>& aEntry,
     const DrawOptions& aOptions, const StrokeOptions* aStrokeOptions,
     AAStrokeMode aAAStrokeMode, const Pattern& aPattern,
-    const Maybe<DeviceColor>& aColor) {
+    const Point& aPatternOffset, const Maybe<DeviceColor>& aColor) {
   const PathSkia* pathSkia = static_cast<const PathSkia*>(aPath);
   const Matrix& currentTransform = mCurrentTarget->GetTransform();
   if (aEntry->GetVertexRange().IsValid()) {
@@ -5231,7 +5205,7 @@ bool SharedContextWebgl::DrawWGRPath(
             DrawStrokeMask(vertexRange, aIntBounds.Size())) {
       // Finally, draw the rendered stroke mask.
       if (aEntry) {
-        aEntry->Link(handle);
+        aEntry->Link(handle, aPatternOffset);
       }
       mCurrentTarget->mProfile.OnCacheMiss();
       SurfacePattern maskPattern(nullptr, ExtendMode::CLAMP,
@@ -5315,6 +5289,11 @@ bool SharedContextWebgl::DrawPathAccel(
   }
   // Nudge the bounds to account for the quantization rounding.
   Rect quantBounds = Rect(intBounds) + (realOrigin - quantizedOrigin);
+  // Quantize the pattern offset relative to the path to increase the reuse of
+  // cache entries with baked patterns.
+  Point patternOffset = (currentTransform.GetTranslation() - realOrigin) * 4.0f;
+  patternOffset.Round();
+  patternOffset = patternOffset / 4.0f;
   // If the pattern is a solid color, then this will be used along with a path
   // mask to render the path, as opposed to baking the pattern into the cached
   // path texture.
@@ -5335,7 +5314,7 @@ bool SharedContextWebgl::DrawPathAccel(
   RefPtr<TextureHandle> handle;
   if (aCacheable) {
     if (!mPathCache) {
-      mPathCache = MakeUnique<PathCache>();
+      mPathCache = std::make_unique<PathCache>();
     }
     // Use a quantized, relative (to its bounds origin) version of the path as
     // a cache key to help limit cache bloat.
@@ -5347,7 +5326,7 @@ bool SharedContextWebgl::DrawPathAccel(
     entry = mPathCache->FindOrInsertEntry(
         std::move(*qp), color ? nullptr : &aPattern, aStrokeOptions,
         aaStrokeMode, currentTransform, intBounds, quantizedOrigin,
-        aShadow ? aShadow->mSigma : -1.0f);
+        patternOffset, aShadow ? aShadow->mSigma : -1.0f);
     if (!entry) {
       return false;
     }
@@ -5395,14 +5374,14 @@ bool SharedContextWebgl::DrawPathAccel(
                                                       aPattern)) {
         if (DrawWGRPath(aPath, intBounds, quantBounds, pathXform, entry,
                         aOptions, aStrokeOptions, aaStrokeMode, gradient.ref(),
-                        color)) {
+                        patternOffset, color)) {
           return true;
         }
       }
     } else if (SupportsPattern(aPattern) &&
                DrawWGRPath(aPath, intBounds, quantBounds, pathXform, entry,
                            aOptions, aStrokeOptions, aaStrokeMode, aPattern,
-                           color)) {
+                           patternOffset, color)) {
       return true;
     }
   }
@@ -5429,7 +5408,7 @@ bool SharedContextWebgl::DrawPathAccel(
     if (RefPtr<PathCacheEntry> similarEntry = mPathCache->FindEntry(
             entry->GetPath(), color ? nullptr : &aPattern, aStrokeOptions,
             aaStrokeMode, currentTransform, intBounds, quantizedOrigin,
-            kIgnoreSigma, true)) {
+            patternOffset, kIgnoreSigma, true)) {
       if (RefPtr<TextureHandle> inputHandle =
               similarEntry->GetSecondaryHandle().get()) {
         if (inputHandle->IsValid() &&
@@ -5437,7 +5416,7 @@ bool SharedContextWebgl::DrawPathAccel(
                           nullptr, IntRect(), aOptions, shadowColor,
                           &inputHandle, &handle)) {
           if (entry) {
-            entry->Link(handle);
+            entry->Link(handle, patternOffset);
             entry->SetSecondaryHandle(WeakPtr(inputHandle));
           }
           return true;
@@ -5507,7 +5486,7 @@ bool SharedContextWebgl::DrawPathAccel(
                             pathSurface, IntRect(), aOptions, shadowColor,
                             &inputHandle, &handle)) {
             if (entry) {
-              entry->Link(handle);
+              entry->Link(handle, patternOffset);
               entry->SetSecondaryHandle(WeakPtr(inputHandle));
             }
           } else if (entry) {
@@ -5538,7 +5517,7 @@ bool SharedContextWebgl::DrawPathAccel(
                         &handle, false, true) &&
           handle) {
         if (entry) {
-          entry->Link(handle);
+          entry->Link(handle, patternOffset);
         }
       } else if (entry) {
         entry->Unlink();

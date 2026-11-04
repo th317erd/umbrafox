@@ -5,8 +5,8 @@
 import { html, nothing } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 import { httpUrl } from "chrome://browser/content/aiwindow/modules/AITabUtils.mjs";
-// eslint-disable-next-line import/no-unassigned-import
-import "chrome://browser/content/aiwindow/components/ai-website-chip.mjs";
+// eslint-disable-next-line import-x/no-unassigned-import
+import "chrome://browser/content/aiwindow/components/smartwindow-chip.mjs";
 
 /**
  * A column of the table, as described by the RankedTable `Field` schema in
@@ -193,15 +193,14 @@ export class AITabTable extends MozLitElement {
     if (!url) {
       return nothing;
     }
-    return html`<ai-website-chip
+    return html`<smartwindow-chip
       class="aitab-table-source"
-      type="context-chip"
-      size="small"
+      type="source"
       .label=${url.hostname}
       .href=${url.href}
       .iconSrc=${`page-icon:${url.href}`}
       openLinkEvent="AITab:OpenLink"
-    ></ai-website-chip>`;
+    ></smartwindow-chip>`;
   }
 
   #renderRow(row, { title, subtitles, details }) {
@@ -238,9 +237,7 @@ export class AITabTable extends MozLitElement {
       />
       <section class="aitab-table">
         ${this.heading
-          ? html`<h2 id="heading" class="aitab-table-heading">
-              ${this.heading}
-            </h2>`
+          ? html`<h2 id="heading" class="aitab-heading-3">${this.heading}</h2>`
           : nothing}
         ${this.description
           ? html`<p class="aitab-table-description">${this.description}</p>`

@@ -35,7 +35,7 @@
 //! - Push potentially multiple commands to command buffers.
 //!
 
-use api::{ColorF, DebugFlags, ExtendMode, ExternalImageData, ExternalImageType, GradientStop, ImageBufferKind};
+use api::{AlphaMode, ColorF, DebugFlags, ExtendMode, ExternalImageData, ExternalImageType, GradientStop, ImageBufferKind, PrimitiveFlags};
 use crate::border_image::prepare_border_image_nine_patch;
 use crate::pattern::cutout::Cutout;
 use crate::render_task_graph::RenderTaskId;
@@ -72,7 +72,7 @@ use crate::tile_cache::{SliceId, TileCacheInstance};
 use crate::prim_store::*;
 use crate::quad::{self, QuadDescriptor, QuadTransformState};
 use crate::quad_clip::QuadClipStack;
-use crate::render_backend::DataStores;
+use crate::render_backend::{DataStores, DlStores};
 use crate::scene_debug::{HighlightMode, SceneDebugOverride};
 
 
@@ -92,6 +92,7 @@ pub fn prepare_picture(
     frame_context: &FrameBuildingContext,
     frame_state: &mut FrameBuildingState,
     data_stores: &DataStores,
+    dl_stores: &DlStores,
     scratch: &mut PrimitiveScratchBuffer,
     tile_caches: &mut FastHashMap<SliceId, Box<TileCacheInstance>>,
     prim_instances: &mut Vec<PrimitiveInstance>,
@@ -129,13 +130,13 @@ pub fn prepare_picture(
         frame_context,
         frame_state,
         data_stores,
+        dl_stores,
         scratch,
         tile_caches,
         prim_instances,
     );
 
     store.pictures[pic_context.pic_index.0 as usize].restore_context(
-        pic_context.pic_index,
         pic_context,
         frame_context,
         frame_state,
@@ -152,6 +153,7 @@ fn prepare_primitives(
     frame_context: &FrameBuildingContext,
     frame_state: &mut FrameBuildingState,
     data_stores: &DataStores,
+    dl_stores: &DlStores,
     scratch: &mut PrimitiveScratchBuffer,
     tile_caches: &mut FastHashMap<SliceId, Box<TileCacheInstance>>,
     prim_instances: &mut Vec<PrimitiveInstance>,
@@ -202,6 +204,7 @@ fn prepare_primitives(
                 frame_state,
                 plane_split_anchor,
                 data_stores,
+                dl_stores,
                 scratch,
                 tile_caches,
                 prim_instances,
@@ -253,6 +256,7 @@ fn prepare_prim_for_render(
     frame_state: &mut FrameBuildingState,
     plane_split_anchor: PlaneSplitAnchor,
     data_stores: &DataStores,
+    dl_stores: &DlStores,
     scratch: &mut PrimitiveScratchBuffer,
     tile_caches: &mut FastHashMap<SliceId, Box<TileCacheInstance>>,
     prim_instances: &mut Vec<PrimitiveInstance>,
@@ -276,6 +280,7 @@ fn prepare_prim_for_render(
                 &prim_info.clip_chain,
                 &frame_state.surfaces[pic_context.surface_index.0],
                 &data_stores.clip,
+                frame_context.dl_stores,
             );
 
             quad::prepare_quad(
@@ -336,6 +341,7 @@ fn prepare_prim_for_render(
             frame_context,
             frame_state,
             data_stores,
+            dl_stores,
             scratch,
             tile_caches,
             prim_instances,
@@ -396,13 +402,14 @@ fn prepare_prim_for_render(
         &prim_info.clip_chain,
         &frame_state.surfaces[pic_context.surface_index.0],
         &data_stores.clip,
+        frame_context.dl_stores,
     );
 
     match &mut prim_instance.kind {
-        PrimitiveKind::BoxShadow { data_handle, .. } => {
+        PrimitiveKind::BoxShadow { handle } => {
             tracy_rs::profile_scope!("BoxShadow");
 
-            let prim_data = &data_stores.box_shadow[*data_handle];
+            let prim_data = &dl_stores.box_shadows[*handle];
 
             prepare_box_shadow(
                 &prim_data.kind,
@@ -421,9 +428,9 @@ fn prepare_prim_for_render(
 
             return;
         }
-        PrimitiveKind::LineDecoration { data_handle } => {
+        PrimitiveKind::LineDecoration { handle } => {
             tracy_rs::profile_scope!("LineDecoration");
-            let prim_data = &data_stores.line_decoration[*data_handle];
+            let prim_data = &dl_stores.line_decorations[*handle];
             let line_dec_data = &prim_data.kind;
 
             let task = prim_data.kind.prepare(
@@ -539,6 +546,7 @@ fn prepare_prim_for_render(
                 &transform.to_transform().with_destination::<_>(),
                 surface,
                 prim_spatial_node_index,
+                pic_context.shadow_offset,
                 allow_subpixel,
                 frame_context.fb_config.low_quality_pinch_zoom,
                 frame_state.resource_cache,
@@ -565,6 +573,7 @@ fn prepare_prim_for_render(
                 },
                 quad_clips,
                 quad_transform,
+                !prim_data.common.flags.contains(PrimitiveFlags::ANTIALISED),
                 frame_context,
                 targets,
                 frame_state,
@@ -612,10 +621,10 @@ fn prepare_prim_for_render(
 
             return;
         }
-        PrimitiveKind::Rectangle { data_handle, .. } => {
+        PrimitiveKind::Rectangle { handle } => {
             tracy_rs::profile_scope!("Rectangle");
 
-            let prim_data = &data_stores.prim[*data_handle];
+            let prim_data = &dl_stores.rectangles[*handle];
             let prim_rect = prim_info.snapped_pattern_rect;
             let color = prim_data.resolve(frame_context.scene_properties);
 
@@ -638,9 +647,9 @@ fn prepare_prim_for_render(
 
             return;
         }
-        PrimitiveKind::YuvImage { data_handle, .. } => {
+        PrimitiveKind::YuvImage { handle } => {
             tracy_rs::profile_scope!("YuvImage");
-            let prim_data = &data_stores.yuv_image[*data_handle];
+            let prim_data = &dl_stores.yuv_images[*handle];
             let common_data = &prim_data.common;
             let yuv_image_data = &prim_data.kind;
 
@@ -703,10 +712,10 @@ fn prepare_prim_for_render(
 
             return;
         }
-        PrimitiveKind::Image { data_handle, opacity } => {
+        PrimitiveKind::Image { handle } => {
             tracy_rs::profile_scope!("Image");
 
-            let prim_data = &data_stores.image[*data_handle];
+            let prim_data = &dl_stores.images[*handle];
             let common_data = &prim_data.common;
             let image_data = &prim_data.kind;
 
@@ -737,7 +746,6 @@ fn prepare_prim_for_render(
                 &prim_rect,
                 common_data,
                 image_data,
-                *opacity,
                 &prim_info.clip_chain.local_coverage_rect,
                 quad_clips,
                 quad_transform,
@@ -822,6 +830,7 @@ fn prepare_prim_for_render(
                         let pattern = LinearGradientSegmentPattern {
                             start: seg_start,
                             end: seg_end,
+                            alpha_mode: prim_data.alpha_mode,
                             stops: seg_stops,
                         };
                         quad::prepare_quad(
@@ -829,8 +838,8 @@ fn prepare_prim_for_render(
                             &QuadDescriptor {
                                 pattern_rect: *seg_rect,
                                 bounds: *seg_rect,
-                                aligned_aa_edges: EdgeMask::empty(),
-                                transformed_aa_edges: edge_aa_mask,
+                                aligned_aa_edges: prim_data.common.aligned_aa_edges & edge_aa_mask,
+                                transformed_aa_edges: prim_data.common.transformed_aa_edges & edge_aa_mask,
                             },
                             &None,
                             quad_clips,
@@ -1055,10 +1064,8 @@ fn prepare_prim_for_render(
             return;
         }
         PrimitiveKind::BackdropCapture { .. } => {
-            // Register the owner picture of this backdrop primitive as the
-            // target for resolve of the sub-graph
-            frame_state.surface_builder.register_resolve_source();
-
+            // The primitives behind the backdrop-filter were drawn into this
+            // surface already.
             if frame_context.debug_flags.contains(DebugFlags::HIGHLIGHT_BACKDROP_FILTERS) {
                 if let Some(device_rect) = pic_state.map_pic_to_device.map(&prim_info.clip_chain.pic_coverage_rect) {
                     scratch.push_debug_rect(
@@ -1068,23 +1075,46 @@ fn prepare_prim_for_render(
                         ColorF::TRANSPARENT,
                     );
                 }
+
+                // The region the filter chain samples, in the backdrop root's
+                // picture space, which the capture picture shares.
+                let region = scratch.frame.backdrop_captures.for_picture(pic_context.pic_index)
+                    .map(|capture| capture.region);
+                if let Some(device_rect) = region.and_then(|region| pic_state.map_pic_to_device.map(&region)) {
+                    scratch.push_debug_rect(
+                        device_rect,
+                        1,
+                        crate::debug_colors::YELLOW,
+                        ColorF::TRANSPARENT,
+                    );
+                }
             }
         }
         PrimitiveKind::BackdropRender { pic_index, data_handle, .. } => {
-            match frame_state.surface_builder.sub_graph_output_map.get(pic_index).cloned() {
-                Some(sub_graph_output_id) => {
+            // The filter chain's output is its outermost picture's task, if
+            // its capture was drawn.
+            let is_drawn = scratch.frame.backdrop_captures.for_chain(*pic_index)
+                .is_some_and(|capture| {
+                    frame_state.picture_scratch_handles[capture.capture_pic_index.0 as usize].is_some()
+                });
+            let chain_output_id = frame_state.picture_scratch_handles[pic_index.0 as usize]
+                .filter(|_| is_drawn)
+                .and_then(|handle| scratch.frame.pictures[handle].primary_render_task_id);
+
+            match chain_output_id {
+                Some(chain_output_id) => {
                     frame_state.surface_builder.add_child_render_task(
-                        sub_graph_output_id,
+                        chain_output_id,
                         frame_state.rg_builder,
                     );
 
                     // Compute the four homogeneous screen-space uv corners that map
                     // the primitive rect into the captured backdrop. This mirrors the
                     // legacy brush path in batch.rs.
-                    let pic_task = frame_state.rg_builder.get_task(sub_graph_output_id);
+                    let pic_task = frame_state.rg_builder.get_task(chain_output_id);
                     let uv_rect_kind = pic_task.uv_rect_kind();
                     let RenderTaskKind::Picture(info) = &pic_task.kind else {
-                        unreachable!("bug: backdrop sub-graph output is not a picture");
+                        unreachable!("bug: backdrop-filter chain output is not a picture");
                     };
                     // The shader maps the bilinearly-interpolated screen uv into the
                     // backdrop's texture-cache rect (the segment uv rect), which is
@@ -1155,7 +1185,7 @@ fn prepare_prim_for_render(
                     let transformed_aa_edges = prim_data.common.transformed_aa_edges;
 
                     let pattern = BackdropPattern {
-                        src_task_id: sub_graph_output_id,
+                        src_task_id: chain_output_id,
                         uvs,
                     };
 
@@ -1179,8 +1209,8 @@ fn prepare_prim_for_render(
                     return;
                 }
                 None => {
-                    // Backdrop capture was found not visible, didn't produce a sub-graph
-                    // so we can just skip drawing
+                    // The backdrop capture was found not visible, so there is no
+                    // output to draw
                     scratch.frame.draw_mut(draw_index).mark_culled();
                 }
             }
@@ -1238,6 +1268,7 @@ fn add_clip_mask_render_task(
         &mut quad_clips,
         clip_node_range,
         clips,
+        frame_context.dl_stores,
     );
 
     quad::prepare_clip_range(
@@ -1343,6 +1374,7 @@ fn adjust_mask_scale_for_max_size(device_rect: DeviceIntRect, device_pixel_scale
 struct LinearGradientSegmentPattern {
     start: LayoutVector2D,
     end: LayoutVector2D,
+    alpha_mode: AlphaMode,
     stops: [GradientStop; 2],
 }
 
@@ -1356,6 +1388,7 @@ impl PatternBuilder for LinearGradientSegmentPattern {
             pattern_rect.min + self.start,
             pattern_rect.min + self.end,
             ExtendMode::Clamp,
+            self.alpha_mode,
             &self.stops,
             state.frame_gpu_data,
         )

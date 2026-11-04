@@ -323,18 +323,6 @@ class Settings(
     private val homescreenSections: Map<HomeScreenSection, Boolean>
         get() = FxNimbus.features.homescreen.value().sectionsEnabled
 
-    /** Indicates if the recent tabs homepage section settings should be visible */
-    val showHomepageRecentTabsSectionToggle: Boolean
-        get() = !enableHomepageSearchBar
-
-    /** Indicates if the bookmarks homepage section settings should be visible */
-    val showHomepageBookmarksSectionToggle: Boolean
-        get() = !enableHomepageSearchBar
-
-    /** Indicates if the recently visited homepage section settings should be visible */
-    val showHomepageRecentlyVisitedSectionToggle: Boolean
-        get() = !enableHomepageSearchBar
-
     /** Indicates whether or not the homepage should use edge to edge background */
     val enableHomepageEdgeToEdgeBackgroundFeature: Boolean
         get() = FxNimbus.features.homescreenEdgeToEdgeBackground.value().enabled
@@ -525,6 +513,12 @@ class Settings(
     var isUserSkyflagAttributed by
         booleanPreference(
             appContext.getPreferenceKey(R.string.pref_key_is_user_skyflag_attributed),
+            default = false,
+        )
+
+    var isUserQuoraAttributed by
+        booleanPreference(
+            appContext.getPreferenceKey(R.string.pref_key_is_user_quora_attributed),
             default = false,
         )
 
@@ -1980,11 +1974,13 @@ class Settings(
         )
 
     /**
-     * Whether this device supports the application's own autofill and password management. Both are disabled on Android
-     * Automotive OS for now until we meet specific Google requirements around protecting passwords and credit card
-     * information in cars.
+     * Whether this device supports the application's own autofill, password management, and password and credit card
+     * sync. Always true except on Android Automotive OS, where the `automotive-sensitive-data` Nimbus feature must be
+     * enabled.
      */
-    val isAutofillSupported: Boolean by lazy { !appContext.isAndroidAutomotiveAvailable() }
+    val isAutofillSupported: Boolean by lazy {
+        !appContext.isAndroidAutomotiveAvailable() || FxNimbus.features.automotiveSensitiveData.value().enabled
+    }
 
     var shouldPromptToSaveLogins by
         booleanPreference(
@@ -2022,6 +2018,13 @@ class Settings(
         booleanPreference(
             appContext.getPreferenceKey(R.string.pref_key_search_widget_installed_2),
             default = false,
+        )
+
+    /** The app version code that last published the generated search bar widget previews. */
+    var searchBarWidgetPreviewsVersion by
+        intPreference(
+            appContext.getPreferenceKey(R.string.pref_key_search_bar_widget_previews_version),
+            default = 0,
         )
 
     /** Indicates if the "pocket_recommendations" database has been deleted. */
@@ -2100,6 +2103,19 @@ class Settings(
                     true -> appContext.getString(R.string.pref_key_open_links_in_apps_ask)
                     false -> appContext.getString(R.string.pref_key_open_links_in_apps_never)
                 },
+        )
+
+    var openLinksInYoutube by
+        stringPreference(
+            key = appContext.getPreferenceKey(R.string.pref_key_open_links_in_youtube),
+            default = appContext.getString(R.string.pref_key_open_links_in_youtube_never),
+        )
+
+    /** Whether the in-development open links in YouTube app preference is revealed via secret settings. */
+    var openLinksInYoutubeFeatureEnabled by
+        booleanPreference(
+            key = appContext.getPreferenceKey(R.string.pref_key_open_links_in_youtube_feature_enabled),
+            default = false,
         )
 
     var overrideFxAServer by
@@ -2519,6 +2535,16 @@ class Settings(
             default = { FxNimbus.features.remoteSearchConfiguration.value().enabled },
         )
 
+    /**
+     * Indicates whether to read search configuration from the `search-config-v3` Remote Settings collection instead of
+     * `search-config-v2`.
+     */
+    var useSearchConfigV3 by
+        booleanPreference(
+            key = appContext.getPreferenceKey(R.string.pref_key_use_search_config_v3),
+            default = { FxNimbus.features.searchConfigV3.value().enabled },
+        )
+
     /** Get the current mode for how https-only is enabled. */
     fun getHttpsOnlyMode(): HttpsOnlyMode {
         return if (!shouldUseHttpsOnly) {
@@ -2636,6 +2662,13 @@ class Settings(
             default = false,
         )
 
+    /**
+     * Indicates if the homepage search bar should replace the address bar. The homepage search bar is only laid out in
+     * the middle of the homepage while the address bar is at the top.
+     */
+    val isHomepageMiddleSearchEnabled: Boolean
+        get() = enableHomepageSearchBar && toolbarPosition == ToolbarPosition.TOP
+
     /** Indicates if the Mozilla Ads Client for Sponsored Stories is enabled. */
     var enableAdsClientForStories by
         booleanPreference(
@@ -2662,6 +2695,20 @@ class Settings(
         booleanPreference(
             key = appContext.getPreferenceKey(R.string.pref_key_show_homepage_weather_widget),
             default = true,
+        )
+
+    /** Indicates if the Homepage Wrexham Widget is enabled. */
+    var enableHomepageWrexhamWidget by
+        booleanPreference(
+            key = appContext.getPreferenceKey(R.string.pref_key_enable_homepage_wrexham_widget),
+            default = { FxNimbus.features.homepageWrexhamWidget.value().enabled },
+        )
+
+    /** Indicates if the Homepage Wrexham Widget should be visible on the homepage. */
+    var showHomepageWrexhamWidget by
+        booleanPreference(
+            key = appContext.getPreferenceKey(R.string.pref_key_show_homepage_wrexham_widget),
+            default = false,
         )
 
     /** Adjust Activated User sent */
@@ -2956,13 +3003,6 @@ class Settings(
     var shakeToSummarizeToolbarCfrShown by
         booleanPreference(
             key = appContext.getPreferenceKey(R.string.pref_key_summarize_toolbar_cfr_shown),
-            default = false,
-        )
-
-    /** Indicates if a microsurvey should be shown to the user. */
-    var shouldShowMicrosurveyPrompt by
-        booleanPreference(
-            appContext.getPreferenceKey(R.string.pref_key_should_show_microsurvey_prompt),
             default = false,
         )
 
@@ -3399,10 +3439,13 @@ class Settings(
             default = { FxNimbus.features.addressbarFocusMode.value().enabled },
         )
 
-    /** Whether the customizing the browser menu is allowed. */
-    var isMenuCustomizationEnabled by
+    /** Whether customizing the browser menu is allowed. */
+    val isMenuCustomizationEnabled = true
+
+    /** Whether entering the browser menu customization screen is allowed. */
+    var isMenuCustomizationScreenEnabled by
         booleanPreference(
-            key = appContext.getPreferenceKey(R.string.pref_key_enable_menu_customization),
+            key = appContext.getPreferenceKey(R.string.pref_key_enable_menu_customization_screen),
             default = { false },
         )
 
@@ -3505,6 +3548,19 @@ class Settings(
         booleanPreference(
             key = appContext.getPreferenceKey(R.string.pref_key_enable_account_settings_new_ui),
             default = { FxNimbus.features.accountSyncDecoupleM1.value().enabled },
+        )
+
+    /** Whether or not accounts & sync decoupling is enabled */
+    var syncDecouplingEnabled by
+        booleanPreference(
+            key = appContext.getPreferenceKey(R.string.pref_key_enable_sync_decoupling),
+            default = { FxNimbus.features.accountSyncDecouple.value().enabled },
+        )
+
+    var isQwacUiEnabled by
+        booleanPreference(
+            key = appContext.getPreferenceKey(R.string.pref_key_enable_qwac_ui),
+            default = false,
         )
 
     private var powerSavingModeAutoPreference by

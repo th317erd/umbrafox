@@ -1123,7 +1123,6 @@ static bool ContainingBlockChangeAffectsDescendants(
       continue;
     }
     for (nsIFrame* f : childList.mList) {
-      nsIFrame* frameToDiveInto = f;
       if (f->IsPlaceholderFrame()) {
         nsIFrame* outOfFlow = nsPlaceholderFrame::GetRealFrameForPlaceholder(f);
         if (!outOfFlow) {
@@ -1162,11 +1161,21 @@ static bool ContainingBlockChangeAffectsDescendants(
           }
         }
 
-        // For floats, also dive into the real frame since it may be reparented
-        // into an ancestor block outside |aFrame|, so an abspos placeholder
-        // inside that float would be unreachable. For other out-of-flows, we
-        // don't recurse since the placeholder |f| has no children.
-        frameToDiveInto = outOfFlow->IsFloating() ? outOfFlow : nullptr;
+        // For a float, since it may be reparented under an ancestor block
+        // outside |aFrame|, dive into its real frame and continuations to reach
+        // any abspos placeholder inside it. For other out-of-flows, we don't
+        // recurse since the placeholder |f| has no children.
+        if (outOfFlow->IsFloating()) {
+          for (nsIFrame* cont = outOfFlow; cont;
+               cont = cont->GetNextContinuation()) {
+            if (ContainingBlockChangeAffectsDescendants(
+                    aPossiblyChangingContainingBlock, cont,
+                    aIsAbsPosContainingBlock, aIsFixedPosContainingBlock)) {
+              return true;
+            }
+          }
+        }
+        continue;
       }
       // NOTE:  It's tempting to check f->IsAbsPosContainingBlock() or
       // f->IsFixedPosContainingBlock() here.  However, that would only
@@ -1176,10 +1185,9 @@ static bool ContainingBlockChangeAffectsDescendants(
       // could lead to an unsafe call to
       // cont->MarkAsNotAbsoluteContainingBlock() before we've reframed
       // the descendant and taken it off the absolute list.
-      if (frameToDiveInto &&
-          ContainingBlockChangeAffectsDescendants(
-              aPossiblyChangingContainingBlock, frameToDiveInto,
-              aIsAbsPosContainingBlock, aIsFixedPosContainingBlock)) {
+      if (ContainingBlockChangeAffectsDescendants(
+              aPossiblyChangingContainingBlock, f, aIsAbsPosContainingBlock,
+              aIsFixedPosContainingBlock)) {
         return true;
       }
     }
@@ -1663,7 +1671,7 @@ void RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList) {
 
   MaybeClearDestroyedFrames maybeClear(mDestroyedFrames);
   if (!mDestroyedFrames) {
-    mDestroyedFrames = MakeUnique<nsTHashSet<const nsIFrame*>>();
+    mDestroyedFrames = std::make_unique<nsTHashSet<const nsIFrame*>>();
   }
 
   AUTO_PROFILER_LABEL("RestyleManager::ProcessRestyledFrames", LAYOUT);
@@ -1720,15 +1728,6 @@ void RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList) {
     // skip any frame that has been destroyed due to a ripple effect
     if (frame && mDestroyedFrames->Contains(frame)) {
       continue;
-    }
-
-    if (frame && frame->GetContent() != content) {
-      // XXXbz this is due to image maps messing with the primary frame of
-      // <area>s.  See bug 135040.  Remove this block once that's fixed.
-      frame = nullptr;
-      if (!(hint & nsChangeHint_ReconstructFrame)) {
-        continue;
-      }
     }
 
     TryToDealWithScrollbarChange(hint, content, frame, presContext);
@@ -2275,25 +2274,6 @@ static const nsIFrame* ExpectedOwnerForChild(const nsIFrame* aFrame) {
   return parent;
 }
 
-// FIXME(emilio, bug 1633685): We should ideally figure out how to properly
-// restyle replicated fixed pos frames... We seem to assume everywhere that they
-// can't get restyled at the moment...
-static bool IsInReplicatedFixedPosTree(const nsIFrame* aFrame) {
-  if (!aFrame->PresContext()->IsPaginated()) {
-    return false;
-  }
-
-  for (; aFrame; aFrame = aFrame->GetParent()) {
-    if (aFrame->StyleDisplay()->mPosition == StylePositionProperty::Fixed &&
-        !aFrame->FirstContinuation()->IsPrimaryFrame() &&
-        nsLayoutUtils::IsReallyFixedPos(aFrame)) {
-      return true;
-    }
-  }
-
-  return true;
-}
-
 void ServoRestyleState::AssertOwner(const ServoRestyleState& aParent) const {
   MOZ_ASSERT(mOwner);
   MOZ_ASSERT(CanUseHandledHintsFromAncestors(mOwner));
@@ -2303,7 +2283,7 @@ void ServoRestyleState::AssertOwner(const ServoRestyleState& aParent) const {
   // chains of ServoRestyleStates in some cases where it's just not worth it.
   if (aParent.mOwner) {
     const nsIFrame* owner = ExpectedOwnerForChild(mOwner);
-    if (owner != aParent.mOwner && !IsInReplicatedFixedPosTree(mOwner)) {
+    if (owner != aParent.mOwner && !mOwner->IsInReplicatedFixedPosTree()) {
       MOZ_ASSERT(IsAnonBox(owner),
                  "Should only have expected owner weirdness when anon boxes "
                  "are involved");
@@ -2327,7 +2307,7 @@ nsChangeHint ServoRestyleState::ChangesHandledFor(
   }
 
   MOZ_ASSERT(mOwner == ExpectedOwnerForChild(aFrame) ||
-                 IsInReplicatedFixedPosTree(aFrame),
+                 aFrame->IsInReplicatedFixedPosTree(),
              "Missed some frame in the hierarchy?");
   return mChangesHandled;
 }
@@ -2912,13 +2892,6 @@ bool RestyleManager::ProcessPostTraversal(Element* aElement,
 
   RefPtr<ComputedStyle> upToDateStyleIfRestyled =
       wasRestyled ? ServoStyleSet::ResolveServoStyle(*aElement) : nullptr;
-
-  // We should really fix the weird primary frame mapping for image maps
-  // (bug 135040)...
-  if (styleFrame && styleFrame->GetContent() != aElement) {
-    MOZ_ASSERT(styleFrame->IsImageFrameOrSubclass());
-    styleFrame = nullptr;
-  }
 
   // Handle lazy frame construction by posting a reconstruct for any lazily-
   // constructed roots.

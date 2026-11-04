@@ -26,6 +26,8 @@ const lazy = XPCOMUtils.declareLazy({
     "resource://gre/modules/ExtensionSettingsStore.sys.mjs",
   FirefoxRelay: "resource://gre/modules/FirefoxRelay.sys.mjs",
   Management: "resource://gre/modules/Extension.sys.mjs",
+  PrivacyMetricsService:
+    "moz-src:///browser/components/protections/PrivacyMetricsService.sys.mjs",
   Sanitizer: "resource:///modules/Sanitizer.sys.mjs",
   SiteDataManager: "resource:///modules/SiteDataManager.sys.mjs",
   IPProtection:
@@ -35,10 +37,6 @@ const lazy = XPCOMUtils.declareLazy({
   IPPPrincipalRules:
     "moz-src:///toolkit/components/ipprotection/IPPSiteRuleManager.sys.mjs",
   BANDWIDTH: "chrome://browser/content/ipprotection/ipprotection-constants.mjs",
-  TrackingDBService: {
-    service: "@mozilla.org/tracking-db-service;1",
-    iid: Ci.nsITrackingDBService,
-  },
   listManager: {
     service: "@mozilla.org/url-classifier/listmanager;1",
     iid: Ci.nsIUrlListManager,
@@ -106,16 +104,20 @@ export class PrivacySettingHelpers {
       ts.value = 0;
     }
     let dialogFile = "chrome://browser/content/sanitize_v2.xhtml";
-    gSubDialog.open(dialogFile, {
-      features: "resizable=no",
-      closingCallback: () => {
-        // reset the timeSpan pref
-        if (aClearEverything) {
-          ts.value = timeSpanOrig;
-        }
-        Services.obs.notifyObservers(null, "clear-private-data");
+    gSubDialog.open(
+      dialogFile,
+      {
+        features: "resizable=no",
+        closingCallback: () => {
+          // reset the timeSpan pref
+          if (aClearEverything) {
+            ts.value = timeSpanOrig;
+          }
+          Services.obs.notifyObservers(null, "clear-private-data");
+        },
       },
-    });
+      { entryPoint: lazy.Sanitizer.DIALOG_ENTRY_POINTS.SETTINGS_HISTORY }
+    );
   }
 
   /**
@@ -952,7 +954,7 @@ SettingGroupManager.registerGroups({
               "search-l10n-ids": `
                 clear-data-settings-label,
                 history-section-label,
-                item-history-and-downloads.label,
+                item-history-and-downloads2.label,
                 item-cookies.label,
                 item-active-logins.label,
                 item-cache.label,
@@ -1072,7 +1074,7 @@ SettingGroupManager.registerGroups({
                   "search-l10n-ids": `
                         clear-data-settings-label,
                         history-section-label,
-                        item-history-and-downloads.label,
+                        item-history-and-downloads2.label,
                         item-cookies.label,
                         item-active-logins.label,
                         item-cache.label,
@@ -1524,10 +1526,34 @@ SettingGroupManager.registerGroups({
           imagesrc:
             "chrome://browser/content/ipprotection/assets/vpn-settings-get-started.svg",
           imagealignment: "end",
+          type: "vibrant",
         },
         items: [
           {
             id: "getStartedButton",
+            l10nId: "ip-protection-not-opted-in-button",
+            control: "moz-button",
+            slot: "actions",
+            controlAttrs: {
+              type: "primary",
+            },
+          },
+        ],
+      },
+      {
+        id: "ipProtectionNotOptedInV2",
+        l10nId: "ip-protection-not-opted-in-inclusions-enabled",
+        l10nArgs: { maxUsage: "50" },
+        control: "moz-promo",
+        controlAttrs: {
+          imagesrc:
+            "chrome://browser/content/ipprotection/assets/vpn-settings-get-started.svg",
+          imagealignment: "end",
+          type: "vibrant",
+        },
+        items: [
+          {
+            id: "getStartedButtonV2",
             l10nId: "ip-protection-not-opted-in-button",
             control: "moz-button",
             slot: "actions",
@@ -1588,7 +1614,7 @@ SettingGroupManager.registerGroups({
   },
   vpnSiteRules: {
     headingLevel: 2,
-    l10nId: "ip-protection-site-rules-list-section",
+    l10nId: "ip-protection-site-rules-list-section-1",
     supportPage: "built-in-vpn",
     items: [
       {
@@ -1988,26 +2014,15 @@ if (SECURITY_PRIVACY_STATUS_CARD_ENABLED) {
   });
 
   Preferences.addSetting(
-    /** @type {{ cachedValue: number, loadTrackerCount: (emitChange: SettingEmitChange) => Promise<void> } & SettingConfig} */ ({
+    /** @type {{ cachedValue: number } & SettingConfig} */ ({
       id: "trackerCount",
       cachedValue: null,
-      async loadTrackerCount(emitChange) {
-        const now = new Date();
-        const aMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        /** @type {{ getResultByName: (_: string) => number }[]} */
-        const events = await lazy.TrackingDBService.getEventsByDateRange(
-          aMonthAgo,
-          now
-        );
-
-        const total = events.reduce((acc, day) => {
-          return acc + day.getResultByName("count");
-        }, 0);
-        this.cachedValue = total;
-        emitChange();
-      },
       setup(emitChange) {
-        this.loadTrackerCount(emitChange);
+        const aMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        return lazy.PrivacyMetricsService.getTotalSince(aMonthAgo, total => {
+          this.cachedValue = total;
+          emitChange();
+        });
       },
       get() {
         return this.cachedValue;
@@ -2112,23 +2127,48 @@ Preferences.addSetting({
   id: "ipProtectionUpgradeNotAvailable",
   pref: "browser.ipProtection.upgradeNotAvailable",
 });
+function ipProtectionNotOptedInVisible(inclusionsEnabled) {
+  return ({
+    ipProtectionVisible,
+    ipProtectionNotOptedIn,
+    ipProtectionSiteInclusionsFeatureEnabled,
+  }) =>
+    ipProtectionVisible.value &&
+    ipProtectionNotOptedIn.value &&
+    ipProtectionSiteInclusionsFeatureEnabled.value == inclusionsEnabled;
+}
+function enrollFromIPProtectionSettings() {
+  lazy.IPProtection.getPanel(window.browsingContext.topChromeWindow)?.enroll({
+    entrypoint: "vpn_integration_settings",
+    utm_source: "settings",
+  });
+}
+const IPP_NOT_OPTED_IN_DEPS = [
+  "ipProtectionVisible",
+  "ipProtectionNotOptedIn",
+  "ipProtectionSiteInclusionsFeatureEnabled",
+];
 Preferences.addSetting({
   id: "ipProtectionNotOptedInSection",
-  deps: ["ipProtectionVisible", "ipProtectionNotOptedIn"],
-  visible: ({ ipProtectionVisible, ipProtectionNotOptedIn }) =>
-    ipProtectionVisible.value && ipProtectionNotOptedIn.value,
+  deps: IPP_NOT_OPTED_IN_DEPS,
+  visible: ipProtectionNotOptedInVisible(false),
 });
 Preferences.addSetting({
   id: "getStartedButton",
-  deps: ["ipProtectionVisible", "ipProtectionNotOptedIn"],
-  visible: ({ ipProtectionVisible, ipProtectionNotOptedIn }) =>
-    ipProtectionVisible.value && ipProtectionNotOptedIn.value,
-  onUserClick() {
-    lazy.IPProtection.getPanel(window.browsingContext.topChromeWindow)?.enroll({
-      entrypoint: "vpn_integration_settings",
-      utm_source: "settings",
-    });
-  },
+  deps: IPP_NOT_OPTED_IN_DEPS,
+  visible: ipProtectionNotOptedInVisible(false),
+  onUserClick: enrollFromIPProtectionSettings,
+});
+Preferences.addSetting({
+  id: "ipProtectionNotOptedInV2",
+  deps: IPP_NOT_OPTED_IN_DEPS,
+  visible: ipProtectionNotOptedInVisible(true),
+});
+Preferences.addSetting({
+  id: "getStartedButtonV2",
+  deps: IPP_NOT_OPTED_IN_DEPS,
+  visible: ipProtectionNotOptedInVisible(true),
+  onUserClick: enrollFromIPProtectionSettings,
 });
 
 Preferences.addSetting({
@@ -2268,6 +2308,7 @@ Preferences.addSetting({
     settingsRedesignEnabled.value,
   onUserClick(e) {
     e.preventDefault();
+    Glean.ipprotection.rulesPageOpened.record({ entrypoint: "settings" });
     gotoPref("vpnSiteRules");
   },
 });
@@ -2316,14 +2357,13 @@ function openIPPSiteRuleDialog(params) {
  * @param {HTMLElement} button The delete button that was clicked.
  * @param {string} website
  */
-async function deleteIPPSiteRule(button, website) {
+function deleteIPPSiteRule(button, website) {
   let list = /** @type {any} */ (button.closest("vpn-site-rules-list"));
-  if (!(await list.confirmDelete(website))) {
-    return;
-  }
-  lazy.IPPPermissionRules.setRule(
-    Services.scriptSecurityManager.createContentPrincipalFromOrigin(website),
-    lazy.IPPPrincipalRules.DEFAULT
+  list.confirmDelete(website, () =>
+    lazy.IPPPermissionRules.setRule(
+      Services.scriptSecurityManager.createContentPrincipalFromOrigin(website),
+      lazy.IPPPrincipalRules.DEFAULT
+    )
   );
 }
 
@@ -2332,12 +2372,9 @@ async function deleteIPPSiteRule(button, website) {
  *
  * @param {HTMLElement} button The delete all button that was clicked.
  */
-async function deleteAllIPPSiteRules(button) {
+function deleteAllIPPSiteRules(button) {
   let list = /** @type {any} */ (button.closest("vpn-site-rules-list"));
-  if (!(await list.confirmDeleteAll())) {
-    return;
-  }
-  Services.perms.removeByType(IPP_VPN_PERMISSION);
+  list.confirmDeleteAll(() => Services.perms.removeByType(IPP_VPN_PERMISSION));
 }
 
 Preferences.addSetting({
@@ -2868,6 +2905,7 @@ Preferences.addSetting(
         },
         {
           mode: "clearSiteData",
+          entryPoint: lazy.Sanitizer.DIALOG_ENTRY_POINTS.SETTINGS_SITE_DATA,
         }
       );
     },

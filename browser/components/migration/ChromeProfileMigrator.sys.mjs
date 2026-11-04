@@ -17,7 +17,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ChromeMigrationUtils:
     "moz-src:///browser/components/migration/ChromeMigrationUtils.sys.mjs",
-  FormHistory: "resource://gre/modules/FormHistory.sys.mjs",
+  FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   Qihoo360seMigrationUtils:
@@ -73,6 +73,18 @@ function convertBookmarks(items, bookmarkURLAccumulator, errorAccumulator) {
   return itemsToInsert;
 }
 
+function countBookmarks(items) {
+  let count = 0;
+  for (let item of items) {
+    if (item.type == "url") {
+      count++;
+    } else if (item.type == "folder") {
+      count += 1 + countBookmarks(item.children ?? []);
+    }
+  }
+  return count;
+}
+
 /**
  * Chrome profile migrator. This can also be used as a parent class for
  * migrators for browsers that are variants of Chrome.
@@ -95,6 +107,22 @@ export class ChromeProfileMigrator extends MigratorBase {
    */
   #dataPathRemappings = new Map();
 
+  /**
+   * True once the user has selected a folder in the file picker opened by
+   * getPermissions. Reset if that folder did not give access and the user
+   * then cancels the file picker.
+   *
+   * @type {boolean}
+   */
+  #hasUserSelectedDataFolder = false;
+
+  #shouldAvoidReadingData() {
+    return (
+      !this.#hasUserSelectedDataFolder &&
+      MigratorBase.needsFolderSelectionToReadData()
+    );
+  }
+
   static get key() {
     return "chrome";
   }
@@ -115,6 +143,10 @@ export class ChromeProfileMigrator extends MigratorBase {
     let dataPath = await this._getChromeUserDataPathIfExists();
     if (!dataPath) {
       return true;
+    }
+
+    if (this.#shouldAvoidReadingData()) {
+      return false;
     }
 
     let localStatePath = PathUtils.join(dataPath, "Local State");
@@ -142,6 +174,11 @@ export class ChromeProfileMigrator extends MigratorBase {
       let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
       fp.init(win?.browsingContext, "", Ci.nsIFilePicker.modeGetFolder);
       fp.filterIndex = 1;
+      // Folders such as ~/Library are hidden in the file picker, so open it
+      // in the folder that the user needs to select.
+      if (originalDataPath) {
+        fp.displayDirectory = new lazy.FileUtils.File(originalDataPath);
+      }
       // Now wait for the filepicker to open and close. If the user picks
       // the local state folder, the OS should grant us read access to everything
       // inside, so we don't need to check or do anything else with what's
@@ -149,9 +186,13 @@ export class ChromeProfileMigrator extends MigratorBase {
       let result = await new Promise(resolve => fp.open(resolve));
       // Bail if the user cancels the dialog:
       if (result == Ci.nsIFilePicker.returnCancel) {
+        this.#hasUserSelectedDataFolder = false;
         return false;
       }
 
+      this.#hasUserSelectedDataFolder = true;
+      // Resources looked up before the folder was selected may be empty.
+      this._resourcesByProfile = null;
       let file = fp.file;
       if (file && file.path != originalDataPath) {
         this.#dataPathRemappings.set(originalDataPath, file.path);
@@ -307,7 +348,7 @@ export class ChromeProfileMigrator extends MigratorBase {
     }
 
     let chromeUserDataPath = await this._getChromeUserDataPathIfExists();
-    if (!chromeUserDataPath) {
+    if (!chromeUserDataPath || this.#shouldAvoidReadingData()) {
       return [];
     }
 
@@ -425,6 +466,7 @@ export class ChromeProfileMigrator extends MigratorBase {
         if (!rows) {
           return;
         }
+        this.available = rows.length;
 
         // If there are no relevant rows, return before initializing crypto and
         // thus prompting for Keychain access on macOS.
@@ -601,6 +643,7 @@ export class ChromeProfileMigrator extends MigratorBase {
 
     return {
       type: MigrationUtils.resourceTypes.PAYMENT_METHODS,
+      available: rows.length,
 
       async migrate(aCallback) {
         let loginCrypto;
@@ -727,7 +770,7 @@ async function GetBookmarksResource(aProfileFolder, aBrowserKey) {
     type: MigrationUtils.resourceTypes.BOOKMARKS,
 
     migrate(aCallback) {
-      return (async function () {
+      return (async () => {
         let gotErrors = false;
         let errorGatherer = function () {
           gotErrors = true;
@@ -785,6 +828,10 @@ async function GetBookmarksResource(aProfileFolder, aBrowserKey) {
             bookmarkJSONs.map(json => json.roots.synced?.children)
           ),
         };
+        this.available = Object.values(mergedRoots).reduce(
+          (sum, children) => sum + countBookmarks(children),
+          0
+        );
 
         // Import each Chrome bookmark root into its corresponding Gecko folder.
         for (let [rootName, parentGuid] of [
@@ -855,11 +902,13 @@ async function GetHistoryResource(aProfileFolder) {
     "Chrome history",
     countQuery
   );
-  if (!countRows[0].getResultByName("COUNT(*)")) {
+  let available = countRows[0].getResultByName("COUNT(*)");
+  if (!available) {
     return null;
   }
   return {
     type: MigrationUtils.resourceTypes.HISTORY,
+    available,
 
     migrate(aCallback) {
       (async function () {
@@ -957,11 +1006,13 @@ async function GetFormdataResource(aProfileFolder) {
     "Chrome formdata",
     countQuery
   );
-  if (!countRows[0].getResultByName("COUNT(*)")) {
+  let available = countRows[0].getResultByName("COUNT(*)");
+  if (!available) {
     return null;
   }
   return {
     type: MigrationUtils.resourceTypes.FORMDATA,
+    available,
 
     async migrate(aCallback) {
       let query =
@@ -1001,7 +1052,7 @@ async function GetFormdataResource(aProfileFolder) {
       }
 
       try {
-        await lazy.FormHistory.update(addOps);
+        await MigrationUtils.insertFormHistoryWrapper(addOps);
       } catch (e) {
         console.error(e);
         aCallback(false);
@@ -1029,6 +1080,7 @@ async function GetExtensionsResource(aProfileId, aBrowserKey = "chrome") {
 
   return {
     type: MigrationUtils.resourceTypes.EXTENSIONS,
+    available: extensions.length,
     async migrate(callback) {
       let ids = extensions.map(extension => extension.id);
       let [progressValue, importedExtensions] =

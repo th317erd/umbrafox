@@ -23,8 +23,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   CREDIT_CARD_SCHEMA_VERSION:
     "resource://autofill/FormAutofillStorageBase.sys.mjs",
-  VALID_CREDIT_CARD_FIELDS:
-    "resource://autofill/FormAutofillStorageBase.sys.mjs",
   AutofillDataTypes: "resource://gre/modules/shared/AutofillDataTypes.sys.mjs",
   CreditCardRecord: "resource://gre/modules/shared/CreditCardRecord.sys.mjs",
   CreditCardBulkResultEntry:
@@ -34,6 +32,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   CreditCardMeta:
     "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustAutofill.sys.mjs",
   CreditCardTombstone:
+    "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustAutofill.sys.mjs",
+  CryptoError:
     "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustAutofill.sys.mjs",
   UpdatableCreditCardFieldsWithMeta:
     "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustAutofill.sys.mjs",
@@ -63,15 +63,25 @@ const JS_TO_RUST_INTEGER_FIELD = {
   "cc-exp-year": "ccExpYear",
 };
 
-// cc-number is in neither map: it is written in the clear as ccNumber, which
-// the store encrypts, and read back as a mask of ccNumberLast4.
-//
-// It is still comparable, but not by string equality -- see
-// creditCardFieldDiffers.
-const storedFields = new Set([
+// cc-number and cc-csc are in neither map. cc-number is written in the clear
+// as ccNumber, which the store encrypts, and read back as a mask of
+// ccNumberLast4; the migration compares it by the number each store decrypts
+// rather than by the mask -- see AutofillStorageMigrator.#verify. cc-csc is
+// stored encrypted as ccCvv and read back in the clear.
+
+// The canonical fields: the ones this store has a column for. Unlike
+// VALID_CREDIT_CARD_FIELDS this has cc-csc, which the JSON store keeps only as
+// an unknown field, and not billingAddressGUID, which this store has no column
+// for.
+const VALID_FIELDS = [
   ...Object.keys(JS_TO_RUST_STRING_FIELD),
   ...Object.keys(JS_TO_RUST_INTEGER_FIELD),
   "cc-number",
+  "cc-csc",
+];
+
+const storedFields = new Set([
+  ...VALID_FIELDS.filter(field => field != "cc-csc"),
   ...INTERNAL_FIELDS,
 ]);
 
@@ -94,8 +104,11 @@ const storedFields = new Set([
  *    the detection table moves every stored card.
  * The name components and cc-exp are excluded for that reason.
  *
- * cc-number is included, but does not compare as a string -- see
- * creditCardFieldDiffers.
+ * cc-csc is excluded too: the copy out of this store leaves it behind -- see
+ * _recordForMigrationExport.
+ *
+ * cc-number is included, but compared by its cleartext rather than its mask
+ * -- see AutofillStorageMigrator.#verify.
  *
  * @param {string} field
  * @returns {boolean}
@@ -104,21 +117,17 @@ export function isStoredCreditCardField(field) {
   return storedFields.has(field);
 }
 
+const isEmptyExpiry = v => v === undefined || v === null || v === "" || v === 0;
+
 /**
- * Whether a field disagrees between a record and its copy, for the field
+ * Whether a field disagrees between a record and its copy, for the fields
  * where string equality is the wrong question.
  *
- * cc-number is a mask, rebuilt here at a fixed width and written by the JSON
- * store at the card's own, so the masks differ for any card that was not 16
- * digits long. What both do carry, in the clear, is the last four digits --
- * they are what the UI shows -- so those are what get compared. That is also
- * the comparison worth having: a card landing under the wrong guid, or a number
- * truncated in transit, shows up here and nowhere else.
- *
- * Comparing the two plaintexts is the stronger check and is not made: the copy
- * lets go of the exported records before it verifies, so it would mean
- * decrypting every record again on both sides. The last four digits of
- * cc-number stand in for it.
+ * The expiry columns are non-optional integers, so an absent expiry is stored
+ * as 0 and read back without the field -- see creditCardToJsRecord. The JSON
+ * store holds 0 as it was given, and treats it as absent too. Only that empty
+ * pair is equal; any other mismatch, a string against its number included, is
+ * still reported.
  *
  * @param {string} field
  * @param {*} a The value on the record.
@@ -127,8 +136,12 @@ export function isStoredCreditCardField(field) {
  */
 export function creditCardFieldDiffers(field, a, b) {
   switch (field) {
-    case "cc-number":
-      return String(a ?? "").slice(-4) !== String(b ?? "").slice(-4);
+    case "cc-exp-month":
+    case "cc-exp-year":
+      if (isEmptyExpiry(a) && isEmptyExpiry(b)) {
+        return false;
+      }
+      return a !== b;
     default:
       return a !== b;
   }
@@ -158,6 +171,24 @@ const MASK_CHARACTER = "•";
 // it.
 const isMasked = value => String(value ?? "").includes(MASK_CHARACTER);
 
+// The fields creditCardToJsRecord derives with CreditCardRecord.computeFields.
+const COMPUTED_FIELDS = [
+  "cc-given-name",
+  "cc-additional-name",
+  "cc-family-name",
+  "cc-exp",
+];
+
+/**
+ * The error a caller owes for a key NSS will not hand over: what crypto-SDR
+ * and the JSON store report, and what tells a caller to try again later rather
+ * than treat one record as lost.
+ *
+ * @returns {Error}
+ */
+const primaryPasswordLockedError = () =>
+  Components.Exception("Primary password locked", Cr.NS_ERROR_ABORT);
+
 /**
  * Convert a JS credit card record to the Rust `UpdatableCreditCardFields`.
  *
@@ -176,6 +207,9 @@ function jsRecordToUpdatableCreditCardFields(record) {
     fields[rustKey] = Number(record[jsKey]) || 0;
   }
   fields.ccNumber = record["cc-number"] ?? "";
+  // The store keeps its CVV on null and clears it on "". update() has already
+  // merged in a stored cc-csc the caller omitted, so none here means no CVV.
+  fields.ccCvv = record["cc-csc"] ? String(record["cc-csc"]) : "";
   return new lazy.UpdatableCreditCardFields(fields);
 }
 
@@ -209,6 +243,10 @@ function creditCardToJsRecord(creditCard) {
       MASK_CHARACTER.repeat(
         Math.max(0, MASKED_NUMBER_LENGTH - creditCard.ccNumberLast4.length)
       ) + creditCard.ccNumberLast4;
+  }
+
+  if (creditCard.ccCvv) {
+    record["cc-csc"] = creditCard.ccCvv;
   }
 
   record.timeCreated = creditCard.timeCreated;
@@ -252,11 +290,21 @@ export class RustAutofillCreditCardsAdapter extends RustAutofillAdapterBase {
   }
 
   get _validFields() {
-    return lazy.VALID_CREDIT_CARD_FIELDS;
+    return VALID_FIELDS;
   }
 
-  _recordFromRust(creditCard) {
-    return creditCardToJsRecord(creditCard);
+  // The JSON store keeps cc-csc as an unknown field, which its update() never
+  // clears.
+  get _fieldsKeptWhenOmitted() {
+    return ["cc-csc"];
+  }
+
+  _recordFromRust(creditCard, { rawData = false } = {}) {
+    const record = creditCardToJsRecord(creditCard);
+    if (!rawData) {
+      lazy.CreditCardRecord.stripSecurityCodeWhenDisabled(record);
+    }
+    return record;
   }
 
   _normalize(record, preserveEmptyFields = false) {
@@ -275,11 +323,11 @@ export class RustAutofillCreditCardsAdapter extends RustAutofillAdapterBase {
   }
 
   _get(store, guid) {
-    return store.getCreditCard(guid);
+    return this.#read(() => store.getCreditCard(guid));
   }
 
   _getAll(store) {
-    return store.getAllCreditCards();
+    return this.#read(() => store.getAllCreditCards());
   }
 
   _delete(store, guid) {
@@ -294,15 +342,15 @@ export class RustAutofillCreditCardsAdapter extends RustAutofillAdapterBase {
     return store.touchCreditCard(guid);
   }
 
+  // Writing needs the key as much as reading does, so a save can be declined.
   _add(store, record) {
-    return store.addCreditCard(jsRecordToUpdatableCreditCardFields(record));
+    const fields = jsRecordToUpdatableCreditCardFields(record);
+    return this.#withKey(() => store.addCreditCard(fields));
   }
 
   _update(store, guid, record) {
-    return store.updateCreditCard(
-      guid,
-      jsRecordToUpdatableCreditCardFields(record)
-    );
+    const fields = jsRecordToUpdatableCreditCardFields(record);
+    return this.#withKey(() => store.updateCreditCard(guid, fields));
   }
 
   _addManyWithMeta(store, entries) {
@@ -340,6 +388,68 @@ export class RustAutofillCreditCardsAdapter extends RustAutofillAdapterBase {
   // ---- Credit card specifics --------------------------------------------
 
   /**
+   * Reading a card decrypts its number, so with the token locked a read shows
+   * the primary password prompt.
+   *
+   * @param {string} guid
+   * @param {object} [options]
+   * @param {boolean} [options.rawData=false]
+   * @param {boolean} [options.prompt=true] Whether the read may prompt. A read
+   *   nobody asked for passes false, and rejects with NS_ERROR_ABORT while the
+   *   token is locked.
+   */
+  get(guid, { rawData = false, prompt = true } = {}) {
+    return prompt
+      ? this._allowingPrompt(() => super.get(guid, { rawData }))
+      : super.get(guid, { rawData });
+  }
+
+  /**
+   * @see get
+   * @param {object} [options]
+   * @param {boolean} [options.rawData=false]
+   * @param {boolean} [options.prompt=true]
+   */
+  getAll({ rawData = false, prompt = true } = {}) {
+    return prompt
+      ? this._allowingPrompt(() => super.getAll({ rawData }))
+      : super.getAll({ rawData });
+  }
+
+  /**
+   * Runs at startup and on every change, so it never prompts. With the token
+   * locked no card can be read, and every field is reported as saved for as
+   * long as there are cards: a form is then still offered autofill, and opening
+   * it is what asks for the primary password.
+   */
+  async getSavedFieldNames() {
+    try {
+      return await super.getSavedFieldNames();
+    } catch (e) {
+      if (e.result != Cr.NS_ERROR_ABORT) {
+        throw e;
+      }
+      if (!(await this.refreshCount())) {
+        return new Set();
+      }
+      return new Set([...this._validFields, ...COMPUTED_FIELDS]);
+    }
+  }
+
+  /**
+   * Reads no encrypted field, so it never needs the key or prompts.
+   *
+   * @returns {Promise<{total: number, withSecurityCode: number}>}
+   */
+  async getSavedCounts() {
+    const cards = await (await this._store()).listCreditCardCandidates();
+    return {
+      total: cards.length,
+      withSecurityCode: cards.filter(card => card.hasCvv).length,
+    };
+  }
+
+  /**
    * The stored cards holding the number this record carries.
    *
    * The counterpart of CreditCardsBase.getDuplicateRecords, comparing what it
@@ -348,18 +458,23 @@ export class RustAutofillCreditCardsAdapter extends RustAutofillAdapterBase {
    * the store as it hands them over rather than through getAll().
    *
    * A card the store hands over without a number is passed over: it never had
-   * one, scrubEncryptedData() blanked it, or the store's key could not read it.
-   * This runs on every credit card submission, and one unreadable card must not
-   * cost the user the save prompt for a different one.
+   * one, or it was scrubbed. This runs on every credit card submission, and one
+   * card without a number must not cost the user the save prompt for a
+   * different one. A key that is unavailable stops the search: it is not one
+   * card that cannot be read, it is all of them.
    *
    * @param {object} record A normalised credit card record.
    * @yields {object} Each stored record holding the same number.
+   * @throws NS_ERROR_ABORT if the user declined to unlock the key.
    */
   async *getDuplicateRecords(record) {
     if (!record["cc-number"]) {
       return;
     }
-    for (const card of await this._getAll(await this._store())) {
+    const cards = await this.#withKey(async () =>
+      this._getAll(await this._store())
+    );
+    for (const card of cards) {
       if (card.ccNumber && card.ccNumber == record["cc-number"]) {
         yield this._recordFromRust(card);
       }
@@ -403,19 +518,64 @@ export class RustAutofillCreditCardsAdapter extends RustAutofillAdapterBase {
   }
 
   /**
+   * Run a store read, telling a locked key from a lost one when it fails.
+   *
+   * The store decrypts every number it hands over, and fails the whole read on
+   * one it cannot decrypt. With the token locked that is every card, and the
+   * caller owes NS_ERROR_ABORT. Otherwise the key cannot read what another key
+   * wrote -- the token was reset, or key4.db replaced -- and the CryptoError is
+   * passed on. The stored numbers are left as they are, as passwordmgr leaves
+   * logins it cannot decrypt.
+   *
+   * @param {Function} operation An async function making the store call.
+   * @returns {Promise<*>} What `operation` resolves to.
+   * @throws NS_ERROR_ABORT if the token is locked, or the store's CryptoError
+   *   if a number cannot be decrypted with it unlocked.
+   */
+  async #read(operation) {
+    try {
+      return await operation();
+    } catch (e) {
+      if (e instanceof lazy.CryptoError && this._primaryPasswordLocked()) {
+        throw primaryPasswordLockedError();
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Run a store operation that needs the key, allowing the primary password
+   * prompt for it.
+   *
+   * @param {Function} operation An async function making the store call.
+   * @returns {Promise<*>} What `operation` resolves to.
+   * @throws NS_ERROR_ABORT if the operation failed on a locked key.
+   */
+  async #withKey(operation) {
+    try {
+      return await this._allowingPrompt(operation);
+    } catch (e) {
+      throw this._primaryPasswordLocked() ? primaryPasswordLockedError() : e;
+    }
+  }
+
+  /**
    * The number of a stored card, in the clear.
    *
-   * The only place this adapter reads a number. The store decrypts every card
-   * it hands over, and every record built from one carries a mask instead, so
-   * the number goes no further than the caller that asked for it.
+   * With getDuplicateRecords, the only place this adapter reads a number. The
+   * store decrypts every card it hands over, and every record built from one
+   * carries a mask instead, so the number goes no further than the caller that
+   * asked for it.
    *
    * @param {string} guid
    * @returns {Promise<?string>} The number, or null if the store handed the
-   *   card over without one: it never had one, scrubEncryptedData() blanked it,
-   *   or the store's key could not read it.
+   *   card over without one: it never had one, or it was scrubbed.
+   * @throws NS_ERROR_ABORT if the user declined to unlock the key.
    */
   async #numberOf(guid) {
-    const card = await this._get(await this._store(), guid);
+    const card = await this.#withKey(async () =>
+      this._get(await this._store(), guid)
+    );
     return card.ccNumber || null;
   }
 
@@ -482,6 +642,7 @@ export class RustAutofillCreditCardsAdapter extends RustAutofillAdapterBase {
    * the caller supplies a new number.
    *
    * @param {object} record The record, modified in place.
+   * @throws NS_ERROR_ABORT if the user declined to unlock the key.
    */
   async _prepareStoredForMerge(record) {
     const masked = record["cc-number"];
@@ -540,11 +701,15 @@ export class RustAutofillCreditCardsAdapter extends RustAutofillAdapterBase {
    * record whose number cannot be read throws rather than being copied without
    * it.
    *
+   * The security code is left behind: the JSON store would keep it in the
+   * clear.
+   *
    * @param {object} record
    * @returns {Promise<object>}
    */
   async _recordForMigrationExport(record) {
     const exported = { ...record };
+    delete exported["cc-csc"];
     // A record that never had a number has no mask either, and crosses
     // unchanged.
     if (!exported["cc-number"]) {
@@ -558,5 +723,18 @@ export class RustAutofillCreditCardsAdapter extends RustAutofillAdapterBase {
     }
     exported["cc-number"] = number;
     return exported;
+  }
+
+  /**
+   * The store's bridged sync engine, driven through mozIBridgedSyncEngine.
+   *
+   * This is how the Rust store syncs: change detection and reconciliation
+   * happen inside Rust, so none of the per-record sync methods on the JSON
+   * collection have a counterpart here. BridgedCreditCardsEngine drives it.
+   *
+   * @returns {Promise<CreditCardsBridgedEngine>}
+   */
+  async bridgedEngine() {
+    return (await this._store()).creditCardsBridgedEngine();
   }
 }

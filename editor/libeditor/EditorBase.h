@@ -185,6 +185,12 @@ class EditorBase : public nsIEditor,
   }
 
   /**
+   * Like GetSelection(), but returns null for non-normal selections that
+   * weren't created yet instead of creating them.
+   */
+  Selection* GetExistingSelection(SelectionType aSelectionType) const;
+
+  /**
    * Get frame selection from SelectionRef(), but returns null
    * for canvas-based EditContext, where we don't want to touch
    * the DOM selection (since it may be in accessible content.)
@@ -335,10 +341,14 @@ class EditorBase : public nsIEditor,
    * Return true if it's possible to undo/redo right now.
    */
   bool CanUndo() const {
-    return IsUndoRedoEnabled() && NumberOfUndoItems() > 0;
+    // We should always allow undo/redo for EditContext, since the
+    // history is managed by the web app.
+    return (IsUndoRedoEnabled() && NumberOfUndoItems() > 0) ||
+           ComputeEditContext();
   }
   bool CanRedo() const {
-    return IsUndoRedoEnabled() && NumberOfRedoItems() > 0;
+    return (IsUndoRedoEnabled() && NumberOfRedoItems() > 0) ||
+           ComputeEditContext();
   }
 
   /**

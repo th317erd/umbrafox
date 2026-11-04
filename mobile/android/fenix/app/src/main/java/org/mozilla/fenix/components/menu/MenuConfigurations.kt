@@ -9,6 +9,7 @@ import org.mozilla.fenix.components.menu.FenixMenuItem.AddToHomeScreen
 import org.mozilla.fenix.components.menu.FenixMenuItem.Back
 import org.mozilla.fenix.components.menu.FenixMenuItem.Bookmark
 import org.mozilla.fenix.components.menu.FenixMenuItem.Bookmarks
+import org.mozilla.fenix.components.menu.FenixMenuItem.CustomTabAppItems
 import org.mozilla.fenix.components.menu.FenixMenuItem.CustomizeHomepage
 import org.mozilla.fenix.components.menu.FenixMenuItem.CustomizeReaderView
 import org.mozilla.fenix.components.menu.FenixMenuItem.DefaultBrowserBanner
@@ -23,6 +24,7 @@ import org.mozilla.fenix.components.menu.FenixMenuItem.More
 import org.mozilla.fenix.components.menu.FenixMenuItem.MoveToNormalTabs
 import org.mozilla.fenix.components.menu.FenixMenuItem.MozillaAccount
 import org.mozilla.fenix.components.menu.FenixMenuItem.OpenInApp
+import org.mozilla.fenix.components.menu.FenixMenuItem.OpenInFirefox
 import org.mozilla.fenix.components.menu.FenixMenuItem.Passwords
 import org.mozilla.fenix.components.menu.FenixMenuItem.Print
 import org.mozilla.fenix.components.menu.FenixMenuItem.Quit
@@ -48,11 +50,20 @@ object MenuConfigurations {
     @VisibleForTesting internal val BROWSER_MENU_GROUP_5_ID = "browser_group_5"
     @VisibleForTesting internal val BROWSER_MENU_GROUP_6_ID = "browser_group_6"
     @VisibleForTesting internal val HOME_MENU_GROUP_1_ID = "home_group_1"
+    @VisibleForTesting internal val CUSTOM_TAB_MENU_NAVIGATION_ID = "custom_tab_navigation"
+    @VisibleForTesting internal val CUSTOM_TAB_MENU_GROUP_1_ID = "custom_tab_group_1"
+    @VisibleForTesting internal val CUSTOM_TAB_MENU_GROUP_2_ID = "custom_tab_group_2"
     @VisibleForTesting internal val HOME_MENU_GROUP_2_ID = "home_group_2"
     @VisibleForTesting internal val HOME_MENU_GROUP_3_ID = "home_group_3"
     @VisibleForTesting internal val HOME_MENU_GROUP_4_ID = "home_group_4"
     @VisibleForTesting internal val HOME_MENU_GROUP_5_ID = "home_group_5"
     @VisibleForTesting internal val HOME_MENU_GROUP_6_ID = "home_group_6"
+    @VisibleForTesting internal val CUSTOMIZE_MENU_NAVIGATION_ID = "customize_menu_navigation"
+    @VisibleForTesting internal val CUSTOMIZE_MENU_GROUP_2_ID = "customize_menu_group_2"
+    @VisibleForTesting internal val CUSTOMIZE_MENU_GROUP_3_ID = "customize_menu_group_3"
+    @VisibleForTesting internal val CUSTOMIZE_MENU_GROUP_4_ID = "customize_menu_group_4"
+    @VisibleForTesting internal val CUSTOMIZE_MENU_GROUP_5_ID = "customize_menu_group_5"
+    @VisibleForTesting internal val CUSTOMIZE_MENU_GROUP_6_ID = "customize_menu_group_6"
 
     /** The menu shown while browsing. */
     fun browser(
@@ -122,6 +133,51 @@ object MenuConfigurations {
         return if (isToolbarAtBottom || isExpandedToolbarEnabled) rest + navSection else listOf(navSection) + rest
     }
 
+    /** The menu shown on the customize menu screen. */
+    fun customizeMenu(): List<MenuSectionConfiguration> =
+        listOf(
+            MenuSectionConfiguration(
+                id = CUSTOMIZE_MENU_NAVIGATION_ID,
+                presentationMode = Grid,
+                items = listOf(Back, Forward, Share, Refresh),
+                isSticky = true,
+            ),
+            MenuSectionConfiguration(
+                id = CUSTOMIZE_MENU_GROUP_2_ID,
+                presentationMode = Row,
+                items = listOf(IPProtection),
+            ),
+            MenuSectionConfiguration(
+                id = CUSTOMIZE_MENU_GROUP_3_ID,
+                presentationMode = Row,
+                items =
+                    listOf(
+                        Bookmark,
+                        FindInPage,
+                        DesktopSite,
+                        Translate,
+                        SummarizePage,
+                    ),
+            ),
+            MenuSectionConfiguration(
+                id = CUSTOMIZE_MENU_GROUP_4_ID,
+                presentationMode = Grid,
+                items = listOf(History, Bookmarks, Downloads, Passwords),
+            ),
+            MenuSectionConfiguration(
+                id = CUSTOMIZE_MENU_GROUP_5_ID,
+                presentationMode = Row,
+                items = listOf(MozillaAccount, Settings),
+                isDisabled = true,
+            ),
+            MenuSectionConfiguration(
+                id = CUSTOMIZE_MENU_GROUP_6_ID,
+                presentationMode = Row,
+                items = listOf(AddToHomeScreen, SaveToCollection),
+                isHidden = true,
+            ),
+        )
+
     /** The menu shown on the home screen. */
     fun home(): List<MenuSectionConfiguration> =
         listOf(
@@ -158,5 +214,39 @@ object MenuConfigurations {
         )
 
     /** The menu shown in custom tabs. */
-    fun customTab(): List<MenuSectionConfiguration> = emptyList()
+    fun customTab(
+        isToolbarAtBottom: Boolean,
+        shouldShowExtensions: Boolean,
+    ): List<MenuSectionConfiguration> {
+        val navSection =
+            MenuSectionConfiguration(
+                id = CUSTOM_TAB_MENU_NAVIGATION_ID,
+                presentationMode = Grid,
+                items = listOf(Back, Forward, Share, Refresh),
+                isSticky = true,
+            )
+        val rest =
+            listOf(
+                MenuSectionConfiguration(
+                    id = CUSTOM_TAB_MENU_GROUP_1_ID,
+                    presentationMode = Row,
+                    items =
+                        listOfNotNull(
+                            OpenInFirefox,
+                            Bookmark,
+                            FindInPage,
+                            DesktopSite,
+                            if (shouldShowExtensions) Extensions else null,
+                            Translate,
+                            SummarizePage,
+                        ),
+                ),
+                MenuSectionConfiguration(
+                    id = CUSTOM_TAB_MENU_GROUP_2_ID,
+                    presentationMode = Row,
+                    items = listOf(CustomTabAppItems),
+                ),
+            )
+        return if (isToolbarAtBottom) rest + navSection else listOf(navSection) + rest
+    }
 }

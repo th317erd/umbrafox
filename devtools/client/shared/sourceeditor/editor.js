@@ -4105,7 +4105,11 @@ class Editor extends EventEmitter {
   getEditorFileMode() {
     const cm = editors.get(this);
     if (this.config.cm6) {
-      return cm.contentDOM.dataset.language;
+      const {
+        codemirrorLanguage: { language },
+      } = this.#CodeMirror6;
+
+      return cm.state.facet(language)?.name;
     }
     return cm.getOption("mode").name;
   }

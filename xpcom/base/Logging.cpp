@@ -240,7 +240,7 @@ bool LimitFileToLessThanSize(const char* aFilename, uint32_t aSize,
 
     // `fgets` always null terminates.  If the line is too long, it won't
     // include a trailing '\n' but will be null-terminated.
-    UniquePtr<char[]> line = MakeUnique<char[]>(aLongLineSize + 1);
+    auto line = std::make_unique<char[]>(aLongLineSize + 1);
     while (fgets(line.get(), aLongLineSize + 1, file.get())) {
       if (numBytesDropped >= minBytesToDrop) {
         if (fputs(line.get(), temp.get()) < 0) {
@@ -538,17 +538,20 @@ class LogModuleManager {
       return;
     }
 
-    const char* filename = aFilename ? aFilename : "";
-    char buf[2048];
-    filename = detail::ExpandLogFileName(filename, buf);
-
     // Can't use rotate or maxsize at runtime yet.
     MOZ_ASSERT(mRotate == 0,
                "We don't allow rotate for runtime logfile changes");
-    mOutFilePath.reset(strdup(filename));
+
+    detail::LogFile* newFile = nullptr;
+    if (aFilename) {
+      char buf[2048];
+      mOutFilePath.reset(strdup(detail::ExpandLogFileName(aFilename, buf)));
+      newFile = OpenFile(false, 0);
+    } else {
+      mOutFilePath.reset(strdup(""));
+    }
 
     // Exchange mOutFile and set it to be released once all the writes are done.
-    detail::LogFile* newFile = OpenFile(false, 0);
     detail::LogFile* oldFile = mOutFile.exchange(newFile);
 
     // Since we don't allow changing the logfile if MOZ_LOG_FILE is already set,
@@ -660,7 +663,7 @@ class LogModuleManager {
 
     // We may have maxed out, allocate a buffer and re-format
     if (charsWritten >= kBuffSize) {
-      allocatedBuff = MakeUnique<char[]>(charsWritten + 1);  // + final \0
+      allocatedBuff = std::make_unique<char[]>(charsWritten + 1);  // + final \0
       auto [out, size] =
           fmt::vformat_to_n(allocatedBuff.get(), charsWritten, aFmt, aArgs);
       MOZ_ASSERT(size == charsWritten);
@@ -874,13 +877,6 @@ class LogModuleManager {
       // only once on one thread.
       detail::LogFile* release = mToReleaseFile.exchange(nullptr);
       delete release;
-    }
-  }
-
-  void DisableModules() {
-    OffTheBooksMutexAutoLock guard(mModulesLock);
-    for (auto& m : mModules) {
-      (*(m.GetModifiableData()))->SetLevel(LogLevel::Disabled);
     }
   }
 

@@ -7,6 +7,7 @@
 
 #include "GLContextTypes.h"
 #include "ImageContainer.h"
+#include "Units.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/RefPtr.h"
@@ -38,6 +39,11 @@ class OffscreenCanvasDisplayHelper final {
  public:
   explicit OffscreenCanvasDisplayHelper(HTMLCanvasElement* aCanvasElement,
                                         uint32_t aWidth, uint32_t aHeight);
+
+  CSSIntSize GetPlaceholderSize() const {
+    MOZ_ASSERT(NS_IsMainThread());
+    return mPlaceholderSize;
+  }
 
   CanvasContextType GetContextType() const;
 
@@ -89,11 +95,15 @@ class OffscreenCanvasDisplayHelper final {
  private:
   ~OffscreenCanvasDisplayHelper();
   void MaybeQueueInvalidateElement() MOZ_REQUIRES(mMutex);
+  already_AddRefed<OffscreenCanvas> GetCanvasForWorker(WorkerPrivate* aWorker);
   void InvalidateElement();
 
   already_AddRefed<gfx::SourceSurface> TransformSurface(
       gfx::SourceSurface* aSurface, bool aHasAlpha, bool aIsAlphaPremult,
       gl::OriginPos aOriginPos) const;
+
+  // Main-thread-only size used for placeholder layout.
+  CSSIntSize mPlaceholderSize;
 
   mutable Mutex mMutex;
   HTMLCanvasElement* MOZ_NON_OWNING_REF mCanvasElement MOZ_GUARDED_BY(mMutex);
@@ -115,6 +125,8 @@ class OffscreenCanvasDisplayHelper final {
   bool mPendingPresent MOZ_GUARDED_BY(mMutex) = false;
   bool mIsWriteOnly MOZ_GUARDED_BY(mMutex) = false;
   RefPtr<nsIPrincipal> mExpandedReader MOZ_GUARDED_BY(mMutex);
+  bool mCreatedOnMainThread MOZ_GUARDED_BY(mMutex) = false;
+  bool mCreatedOnWorker MOZ_GUARDED_BY(mMutex) = false;
 };
 
 }  // namespace mozilla::dom

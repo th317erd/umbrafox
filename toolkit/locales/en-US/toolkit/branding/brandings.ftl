@@ -28,7 +28,7 @@
 -relay-brand-name = Umbrafox Relay
 -relay-brand-short-name = Relay
 -fakespot-brand-name = Fakespot
--solo-ai-brand-name = Solo
+-firefox-enterprise-brand-name = Firefox Enterprise
 -thunderbird-brand-name = Mozilla Thunderbird
 -thunderbird-brand-short-name = Thunderbird
 -mdn-brand-name = MDN Web Docs
