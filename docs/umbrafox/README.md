@@ -44,6 +44,7 @@ controls without adding a default website-visible Umbrafox fingerprint.
 - [Maintainers](maintainers/README.md) — verified state, gaps, and rebase hazards.
 - [Roadmap](roadmap/README.md) — active or proposed work linked from preserved plans.
 - [Campaign report](reports/documentation-campaign-2026-10-27.md) — documentation scope and verification evidence.
+- [Parked WebRender experiments](experiments/README.md) — single-image opacity and external-YUV scanout: not in the product, not proven, preserved for a deliberate revival.
 - [Stabilization status](reports/2026-10-28-stabilization-status.md) — what the campaign proved and what remains unproven.
 - [T4 compile proof](reports/2026-10-28-t4-compile-proof.md) — V4L2-M2M decode: objects compile, nothing linked or run.
 

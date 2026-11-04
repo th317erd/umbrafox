@@ -1,0 +1,13 @@
+diff --git a/gfx/wr/webrender/src/scene_debug.rs b/gfx/wr/webrender/src/scene_debug.rs
+index 954674612d5f..0d8f7ffac83b 100644
+--- a/gfx/wr/webrender/src/scene_debug.rs
++++ b/gfx/wr/webrender/src/scene_debug.rs
+@@ -261,7 +261,7 @@ impl<'a> TreeWalker<'a> {
+                 color = Some(data.resolve(self.scene_properties));
+                 ("Rectangle", String::new(), None, Vec::new())
+             }
+-            PrimitiveKind::Image { data_handle } => {
++            PrimitiveKind::Image { data_handle, .. } => {
+                 let data = &data_stores.image[data_handle];
+                 ("Image", format!("{:?}", data.kind.key), None, Vec::new())
+             }

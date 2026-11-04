@@ -1,0 +1,17 @@
+diff --git a/gfx/wr/webrender/src/prim_store/mod.rs b/gfx/wr/webrender/src/prim_store/mod.rs
+index 54ec9bf4d062..824385ca0f46 100644
+--- a/gfx/wr/webrender/src/prim_store/mod.rs
++++ b/gfx/wr/webrender/src/prim_store/mod.rs
+@@ -239,6 +239,7 @@ pub enum PrimitiveKind {
+     Image {
+         /// Handle to the common interned data for this primitive.
+         data_handle: ImageDataHandle,
++        opacity: f32,
+     },
+     LinearGradient {
+         /// Handle to the common interned data for this primitive.
+@@ -947,4 +948,3 @@ fn test_struct_sizes() {
+     assert_eq!(mem::size_of::<PrimitiveInstance>(), 20, "PrimitiveInstance size changed");
+     assert_eq!(mem::size_of::<PrimitiveKind>(), 16, "PrimitiveKind size changed");
+ }
+-
