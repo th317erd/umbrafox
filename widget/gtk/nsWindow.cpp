@@ -3234,12 +3234,7 @@ void nsWindow::OnContainerFocusOutEvent(GdkEventFocus* aEvent) {
     }();
 
     if (shouldRollupMenus) {
-      // Focus changes caused by native key handling, such as window manager
-      // processing of Alt+F4 variants, should not close browser panels.
-      // Menus still need to roll up on focus-out.
-      if (RefPtr pm = nsXULPopupManager::GetInstance()) {
-        pm->RollupMenusOnly();
-      }
+      RollupAllMenus();
     }
 
     if (RefPtr pm = nsXULPopupManager::GetInstance()) {
@@ -7505,13 +7500,12 @@ void nsWindow::SetDragSource(GdkDragContext* aSourceDragContext) {
   }
 }
 
-UniquePtr<WaylandSurfaceLock> nsWindow::LockSurface(bool aSkipCommit) {
+UniquePtr<WaylandSurfaceLock> nsWindow::LockSurface() {
 #ifdef MOZ_WAYLAND
   if (mIsDestroyed || !mSurface) {
     return nullptr;
   }
-  return std::make_unique<WaylandSurfaceLock>(MOZ_WL_SURFACE(mContainer),
-                                                      aSkipCommit);
+  return std::make_unique<WaylandSurfaceLock>(MOZ_WL_SURFACE(mContainer));
 #else
   return nullptr;
 #endif

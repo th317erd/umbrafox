@@ -8672,12 +8672,6 @@
   mirror: once
 #endif
 
-- name: gfx.webrender.single-image-opacity.enabled
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-  rust: true
-
 - name: gfx.webrender.debug.highlight-painted-layers
   type: RelaxedAtomicBool
   value: false
@@ -8775,11 +8769,6 @@
   mirror: once
 
 - name: gfx.webrender.compositor.force-enabled
-  type: bool
-  value: false
-  mirror: once
-
-- name: gfx.webrender.compositor.external-surfaces-in-draw
   type: bool
   value: false
   mirror: once

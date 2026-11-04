@@ -17,7 +17,6 @@ class DMABufSurfaceRGBA;
 
 namespace mozilla::wr {
 class RenderDMABUFTextureHost;
-class RenderTextureHost;
 }  // namespace mozilla::wr
 
 namespace mozilla::widget {
@@ -65,15 +64,6 @@ class NativeLayerRootWayland final : public NativeLayerRoot {
  public:
   static already_AddRefed<NativeLayerRootWayland> Create(
       RefPtr<widget::WaylandSurface> aWaylandSurface);
-  static already_AddRefed<NativeLayerRootWayland> CreateForEGL(
-      widget::WaylandSurfaceLock& aProofOfLock);
-
-  // The caller retains the root lock through EGL swap or frame cancellation.
-  bool PrepareForEGL(widget::WaylandSurfaceLock& aProofOfLock,
-                     wr::RenderTextureHost* aExternalImage,
-                     const gfx::IntSize& aSize);
-  void ClearForEGL(widget::WaylandSurfaceLock& aProofOfLock);
-  void ShutdownForEGL(widget::WaylandSurfaceLock& aProofOfLock);
 
   // Overridden methods
   NativeLayerRootWayland* AsNativeLayerRootWayland() override { return this; }
@@ -121,7 +111,7 @@ class NativeLayerRootWayland final : public NativeLayerRoot {
       const widget::WaylandSurfaceLock& aProofOfLock);
 
   explicit NativeLayerRootWayland(
-      RefPtr<widget::WaylandSurface> aWaylandSurface, bool aForEGL = false);
+      RefPtr<widget::WaylandSurface> aWaylandSurface);
 
   void NotifyFullscreenChanged(bool aIsFullscreen) {
     mIsFullscreen = aIsFullscreen;
@@ -160,8 +150,6 @@ class NativeLayerRootWayland final : public NativeLayerRoot {
   // We also use widget::WaylandSurfaceLock for locking whole layer for
   // read/write.
   RefPtr<widget::WaylandSurface> mRootSurface;
-  const bool mForEGL;
-  RefPtr<NativeLayerWaylandExternal> mEGLExternalLayer;
 
   // Copy of DRM format we use to create DMABuf surfaces
   Atomic<widget::DRMFormat*> mDRMFormat{nullptr};
@@ -396,8 +384,6 @@ class NativeLayerWaylandRender final : public NativeLayerWayland {
 };
 
 class NativeLayerWaylandExternal final : public NativeLayerWayland {
-  friend class NativeLayerRootWayland;
-
  public:
   // Overridden methods
   NativeLayerWaylandExternal* AsNativeLayerWaylandExternal() override {
@@ -422,13 +408,6 @@ class NativeLayerWaylandExternal final : public NativeLayerWayland {
  private:
   ~NativeLayerWaylandExternal() override;
 
-  bool PrepareForEGL(widget::WaylandSurfaceLock& aParentProofOfLock,
-                     wr::RenderTextureHost* aExternalImage,
-                     const gfx::IntSize& aSize);
-  void HideForEGL();
-  void ClearForEGL();
-  void HideForEGLLocked(const widget::WaylandSurfaceLock& aProofOfLock);
-
   void DiscardBackbuffersLocked(const widget::WaylandSurfaceLock& aProofOfLock,
                                 bool aForce) override;
   void FreeUnusedBackBuffers();
@@ -437,7 +416,6 @@ class NativeLayerWaylandExternal final : public NativeLayerWayland {
 
   uintptr_t mLastSurface = 0;
   RefPtr<wr::RenderTextureHost> mTextureHost;
-  uint32_t mEGLChromaLocation = 0;
 };
 
 class NativeLayerRootSnapshotterWayland final

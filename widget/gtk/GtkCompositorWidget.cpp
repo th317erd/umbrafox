@@ -185,9 +185,8 @@ bool GtkCompositorWidget::IsPopup() {
 }
 #endif
 
-UniquePtr<WaylandSurfaceLock> GtkCompositorWidget::LockSurface(
-    bool aSkipCommit) {
-  return mWidget ? mWidget->LockSurface(aSkipCommit) : nullptr;
+UniquePtr<WaylandSurfaceLock> GtkCompositorWidget::LockSurface() {
+  return mWidget ? mWidget->LockSurface() : nullptr;
 }
 
 }  // namespace widget

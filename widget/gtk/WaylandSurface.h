@@ -21,10 +21,6 @@ struct wl_egl_window;
 
 class MessageLoop;
 
-namespace mozilla::layers {
-class NativeLayerRootWayland;
-}
-
 namespace mozilla::widget {
 
 class WaylandBuffer;
@@ -92,12 +88,6 @@ class WaylandSurface final {
 
   wl_egl_window* GetEGLWindow(DesktopIntSize aSize);
   bool HasEGLWindow() const { return !!mEGLWindow; }
-
-  void SetEGLExternalRootLocked(const WaylandSurfaceLock& aProofOfLock,
-                                layers::NativeLayerRootWayland* aRoot);
-  void SetEGLVSyncSourceLocked(const WaylandSurfaceLock& aProofOfLock,
-                               RefPtr<WaylandSurface> aSource);
-  void NotifyEGLSwapLocked(const WaylandSurfaceLock& aProofOfLock);
 
   // Set WaylandSurface target size (viewport & ELG surface if it's present).
   void SetSize(DesktopIntSize aSize);
@@ -218,7 +208,6 @@ class WaylandSurface final {
   void SetOpaqueRegionLocked(const WaylandSurfaceLock& aProofOfLock,
                              const gfx::IntRegion& aRegion);
   void SetOpaqueLocked(const WaylandSurfaceLock& aProofOfLock);
-  void SetOpaqueForEGLLocked(const WaylandSurfaceLock& aProofOfLock);
   void ClearOpaqueRegionLocked(const WaylandSurfaceLock& aProofOfLock);
   void OpaqueCallbackHandler();
 
@@ -388,12 +377,6 @@ class WaylandSurface final {
 
  private:
   ~WaylandSurface();
-
-  // Non-owning; the external root unregisters under our mutex before release.
-  layers::NativeLayerRootWayland* mEGLExternalRoot = nullptr;
-  RefPtr<WaylandSurface> mEGLVSyncSource;
-  uint64_t mEGLVSyncGeneration = 0;
-  void EGLVSyncCallbackHandler(uint64_t aGeneration, uint32_t aTime);
 
   bool MapLocked(const WaylandSurfaceLock& aProofOfLock,
                  wl_surface* aParentWLSurface,

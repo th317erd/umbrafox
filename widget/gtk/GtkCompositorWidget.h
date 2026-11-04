@@ -87,7 +87,7 @@ class GtkCompositorWidget : public CompositorWidget,
   void NotifyClientSizeChanged(const LayoutDeviceIntSize& aClientSize) override;
   void NotifyFullscreenChanged(bool aIsFullscreen) override;
 
-  UniquePtr<WaylandSurfaceLock> LockSurface(bool aSkipCommit = false);
+  UniquePtr<WaylandSurfaceLock> LockSurface();
 
  private:
 #if defined(MOZ_WAYLAND)

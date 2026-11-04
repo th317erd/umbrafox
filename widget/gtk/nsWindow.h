@@ -512,8 +512,7 @@ class nsWindow : public nsIWidget {
 
   static nsWindow* GetFocusedWindow();
 
-  mozilla::UniquePtr<mozilla::widget::WaylandSurfaceLock> LockSurface(
-      bool aSkipCommit = false);
+  mozilla::UniquePtr<mozilla::widget::WaylandSurfaceLock> LockSurface();
 
   void NotifyOcclusionState(mozilla::widget::OcclusionState aState) override;
 

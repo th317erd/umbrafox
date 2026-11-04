@@ -218,7 +218,6 @@ pub struct WebRenderOptions {
     /// If true, stream instance data into large buffers shared by multiple
     /// draws, rather than allocating a new instance buffer for each draw.
     pub enable_shared_instance_buffer: bool,
-    pub enable_single_image_opacity: bool,
     /// If true, we'll reject contexts backed by a software rasterizer, except
     /// Software WebRender.
     pub reject_software_rasterizer: bool,
@@ -304,7 +303,6 @@ impl Default for WebRenderOptions {
             // process by the vertex shaders.
             enable_instancing: true,
             enable_shared_instance_buffer: false,
-            enable_single_image_opacity: false,
             reject_software_rasterizer: false,
             low_quality_pinch_zoom: false,
             max_shared_surface_size: 2048,
@@ -591,7 +589,6 @@ pub fn create_webrender_instance(
         low_quality_pinch_zoom: options.low_quality_pinch_zoom,
         max_shared_surface_size: options.max_shared_surface_size,
         enable_dithering: options.enable_dithering,
-        enable_single_image_opacity: options.enable_single_image_opacity,
         enable_yuv_overlay_stability: options.enable_yuv_overlay_stability,
     };
     info!("WR {:?}", config);
@@ -768,10 +765,6 @@ pub fn create_webrender_instance(
         path_aa_samples: if cfg!(target_os = "android") { 4 } else { 8 },
         profile: TransactionProfile::new(),
         frame_counter: 0,
-        #[cfg(feature = "umbra-perf-probes")]
-        sampling_search: super::sampling::Search::default(),
-        #[cfg(feature = "umbra-perf-probes")]
-        sampling_trace: None,
         resource_upload_time: 0.0,
         profiler: Profiler::new(),
         max_recorded_profiles: options.max_recorded_profiles,

@@ -13,13 +13,6 @@
 
 namespace mozilla {
 
-namespace layers {
-class NativeLayerRootWayland;
-}
-namespace widget {
-class WaylandSurfaceLock;
-}
-
 namespace wr {
 
 class RenderCompositorEGL : public RenderCompositor {
@@ -32,7 +25,6 @@ class RenderCompositorEGL : public RenderCompositor {
   virtual ~RenderCompositorEGL();
 
   bool BeginFrame() override;
-  void CancelFrame() override;
   RenderedFrameId EndFrame(const nsTArray<DeviceIntRect>& aDirtyRects) final;
   void Pause() override;
   bool Resume() override;
@@ -41,10 +33,6 @@ class RenderCompositorEGL : public RenderCompositor {
   gl::GLContext* gl() const override { return mGL; }
 
   bool MakeCurrent() override;
-
-  bool SupportsDrawExternalSurface() const override;
-  bool PrepareDrawExternalSurface(const wr::DrawExternalSurface*) override;
-  bool EnableAsyncScreenshot() override;
 
   bool UseANGLE() const override { return false; }
 
@@ -75,16 +63,6 @@ class RenderCompositorEGL : public RenderCompositor {
   void DestroyEGLSurface();
 
   RefPtr<gl::GLContext> mGL;
-
-#ifdef MOZ_WAYLAND
-  RefPtr<layers::NativeLayerRootWayland> mDrawExternalRoot;
-  UniquePtr<widget::WaylandSurfaceLock> mDrawExternalLock;
-#endif
-  bool mDrawExternalEnabled = false;
-  bool mDrawExternalActive = false;
-  bool mDrawExternalReadback = false;
-  bool mDrawFrameInProgress = false;
-  bool mDrawExternalPrepared = false;
 
   EGLSurface mEGLSurface;
 

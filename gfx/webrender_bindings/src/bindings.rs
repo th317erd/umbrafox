@@ -30,7 +30,6 @@ use std::{env, mem, ptr, slice};
 use thin_vec::ThinVec;
 use webrender::glyph_rasterizer::{GlyphRasterThread, SharedFontResources};
 use webrender::ChunkPool;
-use webrender::{DrawExternalCompositor, DrawExternalSurface};
 
 use euclid::SideOffsets2D;
 use moz2d_renderer::Moz2dBlobImageHandler;
@@ -1017,12 +1016,6 @@ impl ProfilerHooks for GeckoProfilerHooks {
     fn thread_is_being_profiled(&self) -> bool {
         unsafe { gecko_profiler_thread_is_being_profiled() }
     }
-
-    #[cfg(feature = "umbra-perf-probes")]
-    fn umbra_markers_enabled(&self) -> bool {
-        self.thread_is_being_profiled()
-            && gecko_profiler::current_thread_is_being_profiled_for_markers()
-    }
 }
 
 static PROFILER_HOOKS: GeckoProfilerHooks = GeckoProfilerHooks {};
@@ -1314,7 +1307,6 @@ fn placeholder_frame_builder_config() -> FrameBuilderConfig {
         low_quality_pinch_zoom: false,
         max_shared_surface_size: 4096,
         enable_dithering: false,
-        enable_single_image_opacity: false,
         enable_yuv_overlay_stability: false,
     }
 }
@@ -1466,10 +1458,6 @@ extern "C" {
         tile_size: DeviceIntSize,
         is_opaque: bool,
     );
-    fn wr_compositor_prepare_draw_external_surface(
-        compositor: *mut c_void,
-        surface: Option<&DrawExternalSurface>,
-    ) -> bool;
     fn wr_compositor_create_swapchain_surface(
         compositor: *mut c_void,
         id: NativeSurfaceId,
@@ -1797,14 +1785,6 @@ impl MappableCompositor for WrCompositor {
     }
 }
 
-struct WrDrawExternalCompositor(*mut c_void);
-
-impl DrawExternalCompositor for WrDrawExternalCompositor {
-    fn prepare(&mut self, surface: Option<&DrawExternalSurface>) -> bool {
-        unsafe { wr_compositor_prepare_draw_external_surface(self.0, surface) }
-    }
-}
-
 pub struct WrPartialPresentCompositor(*mut c_void);
 
 impl PartialPresentCompositor for WrPartialPresentCompositor {
@@ -1897,7 +1877,6 @@ pub extern "C" fn wr_window_new(
     enable_subpixel_aa: bool,
     use_layer_compositor: bool,
     limit_sdr_yuv_external_composites: bool,
-    use_draw_external_compositor: bool,
 ) -> bool {
     assert!(unsafe { is_in_render_thread() });
 
@@ -1976,11 +1955,6 @@ pub extern "C" fn wr_window_new(
         CompositorConfig::Draw {
             max_partial_present_rects,
             draw_previous_partial_present_regions,
-            external_compositor: if use_draw_external_compositor {
-                Some(Box::new(WrDrawExternalCompositor(compositor)))
-            } else {
-                None
-            },
             partial_present: if use_partial_present {
                 Some(Box::new(WrPartialPresentCompositor(compositor)))
             } else {
@@ -2088,7 +2062,6 @@ pub extern "C" fn wr_window_new(
         enable_yuv_overlay_stability,
         limit_sdr_yuv_external_composites,
         enable_shared_instance_buffer,
-        enable_single_image_opacity: static_prefs::pref!("gfx.webrender.single-image-opacity.enabled"),
         ..Default::default()
     };
 
